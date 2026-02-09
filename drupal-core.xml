@@ -5,6 +5,66 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3569328: Modernize locale.translations.inc</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569328.md</link>
+      <guid isPermaLink="false">drupal-core-3569328</guid>
+      <pubDate>Mon, 09 Feb 2026 12:48:45 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b4ee668cf880648bf747a5a597bc5a446bf5c2d7"&gt;b4ee668&lt;/a&gt; · +1088/-376 production · +18/-20 test · 38 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569328"&gt;#3569328&lt;/a&gt; · 4 contributors · 37 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Locale module now uses modern services instead of procedural functions in its translation management system. Functions that handled translation source files, project data, and update options have been reorganized into reusable service classes. This change reduces circular dependencies in the module and makes the code easier to maintain. Site owners who use the Locale module should see no visible changes in functionality.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Functions &lt;code&gt;locale_translation_get_projects()&lt;/code&gt;, &lt;code&gt;locale_translation_clear_cache_projects()&lt;/code&gt;, &lt;code&gt;locale_translation_load_sources()&lt;/code&gt;, &lt;code&gt;locale_translation_build_sources()&lt;/code&gt;, &lt;code&gt;locale_translation_source_check_file()&lt;/code&gt;, &lt;code&gt;locale_translation_source_build()&lt;/code&gt;, &lt;code&gt;locale_translation_build_server_pattern()&lt;/code&gt;, &lt;code&gt;locale_cron_fill_queue()&lt;/code&gt;, &lt;code&gt;_locale_translation_file_is_remote()&lt;/code&gt;, &lt;code&gt;_locale_translation_source_compare()&lt;/code&gt;, and &lt;code&gt;_locale_translation_default_update_options()&lt;/code&gt; deprecated. Constants &lt;code&gt;LOCALE_TRANSLATION_SOURCE_COMPARE_LT&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_SOURCE_COMPARE_EQ&lt;/code&gt;, and &lt;code&gt;LOCALE_TRANSLATION_SOURCE_COMPARE_GT&lt;/code&gt; deprecated without replacement. File &lt;code&gt;locale.translation.inc&lt;/code&gt; deprecated.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;LocaleSource&lt;/code&gt; service and &lt;code&gt;LocaleDefaultOptions&lt;/code&gt; class; new &lt;code&gt;LocaleProjectStorageInterface::getProjects()&lt;/code&gt; method.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue converted 11 procedural functions from &lt;code&gt;locale.translation.inc&lt;/code&gt; into service-based architecture. The main changes organize code into three areas. First, a new &lt;code&gt;LocaleSource&lt;/code&gt; service encapsulates functions related to building and checking translation source files: &lt;code&gt;loadSources()&lt;/code&gt;, &lt;code&gt;buildSources()&lt;/code&gt;, &lt;code&gt;sourceCheckFile()&lt;/code&gt;, &lt;code&gt;sourceBuild()&lt;/code&gt;, and &lt;code&gt;buildServerPattern()&lt;/code&gt;. Second, the existing &lt;code&gt;LocaleProjectStorage&lt;/code&gt; service gained a new &lt;code&gt;getProjects()&lt;/code&gt; method that replaces &lt;code&gt;locale_translation_get_projects()&lt;/code&gt; and handles its own caching through a &lt;code&gt;$projectCache&lt;/code&gt; property. Third, a new &lt;code&gt;LocaleDefaultOptions&lt;/code&gt; class provides a static &lt;code&gt;updateOptions()&lt;/code&gt; method for translation import settings.&lt;/p&gt;
+&lt;p&gt;The cron queue population logic from &lt;code&gt;locale_cron_fill_queue()&lt;/code&gt; moved directly into &lt;code&gt;LocaleHooks::cron()&lt;/code&gt;. The function &lt;code&gt;_locale_translation_source_compare()&lt;/code&gt; was inlined in &lt;code&gt;TranslationStatusForm::prepareUpdateData()&lt;/code&gt; as a simple timestamp comparison. Helper function &lt;code&gt;_locale_translation_file_is_remote()&lt;/code&gt; became a protected method in &lt;code&gt;LocaleSource&lt;/code&gt;. Three comparison constants (&lt;code&gt;LOCALE_TRANSLATION_SOURCE_COMPARE_LT&lt;/code&gt;, &lt;code&gt;EQ&lt;/code&gt;, &lt;code&gt;GT&lt;/code&gt;) were deprecated without replacement since they are only used in the inlined comparison logic.&lt;/p&gt;
+&lt;p&gt;All deprecated functions now trigger deprecation errors and proxy to the new service methods. The deprecated functions targeting removal in 12.0.0 are prefixed with underscore (internal use). Functions in the public API target removal in 13.0.0. The entire &lt;code&gt;locale.translation.inc&lt;/code&gt; file triggers a deprecation notice when included. Calls to &lt;code&gt;drupal_static_reset('locale_translation_get_projects')&lt;/code&gt; now trigger deprecation and call &lt;code&gt;LocaleProjectStorage::resetCache()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;LocaleProjectStorage::resetCache()&lt;/code&gt; method now clears both the existing &lt;code&gt;$cache&lt;/code&gt; property and the new &lt;code&gt;$projectCache&lt;/code&gt; property. Multiple files that previously required &lt;code&gt;locale.translation.inc&lt;/code&gt; now use dependency injection or service locator calls instead.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Module maintainers who call deprecated functions should update to the new services:&lt;/p&gt;
+&lt;p&gt;Replace &lt;code&gt;locale_translation_get_projects()&lt;/code&gt; with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('locale.project')-&amp;gt;getProjects($project_names);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;locale_translation_clear_cache_projects()&lt;/code&gt; with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('locale.project')-&amp;gt;resetCache();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;locale_translation_build_sources()&lt;/code&gt; with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(LocaleSource::class)-&amp;gt;buildSources($projects, $langcodes);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;locale_translation_source_build()&lt;/code&gt; with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(LocaleSource::class)-&amp;gt;sourceBuild($project, $langcode, $filename);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;_locale_translation_default_update_options()&lt;/code&gt; with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;LocaleDefaultOptions::updateOptions();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;See the change record at https://www.drupal.org/node/3569330 for the complete list of replacements.&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: February 9, 2026 (16 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;The issue involved significant iteration on deprecation strategy. Contributors nicxvan and dcam collaborated through multiple rounds of manual testing to ensure translation downloads, remote checks, and language enabling all continued working correctly. Comment #22 from dcam noted an opportunity for simplification when reviewing constant usage, leading nicxvan to create a separate merge request. The decision evolved mid-issue on how to handle underscore-prefixed functions, with initial deletion replaced by deprecation following updated BC policy guidance. The final approach deprecated all functions in 11.4 but set different removal versions: 13.0.0 for public API and 12.0.0 for internal functions.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When refactoring procedural code spread across includes, consolidating all changes in a single pass reduces circular dependencies more effectively than incremental migrations. Address the entire include file at once when it sits at the bottom of the dependency chain. &lt;em&gt;(via nicxvan)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When reviewing large code migrations, use git diff with --color-moved=dimmed_zebra and --color-moved-ws=ignore-all-space to distinguish relocated code from modified code, making it easier to validate that behavior hasn't changed. &lt;em&gt;(via nicxvan)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When deprecating APIs, removal timing depends on visibility: public API functions target the next major after deprecation plus one (11.4 → 13), while internal underscore-prefixed functions target the next major (11.4 → 12). &lt;em&gt;(via nicxvan)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3569328"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3567616: Move _help_search_update to hook</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3567616.md</link>
       <guid isPermaLink="false">drupal-core-3567616</guid>
@@ -765,60 +825,6 @@ $handler = \Drupal::service('views.plugin_managers')-&amp;gt;get($handler_type)-
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3570713"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3554447: Use #attributes instead of #item_attributes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3554447.md</link>
-      <guid isPermaLink="false">drupal-core-3554447</guid>
-      <pubDate>Wed, 28 Jan 2026 17:23:19 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/54be71868702270bc11c781f2401b559dcc40153"&gt;54be718&lt;/a&gt; · +34/-24 production · +146/-6 test · 20 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3554447"&gt;#3554447&lt;/a&gt; · 5 contributors · 28 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's image and responsive image formatters now use the standard &lt;code&gt;#attributes&lt;/code&gt; property instead of the special-case &lt;code&gt;#item_attributes&lt;/code&gt; property. This change aligns these formatters with the rest of Drupal's render array system, where &lt;code&gt;#attributes&lt;/code&gt; is the expected way to pass HTML attributes to elements. The old property still works but triggers a deprecation warning and will be removed in Drupal 12.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;#item_attributes&lt;/code&gt; property in &lt;code&gt;image_formatter&lt;/code&gt; and &lt;code&gt;responsive_image_formatter&lt;/code&gt; theme hooks is deprecated in favor of &lt;code&gt;#attributes&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Most render arrays in Drupal use &lt;code&gt;#attributes&lt;/code&gt; to pass HTML attributes to theme functions, but the &lt;code&gt;image_formatter&lt;/code&gt; and &lt;code&gt;responsive_image_formatter&lt;/code&gt; theme hooks used &lt;code&gt;#item_attributes&lt;/code&gt; instead. This inconsistency created a special case that complicated the style utility API being developed in #3517033.&lt;/p&gt;
-&lt;p&gt;The change adds &lt;code&gt;#attributes&lt;/code&gt; as a new variable to the &lt;code&gt;image_formatter&lt;/code&gt; theme hook definition in &lt;code&gt;ImageThemeHooks::theme()&lt;/code&gt;. The &lt;code&gt;preprocessImageFormatter()&lt;/code&gt; method now checks for &lt;code&gt;#attributes&lt;/code&gt; first and falls back to &lt;code&gt;#item_attributes&lt;/code&gt; if not present. When &lt;code&gt;#item_attributes&lt;/code&gt; is used, a deprecation warning is triggered pointing to the change record.&lt;/p&gt;
-&lt;p&gt;Core's image and responsive image field formatters (&lt;code&gt;ImageFormatter&lt;/code&gt;, &lt;code&gt;ResponsiveImageFormatter&lt;/code&gt;, and &lt;code&gt;MediaThumbnailFormatter&lt;/code&gt;) now pass &lt;code&gt;#attributes&lt;/code&gt; instead of &lt;code&gt;#item_attributes&lt;/code&gt; when building render arrays. The responsive image formatter already had partial support for &lt;code&gt;#attributes&lt;/code&gt; from a previous fix in #3522087.&lt;/p&gt;
-&lt;p&gt;All documentation in docblocks has been updated to reference &lt;code&gt;#attributes&lt;/code&gt; instead of &lt;code&gt;#item_attributes&lt;/code&gt;. Test coverage was added to verify the deprecation warning fires correctly when the old property is used.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you have custom code that builds &lt;code&gt;image_formatter&lt;/code&gt; or &lt;code&gt;responsive_image_formatter&lt;/code&gt; render arrays, change &lt;code&gt;#item_attributes&lt;/code&gt; to &lt;code&gt;#attributes&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$element = [
-  '#theme' =&amp;gt; 'image_formatter',
-  '#item' =&amp;gt; $item,
-  '#item_attributes' =&amp;gt; ['class' =&amp;gt; ['my-class']],
-];
-
-// After:
-$element = [
-  '#theme' =&amp;gt; 'image_formatter',
-  '#item' =&amp;gt; $item,
-  '#attributes' =&amp;gt; ['class' =&amp;gt; ['my-class']],
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same applies to &lt;code&gt;responsive_image_formatter&lt;/code&gt;. Custom field formatters extending &lt;code&gt;ImageFormatter&lt;/code&gt; or &lt;code&gt;ResponsiveImageFormatter&lt;/code&gt; should also be updated. See the change record at &lt;a href="https://www.drupal.org/node/3554585"&gt;#3554585&lt;/a&gt; for full details.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 26, 2025&lt;/li&gt;
-&lt;li&gt;Committed: January 28, 2026 (3 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When designing an API that will be used across multiple components, standardize on a single property name for the same purpose. Special cases create friction when building systems that need to work uniformly across different render elements. &lt;em&gt;(via grimreaper)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3554447"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
