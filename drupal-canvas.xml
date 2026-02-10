@@ -5,6 +5,44 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded "RecursiveDirectoryIterator failed to open directory" (since Drupal 11.2)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md</link>
+      <guid isPermaLink="false">drupal-canvas-3571997</guid>
+      <pubDate>Tue, 10 Feb 2026 02:11:40 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/8ed2d0bc827d742c322f193842523f8b881ee043"&gt;8ed2d0b&lt;/a&gt; · +200/-2 production · +21/-5 test · 9 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3571997"&gt;#3571997&lt;/a&gt; · 2 contributors · 28 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas project added automatic retry logic to its GitLab CI pipeline to handle random test failures that waste developer time. Two main problems were addressed: a race condition in PHPUnit tests that causes directory errors (appearing since Drupal 11.2), and intermittent Cypress end-to-end test failures under high infrastructure load. The CI system now detects these specific known failures and automatically retries the job up to twice, eliminating the need for manual retries.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This change adds conditional auto-retry behavior to the Canvas project's &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; configuration. The PHPUnit job now duplicates the upstream &lt;code&gt;gitlab_templates&lt;/code&gt; project's &lt;code&gt;.phpunit-base&lt;/code&gt; script section to capture the exit code, then uses &lt;code&gt;grep&lt;/code&gt; to scan PHPUnit XML output files for known failure patterns like &lt;code&gt;RecursiveDirectoryIterator::__construct(...): Failed to open directory: No such file or directory&lt;/code&gt;. When detected, it exits with code 112, triggering a GitLab CI retry via the &lt;code&gt;retry: { max: 2, exit_codes: 112 }&lt;/code&gt; configuration.&lt;/p&gt;
+&lt;p&gt;For Cypress E2E tests, the script pipes test output to &lt;code&gt;cypress.log&lt;/code&gt; using &lt;code&gt;tee&lt;/code&gt;, then scans for specific failing test file patterns like &lt;code&gt;global-regions-interact.cy.js&lt;/code&gt;. The same exit code 112 mechanism triggers automatic retries.&lt;/p&gt;
+&lt;p&gt;The implementation also fixes a secondary issue: database-specific sorting inconsistencies in config entity queries. This required forward-porting a fix from the nine-year-old Drupal core issue &lt;a href="https://www.drupal.org/project/drupal/issues/2862699"&gt;#2862699&lt;/a&gt; by creating &lt;code&gt;ConfigEntityQuery&lt;/code&gt; and &lt;code&gt;ConfigEntityQueryFactory&lt;/code&gt; classes in &lt;code&gt;src/CoreBugFix/&lt;/code&gt; that properly handle multiple sort criteria. The &lt;code&gt;CanvasServiceProvider&lt;/code&gt; now decorates the &lt;code&gt;entity.query.config&lt;/code&gt; service with this patched version.&lt;/p&gt;
+&lt;p&gt;A companion upstream feature request &lt;a href="https://www.drupal.org/project/gitlab_templates/issues/3572371"&gt;#3572371&lt;/a&gt; was created to make this pattern easier to implement without duplicating the entire script section.&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: February 10, 2026 (3 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;Wim Leers implemented this solution after months of manually retrying CI jobs. Jonathan Dunn (jonathan1055) provided valuable review and suggestions in comment #8-9 and #15, proposing the upstream enhancement path that led to the feature request. The issue demonstrates a pragmatic approach: implementing a working solution locally first (even if it requires duplication), then working with upstream to provide a cleaner pattern for the broader community.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When random test failures occur frequently in CI due to infrastructure or upstream race conditions, auto-retry based on error pattern detection in after_script prevents wasted maintainer time manually retriggering jobs. Exit with a retry-specific code (e.g., 112) when detecting known patterns, but ensure the script itself (not after_script) returns that code since after_script failures don't propagate exit codes. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When a directory traversal error appears across multiple stack traces in different subsystems (config sync, Twig compilation, PHPUnit internals), the root cause is typically a shared race condition at the filesystem level, not bugs in each individual component. Look for common patterns across failures rather than treating each symptom separately. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3571997"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3552788: Run the release process on CI </title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552788.md</link>
       <guid isPermaLink="false">drupal-canvas-3552788</guid>
