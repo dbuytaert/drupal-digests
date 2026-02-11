@@ -5,6 +5,89 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#1503146: Aliased paths cannot be set as front page</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1503146.md</link>
+      <guid isPermaLink="false">drupal-core-1503146</guid>
+      <pubDate>Wed, 11 Feb 2026 13:00:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/859cc28dfc6324434ddef13b39fb9d432d066cd4"&gt;859cc28&lt;/a&gt; · +144/-88 prod · +102/-6 test · +0/-12 infra · 14 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1503146"&gt;#1503146&lt;/a&gt; · 30 contributors · 120 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's front page configuration now accepts and stores path aliases directly, making configuration portable across environments. Previously, entering a path alias like &lt;code&gt;/home&lt;/code&gt; would automatically convert it to &lt;code&gt;/node/1&lt;/code&gt; in configuration, creating a hard dependency between site configuration and specific content IDs. This made it difficult to export configuration and deploy it to other environments where the same content might have different node IDs. Now the system stores whatever path you enter, whether it's an alias or an internal path, and correctly recognizes it as the front page in all cases.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The front page, 403, and 404 path settings in &lt;code&gt;system.site&lt;/code&gt; config now store path aliases as entered instead of converting them to internal paths.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change has two main parts. First, &lt;code&gt;SiteInformationForm&lt;/code&gt; no longer converts path aliases to system paths when saving. The form previously used &lt;code&gt;AliasManager::getPathByAlias()&lt;/code&gt; to resolve aliases before storing them in &lt;code&gt;system.site&lt;/code&gt; config. This conversion has been removed, and the form now uses &lt;code&gt;#config_target&lt;/code&gt; to store values directly as entered.&lt;/p&gt;
+&lt;p&gt;Second, the &lt;code&gt;PathMatcher::isFrontPage()&lt;/code&gt; method was not checking for aliases, so it would fail to recognize the front page when an alias was stored in config. A new &lt;code&gt;AliasPathMatcher&lt;/code&gt; class now decorates the core &lt;code&gt;PathMatcherInterface&lt;/code&gt; service in the &lt;code&gt;path_alias&lt;/code&gt; module. This decorator extends &lt;code&gt;isFrontPage()&lt;/code&gt; to check both the internal path (via the original implementation) and the alias (via a new &lt;code&gt;isAliasFrontPage()&lt;/code&gt; method). The alias check uses &lt;code&gt;AliasManager::getAliasByPath()&lt;/code&gt; to get the current page's alias and compares it to the configured front page path.&lt;/p&gt;
+&lt;p&gt;This decouples configuration from content IDs, which is important for configuration management workflows where content may have different IDs across environments but maintain consistent aliases. The same approach applies to the 403 and 404 error page settings.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;SiteInformationForm&lt;/code&gt; was simplified by removing the &lt;code&gt;AliasManagerInterface&lt;/code&gt; dependency and the &lt;code&gt;submitForm()&lt;/code&gt; method. The form validation no longer pre-processes paths before validation.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you previously relied on &lt;code&gt;system.site&lt;/code&gt; config always containing internal paths like &lt;code&gt;/node/123&lt;/code&gt;, you may need to update code that reads this configuration. The front page, 403, and 404 paths may now be either internal paths or aliases. Use the path validator or alias manager to handle both cases.&lt;/p&gt;
+&lt;p&gt;When you save the site information form after this update, whatever path you enter will be stored as-is in configuration. If you have custom code that sets these values programmatically, you can now use aliases directly instead of needing to resolve them to system paths first.&lt;/p&gt;
+&lt;p&gt;See the change record for more details: &lt;a href="https://www.drupal.org/node/3572707"&gt;#3572707&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 26, 2012&lt;/li&gt;
+&lt;li&gt;Committed: February 11, 2026 (13 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;This 14-year-old issue saw contributions from 30 people before reaching a solution. DieterHolvoet created the merge request with the decorator pattern that became the foundation of the fix. The final approach was refined through discussion among alexpott, catch, longwave, and phenaproxima, who recognized that while this change introduces some fragility (path aliases can be deleted), it doesn't make the system more fragile than it already was—you can already delete views and entities referenced by config. The team decided the benefits for configuration management workflows outweighed the risks, especially since follow-up issues were opened to add status report warnings for broken paths and to validate multilingual alias consistency.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When configuration references content by system paths (like /node/123), it creates a hard coupling between configuration and content that breaks modern deployment workflows. Store user-facing aliases instead, and resolve them at runtime so configuration remains portable across environments where content IDs differ. &lt;em&gt;(via dieterholvoet, gambry)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When a form auto-converts user input before saving (like converting aliases to system paths), users cannot see what value is actually stored. Display transformations can hide the stored value, but the underlying data should match user intent to avoid surprising behavior and deployment issues. &lt;em&gt;(via raphaeltbm, dieterholvoet)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When checking if the current page matches a configured path, compare both the direct value and its resolved form. Users may configure either aliases or system paths, and runtime matching must handle both to avoid fragile exact-match comparisons. &lt;em&gt;(via gambry, dieterholvoet)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/1503146"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3481627: Update user creation form to hide password and status fields when user is notified</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3481627.md</link>
+      <guid isPermaLink="false">drupal-core-3481627</guid>
+      <pubDate>Wed, 11 Feb 2026 12:37:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d4265722d22da37af74fef2e99e981bb08e02b91"&gt;d426572&lt;/a&gt; · +34/-14 prod · +20/-20 test · 8 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3481627"&gt;#3481627&lt;/a&gt; · 11 contributors · 51 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The manual user creation form now defaults to emailing new users with password setup instructions. When this option is checked, the password and account status fields are hidden, since the user will set their own password via a one-time login link. This streamlines the common workflow where administrators create accounts and let users set their own passwords, rather than manually generating and sharing passwords. Administrators can still uncheck the email option to manually set passwords and account status as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;AccountForm&lt;/code&gt; class was modified to reposition and enhance the notify checkbox for user creation. The checkbox now appears earlier in the form, has been renamed from &amp;quot;Notify user of new account&amp;quot; to &amp;quot;Email user with password setup instructions&amp;quot; for clarity, and defaults to checked when administrators create new accounts.&lt;/p&gt;
+&lt;p&gt;When the notify checkbox is checked, the password and status fields are now hidden using Form API &lt;code&gt;#states&lt;/code&gt;. The password field's &lt;code&gt;#required&lt;/code&gt; property is removed in favor of visibility states, and the status field similarly becomes invisible. This prevents administrators from needing to enter unnecessary information when users will receive an email with a one-time login link to set their own password.&lt;/p&gt;
+&lt;p&gt;The change only affects the user creation form (&lt;code&gt;/admin/people/create&lt;/code&gt;) when administrators manually create accounts. It does not change behavior for user registration, programmatic user creation, or any other user creation methods. Tests were updated to explicitly uncheck the notify checkbox when testing scenarios that require manual passwords, and the Nightwatch &lt;code&gt;drupalCreateUser&lt;/code&gt; command now unchecks the notify field and waits for the password field to become visible before proceeding.&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 18, 2024&lt;/li&gt;
+&lt;li&gt;Committed: February 11, 2026 (1 year later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;This issue saw extensive discussion about default values and their implications, with xjm initially concerned about the disruption of changing defaults in a minor release, particularly around accidentally sending emails. After careful consideration and reassurance from catch and longwave that this is an acceptable UI change under the backwards compatibility policy, and recognition that email-based user creation is now the predominant workflow, consensus was reached. The issue evolved from simply changing a default value to hiding fields based on form state, which lauriii proposed with a visual mockup. pameeela drove the issue forward and integrated feedback about hiding both password and status fields. The team agreed to defer related features like automatic password generation and site-wide configuration to follow-up issues, keeping this change focused and manageable.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When changing form defaults, the visibility of the change on the form itself mitigates disruption concerns. A checkbox with a clear label that is checked by default provides an obvious signal to users, making them less likely to unintentionally trigger unwanted behavior. &lt;em&gt;(via pameeela)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When deciding whether a behavior change is appropriate for a minor release versus major, consider the timing of actual adoption: if most sites will upgrade as part of a major version jump due to current version distribution, the practical impact may justify inclusion in the minor release. &lt;em&gt;(via catch)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When proposing opinionated UX defaults, base them on the 80% use case rather than framework flexibility concerns. Core can take a position on common workflows, and the minority use case can be served through configuration or form alters. &lt;em&gt;(via lauriii, longwave)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3481627"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3559628: Allow #[MapQueryParameter] attribute for query string handling in controllers</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3559628.md</link>
       <guid isPermaLink="false">drupal-core-3559628</guid>
@@ -722,98 +805,6 @@ public function tips() {
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3537962"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3566424: Deprecate Views::pluginManager() and Views::handlerManager() and replace with service locator</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3566424.md</link>
-      <guid isPermaLink="false">drupal-core-3566424</guid>
-      <pubDate>Mon, 02 Feb 2026 09:12:54 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/26a0c062ab5772711b2fca36514927748ec0ade5"&gt;26a0c06&lt;/a&gt; · +182/-124 prod · +158/-4 test · 62 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3566424"&gt;#3566424&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two static helper methods for accessing Views plugin managers are now deprecated. The &lt;code&gt;Views::pluginManager()&lt;/code&gt; and &lt;code&gt;Views::handlerManager()&lt;/code&gt; methods were simple wrappers that made it easy to get plugin managers by type, but they prevented proper dependency injection. Core now uses a service locator pattern internally, which provides better performance and cleaner architecture. This change is part of ongoing work to remove static service calls and support dependency injection throughout the Views system.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Static methods &lt;code&gt;Views::pluginManager()&lt;/code&gt; and &lt;code&gt;Views::handlerManager()&lt;/code&gt; deprecated; use &lt;code&gt;\Drupal::service('plugin.manager.views.{type}')&lt;/code&gt; or &lt;code&gt;\Drupal::service('views.plugin_managers')-&amp;gt;get($type)&lt;/code&gt; instead&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;Views::pluginManager()&lt;/code&gt; and &lt;code&gt;Views::handlerManager()&lt;/code&gt; static methods in &lt;code&gt;\Drupal\views\Views&lt;/code&gt; are now deprecated. These methods previously called &lt;code&gt;\Drupal::service('plugin.manager.views.' . $type)&lt;/code&gt; to dynamically fetch a plugin manager service by type.&lt;/p&gt;
-&lt;p&gt;Core has replaced all internal uses of these deprecated methods with direct service calls. A new &lt;code&gt;views.plugin_managers&lt;/code&gt; service locator was added in &lt;code&gt;views.services.yml&lt;/code&gt; that provides access to all 19 Views plugin manager services (access, area, argument, argument_default, argument_validator, cache, display, display_extender, exposed_form, field, filter, join, pager, query, relationship, row, sort, style, and wizard).&lt;/p&gt;
-&lt;p&gt;The implementation now triggers &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; errors and delegates to the service locator using &lt;code&gt;\Drupal::service('views.plugin_managers')-&amp;gt;get($type)&lt;/code&gt;. This service locator pattern provides better performance by lazy-loading plugin managers and enables future work to inject dependencies into display plugins and other Views classes.&lt;/p&gt;
-&lt;p&gt;All 43 call sites in core were updated to use either the specific plugin manager service (e.g., &lt;code&gt;\Drupal::service('plugin.manager.views.join')&lt;/code&gt;) when the type is known at development time, or the service locator (e.g., &lt;code&gt;\Drupal::service('views.plugin_managers')-&amp;gt;get($handler_type)&lt;/code&gt;) when the type is dynamic. Unit tests were updated to mock the service locator, and two new legacy tests verify the deprecation messages.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your custom Views code uses &lt;code&gt;Views::pluginManager()&lt;/code&gt; or &lt;code&gt;Views::handlerManager()&lt;/code&gt;, replace these calls with direct service access. For known plugin types, use the specific service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$join = Views::pluginManager('join')-&amp;gt;createInstance('standard', $configuration);
-
-// After:
-$join = \Drupal::service('plugin.manager.views.join')-&amp;gt;createInstance('standard', $configuration);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;For dynamic types where you determine the plugin type at runtime, use the service locator:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$handler = Views::handlerManager($handler_type)-&amp;gt;getHandler($item);
-
-// After:
-$handler = \Drupal::service('views.plugin_managers')-&amp;gt;get($handler_type)-&amp;gt;getHandler($item);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your code uses proper dependency injection, inject the specific plugin manager services you need or inject the &lt;code&gt;views.plugin_managers&lt;/code&gt; service locator. See the &lt;a href="https://www.drupal.org/node/3566982"&gt;change record&lt;/a&gt; for full details.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 8, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 2, 2026 (24 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;This issue was split from a larger effort to inject dependencies into Views display plugins (&lt;a href="https://www.drupal.org/project/drupal/issues/2015121"&gt;#2015121&lt;/a&gt;), where the service locator pattern was first proposed. The initial merge request from that parent issue provided the reference implementation.&lt;/p&gt;
-&lt;p&gt;Five contributors collaborated over three weeks to complete this deprecation. The work involved careful analysis of all 43 call sites in core to determine whether each could use a specific service or needed dynamic lookup. Parts of the implementation were assisted by AI tooling (Claude Code), demonstrating how automation can help with large-scale refactoring tasks while human reviewers ensure correctness.&lt;/p&gt;
-&lt;p&gt;The issue was tagged for a change record, which was created and linked to the merge request before commit. A follow-up tag was added to track future work on converting more code to use proper dependency injection rather than static service calls.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3566424"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3555532: Since symfony/http-foundation 7.4: Request::get() is deprecated, use properties -&gt;attributes, query or request directly instead.</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555532.md</link>
-      <guid isPermaLink="false">drupal-core-3555532</guid>
-      <pubDate>Sun, 01 Feb 2026 21:38:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2b08e5bb7bc13f4b8f8d4895b3c9817172f79bbd"&gt;2b08e5b&lt;/a&gt; · +72/-80 prod · +28/-26 test · +0/-338 infra · 48 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555532"&gt;#3555532&lt;/a&gt; · 7 contributors · 32 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core now prepares for Symfony 8 compatibility by replacing the deprecated &lt;code&gt;Request::get()&lt;/code&gt; method. Symfony deprecated this method because it blurred the source of input data, creating potential security risks. Drupal now explicitly checks the correct parameter bags (&lt;code&gt;query&lt;/code&gt;, &lt;code&gt;request&lt;/code&gt;, or &lt;code&gt;attributes&lt;/code&gt;) for each use case. The change also consolidates handling of AJAX page state by storing it in request attributes early in the request lifecycle, making the code clearer and more maintainable. All tests pass and the behavior remains the same for site owners and developers.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Symfony &lt;code&gt;Request::get()&lt;/code&gt; method is deprecated in Symfony 7.4 and will be removed in Symfony 8.0. This method checked multiple parameter bags in sequence (&lt;code&gt;attributes&lt;/code&gt;, &lt;code&gt;query&lt;/code&gt;, &lt;code&gt;request&lt;/code&gt;), which made the origin of data unclear and potentially unsafe.&lt;/p&gt;
-&lt;p&gt;Drupal core replaced all uses of &lt;code&gt;Request::get()&lt;/code&gt; with explicit calls to the appropriate parameter bag. For query string parameters, code now calls &lt;code&gt;$request-&amp;gt;query-&amp;gt;get()&lt;/code&gt;. For POST data, code now calls &lt;code&gt;$request-&amp;gt;request-&amp;gt;get()&lt;/code&gt;. For values that could come from either source, code checks both explicitly. The &lt;code&gt;AjaxPageState&lt;/code&gt; middleware was enhanced to copy the final AJAX page state into &lt;code&gt;$request-&amp;gt;attributes&lt;/code&gt;, making it available as a request attribute throughout the request lifecycle.&lt;/p&gt;
-&lt;p&gt;The most significant changes are in &lt;code&gt;ViewAjaxController::ajaxView()&lt;/code&gt;, which now checks both query and request bags for view parameters, and in &lt;code&gt;AjaxBasePageNegotiator&lt;/code&gt;, &lt;code&gt;AjaxResponseAttachmentsProcessor&lt;/code&gt;, &lt;code&gt;HtmlResponseAttachmentsProcessor&lt;/code&gt;, and CSS/JS asset optimizers, which now read &lt;code&gt;ajax_page_state&lt;/code&gt; from request attributes instead of using the ambiguous &lt;code&gt;get()&lt;/code&gt; method. The &lt;code&gt;FormBuilder&lt;/code&gt; now explicitly checks both bags when validating form IDs for AJAX requests.&lt;/p&gt;
-&lt;p&gt;Tests in &lt;code&gt;AjaxPageStateTest&lt;/code&gt; and &lt;code&gt;AjaxBasePageNegotiatorTest&lt;/code&gt; were updated to set values in the attributes bag to match the new behavior. The workaround code in &lt;code&gt;ViewAjaxController&lt;/code&gt; that temporarily copied theme information to request attributes is now removed since the middleware handles this consistently.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 1, 2025&lt;/li&gt;
-&lt;li&gt;First commit: January 29, 2026 (2 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: February 1, 2026 (3 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;This issue involved 7 contributors over 3 months with 32 comments and 2 commits. The initial investigation by longwave identified the deprecation and linked to the Symfony PR explaining the security rationale. Contributors scott_euser and godotislate collaborated to resolve edge cases, particularly around &lt;code&gt;ajax_page_state&lt;/code&gt; handling in Views. The team discovered that previous workarounds for AJAX theme negotiation could be consolidated into the &lt;code&gt;AjaxPageState&lt;/code&gt; middleware, leading to cleaner code. A change record was created to document the new &lt;code&gt;ajax_page_state&lt;/code&gt; request attribute pattern. The discussion also surfaced potential future improvements like moving AJAX metadata to custom headers instead of query parameters.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When accepting user input via HTTP requests, explicitly check the correct parameter bag (query, request, or attributes) rather than using generic getters that check multiple sources. Blurring the origin of input data creates security risks where attackers can smuggle data through unexpected HTTP methods. &lt;em&gt;(via longwave, scott_euser)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When upstream dependencies deprecate dangerous patterns for security reasons, investigate their reasoning before deciding on a migration strategy. The upstream rationale often reveals architectural improvements beyond simple API replacement. &lt;em&gt;(via longwave)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3555532"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
