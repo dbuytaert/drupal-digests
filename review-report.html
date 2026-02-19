@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            border-bottom: 2px solid #0678be;
+            padding-bottom: 0.5rem;
+        }
+        .meta {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .review {
+            background: #f8f9fa;
+            border-left: 4px solid #0678be;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 0 8px 8px 0;
+        }
+        .review h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+        }
+        .review h2 a {
+            color: #0678be;
+            text-decoration: none;
+        }
+        .review h2 a:hover {
+            text-decoration: underline;
+        }
+        .review-text {
+            white-space: pre-wrap;
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .copy-btn {
+            background: #0678be;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        .copy-btn:hover {
+            background: #005a8c;
+        }
+        .copy-btn.copied {
+            background: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>Code Review Report</h1>
+    <p class="meta">Generated: 2026-02-07 14:05 UTC · 21 reviews</p>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/2648272" target="_blank">#2648272: Deprecate retrieving password from $account</a></h2>
+        <div class="review-text" id="review-2648272">This is a good security improvement — exposing plaintext passwords on the entity object is a footgun that contrib developers could easily misuse (logging, serializing, etc.). The deprecation-first approach is the right call. However, there are a few things that would make this smoother from a module developer's perspective:
+
+**1. Setting the property should also be deprecated.**
+
+The `__get` override catches reads, but `$account->password = 'plaintext'` still works silently via `__set`. If the goal is to remove this property entirely in Drupal 12, both sides need deprecation notices. A contrib module that *sets* this property (perhaps in a custom registration flow or hook) won't get any warning until 12.0 breaks them. Adding a `__set` override with the same deprecation for `password` would give developers the full picture. The test already exercises `$user->password = 'password'` without any deprecation expectation on the set side, which confirms this gap.
+
+**2. No migration path is documented for contrib.**
+
+The deprecation message points to a change record (node/3569185), which is good. But from the diff alone, there's no indication of *what contrib should do instead*. If a module legitimately needs the plaintext password during registration (e.g., to send it to an external system, sync with LDAP, etc.), what's the recommended alternative? Hooking into the form submit? Using an event subscriber? The issue says "Drupal 8 doesn't support such a token" but contrib modules may have invented their own use cases. A brief comment in RegisterForm near where `$account->password` is set — pointing to the recommended alternative — would save developers significant debugging time.
+
+**3. The `__get` override has broader implications worth noting.**
+
+By overriding `__get` on User, any future dynamic property access now goes through this method. The `parent::__get()` call delegates to `ContentEntityBase::__get()`, which handles field access via magic properties. This is fine today, but it's worth being aware that if additional dynamic properties ever need deprecation, this method will grow. A pattern like checking against an array of deprecated properties (similar to how Symfony's `AbstractBundle` handles deprecations) would scale better, though that's admittedly premature for a single property.
+
+**4. Minor: use `===` instead of `==` for the string comparison.**
+
+`$name == 'password'` works, but `$name === 'password'` is more precise and consistent with Drupal coding standards for strict type comparisons. It's a nitpick, but it avoids any edge case with type juggling.
+
+Overall this is a welcome change. The main actionable feedback is: deprecate the `__set` side too, and ensure the change record provides a clear migration path for contrib developers who may currently rely on `$account->password`.</div>
+        <button class="copy-btn" onclick="copyReview('review-2648272', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3339905" target="_blank">#3339905: Add page_top and page_bottom to #attached to get rid of NodeThemeHooks::pageTop()</a></h2>
+        <div class="review-text" id="review-3339905">This change introduces `page_top` and `page_bottom` as new `#attached` keys, allowing controllers to inject content into those page regions without needing a global `hook_page_top()` implementation. The motivation is solid — the old `NodeThemeHooks::pageTop()` ran on every request just to check if we happened to be on a node preview route, which is wasteful. Moving this into the controller is the right call.
+
+However, as a module developer encountering `#attached['page_top']` for the first time, I'd have some concerns:
+
+**Discoverability and semantic fit.** The `#attached` array has historically been for "attachments" in the asset/metadata sense: libraries, drupalSettings, HTML head elements, placeholders, feeds. These are all things that bubble up and get processed by the attachments processor. Adding full render arrays as `#attached['page_top']` feels like a category mismatch — it's not an "attachment" in the same sense, it's structural page content. A developer reading `$build['#attached']['page_top']` might reasonably wonder: "Is this rendered? Does it bubble cacheability metadata? How does it merge if two controllers set it?" The documentation in `AttachmentsInterface` says "Inject content into the top of the page" but doesn't explain the merging semantics or how it interacts with `hook_page_top()` — specifically, does it render before or after hook implementations? Looking at the code, it seeds the `$page_top` array that hooks then append to, so controller content appears first. This ordering should be documented.
+
+**Merging behavior.** In `HtmlRenderer::renderResponse()`, the code does `$main_content['#attached']['page_top'] ?? []`. If multiple render arrays in a page contribute `#attached['page_top']` and those bubble up through the render system, what happens? Standard attachment bubbling uses `BubbleableMetadata::mergeAttachments()`, which would need to handle these new keys. I don't see any change to that method. If a block and the main content both attach `page_top` content, will it merge correctly or will one silently overwrite the other? This needs investigation and likely a corresponding change to `mergeAttachments()`.
+
+**`HtmlResponseAttachmentsProcessor` allowlist.** The change adds `page_top` and `page_bottom` to the supported types list, but I don't see any code in that processor that actually *processes* them. They're just being allowed through without error. If someone attaches `page_top` in a context where the response is already built (e.g., a subrequest or BigPipe placeholder), those attachments would be silently lost. At minimum, the processor should either handle them or log a warning.
+
+**Minor: the `$formBuilder` property name shadows `ControllerBase::$formBuilder`.** `NodePreviewController` extends `EntityViewController` which extends `ControllerBase`, which already has a `protected $formBuilder` property. The constructor promotion with `protected ?FormBuilderInterface $formBuilder = NULL` should work but could cause confusion. Worth verifying there's no conflict with the parent's lazy-loaded `formBuilder()` method.
+
+Overall the direction is good — controllers owning their own page-level output is cleaner than a global hook. But the `#attached` mechanism needs more documentation on merge behavior and ordering relative to hooks, and `mergeAttachments()` likely needs updating to handle these new keys properly.</div>
+        <button class="copy-btn" onclick="copyReview('review-3339905', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3421202" target="_blank">#3421202: Enable W3C-compliant webdriver testing</a></h2>
+        <div class="review-text" id="review-3421202">This is a significant and welcome change for module developers. Moving to W3C-compliant WebDriver testing with `selenium/standalone-chrome:latest` is the right direction — it aligns Drupal with how the rest of the ecosystem (Symfony Panther, Laravel Dusk) already runs browser tests, and it removes the maintenance burden of keeping a custom chromedriver image up to date.
+
+A few observations from a contrib/custom module developer perspective:
+
+**1. The `mouseOver()` XPath migration is a stumbling block waiting to happen.**
+The change from `$driver_session->element('css selector', '#foo')` + `$driver_session->moveto()` to `$this->getSession()->getDriver()->mouseOver('.//*[@id="block-branding"]')` switches from CSS selectors to XPath. Many contrib tests that interact with the non-W3C `getWebDriverSession()` API will need similar updates, and the fact that `mouseOver()` only accepts XPath (a Mink convention) while the old code used CSS will confuse developers. The deprecation notice on `movePointerTo()` correctly points to `mouseOver()`, but the change record at https://www.drupal.org/node/3460567 should include a clear before/after example showing this CSS-to-XPath conversion, since that's the non-obvious part.
+
+**2. The `WebDriverCurlService` deprecation is file-level, which can be noisy.**
+The `@trigger_error()` at the file level means any code that even `use`s or autoloads this class will emit a deprecation — including test discovery. This is consistent with how Drupal handles other file-level deprecations, but contrib modules that reference this class (e.g., in custom test base classes) will see deprecation noise immediately on upgrade without any functional change on their part. That's acceptable but worth highlighting in the change record.
+
+**3. The Nightwatch W3C toggle uses a truthy env var pattern that could surprise.**
+`w3c: !!process.env.DRUPAL_TEST_WEBDRIVER_W3C` means setting `DRUPAL_TEST_WEBDRIVER_W3C=false` (a string) will evaluate to `true`. This is a classic JavaScript gotcha. Consider parsing it explicitly: `process.env.DRUPAL_TEST_WEBDRIVER_W3C === 'true'`. This would match the PHPUnit side where the JSON `"w3c": true` is unambiguous.
+
+**4. The `setCookie` override removal in `DrupalSelenium2Driver` is concerning.**
+The removed `setCookie()` method added a `domain` and `expires` to prevent cookie leakage between test sites. If the upstream `Selenium2Driver::setCookie()` now handles this (perhaps via the updated `lullabot/mink-selenium2-driver` v1.7.3), that's fine — but if not, contrib tests that rely on cookies (e.g., authentication, A/B testing modules) could see flaky cross-site cookie leakage. It would be worth confirming and documenting that the upstream driver now handles domain scoping.
+
+**5. Minor: `--no-sandbox` appears twice in the performance test `MINK_DRIVER_ARGS_WEBDRIVER`.**
+In `pipeline.yml`, the performance test args list `"--no-sandbox"` twice. Harmless but sloppy.
+
+Overall this is a solid modernization. The main actionable items are: fix the double `--no-sandbox`, use strict string comparison for the Nightwatch W3C env var, and ensure the change record covers the XPath migration clearly.</div>
+        <button class="copy-btn" onclick="copyReview('review-3421202', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3463524" target="_blank">#3463524: editor_post_update_sanitize_image_upload_settings fails on missing text format</a></h2>
+        <div class="review-text" id="review-3463524">This fix addresses a real pain point — a fatal error during `drush updb` that blocks upgrades entirely. As a module developer, I've hit exactly this kind of orphaned config entity issue, and having core handle it gracefully instead of crashing is welcome. That said, I have a couple of concerns:
+
+**The warning message references `$this->id()` twice, which is likely wrong.** The Editor entity's ID is the same as the format ID (they share the key), so the message reads: "The editor filter.format.test is configured for text format filter.format.test." That's technically accurate but confusing — it looks like a copy-paste bug. It would be clearer to say something like: "The editor configuration '{$this->id()}' references a text format that does not exist." This tells the developer exactly what's broken without the redundancy.
+
+**`trigger_error()` with `E_USER_WARNING` is an unusual choice for Drupal.** While it works and is testable with `$this->expectWarning()`, Drupal core typically uses `\Drupal::logger()` for runtime warnings or throws exceptions for invalid state. A `trigger_error()` in production can be swallowed silently depending on error reporting settings, or it can be confusing if it surfaces in logs without context. Laravel uses `Log::warning()` for similar situations; Symfony components tend to throw exceptions or use the logger service. I'd suggest using `\Drupal::logger('editor')->warning(...)` instead, which integrates with Drupal's logging infrastructure (dblog/syslog) and is more discoverable. If the `@group legacy` / `expectWarning()` testing pattern is the reason for choosing `trigger_error()`, that's a test convenience driving production behavior.
+
+**The fix is defensive but doesn't address the root cause.** The orphaned Editor config entity still exists after the update hook runs. The post_update hook will succeed, but the underlying data integrity issue persists. It might be worth considering whether the update hook itself (`editor_post_update_sanitize_image_upload_settings`) should skip orphaned editors with a log message, rather than patching `calculateDependencies()`. That said, hardening `calculateDependencies()` is independently valuable — it protects against this class of error in any save path, not just this specific update.
+
+**The test is solid** — it properly verifies that the warning fires and that the `config` dependency key is absent when the format is missing. One minor note: the test mock sets up `getPluginDefinition()` with `expects($this->never())` but also calls `willReturn(...)`, which is contradictory (if it's never called, the return value is irrelevant). This is cosmetic but slightly confusing to read.
+
+Overall, this is a meaningful improvement to developer experience during upgrades. The fix prevents a hard crash in a common real-world scenario (orphaned config). I'd just refine the warning mechanism and message clarity.</div>
+        <button class="copy-btn" onclick="copyReview('review-3463524', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3469843" target="_blank">#3469843: Fix getExpectedUnauthorizedEntityAccessCacheability PHPStan-0 issues</a></h2>
+        <div class="review-text" id="review-3469843">The `method_exists($this, 'getExpectedUnauthorizedEntityAccessCacheability')` pattern is a code smell that would confuse module developers extending these test traits. If I'm writing a REST resource test and using `BasicAuthResourceTestTrait` or `CookieResourceTestTrait`, I now have silently optional behavior — the cacheability from entity access may or may not be included depending on whether my test class happens to define that method. There's no interface or abstract method telling me I should implement it, and no documentation explaining when it matters.
+
+This is the kind of "magic" that makes debugging test failures painful. If my REST test's cache assertions are wrong, I'd have to trace through these traits to discover that a `method_exists` check is quietly skipping a cacheability dependency. The previous code at least failed loudly (PHPStan caught it), which pointed you toward the problem.
+
+A cleaner approach would be to define the method with a sensible default in the trait itself (or in a shared base class), so the contract is explicit:
+
+```php
+protected function getExpectedUnauthorizedEntityAccessCacheability(bool $is_authenticated): CacheableMetadata {
+    return new CacheableMetadata();
+}
+```
+
+Classes that need custom entity access cacheability can override it. This way:
+1. PHPStan is satisfied (method always exists).
+2. The baseline entries can still be removed.
+3. The calling code stays clean — no `method_exists` branching.
+4. Module developers see a clear, overridable method rather than a hidden conditional.
+
+This is analogous to how Laravel's test traits handle optional setup — e.g., `RefreshDatabase` defines `afterRefreshingDatabase()` as an empty method you can override, rather than checking if the method exists. Symfony's `KernelTestCase` similarly provides overridable hooks with default no-op implementations.
+
+The current patch trades one kind of tech debt (PHPStan baseline entries) for another (runtime duck-typing in test code). Providing a default implementation would resolve both problems cleanly.</div>
+        <button class="copy-btn" onclick="copyReview('review-3469843', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3478097" target="_blank">#3478097: MySQL no longer recommended and remove Percona</a></h2>
+        <div class="review-text" id="review-3478097">As a module developer, this change is mostly cosmetic and low-risk — it removes Percona Server references from UI strings, install documentation, and tests. The actual database driver code (`core/modules/mysql`) is unchanged, so Percona Server will still *work* with Drupal; it just won't be explicitly named. That's a reasonable approach and shouldn't break any contributed modules.
+
+However, I have a couple of concerns about the developer experience implications:
+
+**1. The "or equivalent" escape hatch is doing heavy lifting now.** When a connection is detected as non-MariaDB, the label now reads "MySQL or equivalent." For Percona users — who are a real segment of the Drupal hosting community (Pantheon, some Platform.sh configurations, many enterprise setups) — seeing their database completely unnamed during installation could cause confusion or concern. "Or equivalent" is vague. A developer encountering this during a fresh install might wonder whether their Percona 8.x setup is actually supported. The previous explicit mention provided reassurance. If the goal is to remove *recommendation* rather than *acknowledgment*, consider keeping the name in the no-connection fallback string: `'MySQL, MariaDB, Percona Server, or equivalent'` → `'MySQL, MariaDB, or equivalent'` is fine, but the connected non-MariaDB case going from `'MySQL, Percona Server, or equivalent'` → `'MySQL or equivalent'` feels like it's quietly dropping support messaging for active Percona users.
+
+**2. INSTALL.txt loses useful context.** The removed line "MariaDB is a fully compatible drop-in replacement for MySQL" was genuinely helpful for developers evaluating database choices. The new INSTALL.txt just lists MariaDB as a bullet with no context about its relationship to MySQL. A new developer reading this might not understand that the MySQL driver handles both. A one-line note would help — something like "MariaDB uses the MySQL driver" or similar.
+
+**3. No code-level changes to worry about.** From a module developer's perspective, there are no API changes, no driver changes, no schema changes. `\Drupal\mysql\Driver\Database\mysql\Connection::isMariaDb()` still exists and works the same way. Contributed modules that check database type won't be affected. This is purely a documentation/labeling change, which is good.
+
+**4. The issue rationale is debatable but the change itself is harmless.** The benchmarks in the issue are informal (running the `mysql` CLI client in a bash loop measures client startup overhead more than database performance), but that's beside the point — the code change itself is a conservative label cleanup that doesn't actually block anyone from using any MySQL-compatible database.
+
+Overall this is a safe, minor change. My main suggestion: consider restoring a brief note in INSTALL.txt that MariaDB and MySQL share the same Drupal database driver, so developers understand the relationship without having to dig into code.</div>
+        <button class="copy-btn" onclick="copyReview('review-3478097', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3505370" target="_blank">#3505370: Remove 'filter tips' page and deprecate the long format API</a></h2>
+        <div class="review-text" id="review-3505370">The overall intent here is welcome — the filter tips page is indeed a relic, and deprecating the `$long` parameter simplifies the `FilterInterface` for contrib developers. However, the reflection-based backward compatibility bridge in `_filter_tips()` is problematic and will cause real pain for module developers.
+
+**Reflection on every filter invocation is a bad pattern.** In `_filter_tips()`, every call now instantiates `new \ReflectionMethod($filter, 'tips')` for every enabled filter in every format. This runs on every page that renders a text format widget (i.e., most content editing forms). Reflection is not free, and using it as a runtime compatibility shim rather than a one-time check feels heavy-handed. More importantly, the deprecation triggers *on every page load* where a contrib filter plugin still has the old `tips($long = FALSE)` signature — even if the caller never passed `$long`. A contrib developer who hasn't changed anything will suddenly see deprecation notices flooding their logs with no action on their part that caused it. That's frustrating.
+
+Compare how Symfony handles signature deprecations: they typically keep the old parameter with a default value through the deprecation period and only trigger the deprecation when the argument is *actually passed* by the caller (e.g., `AbstractType::setDefaultOptions()` → `configureOptions()` used a dedicated method rename, not reflection). A cleaner approach here would be to keep `$long = FALSE` in `FilterBase::tips()` during the deprecation window, trigger the deprecation only when `$long === TRUE` is explicitly passed, and document the removal for Drupal 12. This avoids the reflection cost entirely and only warns developers who are actually using the long-form feature.
+
+**The `FilterInterface::tips()` signature change is a BC break in a minor release.** Removing `$long` from the interface method signature means any contrib module that implements `FilterInterface` directly (rather than extending `FilterBase`) and has `public function tips($long = FALSE)` will now get a PHP fatal or strict standards warning about incompatible signatures. The issue mentions a follow-up to remove it from the base class in Drupal 12, but the *interface* is already changed here in 11.4. The interface should retain the parameter with a deprecation notice through 11.x, and the removal should happen in the interface in 12.0.
+
+**Removing the "About text formats" link from `TextFormat::processFormat()` without deprecation.** Contrib and custom themes that style or position `$element['format']['help']` will silently lose that render element. This is a render array structure change with no deprecation path — the element just vanishes. Modules that add to or alter `$element['format']['help']['about']` in `hook_form_alter` or `#process` callbacks will have their code silently ignored. A deprecation period where the element is still present but empty, or a change record calling this out explicitly, would be more considerate.
+
+The test updates (UserBlocksTest switching from `filter/tips` to `node/1`) and route deprecations look fine. The hardcoded `mlid` change in `StandardPerformanceTest` is fragile but that's a pre-existing concern.</div>
+        <button class="copy-btn" onclick="copyReview('review-3505370', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3529464" target="_blank">#3529464: Make menu trail behaviour in SystemMenuBlock optional</a></h2>
+        <div class="review-text" id="review-3529464">This is a welcome performance optimization — eliminating unnecessary active trail computation and cache context variation for menus that don't need it is a real win, especially for footer/main menus. The performance test improvements speak for themselves. A few things stood out that could trip up module developers:
+
+**1. The validation error message in `blockValidate()` has a typo and is confusing:**
+The message reads: `"Add a CSS class to ancestors of the current page" is required if the menu if the initial is 1, or if menu items are not all expanded and the number of levels display is more than 1.` — "if the menu if the initial is 1" is garbled. This should be rewritten clearly, e.g.: `"...is required if the initial visibility level is not 1, or if menu items are not all expanded and more than one level is displayed."`
+
+**2. The inverted boolean (`ignore_active_trail` vs `add_active_trail_class`) is a DX friction point.** The code comments acknowledge this is "counter-intuitive." As a module developer reading exported config YAML, seeing `ignore_active_trail: true` is understandable enough, but the inversion between the form element name and config key means anyone programmatically setting block configuration needs to mentally flip. Consider whether a positive config key like `active_trail: false` might be clearer — Laravel's Blade `@unless` and similar patterns exist, but they're well-known idioms. A double-negative (`empty($config['ignore_active_trail'])` for default_value) is harder to parse at a glance.
+
+**3. The `shouldSetActiveTrail()` method has a complex compound boolean that's hard to reason about:**
+```php
+return empty($this->configuration['ignore_active_trail']) || $this->configuration['level'] !== 1 || (empty($this->configuration['expand_all_items']) && $this->configuration['depth'] !== 1);
+```
+This encodes "return true (do set active trail) if: the setting isn't set, OR the level isn't 1, OR items aren't expanded and depth isn't 1." While the docblock helps, a developer overriding this in a subclass or debugging cache issues will struggle. Consider extracting to named booleans or restructuring as an early return:
+```php
+if (empty($this->configuration['ignore_active_trail'])) {
+  return TRUE;
+}
+if ($this->configuration['level'] !== 1) {
+  return TRUE;
+}
+return empty($this->configuration['expand_all_items']) && $this->configuration['depth'] !== 1;
+```
+
+**4. Missing `#states` selector prefix:** In the `$state_conditions` array, one selector uses `'input[name="settings[expand_all_items]"]'` without the `:` prefix, while others use `:input[name=...]`. While Drupal's `#states` system handles both for `input` elements, the inconsistency could confuse developers copying this pattern. Use `:input` consistently.
+
+**5. Missing test case for `depth: 0` with `expand_all_items: true` and `ignore_active_trail: true`.** The constraint validator test covers `depth: 1` and `depth: 2` cases but doesn't test the common real-world configuration of `depth: 0` (unlimited) with `expand_all_items: true`, which is the primary use case mentioned in the issue summary (showing the whole menu tree). Adding this would strengthen confidence.
+
+Overall: good feature, clear motivation, solid test coverage. The main DX concerns are the garbled validation message and the readability of `shouldSetActiveTrail()`.</div>
+        <button class="copy-btn" onclick="copyReview('review-3529464', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3537962" target="_blank">#3537962: EntityFieldManager::getFieldDefinitions() per-bundle caching can be expensive</a></h2>
+        <div class="review-text" id="review-3537962">This is a solid performance optimization for sites with many bundles (webform, paragraphs), and the reduced cache get/set counts in the performance tests confirm the improvement. However, there are a couple of concerns worth raising from a module developer's perspective.
+
+**The eager-loading assumption may hurt some cases.** The comment says "we assume that if field data is being requested for one bundle, that it will also be requested for other bundles of the same entity later in the request." This is reasonable for views, but a module developer who only needs field definitions for a single bundle (e.g., processing a webhook for one specific content type) now pays the cost of building definitions for *every* bundle of that entity type. For a site with 500 webform bundles, that's 500 calls to `buildBundleFieldDefinitions()` on the first cold-cache hit, even if only one bundle was needed. The optimization trades fewer cache I/O operations for more PHP computation, which is the right tradeoff for cold caches, but could be surprising in edge cases.
+
+**Consider using `getMultiple()` for the cache read path.** Right now, when the single-bundle cache entry is found, we return immediately. But if bundle A is cached and bundle B is not, requesting B will trigger a full rebuild of *all* bundles including A (which is already cached). It would be more consistent to use `$this->cacheBackend->getMultiple()` to check which bundles already have cached data and only rebuild the missing ones. This would handle the "partially warm cache" scenario more gracefully — for instance, when a new bundle is added and only that one bundle's cache is missing. Without this, adding a single webform invalidates all bundle caches and forces a full rebuild.
+
+**The `$cid` variable is reused across scopes.** The variable `$cid` is first assigned for the requested `$bundle`, then reassigned inside the `foreach` loop. While this works, it's a readability concern — if someone later adds code after the loop expecting `$cid` to reference the originally-requested bundle, they'll get the last iterated bundle instead. A different variable name like `$loop_cid` inside the foreach would be clearer.
+
+**The `$cache_data && $this->useCaches` check is slightly redundant.** `$cache_data` will always be non-empty at that point since we unconditionally add the requested bundle's data to it before the loop. The `$cache_data` check is harmless but misleading — only the `$this->useCaches` guard is actually needed.
+
+**Test coverage for partial cache warmth is missing.** The updated `testGetFieldDefinitionsWithCaching` only tests a single-bundle entity type. It would be valuable to have a test with multiple bundles where some are already cached and some aren't, to verify the behavior when the cache is partially warm.
+
+Overall, the direction is good and the performance numbers speak for themselves. The main actionable suggestion is to consider `getMultiple()` on the read path to avoid unnecessary rebuilds when the cache is only partially invalidated.</div>
+        <button class="copy-btn" onclick="copyReview('review-3537962', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3554447" target="_blank">#3554447: Use #attributes instead of #item_attributes</a></h2>
+        <div class="review-text" id="review-3554447">As a module developer, I'm very happy to see `#item_attributes` being standardized to `#attributes` — this has been a long-standing source of confusion. However, there are two concrete issues with this change that would cause me problems:
+
+**1. Inconsistent deprecation handling between image_formatter and responsive_image_formatter**
+
+In `ImageThemeHooks::preprocessImageFormatter()`, the fallback correctly prioritizes the new property: `$variables['attributes'] ?? $variables['item_attributes']`. But in `ResponsiveImageThemeHooks::preprocessResponsiveImageFormatter()`, the deprecation warning fires when `$variables['item_attributes']` is truthy, yet there's no corresponding fallback to `$variables['attributes']`. The preprocess function still only reads from `$variables['item_attributes']` — it never checks `$variables['attributes']` at all. So if a developer passes `#attributes` to `responsive_image_formatter`, those attributes are silently ignored. The responsive_image theme hook definition also doesn't add `'attributes' => NULL` to its variables (unlike `image_formatter`). This means the responsive_image side of this change is incomplete: it documents `#attributes` and updates the formatter, but the preprocess that actually consumes the variable was never updated to read from it.
+
+**2. Merging behavior when both properties are provided**
+
+In `preprocessImageFormatter`, the code uses `$variables['attributes'] ?? $variables['item_attributes']`, which means if someone passes *both* `#attributes` and `#item_attributes`, the `#item_attributes` are silently dropped with no deprecation warning (since the `??` short-circuits and `isset($variables['item_attributes'])` is true but `$variables['attributes']` wins). The deprecation should arguably fire *before* the assignment so developers know their `#item_attributes` value is being ignored. More importantly, consider whether attributes should be merged rather than one silently winning. A contrib module might add `#item_attributes` while a preprocess adds `#attributes`, and losing one set silently would be a debugging nightmare.
+
+**3. Minor: the deprecation test assertions could be stronger**
+
+The deprecation tests render with `#item_attributes` and assert the deprecation fires, but they don't verify that the attributes actually ended up in the rendered output. The `testImageFormatterDeprecatedProperty` test never asserts the `foo` class appears in the HTML. This would catch the responsive_image bug described above.
+
+Overall the direction is right and I appreciate the consistency win, but the responsive_image preprocess needs the same fallback logic that image_formatter got, and the theme hook variables need `'attributes' => NULL` added. Without that fix, any module developer who follows the new documentation for responsive_image_formatter will find their attributes silently dropped.</div>
+        <button class="copy-btn" onclick="copyReview('review-3554447', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3555532" target="_blank">#3555532: Since symfony/http-foundation 7.4: Request::get() is deprecated, use properties ->attributes, query or request directly instead.</a></h2>
+        <div class="review-text" id="review-3555532">This change correctly addresses the Symfony 7.4 deprecation of `Request::get()` and the approach is generally sound. However, there are a couple of patterns that could trip up module developers.
+
+**The `ajax_page_state` on `attributes` pattern is undocumented magic.** The `AjaxPageState` middleware now copies `ajax_page_state` onto `$request->attributes`, and then ~15 consumers silently read from `attributes` instead of `query`/`request`. If I'm a module developer who also reads `ajax_page_state` from the request (which is common in custom AJAX handling), I'd have no idea that I need to read from `attributes` now — and there's no deprecation notice guiding me. This is a Drupal-specific convention being introduced with no change record or `@trigger_error`. A brief inline comment on the middleware explaining "downstream code should read `ajax_page_state` from `$request->attributes`" would help, but a change record is really what's needed for contrib.
+
+**The `ViewAjaxController` query-then-request fallback pattern is verbose and fragile.** Lines like `$request->query->get('view_name', $request->request->get('view_name'))` are repeated six times. This is exactly the pattern Symfony deprecated `Request::get()` to eliminate, yet here it's reimplemented inline. If a contrib module needs to do the same thing, they'll copy-paste this. Consider extracting a small private helper (e.g., `getFromQueryOrRequest(Request $request, string $key, $default = null)`) or at minimum a constant/comment explaining the precedence. Laravel's `$request->input()` method (on `Illuminate\Http\Request`) handles this unified lookup cleanly — Drupal doesn't need to replicate that, but the six-fold repetition is a code smell.
+
+**Test for `AjaxPageStateTest` has an edge case.** When both `query_expected` and `request_expected` are set, the test sets `attributes` to whichever was set last (`request_expected`). But the middleware logic prefers `request_ajax_page_state` over `query_ajax_page_state` via the `if/elseif`. The test expectations happen to align because of ordering, but this isn't explicitly validated — a test case that provides both query and request libraries and asserts which one wins on `attributes` would be more robust.
+
+**Minor: `isset` vs return value from `ParameterBag::get`.** In `ViewAjaxController`, `$request->query->get('view_name', $request->request->get('view_name'))` will return `null` if neither bag has the key, and then `isset($name)` is checked. This works, but `ParameterBag::get()` returns `null` by default (not the key-missing sentinel that `Request::get()` used), so behavior is preserved. Just worth a comment for future maintainers.
+
+Overall this is necessary work and mostly well-executed. The main request: please ensure a change record is created documenting the `ajax_page_state` move to `attributes`, since contrib modules reading this value will silently break.</div>
+        <button class="copy-btn" onclick="copyReview('review-3555532', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3555534" target="_blank">#3555534: Since symfony/validator 7.4: Support for evaluating options in the base Constraint class is deprecated. Initialize properties in the constructor instead.</a></h2>
+        <div class="review-text" id="review-3555534">This is a necessary and well-executed change to comply with Symfony 7.4's deprecation of the legacy options-array pattern in constraint constructors. As a module developer, I have a few observations:
+
+**The biggest impact: `ComplexData` constraint now requires a `properties` key.** This is the change most likely to bite contrib/custom module developers. Previously you could write `'ComplexData' => ['value' => ['Length' => ['max' => 255]]]`; now it must be `'ComplexData' => ['properties' => ['value' => ['Length' => ['max' => 255]]]]`. The BC layer in `ComplexDataConstraint::__construct()` does handle the old format (it wraps it in `['properties' => ...]`), but the deprecation message in `BaseFieldDefinition::addPropertyConstraints()` and `FieldConfigBase::getItemDefinition()` could be clearer about *what* to change. The message says "Adding the 'ComplexData' constraint with options missing the 'properties' key is deprecated" — it would help to include a brief example of the new format in that message, or at least a more specific link.
+
+**Inconsistency in `LanguageItem::generateSampleValue()` BC handling.** The fallback `$constraint = $complex_data_constraint['properties'] ?? $complex_data_constraint` silently accepts old-format data without triggering a deprecation, unlike the parallel code paths in `BaseFieldDefinition` and `FieldConfigBase`. If contrib code stores ComplexData constraints in the old format, this code path would silently work while the others warn. Consider adding the deprecation trigger here too for consistency.
+
+**`EmailConstraint` sets `mode` *after* `parent::__construct()`.** This means if someone passes `mode: 'html5'` as a named argument, it gets overwritten to `VALIDATION_MODE_STRICT`. The old code had the same issue (`$this->mode` set before `parent::__construct` which would then overwrite it from options), but since this is a new constructor signature, it's worth fixing: either don't accept `$mode` as a parameter, or apply the default only when `$mode` is null.
+
+**`RangeConstraint` has the same issue** — it sets `notInRangeMessage`, `minMessage`, `maxMessage` *before* calling parent, so the named arguments `$notInRangeMessage`, `$minMessage`, `$maxMessage` passed by the caller will correctly override them in the parent constructor. That's fine, but confusing to read — the pre-assignments are effectively dead code when named args are provided. A comment explaining intent would help.
+
+**`PluginExistsConstraint::create()` uses `new static(...$configuration)`.** Since `$configuration` is spread as named arguments, any unexpected keys in the configuration array will cause a fatal error. The old code passed the whole array as `$options` which was more forgiving. This could break contrib modules that add extra keys to plugin constraint configuration.
+
+**`UploadedFileConstraint` lost its deprecation for array options.** The previous version explicitly triggered a deprecation when `$options` was an array; the new version silently accepts it. If this was intentional to simplify BC, it should be noted. If not, the deprecation should be preserved.
+
+Overall this is solid work with appropriate BC layers, but the `PluginExistsConstraint::create()` spreading and the `EmailConstraint` mode-override ordering deserve a second look before this ships.</div>
+        <button class="copy-btn" onclick="copyReview('review-3555534', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3560398" target="_blank">#3560398: Move _dblog_get_message_types and dblog_filters to a DbLogFilters service and deprecate them</a></h2>
+        <div class="review-text" id="review-3560398">Overall this is a welcome change — moving procedural code into a proper service is the right direction, and the deprecation approach is standard Drupal practice. A few things stood out that could improve the developer experience:
+
+**Inconsistent removal timeline.** The `dblog.admin.inc` file is deprecated for removal in `drupal:12.0.0`, but the two functions (`_dblog_get_message_types()` and `dblog_filters()`) are deprecated for removal in `drupal:13.0.0`. Since `dblog_filters()` was originally defined *in* `dblog.admin.inc`, a contrib developer who includes the file (as some older code patterns do) will get a deprecation in 12.x, but the function itself that moved to `.module` lives until 13.x. This mismatch could confuse developers trying to plan their upgrade path. The timelines should be consistent — either both 12.0.0 or both 13.0.0.
+
+**`DbLogController` constructor signature is a BC break.** The `$module_handler` parameter was removed and `$dbLogFilters` was appended at the end, but the positions of existing parameters shifted. Any contrib module extending `DbLogController` and calling `parent::__construct()` will break without a deprecation period. Drupal's own deprecation policy typically requires keeping old parameters (accepting them but ignoring them) for at least one major version. Consider keeping `$module_handler` as a deprecated parameter or using a `#[Autowire]` approach that doesn't change the constructor signature in a BC-breaking way.
+
+**Service naming is fine but the class name is slightly ambiguous.** `DbLogFilters` sounds like a value object or a collection of filter definitions, not a service. A name like `DbLogFilterManager` or `DbLogFilterService` would more clearly signal that this is an injectable service with behavior. Minor, but when you encounter `DbLogFilters` for the first time in a type-hint, "is this a service or a data class?" is a real question. That said, Drupal doesn't have a strict convention here, so this is a soft suggestion.
+
+**The `$types` variable in `filters()` is used potentially uninitialized.** The `$types` variable is only set inside the `foreach` loop. If `getMessageTypes()` returns an empty array, `$types` is never defined, and `!empty($types)` relies on PHP's lenient handling of undefined variables. This was carried over from the original code, but since we're refactoring into a proper class, it would be cleaner to initialize `$types = []` before the loop.
+
+**`DblogTypes` views filter plugin should use `AutowireTrait`.** The explicit constructor that just passes through to `parent::__construct()` plus the extra service parameter is boilerplate that `AutowireTrait` could handle. Other plugin classes in this diff (like `DblogFilterForm`) already use it.
+
+The overall direction is good — this is exactly the kind of modernization that makes contrib developers' lives easier by giving them a proper injectable service instead of needing `module_handler->loadInclude()` calls.</div>
+        <button class="copy-btn" onclick="copyReview('review-3560398', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3563051" target="_blank">#3563051: Remove unnecessary status messages from file_save_upload() on file rename</a></h2>
+        <div class="review-text" id="review-3563051">This is a welcome change for module developers. The "Your upload has been renamed" status messages have been a persistent UX annoyance, especially in modal contexts like the Media Library where they stack up and confuse end users. Removing non-actionable messages is the right call — WordPress's media uploader silently renames files without notifying users, and that's fine.
+
+Two concerns worth raising:
+
+**1. The security rename logging test queries the `watchdog` table directly.** This couples the test to the `dblog` module's storage implementation. If a site uses `syslog` or a contrib logger, the logging still happens but this test pattern wouldn't apply. More importantly, Drupal core tests elsewhere use `\Drupal\Core\Logger\LogMessageParser` or check log entries through the dblog UI. Consider using `$this->drupalGet('admin/reports/dblog')` and asserting the message appears there, or at minimum add an explicit dependency on `dblog` in the test class's `$modules` array if it isn't already inherited. The direct `Database::getConnection()->select('watchdog', ...)` pattern is brittle — if the watchdog table schema ever changes or if the test runs without dblog enabled, this will fail in a confusing way.
+
+**2. The `$result->isRenamed()` / non-security rename path is now completely silent.** The original code had two paths: security renames got a user-facing message, and non-security renames (like transliteration of special characters) also got a gentler "Your upload has been renamed" message. This change removes *both* user-facing messages and only logs *security* renames. That means non-security renames (transliteration, space replacement) are now completely invisible — no message, no log entry. For module developers who rely on `file_save_upload()` and want to know when filenames were altered, there's now no signal at all for the non-security case. Consider at least logging non-security renames at the `info` level (rather than `notice`) so that developers debugging filename transformations have something to look at. The `UploadResult::isRenamed()` and `UploadResult::getOriginalFilename()` methods remain available on the result object, which is good, but the procedural `file_save_upload()` wrapper doesn't expose these — it just returns the file entities.
+
+**3. Minor: log message uses `%` placeholders.** The log call uses `%original_filename` and `%filename` with the `%` prefix, which in Drupal's `t()` system wraps values in `<em class="placeholder">`. For watchdog log messages, the convention in core is typically `@` for plain text or `%` for emphasized — this is fine, but worth confirming it's intentional since log messages are often read in plain-text contexts (syslog, Drush).
+
+Overall this is a solid improvement. The core change is clean and the motivation is sound. Just tighten up the test approach and consider whether the complete silence on non-security renames is the right tradeoff.</div>
+        <button class="copy-btn" onclick="copyReview('review-3563051', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3564937" target="_blank">#3564937: Remove duplicative caching of views rows</a></h2>
+        <div class="review-text" id="review-3564937">This is a welcome performance improvement. The numbers speak for themselves — 32 fewer cache sets on cold cache for the Umami front page, 16 fewer cache gets. As a module developer, fewer redundant cache entries means less noise when debugging caching issues, and faster page builds on cold caches.
+
+The deprecation of `getRowCacheKeys()` and `getRowId()` is handled correctly with `@deprecated` annotations, `@trigger_error`, and a change record link. The "no replacement" phrasing is honest — these methods existed solely to support a caching layer that's being removed, so there's nothing to migrate to.
+
+One concern from a contrib/custom module developer perspective: if I had a custom cache plugin that overrides `getRowCacheKeys()` or `getRowId()` to customize row-level cache granularity (e.g., adding a custom cache key component per row), that override now silently becomes dead code. The deprecation notice only fires if someone *calls* these methods, not if someone *overrides* them. A developer who overrode `getRowId()` to solve a specific caching problem might not notice until Drupal 13 that their customization no longer does anything. This is an inherent limitation of PHP deprecations, but it might be worth mentioning in the change record at https://www.drupal.org/node/3564958 — something like "If you have a custom cache plugin that overrides these methods to customize per-row caching, note that rows are no longer individually render cached. The view output is still render cached as a whole."
+
+Similarly, `getRowCacheTags()` is *not* deprecated and is still called in `StylePluginBase::renderFields()`. This is good — cache tags still bubble up correctly. But it's worth verifying that the change record makes this distinction clear: row cache *tags* still matter for cache invalidation bubbling, it's only the row cache *keys* (which drove the per-row render cache entries) that are removed.
+
+The removal of the `#cache_properties` key from the render array in `StylePluginBase` is the actual behavioral change. Without `keys`, the render array won't be persisted to the render cache at all, so removing `#cache_properties` is correct and consistent.
+
+The test cleanup is thorough — removing the dedicated `RowRenderCacheTest` and its test views, plus simplifying `TestViewsTest` dependencies. The performance test expectation updates confirm the real-world improvement.
+
+Overall this is a clean, well-motivated change that reduces complexity for everyone. The only actionable suggestion is to ensure the change record explicitly addresses developers who may have overridden `getRowCacheKeys()` or `getRowId()` in custom cache plugins.</div>
+        <button class="copy-btn" onclick="copyReview('review-3564937', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3566424" target="_blank">#3566424: Deprecate Views::pluginManager() and Views::handlerManager() and replace with service locator</a></h2>
+        <div class="review-text" id="review-3566424">The deprecation itself is reasonable—`Views::pluginManager()` and `Views::handlerManager()` are static wrappers around the container, and replacing them with a service locator enables proper dependency injection down the road. The service locator definition and deprecation tests look correct. However, there are a few things that would frustrate me as a module developer encountering this change:
+
+**1. Inconsistent replacement patterns create confusion.**
+The diff uses two different styles interchangeably: `\Drupal::service('plugin.manager.views.join')` (direct service ID) and `\Drupal::service('views.plugin_managers')->get('join')` (via service locator). There's no obvious rule for when to use which. The deprecation message says "Use `\Drupal::service('plugin.manager.views.{type}')` for specific types or `\Drupal::service('views.plugin_managers')->get($type)` for dynamic." But in practice, many of the "dynamic" usages in this diff aren't truly dynamic—they pass string literals like `'join'` or `'style'`. For example, `ArgumentPluginBase::getPlugin()` uses the locator with a `$type` parameter (genuinely dynamic), but `DisplayPluginBase::optionsSummary()` calls `\Drupal::service('plugin.manager.views.pager')` directly even though nearby `getPlugin()` uses the locator. A contrib developer reading this code would be unsure which pattern to follow. The deprecation notice should pick one canonical recommendation for non-dynamic cases and be consistent in core's own replacements.
+
+**2. Replacing `Views::pluginManager('join')` with `\Drupal::service(...)` in contrib-facing code is a lateral move, not an improvement.**
+In classes like `ModerationStateJoinViewsHandlerTrait`, `RelationshipPluginBase`, and `HandlerBase::getTableJoin()` (a static method), the old call was `Views::pluginManager('join')` and the new call is `\Drupal::service('plugin.manager.views.join')`. Both are static service container calls. The real goal from #2015121 is proper constructor injection via the service locator. This intermediate step litters `\Drupal::service()` calls throughout plugin classes that should eventually receive the locator via DI. Since this is meant to unblock injection in DisplayPluginBase, it would be cleaner to leave non-display classes using `Views::pluginManager()` for now and convert them when they actually get injected dependencies—otherwise contrib developers have to update their code twice.
+
+**3. The `handlerManager()` deprecation docblock is missing the `@param` for `$type` in the original method (it's added here, good), but neither method's `@return` is updated.** `pluginManager()` says it returns `ViewsPluginManager` and `handlerManager()` says `ViewsHandlerManager`, but now both go through the service locator which returns `mixed`. Contrib developers relying on the return type hint for IDE autocompletion may be confused when the locator's `get()` returns an untyped value.
+
+**4. Unit test boilerplate burden.** Every unit test that touches Views now needs a mock `ServiceLocator` wired into the container. The diff adds this in four separate test files with nearly identical boilerplate. A small test helper trait (e.g., `ViewsTestServiceLocatorTrait`) would reduce the copy-paste burden for contrib module tests that will also need updating.</div>
+        <button class="copy-btn" onclick="copyReview('review-3566424', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3566768" target="_blank">#3566768: Change \Drupal\system\Form\CronForm to use ConfigFormBase and use #config_target</a></h2>
+        <div class="review-text" id="review-3566768">This is a clean modernization of CronForm — moving from `FormBase` + `ConfigFormBaseTrait` to proper `ConfigFormBase` with `#config_target`, and deprecating the procedural submit handler. As a module developer, this is a welcome change. A few observations:
+
+**Deprecation message inconsistency.** The `@deprecated` docblock says "Use `AutomatedCronHooks::automatedCronSettingsSubmit()` instead," but the `trigger_error()` message says "There is no replacement." These need to agree. Since `#config_target` handles the save automatically and there's no `automatedCronSettingsSubmit()` method visible in the diff, the docblock's `@see` pointing to a non-existent method is misleading. Module developers who grep for the deprecation notice and then try to find that method will be confused. Pick one story — likely "There is no replacement" since `#config_target` eliminates the need — and make both the docblock and `trigger_error` consistent.
+
+**`RedundantEditableConfigNamesTrait` is a nice pattern** for module developers to learn from. When `#config_target` handles all config mapping, you don't need to manually declare editable config names. This is a good example for contrib to follow. That said, this trait is relatively new and not widely documented — a brief inline comment explaining *why* it's used here (because `#config_target` auto-discovers the config names) would help developers copying this pattern.
+
+**The `#config_target` usage in the form alter is elegant.** The fact that `automated_cron` can add `#config_target => 'automated_cron.settings:interval'` in a `hook_form_alter` and have `ConfigFormBase` automatically pick up that config for saving — without needing a custom submit handler — is a genuinely nice DX improvement. This is the kind of declarative approach that Laravel's form requests or Symfony's mapped properties aim for, and it's great to see Drupal leaning into it.
+
+**Removal of `#theme` and `#submit` in the alter hook.** Since `CronForm` now extends `ConfigFormBase`, it inherits the `system_config_form` theme and the proper submit handling. The alter hook no longer needs to bolt these on. This is a subtle but important simplification — contrib modules doing similar form_alter patterns can now rely on the base form being a proper `ConfigFormBase` instead of having to add theme/submit callbacks manually.
+
+**Constructor parameter ordering.** The new `TypedConfigManagerInterface` is appended as the last parameter. This is correct for BC since existing subclasses (unlikely given `@internal`, but still) would break if it were inserted elsewhere. Good practice.
+
+Overall this is a positive change that reduces boilerplate and showcases modern Drupal config form patterns. The only actionable fix is the contradictory deprecation messaging.</div>
+        <button class="copy-btn" onclick="copyReview('review-3566768', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3566792" target="_blank">#3566792: Deprecate remaining ckeditor5.module procedural code</a></h2>
+        <div class="review-text" id="review-3566792">There are two concrete issues worth flagging, one a bug and one a DX concern:
+
+**1. Bug in the deprecation message for `_update_ckeditor5_html_filter()`**
+
+The `trigger_error` call is missing a space/parentheses after `__FUNCTION__`:
+
+```php
+@trigger_error(__FUNCTION__ . 'is deprecated in drupal:11.4.0 ...');
+```
+
+This will produce `_update_ckeditor5_html_filteris deprecated in drupal:11.4.0...` — missing the `() ` that the other two deprecation messages correctly include. It should be:
+
+```php
+@trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.4.0 ...');
+```
+
+This matters because developers scanning logs for deprecation patterns (e.g. `grep "is deprecated"`) will still match, but anyone trying to identify *which* function is deprecated will see a garbled name. The other two functions in this same file get it right, so this is clearly a typo.
+
+**2. `themeCss()` is `protected` but the test uses Reflection to call it**
+
+The test in `CKEditor5StylesheetsTest` resorts to `ReflectionClass::getMethod('themeCss')` to test a protected method. This is a test smell — if the method needs dedicated test coverage, it's worth asking whether it should be a public (or at least internal) API. The deprecation notice for `_ckeditor5_theme_css()` says "No replacement is provided," but the comment in `RecipeConfigInstaller` still references `Ckeditor5Hooks::themeCss()` as the path code takes. Module developers who previously called `_ckeditor5_theme_css()` to discover CKEditor stylesheets for custom preview rendering now have no public API to do so. Making `themeCss()` public (even if marked `@internal`) would be more honest about its role and would eliminate the Reflection hack in the test. Alternatively, if it's truly meant to be private implementation detail, the test should exercise it indirectly through `libraryInfoAlter()` behavior instead.
+
+**3. AJAX callback format — minor observation**
+
+The callbacks now use `static::class . ':updateCkeditor5HtmlFilter'` (single colon). This is the Drupal convention for service-resolved AJAX callbacks on hook classes. It's fine, but worth noting that `filterFormatEditFormSubmit` is used as a `#submit` handler with the same `ClassName:method` syntax. As a module developer, I'd want to be confident the Form API handles this identically to `::method` static calls — Drupal does support this for service-based callbacks, so this is correct. No action needed, just noting it reads differently from what most contrib developers are used to seeing.
+
+Overall the change is a clean mechanical move. Please fix the typo in the `_update_ckeditor5_html_filter` deprecation message — that's the only must-fix item.</div>
+        <button class="copy-btn" onclick="copyReview('review-3566792', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3566888" target="_blank">#3566888: Move contact module form callbacks from procedural to hook class</a></h2>
+        <div class="review-text" id="review-3566888">Minor inconsistency in the deprecation notices: the `contact_form_user_admin_settings_submit` deprecation message references `\Drupal\contact\Hook\ContactFormHooks::userAdminSettingsSubmit` without trailing parentheses `()`, while the `contact_user_profile_form_submit` deprecation correctly includes them (`::profileFormSubmit()`). The same inconsistency appears in the `@deprecated` docblock tag. This is a small thing but when a module developer is grepping deprecation notices or reading the docblock to find the replacement, consistency matters.
+
+Otherwise, this is a clean, well-executed move from procedural to OOP. The `self::class . ':profileFormSubmit'` syntax for submit handler callbacks is the established pattern in Drupal's hook class migration, so that's good. The comment explaining why `#config_target` can't be used is genuinely helpful — as a contrib developer encountering this pattern, I'd otherwise wonder why the simpler approach wasn't taken, and that comment saves me time.
+
+The casing fix from `configFactoryInterface` to `ConfigFactoryInterface` is a nice bonus bug squash.
+
+No other suggestions.</div>
+        <button class="copy-btn" onclick="copyReview('review-3566888', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3567980" target="_blank">#3567980: Remove unneeded parameter $requestStack from EntityController</a></h2>
+        <div class="review-text" id="review-3567980">This change removes the `$requestStack` constructor parameter from `EntityController` and replaces its one remaining usage with a static `\Drupal::requestStack()` call. While I understand the motivation — the parameter was only there for a BC deprecation path — the cure here is arguably worse than the disease from a module developer's perspective.
+
+**Swapping proper DI for a static service locator call is a step backward.** The `\Drupal::` global accessor is explicitly discouraged in Drupal's own documentation for any code that already has access to the container via `ContainerInjectionInterface`. This controller implements `ContainerInjectionInterface` and already injects all its other dependencies. Introducing a `\Drupal::requestStack()` call here sets a bad example for contrib developers who look at core controllers as patterns to follow.
+
+**This creates a testing friction point.** If a module developer extends `EntityController` (which is a realistic scenario — it's designed as a general-purpose entity controller), testing the `addPage()` fallback path now requires bootstrapping the Drupal container or mocking the static `\Drupal` wrapper, rather than simply passing a mock `RequestStack` to the constructor. Symfony and Laravel never resort to static accessors inside controllers that already use DI — Laravel's controllers resolve everything through the container or method injection, and Symfony controllers use the service subscriber pattern.
+
+**The BC concern is a non-issue.** Any module extending this controller that was already passing `$requestStack` as a constructor argument will break with a "too many arguments" error or similar mismatch. Removing a constructor parameter is itself a BC break for any subclass calling `parent::__construct()`. So the change doesn't actually avoid a BC problem — it creates one while simultaneously degrading code quality.
+
+**A better alternative:** Keep the `$requestStack` parameter but make it optional with a default of `NULL`. The deprecation fallback inside `addPage()` could then do `$this->requestStack?->getCurrentRequest() ?? \Drupal::requestStack()->getCurrentRequest()`. Or, since the `$request` parameter on `addPage()` is already being deprecated toward becoming required in Drupal 12, the simplest approach is to just leave the injected `$requestStack` in place until the deprecation is removed entirely in 12.0.0 — at which point both the fallback code and the property disappear together, cleanly.
+
+In short: this trades a properly injected dependency for a static call to save one constructor parameter that's going away in the next major anyway. I'd recommend keeping the injected `$requestStack` until the deprecation path is fully removed.</div>
+        <button class="copy-btn" onclick="copyReview('review-3567980', this)">Copy to clipboard</button>
+    </div>
+
+    <div class="review">
+        <h2><a href="https://www.drupal.org/node/3568101" target="_blank">#3568101: Remove editor.module underscore functions in 12.x, deprecate in 11.x. Move the logic in EditorHooks</a></h2>
+        <div class="review-text" id="review-3568101">This change moves underscore-prefixed internal functions from `editor.module` into `EditorHooks` as protected methods, which is the right direction for the `.module` file elimination effort. However, there are a few concerns worth raising from a module developer perspective.
+
+**The 11.x deprecation branch is inconsistent with the 12.x branch.** In the 11.x diff, the old functions are deprecated with `@trigger_error` but their bodies are left intact — they still call each other (e.g., `_editor_get_file_uuids_by_field` calls `_editor_get_formatted_text_fields` internally). That means calling the deprecated `_editor_get_file_uuids_by_field()` will trigger *two* deprecation notices (one for itself, one for `_editor_get_formatted_text_fields`). This is noisy and unhelpful for anyone running deprecation checks. The inner calls should either be redirected to the new protected methods or suppressed.
+
+**Static `\Drupal::` calls in the new protected methods.** The whole point of moving to a class is to enable proper dependency injection. Yet `recordFileUsage()`, `deleteFileUsage()`, and `getFormattedTextFields()` all use `\Drupal::service()` / `\Drupal::getContainer()`. Since `EditorHooks` is instantiated by the container (it's a hook class), these services (`entity.repository`, `file.usage`, `plugin.manager.field.field_type`) should be constructor-injected. This is a missed opportunity — the old procedural code had no choice but to use the service locator; the new OOP code does. Symfony and Laravel both emphasize constructor injection over service location, and Drupal's own best practices recommend it. Even if this is a 1:1 port now, it sets a bad example for contrib developers reading core code.
+
+**`parseFileUuids()` is genuinely useful utility logic that contrib modules may need.** Functions like parsing `data-entity-uuid` from HTML are needed by modules that deal with inline file/media references (e.g., custom migration plugins, content sync tools). Making it `protected` with "no replacement provided" locks it away. Consider whether `parseFileUuids()` and `getFormattedTextFields()` warrant being public static methods on a utility/service class, or at least extracting them into a small dedicated service that contrib can depend on. The deprecation notice says "no replacement" — that's frustrating if you were relying on `_editor_parse_file_uuids()` in a migration or drush command.
+
+**Minor: docblock indentation inconsistency.** The `@deprecated` tag in `_editor_get_file_uuids_by_field()` and `_editor_get_formatted_text_fields()` uses 4-space indentation for the continuation line, while `_editor_parse_file_uuids()` uses 5 spaces. These should be consistent (3 spaces per Drupal coding standards for continuation lines in doc blocks).
+
+**The hook example replacements in `entity.api.php` are fine** — swapping editor-specific internal function calls for generic messenger examples is reasonable for illustrative hook documentation.
+
+Overall: the move itself is welcome, but please inject dependencies rather than using `\Drupal::service()`, and consider providing a public replacement for the utility methods that contrib code may legitimately need.</div>
+        <button class="copy-btn" onclick="copyReview('review-3568101', this)">Copy to clipboard</button>
+    </div>
+
+    <script>
+        function copyReview(id, btn) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy to clipboard';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
