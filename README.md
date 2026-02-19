@@ -11,8 +11,13 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 **Drupal Canvas**
 - [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
+- [#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md)
 - [#3568906: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568906.md)
-- [#3550848: Linker works for `type: string, format: date-time`, but `DateTimeDefaultWidget`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3550848.md)
+
+**Drupal AI**
+- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
+- [#3565750: Make it easier to drag and drop agents and tools onto nodes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3565750.md)
+- [#3567144: Chat configuration select lists use machine names not labels](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567144.md)
 
 **Drupal Core**
 - [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3573304: Create a 'Blank' template option for users who want to start from scratch](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573304.md)
 - [#3573537: Updated method of suppressing the Content menu doesn't work as expected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573537.md)
 - [#3573714: Add and update AI tools docs page, and update the SEO docs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573714.md)
-
-**Drupal AI**
-- [#3565750: Make it easier to drag and drop agents and tools onto nodes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3565750.md)
-- [#3567144: Chat configuration select lists use machine names not labels](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567144.md)
-- [#3566304: The Edit Cog for the Chatbot is hidden behind the chat window.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3566304.md)
 
 
 ## About

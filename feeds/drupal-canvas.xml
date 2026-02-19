@@ -8,38 +8,77 @@
       <title>#3568602: Handle upgrading and rendering not yet upgraded component instances of components with new(ly) required props that include an example value</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md</link>
       <guid isPermaLink="false">drupal-canvas-3568602</guid>
-      <pubDate>Wed, 18 Feb 2026 22:40:54 +0000</pubDate>
+      <pubDate>Thu, 19 Feb 2026 16:42:22 +0000</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/292c45ed8b6b4cd5a43080f94d2c8e34e294c02a"&gt;292c45e&lt;/a&gt; · +97/-46 prod · +274/-53 test · 16 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3568602"&gt;#3568602&lt;/a&gt; · 5 contributors · 23 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/ac202d3eaf5c31cc48823381679f7ae4938f5da8"&gt;ac202d3&lt;/a&gt; · +101/-46 prod · +286/-59 test · 21 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3568602"&gt;#3568602&lt;/a&gt; · 5 contributors · 31 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a component adds a new required prop or changes an existing prop from optional to required, Canvas now automatically populates the prop with its example value. This happens both when editing a page that contains the component (the component instance upgrades automatically) and when rendering pages that haven't been edited yet (the missing prop is added at render time). This ensures that published pages continue to work immediately after a component evolves, without requiring manual updates to every page.&lt;/p&gt;
+&lt;p&gt;Canvas now automatically handles component evolution when components add new required properties or change existing properties from optional to required. When a component is updated to require new data fields, existing pages and templates using that component will render with the example values defined in the component's schema. When editors open those pages, Canvas upgrades the component instances automatically, preserving any existing user-provided values while populating new required fields with their defaults. This allows component developers to evolve their designs without breaking published content.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This change extends the automatic component instance upgrade system introduced in &lt;a href="https://www.drupal.org/node/3567413"&gt;#3567413&lt;/a&gt; to handle new required props.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;GeneratedFieldExplicitInputUxComponentInstanceUpdater::update()&lt;/code&gt; upgrades a component instance, it now detects when the active version has required props that are either new or were previously optional. For new required props, it adds the &lt;code&gt;default_value&lt;/code&gt; from &lt;code&gt;prop_field_definitions&lt;/code&gt; (which comes from the first example in the JSON schema). For props that changed from optional to required, it only adds the default if no input already exists, preserving user-provided values.&lt;/p&gt;
-&lt;p&gt;At render time, &lt;code&gt;ComponentTreeItemList::getHydratedTree()&lt;/code&gt; now calls &lt;code&gt;getDefaultExplicitInput(only_required: TRUE)&lt;/code&gt; on the active version's component source to get required props with default values. It passes these to &lt;code&gt;hydrateComponent()&lt;/code&gt; via a new &lt;code&gt;$active_required_explicit_inputs&lt;/code&gt; parameter. The &lt;code&gt;GeneratedFieldExplicitInputUxComponentSourceBase::hydrateComponent()&lt;/code&gt; method merges these defaults after filtering out removed props, ensuring the live component implementation receives all required props even when rendering component instances that reference older versions.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;ComponentSourceInterface::getDefaultExplicitInput()&lt;/code&gt; method now accepts an &lt;code&gt;$only_required&lt;/code&gt; parameter to return only required inputs. The &lt;code&gt;ComponentSourceInterface::hydrateComponent()&lt;/code&gt; signature adds the &lt;code&gt;$active_required_explicit_inputs&lt;/code&gt; parameter. The docs now correctly categorize adding required props and changing props to required as safe auto-update cases rather than unsafe ones.&lt;/p&gt;
+&lt;p&gt;This feature extends the automatic component instance upgrading system introduced in &lt;a href="https://www.drupal.org/node/3567413"&gt;#3567413&lt;/a&gt; to handle two additional evolution scenarios: when a component adds a new required prop with an example value, and when an existing optional prop becomes required.&lt;/p&gt;
+&lt;p&gt;Canvas assumes every required prop has at least one example value, enforced by &lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt;. When a component evolves, the first example value becomes the &lt;code&gt;default_value&lt;/code&gt; in the Component entity's &lt;code&gt;prop_field_definitions&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The implementation operates in two contexts. At edit time, &lt;code&gt;GeneratedFieldExplicitInputUxComponentInstanceUpdater::update()&lt;/code&gt; now populates new required props with their default values when upgrading component instances. For optional-to-required transitions, it preserves existing user-provided values and only adds defaults when no value was stored. At render time, &lt;code&gt;ComponentTreeItemList::getHydratedTree()&lt;/code&gt; ensures not-yet-upgraded component instances can render by calling &lt;code&gt;ComponentSourceInterface::hydrateComponent()&lt;/code&gt; with a new &lt;code&gt;$active_required_explicit_inputs&lt;/code&gt; parameter containing the default values for all required props in the active version.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;ComponentSourceInterface::getDefaultExplicitInput()&lt;/code&gt; method now accepts an &lt;code&gt;$only_required&lt;/code&gt; parameter to retrieve only required inputs. The &lt;code&gt;hydrateComponent()&lt;/code&gt; method signature adds &lt;code&gt;$active_required_explicit_inputs&lt;/code&gt; to provide defaults at render time. These changes apply to all component sources including &lt;code&gt;JsComponent&lt;/code&gt;, &lt;code&gt;SingleDirectoryComponent&lt;/code&gt;, and &lt;code&gt;BlockComponent&lt;/code&gt;.&lt;/p&gt;
 &lt;h2&gt;Timeline&lt;/h2&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: January 20, 2026&lt;/li&gt;
 &lt;li&gt;Committed: February 18, 2026 (29 days later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;effulgentsia opened this issue as a follow-up to establish the design for handling newly required props, building on the auto-upgrade foundation. Wim Leers connected this work to earlier discussions about component evolution from April 2024 and pushed for clarity around the baseline assumption that required props must have example values. mglaman implemented the solution with careful attention to both the upgrade path and render-time hydration, then identified that test failures revealed a separate prop validation issue that was split into &lt;a href="https://www.drupal.org/node/3574120"&gt;#3574120&lt;/a&gt;. penyaskito reviewed the render logic and suggested refactoring opportunities to keep the codebase maintainable.&lt;/p&gt;
+&lt;p&gt;effulgentsia designed the approach and opened the issue, building on the foundation laid in &lt;a href="https://www.drupal.org/node/3567413"&gt;#3567413&lt;/a&gt;. mglaman implemented the core logic for both edit-time upgrades and render-time hydration, including extensive test coverage that validates the behavior across multiple evolution scenarios. penyaskito reviewed the implementation and helped refactor the render logic. Wim Leers provided detailed code review, catching incorrect comments and ensuring the implementation remained clear for future iteration. The team split out related validation concerns to &lt;a href="https://www.drupal.org/node/3574120"&gt;#3574120&lt;/a&gt; to keep this focused on the automatic upgrade behavior.&lt;/p&gt;
 &lt;h2&gt;Lessons learned&lt;/h2&gt;
 &lt;ul&gt;
-&lt;li&gt;When a component schema adds a required prop with an example value, existing instances can be rendered by merging the example value as a default before evaluation. This allows components to evolve without breaking already-published content that hasn't been edited yet. &lt;em&gt;(via effulgentsia)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When a plugin's configuration schema changes, handle two separate upgrade paths: eager upgrade when the configuration is next edited, and lazy upgrade when rendering unmodified configurations. This allows published content to continue working while deferring data migration until editing occurs. &lt;em&gt;(via effulgentsia)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When rendering component instances that reference older versions of a component definition, apply defaults from the active definition at render time rather than blocking rendering. This allows published content to continue rendering after non-breaking component changes, with the instance data upgraded to the new version when explicitly edited. &lt;em&gt;(via effulgentsia, lauriii, wim leers, mglaman, penyaskito)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When a plugin or component definition adds a new required property, guarantee that a safe default exists (such as an example value in the schema). This ensures that existing stored instances can continue to function without migration when the new property is added at render time. &lt;em&gt;(via effulgentsia, wim leers)&lt;/em&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3568602"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded "RecursiveDirectoryIterator failed to open directory" (since Drupal 11.2) + ComponentAudit DB-dependent result order + Playwright flakiness</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md</link>
+      <guid isPermaLink="false">drupal-canvas-3571997</guid>
+      <pubDate>Thu, 19 Feb 2026 14:39:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/db17f6dd327f2d5ede1d45723ab1b7d4a716f385"&gt;db17f6d&lt;/a&gt; · +121/-5 prod · +21/-5 test · +91/-5 infra · 12 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3571997"&gt;#3571997&lt;/a&gt; · 4 contributors · 51 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas contributors spent months manually re-running CI jobs when random infrastructure failures made tests fail. This change adds automatic retry logic that detects known intermittent failures and re-runs only those jobs, cutting down on developer frustration and wasted time. The solution addresses PHPUnit directory errors that started in Drupal 11.2, flaky Cypress end-to-end tests, database-specific sorting inconsistencies, and Playwright browser test flakiness. Developers working on Canvas no longer need to babysit CI pipelines.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This change implements GitLab CI automatic retry logic for four categories of known intermittent failures in the Canvas project's test infrastructure. The approach uses custom &lt;code&gt;after_script&lt;/code&gt; commands that grep test output logs for known failure patterns, then exit with code 112 to trigger a retry via &lt;code&gt;retry: exit_codes: 112&lt;/code&gt; configuration.&lt;/p&gt;
+&lt;p&gt;For PHPUnit tests, the main culprit is &lt;code&gt;RecursiveDirectoryIterator::__construct&lt;/code&gt; failing to open directories in the simpletest working directory. This race condition appeared after Drupal 11.2 and affects 97% of random PHPUnit failures. The solution duplicates &lt;code&gt;.phpunit-base&lt;/code&gt;'s &lt;code&gt;script&lt;/code&gt; section from &lt;code&gt;gitlab_templates&lt;/code&gt; to capture exit codes, greps the PHPUnit XML output files for the error pattern, and exits with 112 to trigger auto-retry (max 2 attempts).&lt;/p&gt;
+&lt;p&gt;For Cypress E2E tests, the solution pipes output to &lt;code&gt;cypress.log&lt;/code&gt; and greps for specific test file failures like &lt;code&gt;global-regions-interact.cy.js&lt;/code&gt;. For Playwright tests, it detects &amp;quot;1 failed&amp;quot; in the output, which indicates a single-browser failure rather than a systemic problem across all three browsers.&lt;/p&gt;
+&lt;p&gt;Two additional bugs were fixed to reduce false failures: &lt;code&gt;ComponentAudit::getContentRevisionIdsUsingComponentIds()&lt;/code&gt; now sorts results in PHP after querying rather than at the database level, avoiding MySQL/MariaDB/PostgreSQL sort order differences. A forward-port of the fix for &lt;a href="https://www.drupal.org/project/drupal/issues/2862699"&gt;#2862699&lt;/a&gt; enables proper multi-field sorting for config entity queries via &lt;code&gt;ConfigEntityQuery&lt;/code&gt; and &lt;code&gt;ConfigEntityQueryFactory&lt;/code&gt; classes in &lt;code&gt;src/CoreBugFix/&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 6, 2026&lt;/li&gt;
+&lt;li&gt;First commit: February 10, 2026 (3 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: February 19, 2026 (9 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;Wim Leers drove this work after months of manually retrying CI jobs, building the auto-retry infrastructure piece by piece as new failure patterns emerged. Jonathan Smith (jonathan1055) reviewed the GitLab CI mechanics and suggested improvements to make the logic more maintainable, including proposing upstream changes to &lt;code&gt;gitlab_templates&lt;/code&gt; in &lt;a href="https://www.drupal.org/project/gitlab_templates/issues/3572371"&gt;#3572371&lt;/a&gt;. Jesús Olalla (penyaskito) identified the database sorting root cause and reviewed the ComponentAudit fix. Jesse Baker approved the Playwright auto-retry strategy after seeing repeated single-browser flakes.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When CI tests fail randomly due to upstream issues (race conditions in dependencies, infrastructure load), auto-retry logic with failure pattern matching prevents manual intervention overhead. Detect known failure signatures in test output and exit with a specific code that triggers conditional retry, allowing developers to focus on real regressions rather than clicking retry buttons. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When test failures depend on database-specific sort order (e.g., different behavior between MySQL and MariaDB on unspecified sorts), enforce deterministic ordering in application code rather than relying on database implementation details. Sort in PHP if the dataset is small, or add explicit ORDER BY clauses at the database layer with tie-breakers. &lt;em&gt;(via wim leers, penyaskito)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3571997"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
@@ -596,44 +635,6 @@
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572401"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded "RecursiveDirectoryIterator failed to open directory" (since Drupal 11.2)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md</link>
-      <guid isPermaLink="false">drupal-canvas-3571997</guid>
-      <pubDate>Tue, 10 Feb 2026 02:11:40 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/8ed2d0bc827d742c322f193842523f8b881ee043"&gt;8ed2d0b&lt;/a&gt; · +119/-1 prod · +21/-5 test · +81/-1 infra · 9 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3571997"&gt;#3571997&lt;/a&gt; · 2 contributors · 28 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas project added automatic retry logic to its GitLab CI pipeline to handle random test failures that waste developer time. Two main problems were addressed: a race condition in PHPUnit tests that causes directory errors (appearing since Drupal 11.2), and intermittent Cypress end-to-end test failures under high infrastructure load. The CI system now detects these specific known failures and automatically retries the job up to twice, eliminating the need for manual retries.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This change adds conditional auto-retry behavior to the Canvas project's &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; configuration. The PHPUnit job now duplicates the upstream &lt;code&gt;gitlab_templates&lt;/code&gt; project's &lt;code&gt;.phpunit-base&lt;/code&gt; script section to capture the exit code, then uses &lt;code&gt;grep&lt;/code&gt; to scan PHPUnit XML output files for known failure patterns like &lt;code&gt;RecursiveDirectoryIterator::__construct(...): Failed to open directory: No such file or directory&lt;/code&gt;. When detected, it exits with code 112, triggering a GitLab CI retry via the &lt;code&gt;retry: { max: 2, exit_codes: 112 }&lt;/code&gt; configuration.&lt;/p&gt;
-&lt;p&gt;For Cypress E2E tests, the script pipes test output to &lt;code&gt;cypress.log&lt;/code&gt; using &lt;code&gt;tee&lt;/code&gt;, then scans for specific failing test file patterns like &lt;code&gt;global-regions-interact.cy.js&lt;/code&gt;. The same exit code 112 mechanism triggers automatic retries.&lt;/p&gt;
-&lt;p&gt;The implementation also fixes a secondary issue: database-specific sorting inconsistencies in config entity queries. This required forward-porting a fix from the nine-year-old Drupal core issue &lt;a href="https://www.drupal.org/project/drupal/issues/2862699"&gt;#2862699&lt;/a&gt; by creating &lt;code&gt;ConfigEntityQuery&lt;/code&gt; and &lt;code&gt;ConfigEntityQueryFactory&lt;/code&gt; classes in &lt;code&gt;src/CoreBugFix/&lt;/code&gt; that properly handle multiple sort criteria. The &lt;code&gt;CanvasServiceProvider&lt;/code&gt; now decorates the &lt;code&gt;entity.query.config&lt;/code&gt; service with this patched version.&lt;/p&gt;
-&lt;p&gt;A companion upstream feature request &lt;a href="https://www.drupal.org/project/gitlab_templates/issues/3572371"&gt;#3572371&lt;/a&gt; was created to make this pattern easier to implement without duplicating the entire script section.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 10, 2026 (3 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;Wim Leers implemented this solution after months of manually retrying CI jobs. Jonathan Dunn (jonathan1055) provided valuable review and suggestions in comment #8-9 and #15, proposing the upstream enhancement path that led to the feature request. The issue demonstrates a pragmatic approach: implementing a working solution locally first (even if it requires duplication), then working with upstream to provide a cleaner pattern for the broader community.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When random test failures occur frequently in CI due to infrastructure or upstream race conditions, auto-retry based on error pattern detection in after_script prevents wasted maintainer time manually retriggering jobs. Exit with a retry-specific code (e.g., 112) when detecting known patterns, but ensure the script itself (not after_script) returns that code since after_script failures don't propagate exit codes. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When a directory traversal error appears across multiple stack traces in different subsystems (config sync, Twig compilation, PHPUnit internals), the root cause is typically a shared race condition at the filesystem level, not bugs in each individual component. Look for common patterns across failures rather than treating each symptom separately. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3571997"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
