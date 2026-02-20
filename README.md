@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal CMS**
+- [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
+- [#3574406: Unify the installer into a single package that is part of our subtree split](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574406.md)
 - [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
-- [#3573304: Create a 'Blank' template option for users who want to start from scratch](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573304.md)
-- [#3573537: Updated method of suppressing the Content menu doesn't work as expected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573537.md)
 
 **Drupal Canvas**
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
