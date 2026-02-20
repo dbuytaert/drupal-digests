@@ -9,10 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal CMS**
+- [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
+- [#3573304: Create a 'Blank' template option for users who want to start from scratch](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573304.md)
+- [#3573537: Updated method of suppressing the Content menu doesn't work as expected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573537.md)
+
 **Drupal Canvas**
+- [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
 - [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
 - [#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md)
-- [#3568906: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568906.md)
 
 **Drupal AI**
 - [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
 - [#3572169: Put the mobile sidebar close button into the TAB sequence](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572169.md)
 - [#3565020: Set the Drupal\views\ViewsData::$fullyLoaded property to TRUE only when the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565020.md)
-
-**Drupal CMS**
-- [#3573304: Create a 'Blank' template option for users who want to start from scratch](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573304.md)
-- [#3573537: Updated method of suppressing the Content menu doesn't work as expected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573537.md)
-- [#3573714: Add and update AI tools docs page, and update the SEO docs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3573714.md)
 
 
 ## About
