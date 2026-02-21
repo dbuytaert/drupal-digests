@@ -9,25 +9,25 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
+- [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
+- [#3572169: Put the mobile sidebar close button into the TAB sequence](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572169.md)
+
+**Drupal CMS**
+- [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
+- [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
+- [#3574406: Unify the installer into a single package that is part of our subtree split](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574406.md)
+
 **Drupal AI**
 - [#3571220: Adjust Global AI CSS and Introduce new Icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571220.md)
 - [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
 - [#3565750: Make it easier to drag and drop agents and tools onto nodes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3565750.md)
 
-**Drupal CMS**
-- [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
-- [#3574406: Unify the installer into a single package that is part of our subtree split](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574406.md)
-- [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
-
 **Drupal Canvas**
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
 - [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
 - [#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md)
-
-**Drupal Core**
-- [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
-- [#3572169: Put the mobile sidebar close button into the TAB sequence](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572169.md)
-- [#3565020: Set the Drupal\views\ViewsData::$fullyLoaded property to TRUE only when the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565020.md)
 
 
 ## About
