@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
+- [#3571220: Adjust Global AI CSS and Introduce new Icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571220.md)
+- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
+
 **Drupal Core**
 - [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
 - [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 - [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
 - [#3574406: Unify the installer into a single package that is part of our subtree split](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574406.md)
-
-**Drupal AI**
-- [#3571220: Adjust Global AI CSS and Introduce new Icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571220.md)
-- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
-- [#3565750: Make it easier to drag and drop agents and tools onto nodes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3565750.md)
 
 **Drupal Canvas**
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
