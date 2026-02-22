@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Core**
+- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
 - [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
 - [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
-- [#3572169: Put the mobile sidebar close button into the TAB sequence](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572169.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
