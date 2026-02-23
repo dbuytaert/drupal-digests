@@ -9,15 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
+- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
+- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
+
 **Drupal Canvas**
 - [#3575055: Missing Documentation for Link Prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md)
 - [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
-
-**Drupal Core**
-- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
-- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
-- [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
 
 **Drupal AI**
 - [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
