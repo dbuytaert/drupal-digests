@@ -9,25 +9,25 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Canvas**
+- [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
+- [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
+- [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
+
+**Drupal Core**
+- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
+- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
+- [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
+
 **Drupal AI**
 - [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
 - [#3571220: Adjust Global AI CSS and Introduce new Icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571220.md)
 - [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
 
-**Drupal Core**
-- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
-- [#3562072: Menu link content export with dependencies doesn't include parent menu link...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3562072.md)
-- [#3443571: Mobile version of Navigation should have focus trap](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443571.md)
-
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 - [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
 - [#3574406: Unify the installer into a single package that is part of our subtree split](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574406.md)
-
-**Drupal Canvas**
-- [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
-- [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
-- [#3571997: CI: auto-retry known random Cypress E2E failures + PHPUnit's dreaded...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571997.md)
 
 
 ## About
