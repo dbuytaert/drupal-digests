@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3570609: Add support for Object Detection operation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570609.md)
+- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
+- [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
+
 **Drupal Core**
 - [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
 - [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3575055: Missing Documentation for Link Prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md)
 - [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
-
-**Drupal AI**
-- [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
-- [#3571220: Adjust Global AI CSS and Introduce new Icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571220.md)
-- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
