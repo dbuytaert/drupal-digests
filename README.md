@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3575055: Missing Documentation for Link Prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md)
 - [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
 - [#3566433: `Component::getVersions()` must cast all version hashes to string: 1 in 4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3566433.md)
-- [#3568602: Handle upgrading and rendering not yet upgraded component instances of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568602.md)
 
 **Drupal Core**
 - [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
