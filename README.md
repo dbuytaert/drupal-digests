@@ -10,14 +10,14 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
+- [#3573867: Start prototyping Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573867.md)
 - [#3573996: Add utils for converting between Canvas component trees and json-render](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573996.md)
-- [#3575072: Component preview doesn't work for code components in Safari](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575072.md)
-- [#3575055: Missing Documentation for Link Prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md)
 
 **Drupal AI**
+- [#3575626: Unsupported parameter: 'top_p' is not supported with this model.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575626.md)
+- [#3574182: Add support for Summarize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574182.md)
 - [#3574178: Add a new summarize operation type and explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574178.md)
-- [#3570609: Add support for Object Detection operation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570609.md)
-- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
 
 **Drupal Core**
 - [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
