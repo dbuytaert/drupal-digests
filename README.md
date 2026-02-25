@@ -10,24 +10,24 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3573996: Add utils for converting between Canvas component trees and json-render](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573996.md)
 - [#3575072: Component preview doesn't work for code components in Safari](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575072.md)
 - [#3575055: Missing Documentation for Link Prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md)
-- [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
+
+**Drupal AI**
+- [#3574178: Add a new summarize operation type and explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574178.md)
+- [#3570609: Add support for Object Detection operation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570609.md)
+- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
+
+**Drupal Core**
+- [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
+- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
+- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
 
 **Drupal CMS**
 - [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 - [#3574719: Content export should ignore Search API tasks and redirects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574719.md)
-
-**Drupal AI**
-- [#3570609: Add support for Object Detection operation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570609.md)
-- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
-- [#3570252: Cannot select all models for "Chat with Complex JSON"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3570252.md)
-
-**Drupal Core**
-- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
-- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
-- [#3571623: Remove deprecated code from the Node module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571623.md)
 
 
 ## About
