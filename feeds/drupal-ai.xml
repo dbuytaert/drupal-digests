@@ -5,37 +5,109 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
-      <title>#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover API</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md</link>
-      <guid isPermaLink="false">drupal-ai-3569770</guid>
-      <pubDate>Thu, 26 Feb 2026 11:21:22 +0000</pubDate>
+      <title>#3545462: Move the input of structured output to an object.</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3545462.md</link>
+      <guid isPermaLink="false">drupal-ai-3545462</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 26 Feb 2026 14:28:16 +0000</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/41707f6a536b67cfc12762ae153c04939d4c6164"&gt;41707f6&lt;/a&gt; · +95/-2 prod · +1/-0 infra · 6 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569770"&gt;#3569770&lt;/a&gt; · 5 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/7d256a9a19e684c2ea7df15d96c7041a7e0a4633"&gt;7d256a9&lt;/a&gt; · +790/-28 prod · +266/-6 test · 10 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3545462"&gt;#3545462&lt;/a&gt; · 10 contributors · 57 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI module now includes a reusable tooltip component built on native browser features. Tooltips display helpful information when users hover over or focus on elements, and automatically reposition themselves when near the edge of the screen to remain visible. The first implementation appears in the AI settings dashboard, where provider and model information links now show tooltips instead of basic browser title attributes. This provides a better user experience with more consistent styling and smarter positioning.&lt;/p&gt;
+&lt;p&gt;The AI module now provides a dedicated data transfer object (DTO) to help developers request structured JSON responses from AI providers. Previously, developers passed raw arrays to define the shape of AI responses. This worked but had no validation and different providers required different formats. The new DTO validates schema names, checks that required fields are present, and normalizes the array format for provider compatibility. Developers can still pass plain arrays for backwards compatibility, but the DTO approach is now recommended for cleaner code and better error messages. This lays the groundwork for future features like automated schema generation from PHP classes.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;ChatInput::setChatStrictSchema()&lt;/code&gt; and &lt;code&gt;getChatStrictSchema()&lt;/code&gt; deprecated in ai:1.3.0, removed in ai:2.0.0; set strict on &lt;code&gt;StructuredOutputSchema&lt;/code&gt; instead&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;StructuredOutputSchema&lt;/code&gt; DTO class for structured output requests (recommended; plain arrays still accepted for backwards compatibility)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;StructuredOutputSchema&lt;/code&gt; class provides a validated wrapper for structured output requests. It accepts four properties: name (validated as lowercase letters, numbers, underscores, hyphens only), description (optional), strict (boolean, default false), and json_schema (the actual JSON schema array, must contain a 'properties' key). The class uses Symfony Validator constraints on public properties to validate inputs at construction or when set via setters.&lt;/p&gt;
+&lt;p&gt;The DTO can be instantiated directly or created from an array via &lt;code&gt;fromArray()&lt;/code&gt;. The &lt;code&gt;toArray()&lt;/code&gt; method returns a normalized array with the key 'schema' for the schema content, matching the documented format most providers expect. For backwards compatibility, both the DTO and &lt;code&gt;ChatInput::setChatStructuredJsonSchema()&lt;/code&gt; accept either 'schema' or 'json_schema' as the key for the schema content, but normalize and store it as 'schema'.&lt;/p&gt;
+&lt;p&gt;When a &lt;code&gt;StructuredOutputSchema&lt;/code&gt; object is passed to &lt;code&gt;ChatInput::setChatStructuredJsonSchema()&lt;/code&gt;, it is converted to the normalized array format and stored. For backwards compatibility, the strict flag is also copied to the now-deprecated &lt;code&gt;chatStrictSchema&lt;/code&gt; property. Plain arrays are still accepted and are normalized to the same format. The API Explorer was updated to use the new DTO when processing JSON schema form input.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;For module developers using structured output:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;The recommended approach is now to use the &lt;code&gt;StructuredOutputSchema&lt;/code&gt; DTO:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai\Dto\StructuredOutputSchema;
+
+$schema = new StructuredOutputSchema(
+  name: 'weather_response',
+  description: 'Structured weather data',
+  strict: TRUE,
+  json_schema: [
+    'properties' =&amp;gt; [
+      'temperature' =&amp;gt; ['type' =&amp;gt; 'number'],
+      'location' =&amp;gt; ['type' =&amp;gt; 'string'],
+    ],
+  ],
+);
+
+$input-&amp;gt;setChatStructuredJsonSchema($schema);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Plain arrays still work but will be normalized (the 'json_schema' key is accepted but stored as 'schema'):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$input-&amp;gt;setChatStructuredJsonSchema([
+  'name' =&amp;gt; 'my_schema',
+  'strict' =&amp;gt; TRUE,
+  'schema' =&amp;gt; [
+    'properties' =&amp;gt; ['field' =&amp;gt; ['type' =&amp;gt; 'string']],
+  ],
+]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace calls to &lt;code&gt;setChatStrictSchema()&lt;/code&gt; and &lt;code&gt;getChatStrictSchema()&lt;/code&gt; with the &lt;code&gt;strict&lt;/code&gt; property on the schema object or array (these methods are deprecated in ai:1.3.0 and removed in ai:2.0.0).&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 8, 2025&lt;/li&gt;
+&lt;li&gt;Committed: February 26, 2026 (5 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;abhisekmazumdar led the implementation work, iterating through multiple rounds of feedback to address backwards compatibility concerns, schema key normalization, and documentation. b_sharpe performed a thorough review and managed a complex merge request cleanup when the fork tracking broke. a.dmitriiev contributed rebase work and caught deprecation message issues. marcus_johansson identified a critical regression related to the schema key format during testing and guided the normalization strategy to maintain provider compatibility. The issue surfaced important architectural discussions about validation scope and provider abstraction.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When building an abstraction layer for multiple providers, accept both structured objects and raw arrays at the API boundary, then normalize to a standard format internally. This allows gradual migration to the structured approach while maintaining backward compatibility with existing array-based implementations. &lt;em&gt;(via marcus_johansson, abhisekmazumdar)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When different providers require different input formats for the same concept, create a translation layer in each provider module rather than exposing provider-specific variations in the shared API. The abstraction should enforce a common interface that works across providers, allowing users to switch providers without code changes. &lt;em&gt;(via marcus_johansson)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When introducing structured DTOs to replace arrays, support multiple key names (like 'schema' and 'json_schema') during the transition period. Normalize to a canonical key internally while accepting legacy formats on input to prevent breaking production code. &lt;em&gt;(via abhisekmazumdar)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3545462"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover API</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md</link>
+      <guid isPermaLink="false">drupal-ai-3569770</guid>
+      <pubDate>Thu, 26 Feb 2026 14:16:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/7bf7abc3a349f2b5a0486f990d85f5791d61cc49"&gt;7bf7abc&lt;/a&gt; · +190/-4 prod · +5/-0 infra · 12 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569770"&gt;#3569770&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI module now includes a reusable tooltip component built on the native HTML Popover API with CSS Anchor Positioning. Tooltips automatically reposition themselves when near screen edges, improving usability on smaller viewports. The first implementation appears in the AI settings form, where information icons now display helpful tooltips on hover or keyboard focus instead of basic browser tooltips. This provides a better user experience with consistent styling and intelligent positioning across the module.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The implementation uses the HTML Popover API with &lt;code&gt;popover=&amp;quot;hint&amp;quot;&lt;/code&gt; attribute for native browser tooltip behavior. CSS Anchor Positioning with &lt;code&gt;position-try-fallbacks: flip-inline&lt;/code&gt; enables automatic viewport-aware repositioning. The tooltip flips from right to left when near screen edges without requiring JavaScript calculations.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;ai_global.js&lt;/code&gt; file implements a Drupal behavior that finds elements with the &lt;code&gt;data-ai-tooltip&lt;/code&gt; attribute. For each element, it creates a corresponding popover div, assigns unique IDs, sets up ARIA relationships, and attaches mouse and keyboard event listeners. Tooltips show after a 500ms delay on mouseenter or focusin, and hide on mouseleave or focusout. Timers prevent race conditions when users quickly move between elements.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;ai_global&lt;/code&gt; library now attaches globally via &lt;code&gt;hook_page_attachments()&lt;/code&gt; instead of only on forms. All styles use the &lt;code&gt;ai-&lt;/code&gt; prefix to avoid conflicts. The settings form replaces the native &lt;code&gt;title&lt;/code&gt; attribute on provider and model info links with the new &lt;code&gt;data-ai-tooltip&lt;/code&gt; attribute. Styling uses Gin design tokens for consistent appearance across the admin interface.&lt;/p&gt;
+&lt;p&gt;The tooltip component uses the HTML Popover API with &lt;code&gt;popover=&amp;quot;hint&amp;quot;&lt;/code&gt; and CSS Anchor Positioning with &lt;code&gt;position-try-fallbacks: flip-inline&lt;/code&gt; to automatically flip tooltips when they would extend beyond the viewport edge. The implementation lives in &lt;code&gt;ai_global.js&lt;/code&gt; as a Drupal behavior that finds elements with a &lt;code&gt;data-ai-tooltip&lt;/code&gt; attribute and creates associated popover elements.&lt;/p&gt;
+&lt;p&gt;The JavaScript handles delayed showing (500ms) and immediate hiding with timer management to prevent race conditions. It attaches both mouse and keyboard event handlers for accessibility. The &lt;code&gt;ai_global&lt;/code&gt; library is now attached globally via &lt;code&gt;hook_page_attachments()&lt;/code&gt; instead of only on forms, enabling tooltips anywhere in the module. All classes use the &lt;code&gt;ai-&lt;/code&gt; prefix to avoid conflicts.&lt;/p&gt;
+&lt;p&gt;The native Popover API is supported by all major browsers since 2025. The &lt;code&gt;hint&lt;/code&gt; value provides additional tooltip priority features but degrades gracefully in browsers that don't support it. No polyfill was added since core functionality works universally. The CSS uses Gin admin theme variables for consistent styling with borders, shadows, and proper spacing.&lt;/p&gt;
 &lt;h2&gt;Timeline&lt;/h2&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: January 27, 2026&lt;/li&gt;
 &lt;li&gt;Committed: February 26, 2026 (1 month later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;bbruno implemented the tooltip component using modern web APIs and provided clear testing instructions with a demonstration. ahmad khader performed thorough manual testing across multiple scenarios including keyboard navigation, RTL support, and viewport-aware positioning, and provided detailed review feedback.&lt;/p&gt;
+&lt;p&gt;bbruno implemented the tooltip component and provided thorough testing instructions with a visual demonstration. ahmad khader performed comprehensive manual testing across multiple scenarios including viewport positioning, keyboard navigation, RTL support, and accessibility attributes, providing detailed verification of each requirement.&lt;/p&gt;
 &lt;h2&gt;Lessons learned&lt;/h2&gt;
 &lt;ul&gt;
-&lt;li&gt;When building reusable UI components with modern browser APIs, avoid polyfills for features that gracefully degrade. If the native popover attribute works across all browsers and only minor enhancements (like the hint value) are unsupported, ship the component without polyfills—the core functionality works everywhere while accepting that edge cases will have slightly different behavior. &lt;em&gt;(via bbruno)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When building shared UI components, use data attributes for the public API rather than requiring manual markup. A simple attribute like data-ai-tooltip=&amp;quot;content&amp;quot; lets developers add functionality to any element without learning complex HTML structures or JavaScript initialization, making the component easier to adopt across a codebase. &lt;em&gt;(via bbruno, ahmad khader)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When adding UI components that may be reused across a module, use data attributes (e.g., &lt;code&gt;data-*&lt;/code&gt;) to declaratively attach functionality to elements. This separates configuration from implementation and allows developers to add features like tooltips without writing JavaScript, making the component API simple and intuitive for other developers to adopt. &lt;em&gt;(via bbruno, ahmad khader)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When building tooltip or popover components, leverage native browser APIs (like the Popover API) even when optional features (like &lt;code&gt;popover='hint'&lt;/code&gt;) aren't universally supported. If the core functionality works across all major browsers and the unsupported parts provide only minor enhancements (like tooltip priority), the simplicity of avoiding polyfills outweighs the loss of those features. &lt;em&gt;(via bbruno)&lt;/em&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3569770"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
@@ -657,49 +729,6 @@ foreach ($detection_items as $item) {
 &lt;p&gt;Ahmad Khader diagnosed the root cause in the ai_agents module and provided the fix that splits configuration keys generically based on the triple underscore pattern. d34dman tested the patch and confirmed that agent configuration now persists correctly after save. hrishikesh-dalal created the initial fork to address the issue.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572309"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3566417: Extend Media Library with description and tag filters</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3566417.md</link>
-      <guid isPermaLink="false">drupal-ai-3566417</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 12 Feb 2026 15:09:42 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_recipe_image_classification/-/commit/9adf1a85f4cf59181652255c853431e41b5c16c4"&gt;9adf1a8&lt;/a&gt; · +220/-2 · 4 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3566417"&gt;#3566417&lt;/a&gt; · 4 contributors · 17 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Recipe Image Classification now adds search filters to the Media Library, making it easier to find images by their AI-generated descriptions and classification tags. When selecting images in the media library widget or browsing the media overview page, editors can now search by description text or filter by taxonomy tags that were automatically generated by AI. This improves the usability of large media libraries where images have been enriched with AI-generated metadata.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum Drupal core version raised from 10.4/11.x to 11.2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The recipe now uses the &lt;code&gt;setProperties&lt;/code&gt; config action to add two exposed filters to both the &lt;code&gt;media&lt;/code&gt; and &lt;code&gt;media_library&lt;/code&gt; views. The first filter searches the &lt;code&gt;field_image_description&lt;/code&gt; text field using the &lt;code&gt;string&lt;/code&gt; plugin with an &lt;code&gt;allwords&lt;/code&gt; operator. The second filter uses the &lt;code&gt;taxonomy_index_tid&lt;/code&gt; plugin to filter by terms in the &lt;code&gt;field_image_tags&lt;/code&gt; taxonomy reference field, configured as a multiple-select textfield.&lt;/p&gt;
-&lt;p&gt;Both filters are added to all relevant displays: the default display, page display, widget display, and widget_table display of the &lt;code&gt;media_library&lt;/code&gt; view. YAML anchors (&lt;code&gt;&amp;amp;filter_description&lt;/code&gt; and &lt;code&gt;&amp;amp;filter_tags&lt;/code&gt;) are used to avoid repeating the filter configuration across multiple displays.&lt;/p&gt;
-&lt;p&gt;The implementation relies on the &lt;code&gt;setProperties&lt;/code&gt; config action introduced in Drupal 11.2, which allows recipes to modify nested configuration properties on configuration entities. Earlier approaches were considered but rejected: &lt;code&gt;simpleConfigUpdate&lt;/code&gt; is deprecated for config entities, &lt;code&gt;set&lt;/code&gt;/&lt;code&gt;SetMultiple&lt;/code&gt; actions don't support nested paths, and there are no dedicated config actions for views filters yet. The minimum core version requirement was raised from 10.4/11.x to 11.2 to ensure &lt;code&gt;setProperties&lt;/code&gt; is available.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites using this recipe must upgrade to Drupal 11.2 or later before updating to version 2.0.0 of the AI Recipe Image Classification. The filters are automatically added when the recipe is applied; no manual configuration is needed.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 8, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 12, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;a.dmitriiev opened the feature request to improve media library search. fago implemented the solution, evaluating multiple config action approaches before settling on &lt;code&gt;setProperties&lt;/code&gt; as the most maintainable option despite the increased version requirement.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When a recipe needs to modify existing configuration that may already be installed by another recipe or distribution, use config actions like setProperties rather than importing config files. Config file imports only work on fresh installs when the recipe runs first, but config actions can update existing configuration on sites where earlier recipes have already installed it. &lt;em&gt;(via fago)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When using config actions to modify nested configuration like Views filters, prefer setProperties over set/SetMultiple. The set/SetMultiple actions don't support nested paths, requiring you to duplicate and re-set large portions of configuration, which creates maintenance burden. &lt;em&gt;(via fago)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3566417"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>

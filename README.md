@@ -9,20 +9,20 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
-**Drupal AI**
-- [#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md)
-- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
-- [#3575631: Add a summarize automator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575631.md)
-
-**Drupal Core**
-- [#3575254: Module deprecation removal part2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575254.md)
-- [#3335756: Drop sequences table in Drupal 12](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3335756.md)
-- [#3450523: Documentation for Navigation module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3450523.md)
-
 **Drupal Canvas**
+- [#3572292: Implement SPA navigation improvements in Publishing UX](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572292.md)
 - [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
 - [#3573867: Start prototyping Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573867.md)
-- [#3573996: Add utils for converting between Canvas component trees and json-render](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573996.md)
+
+**Drupal AI**
+- [#3545462: Move the input of structured output to an object.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3545462.md)
+- [#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md)
+- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
+
+**Drupal Core**
+- [#3575871: Most tests should not try to install obsolete modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575871.md)
+- [#3575254: Module deprecation removal part2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575254.md)
+- [#3335756: Drop sequences table in Drupal 12](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3335756.md)
 
 **Drupal CMS**
 - [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
