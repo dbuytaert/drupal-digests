@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Core**
+- [#3450523: Documentation for Navigation module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3450523.md)
 - [#3564735: Container / service exceptions while installed from existing config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564735.md)
 - [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
-- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
 
 **Drupal Canvas**
 - [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
