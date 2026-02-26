@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3564735: Container / service exceptions while installed from existing config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564735.md)
+- [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
+- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
+
 **Drupal Canvas**
 - [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
 - [#3573867: Start prototyping Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573867.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3575626: Unsupported parameter: 'top_p' is not supported with this model.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575626.md)
 - [#3574182: Add support for Summarize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574182.md)
 - [#3574178: Add a new summarize operation type and explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574178.md)
-
-**Drupal Core**
-- [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
-- [#3558306: Support automatic setter injection using the #[Required] attribute in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3558306.md)
-- [#3575066: Olivero mobile close button not properly placed against top nav bar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575066.md)
 
 **Drupal CMS**
 - [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
