@@ -9,20 +9,20 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md)
+- [#3518356: Add Full screen and Expand options to Deepchat chatbot](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3518356.md)
+- [#3575631: Add a summarize automator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575631.md)
+
 **Drupal Core**
+- [#3575254: Module deprecation removal part2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575254.md)
+- [#3335756: Drop sequences table in Drupal 12](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3335756.md)
 - [#3450523: Documentation for Navigation module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3450523.md)
-- [#3564735: Container / service exceptions while installed from existing config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564735.md)
-- [#2667040: Deprecate uri_callback in routes for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2667040.md)
 
 **Drupal Canvas**
 - [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
 - [#3573867: Start prototyping Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573867.md)
 - [#3573996: Add utils for converting between Canvas component trees and json-render](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573996.md)
-
-**Drupal AI**
-- [#3575626: Unsupported parameter: 'top_p' is not supported with this model.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575626.md)
-- [#3574182: Add support for Summarize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574182.md)
-- [#3574178: Add a new summarize operation type and explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574178.md)
 
 **Drupal CMS**
 - [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
