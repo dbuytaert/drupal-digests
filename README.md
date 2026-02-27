@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal CMS**
+- [#3576063: The installer should show a remotely curated list of site templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576063.md)
+- [#3575789: If there's only one site template in the code base, choose it automatically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575789.md)
+- [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
+
 **Drupal Core**
 - [#3572339: Modernize locale.fetch.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572339.md)
 - [#3575871: Most tests should not try to install obsolete modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575871.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3575363: Create object detection validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575363.md)
 - [#3545462: Move the input of structured output to an object.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3545462.md)
 - [#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md)
-
-**Drupal CMS**
-- [#3575789: If there's only one site template in the code base, choose it automatically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575789.md)
-- [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
-- [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 
 **Drupal Canvas**
 - [#3572292: Implement SPA navigation improvements in Publishing UX](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572292.md)
