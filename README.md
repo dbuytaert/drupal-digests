@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal CMS**
+- [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
 - [#3576063: The installer should show a remotely curated list of site templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576063.md)
 - [#3575789: If there's only one site template in the code base, choose it automatically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575789.md)
-- [#3575283: Add the ability to export a site template from the config management UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
 
 **Drupal Core**
 - [#2976416: BaseFieldDefinition::setDefaultValue() and ::setDefaultValueCallback() have no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2976416.md)
