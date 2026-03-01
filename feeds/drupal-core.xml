@@ -5,6 +5,42 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2613044: Requests are pushed onto the request stack twice, popped once</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2613044.md</link>
+      <guid isPermaLink="false">drupal-core-2613044</guid>
+      <pubDate>Sun, 01 Mar 2026 08:08:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/63d74bdf9e94fb32da77bc4fa1adadb10ed39c62"&gt;63d74bd&lt;/a&gt; · +78/-60 prod · +492/-10 test · 16 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2613044"&gt;#2613044&lt;/a&gt; · 21 contributors · 150 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's request handling incorrectly pushed every request onto the request stack twice but only popped it once. This caused duplicate entries during the entire request lifecycle and allowed the stack to grow unbounded across main requests and sub-requests. The fix ensures Drupal manages the request stack lifecycle independently from Symfony's kernel by popping main requests during termination and sub-requests immediately after handling, while letting Symfony use its own internal stack. The request stack is now correctly empty after kernel termination, preventing cache poisoning and state leakage issues.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Symfony's &lt;code&gt;HttpKernel&lt;/code&gt; unconditionally pushes and pops requests. Drupal's &lt;code&gt;DrupalKernel::preHandle()&lt;/code&gt; also pushed requests early (needed for service initialization during boot), but nothing popped this second push. The double-push caused problems: duplicate stack entries during request processing, sub-requests compounding the issue, and the main request persisting after termination.&lt;/p&gt;
+&lt;p&gt;The solution decouples Drupal's request stack from Symfony's. &lt;code&gt;http_kernel.basic&lt;/code&gt; now receives &lt;code&gt;null&lt;/code&gt; for the request stack parameter, causing &lt;code&gt;HttpKernel&lt;/code&gt; to create its own internal stack. Drupal maintains its own stack lifecycle: &lt;code&gt;DrupalKernel::preHandle()&lt;/code&gt; still pushes early, &lt;code&gt;KernelPreHandle::handle()&lt;/code&gt; now pops sub-requests in a finally block after handling, and &lt;code&gt;DrupalKernel::terminate()&lt;/code&gt; pops the main request at the very end after destructible services run. This ensures the request remains available throughout Drupal's entire lifecycle including termination events, while the stack is properly cleared afterward. Test coverage validates correct stack depth during main requests, sub-requests, and after termination.&lt;/p&gt;
+&lt;h2&gt;Timeline&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 11, 2015&lt;/li&gt;
+&lt;li&gt;Committed: March 1, 2026 (10 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Collaboration&lt;/h2&gt;
+&lt;p&gt;This issue was open for over 10 years with 150 comments and contributions from 21 people. cpj did extensive research through comments 11-70, methodically testing different architectural approaches including separate request stacks and wrapper classes, before arriving at a working solution. andypost maintained the patch through multiple core versions and API changes. alexpott revived the issue in 2024, simplified the approach to pass null to Symfony's kernel, wrote comprehensive test coverage validating request stack behavior during sub-requests and termination, and shepherded it to completion. larowlan identified a real-world cache poisoning bug caused by this issue that affected production sites.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When integrating with framework components that manage stack-based request lifecycles, different layers may have conflicting expectations about push/pop symmetry. If your application needs resources to remain available longer than the framework's default lifecycle (e.g., during termination handlers), take explicit ownership of the stack lifecycle rather than relying on the framework's automatic cleanup. Use wrapper objects to prevent the framework from modifying shared state while still allowing it to read that state. &lt;em&gt;(via alexpott, cpj)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When handling main requests and subrequests in a stack-based architecture, ensure each request type has a clearly scoped push/pop lifecycle. Main requests may need to persist longer than subrequests (e.g., through termination events), while subrequests should be popped immediately after handling. Asymmetric push/pop patterns are acceptable when they accurately reflect the application's requirements, even if they differ from framework conventions. &lt;em&gt;(via alexpott, cpj, dawehner)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/2613044"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2976416: BaseFieldDefinition::setDefaultValue() and ::setDefaultValueCallback() have no documentation</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2976416.md</link>
       <guid isPermaLink="false">drupal-core-2976416</guid>
@@ -734,38 +770,6 @@ class ExamplePlugin extends PluginBase {
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3554134"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3569458: Replace http with https for jsonapi.org</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569458.md</link>
-      <guid isPermaLink="false">drupal-core-3569458</guid>
-      <pubDate>Tue, 17 Feb 2026 23:19:29 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1d23af4cea6740b57102c1d29b38add337aaf92e"&gt;1d23af4&lt;/a&gt; · +46/-46 prod · +8/-8 test · 32 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569458"&gt;#3569458&lt;/a&gt; · 6 contributors · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;All references to the JSON:API specification website in Drupal core were updated to use the secure HTTPS protocol instead of HTTP. This change affects documentation links, code comments, error messages, and constant values throughout the JSON:API module. The update ensures that all links to external specification documentation use modern web security standards.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This issue updated 38 instances of &lt;code&gt;http://jsonapi.org&lt;/code&gt; URLs to use &lt;code&gt;https://jsonapi.org&lt;/code&gt; across the JSON:API module. The changes were made systematically using a sed command to replace all occurrences: &lt;code&gt;git grep -l http://jsonapi.org | xargs sed -i 's#http://jsonapi.org#https://jsonapi.org#g'&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Most changes appear in code comments and PHPDoc &lt;code&gt;@see&lt;/code&gt; tags that reference the JSON:API specification. Three non-comment changes occur in production code: the &lt;code&gt;SUPPORTED_SPECIFICATION_PERMALINK&lt;/code&gt; constant in &lt;code&gt;JsonApiSpec.php&lt;/code&gt;, a Link header set in &lt;code&gt;JsonApiRequestValidator.php&lt;/code&gt; for spec-violation error responses, and an expected error response URL in a functional test.&lt;/p&gt;
-&lt;p&gt;All URLs were verified to work correctly with the HTTPS protocol. This is part of a broader initiative to replace HTTP URLs with HTTPS URLs throughout Drupal core where the target site supports secure connections.&lt;/p&gt;
-&lt;h2&gt;Timeline&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 25, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 17, 2026 (23 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Collaboration&lt;/h2&gt;
-&lt;p&gt;sujal kshatri created the merge request and executed the scripted replacement. dcam rebased the branch and performed thorough validation, opening each URL to verify they work and checking that all instances were correctly updated. stefan lehmann independently verified the changes and noted an unrelated issue with a different URL not touched by this patch.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3569458"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
