@@ -9,15 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3534144: [12.x] [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
+- [#3556948: Merging Gin as Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3556948.md)
+- [#3570235: Deprecate functions in syslog.module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570235.md)
+
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 - [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
 - [#3576063: The installer should show a remotely curated list of site templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576063.md)
-
-**Drupal Core**
-- [#3570235: Deprecate functions in syslog.module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570235.md)
-- [#3560260: OEmbedIframeController makes responses uncacheable by mistake](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3560260.md)
-- [#3566782: Deprecate block_theme_initialize() and move the logic to a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3566782.md)
 
 **Drupal AI**
 - [#3575363: Create object detection validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575363.md)
