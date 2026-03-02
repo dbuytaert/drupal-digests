@@ -9,10 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Canvas**
+- [#3574687: Convert `@group foo` to `#[Group(…)]` + other annotations — to restore the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574687.md)
+- [#3571917: UI Support for Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571917.md)
+- [#3572292: Implement SPA navigation improvements in Publishing UX](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572292.md)
+
 **Drupal Core**
+- [#3576074: Current user is changed unexpectedly](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576074.md)
+- [#3576431: Mark new admin theme as experimental](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576431.md)
 - [#3534144: [12.x] [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
-- [#3556948: Merging Gin as Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3556948.md)
-- [#3570235: Deprecate functions in syslog.module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570235.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3575363: Create object detection validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575363.md)
 - [#3545462: Move the input of structured output to an object.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3545462.md)
 - [#3569770: Add tooltip component to AI Module for use in AI Dashboard using native Popover...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569770.md)
-
-**Drupal Canvas**
-- [#3572292: Implement SPA navigation improvements in Publishing UX](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572292.md)
-- [#3574668: User has no way of knowing that a required prop needs an example value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574668.md)
-- [#3573867: Start prototyping Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573867.md)
 
 
 ## About
