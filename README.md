@@ -16,8 +16,8 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 **Drupal Core**
 - [#3576074: Current user is changed unexpectedly](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576074.md)
+- [#3572628: Mobile sidebar should close by ESCAPE key](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572628.md)
 - [#3576431: Mark new admin theme as experimental](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576431.md)
-- [#3534144: [12.x] [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
