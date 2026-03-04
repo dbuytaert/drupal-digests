@@ -9,20 +9,20 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
+- [#3567244: Make it possible to serialize ChatMessage when an image exists](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567244.md)
+- [#3569242: Support Rerank Operation (not yet released)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569242.md)
+
+**Drupal Canvas**
+- [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
+- [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
+- [#3572881: It's not possible to scroll the Canvas diagonally with touch pad](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572881.md)
+
 **Drupal Core**
 - [#3575171: Add Navigation to the Standard profile and recipes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575171.md)
 - [#3228209: Move hasRole() method from UserInterface to AccountInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3228209.md)
 - [#3575542: Remove deprecations related to the theme preprocess discovery and theme.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575542.md)
-
-**Drupal Canvas**
-- [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
-- [#3572881: It's not possible to scroll the Canvas diagonally with touch pad](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572881.md)
-- [#3572847: Add missing validation to component trees being saved into content entities in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572847.md)
-
-**Drupal AI**
-- [#3569242: Support Rerank Operation (not yet released)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569242.md)
-- [#3575363: Create object detection validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575363.md)
-- [#3545462: Move the input of structured output to an object.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3545462.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
