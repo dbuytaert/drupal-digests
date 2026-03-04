@@ -9,15 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3575171: Add Navigation to the Standard profile and recipes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575171.md)
+- [#3228209: Move hasRole() method from UserInterface to AccountInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3228209.md)
+- [#3575542: Remove deprecations related to the theme preprocess discovery and theme.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575542.md)
+
 **Drupal Canvas**
 - [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
 - [#3572881: It's not possible to scroll the Canvas diagonally with touch pad](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572881.md)
 - [#3572847: Add missing validation to component trees being saved into content entities in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572847.md)
-
-**Drupal Core**
-- [#3575542: Remove deprecations related to the theme preprocess discovery and theme.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575542.md)
-- [#3556948: Merging Gin as Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3556948.md)
-- [#3576431: Mark new admin theme as experimental](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576431.md)
 
 **Drupal AI**
 - [#3569242: Support Rerank Operation (not yet released)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569242.md)
