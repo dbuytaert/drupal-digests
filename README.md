@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
 - [#3572881: It's not possible to scroll the Canvas diagonally with touch pad](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572881.md)
 - [#3572847: Add missing validation to component trees being saved into content entities in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572847.md)
-- [#3574687: Convert `@group foo` to `#[Group(…)]` + other annotations — to restore the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574687.md)
 
 **Drupal Core**
 - [#3575542: Remove deprecations related to the theme preprocess discovery and theme.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575542.md)
