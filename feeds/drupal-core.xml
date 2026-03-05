@@ -5,6 +5,242 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3570849: Deprecate SessionManager::delete()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570849.md</link>
+      <guid isPermaLink="false">drupal-core-3570849</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 05 Mar 2026 12:05:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/29b81b3c8e5c23c6142e1ab0b6fbbb0907bec61a"&gt;29b81b3&lt;/a&gt; · +186/-68 prod · +114/-0 test · 14 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3570849"&gt;#3570849&lt;/a&gt; · 4 contributors · 18 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core now uses a dedicated service to manage user session data in the database. Previously, the session manager mixed session lifecycle management with direct database queries to delete user sessions. This made it difficult for sites to replace the default database storage with alternative backends like Redis or Memcache. The new user session repository service cleanly separates these concerns. Sites using the default session storage do not need to make any changes.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; SessionManager::delete() deprecated in favor of UserSessionRepositoryInterface::deleteAll(); SessionManager::setWriteSafeHandler() deprecated with no replacement; SessionManager constructor second parameter changed from Connection to session handler&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;SessionManager::delete()&lt;/code&gt; method was the last remaining method in &lt;code&gt;SessionManager&lt;/code&gt; that directly queried the database. This tight coupling required modules providing alternative session storage backends to extend and override &lt;code&gt;SessionManager&lt;/code&gt; itself.&lt;/p&gt;
+&lt;p&gt;The responsibility for deleting all sessions belonging to a user has been moved to a new &lt;code&gt;UserSessionRepositoryInterface&lt;/code&gt; service with a &lt;code&gt;deleteAll()&lt;/code&gt; method. The default implementation (&lt;code&gt;UserSessionRepository&lt;/code&gt;) executes the same database query as before. The service is tagged as &lt;code&gt;backend_overridable&lt;/code&gt; so alternative session storage modules can provide their own implementation.&lt;/p&gt;
+&lt;p&gt;The new repository is not guarded by &lt;code&gt;WriteSafeSessionHandler&lt;/code&gt; or CLI checks. This is intentional because &lt;code&gt;deleteAll()&lt;/code&gt; targets sessions by user ID, not necessarily the current session. For example, when a user is blocked, all their sessions are deleted regardless of which session is currently active.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;SessionManager&lt;/code&gt; constructor signature changed. The second parameter is now the session handler (previously the sixth parameter), and the sixth parameter is now the user session repository (previously the session handler). Backward compatibility logic detects the old signature and triggers a deprecation warning. The &lt;code&gt;connection&lt;/code&gt; property and &lt;code&gt;writeSafeHandler&lt;/code&gt; property are removed from &lt;code&gt;SessionManager&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you are calling &lt;code&gt;SessionManager::delete($uid)&lt;/code&gt;, change to &lt;code&gt;UserSessionRepositoryInterface::deleteAll($uid)&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+\Drupal::service('session_manager')-&amp;gt;delete($user_id);
+
+// After:
+\Drupal::service(UserSessionRepositoryInterface::class)-&amp;gt;deleteAll($user_id);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you are extending &lt;code&gt;SessionManager&lt;/code&gt; to provide custom session storage, implement &lt;code&gt;UserSessionRepositoryInterface&lt;/code&gt; instead and register it as a service with the &lt;code&gt;backend_overridable&lt;/code&gt; tag.&lt;/p&gt;
+&lt;p&gt;If you are manually constructing &lt;code&gt;SessionManager&lt;/code&gt;, update the constructor arguments to match the new signature (session handler moved from sixth to second parameter).&lt;/p&gt;
+&lt;p&gt;See the change record for complete details: https://www.drupal.org/node/3570851&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 31, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 5, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was opened by znerol and moved quickly through review. dcam caught that the change record URL needed updating and suggested deprecating the connection property and constructor argument, prompting a cleaner refactoring. godotislate confirmed the removal of write-safe checks made sense given the new semantics.&lt;/p&gt;
+&lt;p&gt;Znerol discovered they had attempted a similar change 10 years earlier in &lt;a href="https://www.drupal.org/project/drupal/issues/2472535"&gt;#2472535&lt;/a&gt; with a different approach. Longwave noted that very few contrib modules extend &lt;code&gt;SessionManager&lt;/code&gt;, allowing this to be deprecated in 11.4 and removed in 12.0. The change committed to both main and 11.x branches within five weeks of being opened.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3570849"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3576995: Update CKEditor 5 to 47.6.0</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576995.md</link>
+      <guid isPermaLink="false">drupal-core-3576995</guid>
+      <pubDate>Thu, 05 Mar 2026 09:35:12 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/be296a780e987508b215e99f857d8d119f7c1424"&gt;be296a7&lt;/a&gt; · +420/-420 · 400 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576995"&gt;#3576995&lt;/a&gt; · 2 contributors · 20 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;CKEditor 5 has been updated from version 47.5.x to 47.6.0. This update includes bug fixes, performance improvements, and other enhancements from the upstream CKEditor 5 project. The update ensures Drupal's rich text editor stays current with the latest stable release, providing users with improved editing capabilities and continued compatibility with modern browsers.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This is a routine vendor library update that brings CKEditor 5 to version 47.6.0. The diff shows changes across all CKEditor 5 JavaScript asset files in &lt;code&gt;core/assets/vendor/ckeditor5/&lt;/code&gt;. The primary visible changes are copyright year updates from 2025 to 2026 throughout the codebase, indicating this is a maintenance release prepared early in 2026.&lt;/p&gt;
+&lt;p&gt;The update follows Drupal's standard practice of tracking CKEditor 5 releases closely to provide users with the latest editor features and fixes. All changes are contained within the vendored JavaScript files, with no modifications to Drupal's integration layer. The minified nature of the assets means the detailed changes are not easily readable from the diff, but this is expected for vendor library updates.&lt;/p&gt;
+&lt;p&gt;The update was committed to multiple branches (11.x, 11.3.x, 10.6.x, and main), ensuring consistency across supported Drupal versions. This approach maintains feature parity and security posture across the release branches that include CKEditor 5.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 5, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3576995"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3576556: Deprecate CachePluginBase::cacheExpire</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576556.md</link>
+      <guid isPermaLink="false">drupal-core-3576556</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 05 Mar 2026 09:19:40 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e123a46d7a053ae9ae51949143d17b9d5893d124"&gt;e123a46&lt;/a&gt; · +30/-20 · 6 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576556"&gt;#3576556&lt;/a&gt; · 3 contributors · 10 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Views cache plugins included an outdated method from Drupal 7 that retroactively checked cache expiration by comparing timestamps. This approach is unnecessary because Drupal's cache system already handles expiration when cache items are stored. The method has been deprecated and is no longer called internally. This simplifies the Views caching logic and removes confusion about how cache expiration works in Views.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;CachePluginBase::cacheExpire()&lt;/code&gt; deprecated with no replacement; custom Views cache plugins should remove overrides of this method.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;CachePluginBase::cacheExpire()&lt;/code&gt; method was a holdover from Drupal 7 caching that attempted to validate cache freshness by comparing &lt;code&gt;$cache-&amp;gt;created&lt;/code&gt; against a calculated cutoff time during cache retrieval. This was redundant because Drupal's cache backend already enforces expiration based on the &lt;code&gt;expire&lt;/code&gt; parameter set during &lt;code&gt;cache-&amp;gt;set()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;cacheGet()&lt;/code&gt; method previously called &lt;code&gt;cacheExpire()&lt;/code&gt; to get a cutoff timestamp, then conditionally restored cached data only if &lt;code&gt;!$cutoff || $cache-&amp;gt;created &amp;gt; $cutoff&lt;/code&gt;. Since core implementations either returned &lt;code&gt;FALSE&lt;/code&gt; (Tag plugin) or calculated a cutoff based on lifespan (Time plugin), this logic duplicated what the cache backend already handles through proper max-age and expiration settings via &lt;code&gt;cacheSetMaxAge()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The method is now deprecated with a trigger error, and the call has been removed from &lt;code&gt;cacheGet()&lt;/code&gt;. Cached results are now restored directly when found, relying on the cache backend to return only valid entries. Core implementations in the Time and Tag plugins also add the deprecation trigger while maintaining their return values for backward compatibility.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom Views cache plugins that override &lt;code&gt;CachePluginBase::cacheExpire()&lt;/code&gt; should remove their implementation. If your plugin needs time-based expiration, implement it by returning the appropriate value from &lt;code&gt;cacheSetMaxAge()&lt;/code&gt; instead, which sets the cache &lt;code&gt;expire&lt;/code&gt; parameter when storing cache entries.&lt;/p&gt;
+&lt;p&gt;Before:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function cacheExpire($type) {
+  return $this-&amp;gt;time-&amp;gt;getRequestTime() - 3600;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After: Remove the method entirely. Use &lt;code&gt;cacheSetMaxAge()&lt;/code&gt; to control expiration:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function cacheSetMaxAge($type) {
+  return 3600;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;See the change record at &lt;a href="https://www.drupal.org/node/3576855"&gt;#3576855&lt;/a&gt; for details.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 5, 2026 (2 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;lendude (iO)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;sivaji_ganesh_jojodae&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This cleanup was identified by berdir while working on the views_custom_cache_tag module. The confusion about the difference between &lt;code&gt;cacheExpire()&lt;/code&gt; and &lt;code&gt;cacheSetMaxAge()&lt;/code&gt; prompted investigation, revealing this was a remnant from Drupal 7. lendude confirmed by checking the Views D7 repository that this was indeed legacy code. catch committed the straightforward deprecation within three days of the issue being opened.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3576556"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3575171: Add Navigation to the Standard profile and recipes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575171.md</link>
+      <guid isPermaLink="false">drupal-core-3575171</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 05 Mar 2026 08:55:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4dc572d80985f7182f12b3d444a7319809074b7b"&gt;4dc572d&lt;/a&gt; · +35/-25 prod · +60/-64 test · 22 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575171"&gt;#3575171&lt;/a&gt; · 5 contributors · 21 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's Standard profile and standard recipe now install the Navigation module instead of Toolbar by default. This change makes the modern Navigation interface the default administrative toolbar for new Drupal sites. The content editor role now uses the &lt;code&gt;access navigation&lt;/code&gt; permission instead of &lt;code&gt;access toolbar&lt;/code&gt;. This transition positions Navigation as the standard administrative experience for Drupal, replacing the legacy Toolbar module.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; The &lt;code&gt;access toolbar&lt;/code&gt; permission is replaced by &lt;code&gt;access navigation&lt;/code&gt; in the Standard profile's content_editor role.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The Standard installation profile (&lt;code&gt;standard.info.yml&lt;/code&gt;) now installs the &lt;code&gt;navigation&lt;/code&gt; module instead of &lt;code&gt;toolbar&lt;/code&gt;. The content_editor role configuration (&lt;code&gt;user.role.content_editor.yml&lt;/code&gt;) grants &lt;code&gt;access navigation&lt;/code&gt; permission instead of &lt;code&gt;access toolbar&lt;/code&gt;, with the module dependency updated accordingly.&lt;/p&gt;
+&lt;p&gt;The standard recipe (&lt;code&gt;core/recipes/standard/recipe.yml&lt;/code&gt;) follows suit, declaring &lt;code&gt;navigation&lt;/code&gt; instead of &lt;code&gt;toolbar&lt;/code&gt; in its install list. The recipe explicitly imports Navigation's configuration files: &lt;code&gt;navigation.block_layout&lt;/code&gt;, &lt;code&gt;navigation.settings&lt;/code&gt;, &lt;code&gt;system.menu.content&lt;/code&gt;, and &lt;code&gt;system.menu.navigation-user-links&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Performance tests were updated to reflect the different behavior of Navigation compared to Toolbar. Query counts and cache access patterns shifted slightly due to Navigation's implementation. Some queries decreased (37 vs 39 in one test scenario) as Navigation optimizes certain operations differently. The diff shows both forward and reverse patches, indicating the change was applied, then temporarily reverted, then reapplied after fixing breaking tests in the 11.x branch.&lt;/p&gt;
+&lt;p&gt;Migrate Drupal UI tests required updates to entity counts, as Navigation introduces additional menu entities (10 instead of 8 menus for D6 upgrades, 7 instead of 5 for D7). Demo Umami profile tests also needed adjustments to JavaScript byte counts.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 23, 2026&lt;/li&gt;
+&lt;li&gt;First commit: March 3, 2026 (7 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: March 5, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;plopesc (Lullabot)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This critical task opened on February 23, 2026, and committed within 10 days after four commits. The initial patch successfully replaced Toolbar with Navigation in Standard profile and recipes. However, comment #12 reveals the change broke 11.x pipelines because migrate_drupal_ui tests weren't present in the main branch. The team had to backport test updates to 11.x.&lt;/p&gt;
+&lt;p&gt;The path involved coordination across multiple test suites: Standard performance tests, Migrate Drupal UI tests for both Drupal 6 and 7 upgrades, and Demo Umami profile tests. Each required precise updates to expected query counts, cache metrics, and entity counts. This cross-cutting change demonstrates the interconnected nature of Drupal's test coverage and the importance of maintaining test parity across branches.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3575171"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3552827: Replace all expectDeprecation() calls with expectUserDeprecationMessage()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552827.md</link>
+      <guid isPermaLink="false">drupal-core-3552827</guid>
+      <pubDate>Thu, 05 Mar 2026 08:52:19 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/71fceb911b9d40760d219a573f681c6e106a0d70"&gt;71fceb9&lt;/a&gt; · +364/-364 test · +1/-3 infra · 241 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3552827"&gt;#3552827&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's test suite now uses PHPUnit's native method for expecting deprecation messages. The change replaces all instances of the deprecated &lt;code&gt;expectDeprecation()&lt;/code&gt; method with &lt;code&gt;expectUserDeprecationMessage()&lt;/code&gt; throughout core tests. This internal cleanup ensures Drupal's testing framework stays aligned with modern PHPUnit standards and allows contributed modules to receive proper deprecation warnings when testing with Drupal 11.4.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;a href="https://www.drupal.org/project/drupal/issues/3497124"&gt;#3497124&lt;/a&gt;, the &lt;code&gt;expectDeprecation()&lt;/code&gt; method was deprecated in favor of PHPUnit's native &lt;code&gt;expectUserDeprecationMessage()&lt;/code&gt;. This issue completes the transition by replacing all remaining calls across Drupal core's test suite.&lt;/p&gt;
+&lt;p&gt;The change touches over 100 test files across all subsystems, performing a straightforward method name replacement. No test logic changes were required. The deprecation ignore rule for &lt;code&gt;expectDeprecation()&lt;/code&gt; was also removed from &lt;code&gt;core/.deprecation-ignore.txt&lt;/code&gt;, allowing Drupal to now report usage of the deprecated method.&lt;/p&gt;
+&lt;p&gt;The merge requests targeted both the &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt; branches to ensure the cleanup reaches Drupal 11.4, where contrib modules testing against that version will start seeing deprecation warnings if they still use &lt;code&gt;expectDeprecation()&lt;/code&gt;. This helps the contributed module ecosystem migrate to the new PHPUnit standard before the old method is fully removed in Drupal 12.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 17, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 5, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3552827"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3575575: Remove deprecations around File component and module</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575575.md</link>
       <guid isPermaLink="false">drupal-core-3575575</guid>
@@ -200,62 +436,6 @@
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3319212"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575171: Add Navigation to the Standard profile and recipes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575171.md</link>
-      <guid isPermaLink="false">drupal-core-3575171</guid>
-      <category>Site owners</category>
-      <pubDate>Wed, 04 Mar 2026 12:13:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/eff6b620f790b84f399e5c612c46ed8bf244c179"&gt;eff6b62&lt;/a&gt; · +25/-20 prod · +41/-43 test · 12 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575171"&gt;#3575171&lt;/a&gt; · 4 contributors · 11 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's Standard installation profile and standard recipe now use the Navigation module instead of the Toolbar module. This modernizes new Drupal sites by providing a better administrative interface experience out of the box. Sites using the Standard profile will automatically get Navigation enabled during fresh installations, though existing sites are not affected by this change. The switch aligns with Drupal's broader goal to make Navigation the default administrative toolbar for the platform.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; The &lt;code&gt;access toolbar&lt;/code&gt; permission is replaced with &lt;code&gt;access navigation&lt;/code&gt; in the Standard profile's content_editor role.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Standard profile's module list (&lt;code&gt;standard.info.yml&lt;/code&gt;) now installs &lt;code&gt;navigation&lt;/code&gt; instead of &lt;code&gt;toolbar&lt;/code&gt;. The content_editor role configuration was updated to grant the &lt;code&gt;access navigation&lt;/code&gt; permission instead of &lt;code&gt;access toolbar&lt;/code&gt; and to declare a dependency on the &lt;code&gt;navigation&lt;/code&gt; module rather than &lt;code&gt;toolbar&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The standard recipe (&lt;code&gt;recipe.yml&lt;/code&gt;) received parallel changes: it installs &lt;code&gt;navigation&lt;/code&gt; instead of &lt;code&gt;toolbar&lt;/code&gt;, explicitly includes Navigation's configuration files (&lt;code&gt;navigation.block_layout&lt;/code&gt;, &lt;code&gt;navigation.settings&lt;/code&gt;, &lt;code&gt;system.menu.content&lt;/code&gt;, and &lt;code&gt;system.menu.navigation-user-links&lt;/code&gt;), and updates the content_editor role permissions to use &lt;code&gt;access navigation&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Performance tests in &lt;code&gt;StandardPerformanceTest.php&lt;/code&gt; were updated to reflect Navigation's different caching and query patterns. The changes show Navigation makes slightly different cache lookups than Toolbar, reflected in adjusted expected query counts and cache statistics. The test adjustments ensure the performance baseline accurately tracks the new Navigation-based setup.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;This change only affects fresh installations using the Standard profile or standard recipe. Existing sites continue using Toolbar unless site owners manually switch to Navigation.&lt;/p&gt;
-&lt;p&gt;If you maintain a custom installation profile or recipe based on Standard, update your module list and role permissions:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;install:
-  - navigation  # instead of toolbar
-
-config:
-  actions:
-    user.role.content_editor:
-      grantPermissions:
-        - 'access navigation'  # instead of 'access toolbar'
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Update any performance or functional tests that assert specific cache or query counts when using the Standard profile, as Navigation has different performance characteristics than Toolbar.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 23, 2026&lt;/li&gt;
-&lt;li&gt;First commit: March 3, 2026 (7 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: March 4, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;plopesc (Lullabot)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3575171"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
@@ -782,217 +962,6 @@ config:
 &lt;p&gt;catch identified the performance issue through profiling a batch processing scenario and implemented the optimization. longwave committed the change to both the main and 11.x branches.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572348"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2613044: Requests are pushed onto the request stack twice, popped once</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2613044.md</link>
-      <guid isPermaLink="false">drupal-core-2613044</guid>
-      <pubDate>Sun, 01 Mar 2026 08:08:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/63d74bdf9e94fb32da77bc4fa1adadb10ed39c62"&gt;63d74bd&lt;/a&gt; · +78/-60 prod · +492/-10 test · 16 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2613044"&gt;#2613044&lt;/a&gt; · 21 contributors · 150 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's request handling incorrectly pushed every request onto the request stack twice but only popped it once. This caused duplicate entries during the entire request lifecycle and allowed the stack to grow unbounded across main requests and sub-requests. The fix ensures Drupal manages the request stack lifecycle independently from Symfony's kernel by popping main requests during termination and sub-requests immediately after handling, while letting Symfony use its own internal stack. The request stack is now correctly empty after kernel termination, preventing cache poisoning and state leakage issues.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Symfony's &lt;code&gt;HttpKernel&lt;/code&gt; unconditionally pushes and pops requests. Drupal's &lt;code&gt;DrupalKernel::preHandle()&lt;/code&gt; also pushed requests early (needed for service initialization during boot), but nothing popped this second push. The double-push caused problems: duplicate stack entries during request processing, sub-requests compounding the issue, and the main request persisting after termination.&lt;/p&gt;
-&lt;p&gt;The solution decouples Drupal's request stack from Symfony's. &lt;code&gt;http_kernel.basic&lt;/code&gt; now receives &lt;code&gt;null&lt;/code&gt; for the request stack parameter, causing &lt;code&gt;HttpKernel&lt;/code&gt; to create its own internal stack. Drupal maintains its own stack lifecycle: &lt;code&gt;DrupalKernel::preHandle()&lt;/code&gt; still pushes early, &lt;code&gt;KernelPreHandle::handle()&lt;/code&gt; now pops sub-requests in a finally block after handling, and &lt;code&gt;DrupalKernel::terminate()&lt;/code&gt; pops the main request at the very end after destructible services run. This ensures the request remains available throughout Drupal's entire lifecycle including termination events, while the stack is properly cleared afterward. Test coverage validates correct stack depth during main requests, sub-requests, and after termination.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 11, 2015&lt;/li&gt;
-&lt;li&gt;Committed: March 1, 2026 (10 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;dawehner (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
-&lt;li&gt;cpj&lt;/li&gt;
-&lt;li&gt;almaudoh&lt;/li&gt;
-&lt;li&gt;martin107&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;voleger (Drupal Ukraine Community)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was open for over 10 years with 150 comments and contributions from 21 people. cpj did extensive research through comments 11-70, methodically testing different architectural approaches including separate request stacks and wrapper classes, before arriving at a working solution. andypost maintained the patch through multiple core versions and API changes. alexpott revived the issue in 2024, simplified the approach to pass null to Symfony's kernel, wrote comprehensive test coverage validating request stack behavior during sub-requests and termination, and shepherded it to completion. larowlan identified a real-world cache poisoning bug caused by this issue that affected production sites.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When integrating with framework components that manage stack-based request lifecycles, different layers may have conflicting expectations about push/pop symmetry. If your application needs resources to remain available longer than the framework's default lifecycle (e.g., during termination handlers), take explicit ownership of the stack lifecycle rather than relying on the framework's automatic cleanup. Use wrapper objects to prevent the framework from modifying shared state while still allowing it to read that state. &lt;em&gt;(via alexpott, cpj)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When handling main requests and subrequests in a stack-based architecture, ensure each request type has a clearly scoped push/pop lifecycle. Main requests may need to persist longer than subrequests (e.g., through termination events), while subrequests should be popped immediately after handling. Asymmetric push/pop patterns are acceptable when they accurately reflect the application's requirements, even if they differ from framework conventions. &lt;em&gt;(via alexpott, cpj, dawehner)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/2613044"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2976416: BaseFieldDefinition::setDefaultValue() and ::setDefaultValueCallback() have no documentation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2976416.md</link>
-      <guid isPermaLink="false">drupal-core-2976416</guid>
-      <pubDate>Fri, 27 Feb 2026 10:36:46 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9ba2d1d8a082b0c2308c9bc32599578a60573a79"&gt;9ba2d1d&lt;/a&gt; · +72/-4 prod · +0/-24 infra · 4 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2976416"&gt;#2976416&lt;/a&gt; · 9 contributors · 72 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two methods for configuring default values on base field definitions now have complete documentation. Previously, &lt;code&gt;BaseFieldDefinition::setDefaultValue()&lt;/code&gt; and &lt;code&gt;BaseFieldDefinition::setDefaultValueCallback()&lt;/code&gt; used placeholder documentation that referenced nonexistent interface methods, making it difficult for developers to understand how to use them properly. The updated documentation explains the accepted formats for default values, the precedence of callbacks over static values, and the callback signature, helping module developers set up entity base fields correctly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;BaseFieldDefinition&lt;/code&gt; class implements &lt;code&gt;FieldDefinitionInterface&lt;/code&gt;, which is intentionally read-only and contains no setter methods. This design reflects that base field definitions are static after discovery, unlike &lt;code&gt;FieldConfig&lt;/code&gt; entities which can be modified and saved. The two methods in question inherited &lt;code&gt;{@inheritdoc}&lt;/code&gt; tags that pointed to no actual parent, leaving them undocumented.&lt;/p&gt;
-&lt;p&gt;The fix adds explicit docblocks explaining the accepted value formats for &lt;code&gt;setDefaultValue()&lt;/code&gt;: literals (assigned to the first property of the first item), numerically indexed arrays of items, non-numerically indexed property/value arrays, or NULL/empty array. It documents that &lt;code&gt;setDefaultValueCallback()&lt;/code&gt; takes precedence when both are set, and specifies the callback signature with two parameters (the entity and field definition) returning a value in the same format.&lt;/p&gt;
-&lt;p&gt;The type hint for the callback parameter was corrected from &lt;code&gt;string&lt;/code&gt; to &lt;code&gt;callable&lt;/code&gt;, aligning with PHPStan documentation standards adopted in core. This reflects that while the current implementation accepts string representations of functions, the semantic meaning is that it's a callable. PHPStan baseline entries for missing return type annotations were also removed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 30, 2018&lt;/li&gt;
-&lt;li&gt;First commit: February 9, 2026 (7 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: February 27, 2026 (17 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;joachim (Torchbox)&lt;/li&gt;
-&lt;li&gt;msankhala (Material)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;xjm (xjm)&lt;/li&gt;
-&lt;li&gt;oily (Cactus Blossom IT Services Limited)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;borisson_ (Calibrate)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;joachim opened this issue in 2018 and followed through with detailed reviews over the years. xjm provided thorough committer review focusing on documentation accuracy and consistency with core patterns. oily contributed careful analysis of callable type hinting and PHP semantics that led to improving the parameter documentation from &lt;code&gt;string&lt;/code&gt; to &lt;code&gt;callable&lt;/code&gt;. quietone committed the changes across multiple branches. The discussion about read-only interfaces versus concrete implementations provided valuable context about entity field definition architecture.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When a parameter accepts a string that represents a callable (function name, class method, or service notation), document it as 'callable' rather than 'string'. This conveys semantic intent and leverages IDE and static analysis tooling that recognizes the callable type. &lt;em&gt;(via oily, xjm)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When read-only interfaces describe objects that have mutable implementations, setter methods belong on the concrete class without requiring interface changes. Document these methods explicitly rather than using inheritdoc or forcing setters onto interfaces that semantically represent immutable contracts. &lt;em&gt;(via berdir)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/2976416"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574461: Deprecate not implementing \Drupal\layout_builder\SupportAwareSectionStorageInterface, implement it in navigation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574461.md</link>
-      <guid isPermaLink="false">drupal-core-3574461</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 27 Feb 2026 10:04:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f08dfd4910e2906a7e9efa81757aa3981a7cb815"&gt;f08dfd4&lt;/a&gt; · +32/-4 prod · +52/-28 test · 12 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574461"&gt;#3574461&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Layout Builder had a performance optimization from &lt;a href="https://www.drupal.org/project/drupal/issues/3060985"&gt;#3060985&lt;/a&gt; that prevented unnecessary work when checking if Layout Builder is enabled for an entity. However, the optimization only worked when all section storage plugins properly implemented a support-checking interface. The Navigation module's section storage did not implement this interface, which caused the optimization to fail completely whenever Navigation was enabled. This change adds the interface to Navigation and deprecates section storage plugins that do not implement it, restoring the performance improvements.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Section storage plugins not implementing &lt;code&gt;\Drupal\layout_builder\SupportAwareSectionStorageInterface&lt;/code&gt; is deprecated in drupal:11.4.0 and required from drupal:13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;SectionStorageManager::notSupported()&lt;/code&gt; method checks whether Layout Builder should be skipped for a given entity type, bundle, and view mode. A previous optimization introduced &lt;code&gt;SupportAwareSectionStorageInterface&lt;/code&gt; to allow section storage plugins to declare whether they support specific contexts without expensive setup work.&lt;/p&gt;
-&lt;p&gt;The original logic short-circuited if &lt;em&gt;any&lt;/em&gt; plugin either didn't implement the interface or returned TRUE from &lt;code&gt;isSupported()&lt;/code&gt;. This meant that a single plugin not implementing the interface would cause the optimization to fail for all requests, triggering expensive context resolution unnecessarily.&lt;/p&gt;
-&lt;p&gt;The fix splits the conditional logic. Now if a plugin doesn't implement the interface, a deprecation error is triggered and the method returns FALSE (not supported), but this only affects that specific check. The Navigation module's &lt;code&gt;NavigationSectionStorage&lt;/code&gt; now implements the interface and returns FALSE from &lt;code&gt;isSupported()&lt;/code&gt; since it does not support entity-based layouts.&lt;/p&gt;
-&lt;p&gt;Test section storage plugins (&lt;code&gt;SimpleConfigSectionStorage&lt;/code&gt;, &lt;code&gt;TestStateBasedSectionStorage&lt;/code&gt;) also received the interface to avoid triggering deprecations during testing. Performance test expectations were updated to reflect the restored optimization, showing fewer queries and cache operations.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you maintain a custom section storage plugin, implement &lt;code&gt;\Drupal\layout_builder\SupportAwareSectionStorageInterface&lt;/code&gt; and add the &lt;code&gt;isSupported()&lt;/code&gt; method:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\layout_builder\SupportAwareSectionStorageInterface;
-
-class MyCustomSectionStorage extends PluginBase implements SectionStorageInterface, SupportAwareSectionStorageInterface {
-  
-  public function isSupported(string $entity_type_id, string $bundle, string $view_mode): bool {
-    // Return TRUE if this storage applies to the given context.
-    // Return FALSE if it does not (e.g., Navigation returns FALSE for all entity types).
-    return FALSE;
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;See &lt;a href="https://www.drupal.org/node/3574738"&gt;#3574738&lt;/a&gt; for full details.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 19, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 27, 2026 (8 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir identified the Navigation module as the source of a performance regression and implemented both the fix and the deprecation. catch provided guidance on test coverage expectations and committed the change.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3574461"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3572339: Modernize locale.fetch.inc</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572339.md</link>
-      <guid isPermaLink="false">drupal-core-3572339</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 27 Feb 2026 08:01:45 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b90bfab5525253c26b3d0f7a22723cd656e4ec04"&gt;b90bfab&lt;/a&gt; · +312/-106 · 16 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3572339"&gt;#3572339&lt;/a&gt; · 4 contributors · 15 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Locale module now provides translation fetching functionality through a proper service instead of procedural functions. This change modernizes the codebase by moving batch building operations for downloading and importing translations into the new &lt;code&gt;LocaleFetch&lt;/code&gt; service. Sites using the standard translation update workflows will see no change in behavior. This cleanup is part of an ongoing effort to modernize the Locale module by converting procedural code to object-oriented services.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Three procedural functions in &lt;code&gt;locale.fetch.inc&lt;/code&gt; are deprecated: &lt;code&gt;locale_translation_batch_update_build()&lt;/code&gt;, &lt;code&gt;locale_translation_batch_fetch_build()&lt;/code&gt;, and &lt;code&gt;_locale_translation_fetch_operations()&lt;/code&gt;; use the new &lt;code&gt;LocaleFetch&lt;/code&gt; service methods instead.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change introduces a new &lt;code&gt;LocaleFetch&lt;/code&gt; service that encapsulates the logic previously in three procedural functions from &lt;code&gt;locale.fetch.inc&lt;/code&gt;. The service provides two public methods: &lt;code&gt;batchUpdateBuild()&lt;/code&gt; checks translation status then downloads and imports updates, while &lt;code&gt;batchFetchBuild()&lt;/code&gt; downloads and imports without checking status first. Both methods return batch definition arrays for the Batch API. A protected &lt;code&gt;fetchOperations()&lt;/code&gt; method builds the operation arrays.&lt;/p&gt;
-&lt;p&gt;The deprecated procedural functions now trigger deprecation errors and delegate to the service. The service uses dependency injection to access &lt;code&gt;LocaleProjectStorageInterface&lt;/code&gt; and &lt;code&gt;ModuleExtensionList&lt;/code&gt;. All internal Drupal code that called the old functions has been updated to use the service instead, including installation routines, form handlers, cron implementations, and hook implementations.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;_locale_translation_fetch_operations()&lt;/code&gt; function was marked internal (leading underscore) and has no public replacement since it was an implementation detail. The file &lt;code&gt;locale.fetch.inc&lt;/code&gt; remains for backward compatibility in Drupal 11.x but will be removed in Drupal 13.0.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your custom code calls the deprecated functions, update to use the &lt;code&gt;LocaleFetch&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$batch = locale_translation_batch_update_build($projects, $langcodes, $options);
-
-// After:
-$batch = \Drupal::service(LocaleFetch::class)-&amp;gt;batchUpdateBuild($projects, $langcodes, $options);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$batch = locale_translation_batch_fetch_build($projects, $langcodes, $options);
-
-// After:
-$batch = \Drupal::service(LocaleFetch::class)-&amp;gt;batchFetchBuild($projects, $langcodes, $options);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you called &lt;code&gt;_locale_translation_fetch_operations()&lt;/code&gt;, refactor to call one of the two public methods instead. See &lt;a href="https://www.drupal.org/node/3572345"&gt;#3572345&lt;/a&gt; for details.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 26, 2026 (17 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;nicxvan opened this issue as part of a file-by-file modernization effort to avoid merge conflicts while converting the Locale module. After berdir's feedback about testing installation, nicxvan manually verified the changes. The discussion around keeping implicit includes for backward compatibility in Drupal 11.x involved alexpott and berdir in Slack, establishing a pattern for handling deprecated include files. dcam provided review feedback and confirmed all references were updated before setting the issue back to RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572339"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
