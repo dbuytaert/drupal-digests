@@ -9,25 +9,25 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3573054: Create Document Loader Plugin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3573054.md)
+- [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
+- [#3567244: Make it possible to serialize ChatMessage when an image exists](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567244.md)
+
+**Drupal Canvas**
+- [#3573096: Add Multi-Value Text Field Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573096.md)
+- [#3571534: New CLI discovery and build for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571534.md)
+- [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
+
+**Drupal CMS**
+- [#3576882: Use focal point widget on image and SVG forms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576882.md)
+- [#3577153: SiteExporter repeats indexed arrays, potentially bloating recipe.yml to tens of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577153.md)
+- [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
+
 **Drupal Core**
 - [#3575575: Remove deprecations around File component and module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575575.md)
 - [#3575467: Remove deprecations related to the theme engine ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575467.md)
 - [#3202329: Outbound path processors miss the route name and parameters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3202329.md)
-
-**Drupal AI**
-- [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
-- [#3567244: Make it possible to serialize ChatMessage when an image exists](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567244.md)
-- [#3569242: Support Rerank Operation (not yet released)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569242.md)
-
-**Drupal Canvas**
-- [#3571534: New CLI discovery and build for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571534.md)
-- [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
-- [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
-
-**Drupal CMS**
-- [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
-- [#3574664: The `site:export` command should be able to export on top of another recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574664.md)
-- [#3576063: The installer should show a remotely curated list of site templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576063.md)
 
 
 ## About
