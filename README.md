@@ -9,20 +9,20 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3575575: Remove deprecations around File component and module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575575.md)
+- [#3575467: Remove deprecations related to the theme engine ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575467.md)
+- [#3202329: Outbound path processors miss the route name and parameters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3202329.md)
+
 **Drupal AI**
 - [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
 - [#3567244: Make it possible to serialize ChatMessage when an image exists](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3567244.md)
 - [#3569242: Support Rerank Operation (not yet released)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569242.md)
 
 **Drupal Canvas**
+- [#3571534: New CLI discovery and build for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571534.md)
 - [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
 - [#3576578: Inform SDC/code component developers of nonsensical `type: array` prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576578.md)
-- [#3572881: It's not possible to scroll the Canvas diagonally with touch pad](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572881.md)
-
-**Drupal Core**
-- [#3575171: Add Navigation to the Standard profile and recipes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575171.md)
-- [#3228209: Move hasRole() method from UserInterface to AccountInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3228209.md)
-- [#3575542: Remove deprecations related to the theme preprocess discovery and theme.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575542.md)
 
 **Drupal CMS**
 - [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
