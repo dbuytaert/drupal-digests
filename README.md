@@ -9,10 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal CMS**
+- [#3577313: The installer should allow site templates to scaffold files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577313.md)
+- [#3576882: Use focal point widget on image and SVG forms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576882.md)
+- [#3577153: SiteExporter repeats indexed arrays, potentially bloating recipe.yml to tens of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577153.md)
+
 **Drupal Core**
-- [#3570849: Deprecate SessionManager::delete()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570849.md)
-- [#3576995: Update CKEditor 5 to 47.6.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576995.md)
-- [#3576556: Deprecate CachePluginBase::cacheExpire](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576556.md)
+- [#3575585: Convert remaining themes to OOP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575585.md)
+- [#3040302: "Edit summary" button for the text with summary widget has unthemable markup](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3040302.md)
+- [#3568092: Convert editor.module procedural submit, validate and Ajax callbacks to methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568092.md)
 
 **Drupal AI**
 - [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
@@ -20,14 +25,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
 
 **Drupal Canvas**
-- [#3573096: Add Multi-Value Text Field Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573096.md)
+- [#3573096: Add Multi-Value Text Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573096.md)
 - [#3571534: New CLI discovery and build for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571534.md)
 - [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
-
-**Drupal CMS**
-- [#3576882: Use focal point widget on image and SVG forms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576882.md)
-- [#3577153: SiteExporter repeats indexed arrays, potentially bloating recipe.yml to tens of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577153.md)
-- [#3574824: When doing internal development, add cweagans/composer-patches to Package...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3574824.md)
 
 
 ## About
