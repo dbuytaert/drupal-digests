@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Canvas**
+- [#3577399: Detect legacy CANVAS_COMPONENT_DIR and migrate to canvas.config.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577399.md)
+- [#3577343:  Bump eslint-config package to 0.1.2 and update CLI to it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577343.md)
+- [#3573096: Add Multi-Value Text Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573096.md)
+
 **Drupal CMS**
 - [#3577313: The installer should allow site templates to scaffold files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577313.md)
 - [#3576882: Use focal point widget on image and SVG forms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576882.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
 - [#3573054: Create Document Loader Plugin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3573054.md)
 - [#3576537: FAQ Field FWA should fetch multiple](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576537.md)
-
-**Drupal Canvas**
-- [#3573096: Add Multi-Value Text Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573096.md)
-- [#3571534: New CLI discovery and build for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3571534.md)
-- [#3546760: Add e2e test for `ContentTemplates` feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3546760.md)
 
 
 ## About
