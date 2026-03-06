@@ -5,6 +5,70 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
+      <title>#3576225: Index Strategy for the Drupal-created collections</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md</link>
+      <guid isPermaLink="false">drupal-ai-3576225</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 06 Mar 2026 16:31:06 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_vdb_provider_postgres/-/commit/c4933a3d380c83f7ab76f24934976ca392570c17"&gt;c4933a3&lt;/a&gt; · +571/-67 · 6 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576225"&gt;#3576225&lt;/a&gt; · 4 contributors · 10 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Vector search performance on large datasets can now be optimized through pgvector index configuration. When using the Postgres AI VDB provider for Search API, site administrators can choose between exact search (no index) for small datasets or approximate nearest neighbor indexes (HNSW or IVFFlat) for large datasets. The index strategy can be changed at any time through the Search API server configuration form, and the system automatically rebuilds the database index to match. This setting respects the configured similarity metric (cosine, Euclidean, or inner product) and ensures the correct operator class is used.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;vector_index_strategy&lt;/code&gt; database setting in Postgres provider configuration allows selecting None, HNSW, or IVFFlat pgvector index strategy for Search API servers.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;PostgresProvider&lt;/code&gt; plugin now exposes a &lt;code&gt;vector_index_strategy&lt;/code&gt; select element in &lt;code&gt;buildSettingsForm()&lt;/code&gt; with three options: None, HNSW, and IVFFlat. The strategy is stored in the Search API server configuration at &lt;code&gt;database_settings.vector_index_strategy&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because the upstream &lt;code&gt;ai_search&lt;/code&gt; module does not call &lt;code&gt;submitSettingsForm()&lt;/code&gt; on the provider, index application is handled by a &lt;code&gt;ConfigEvents::SAVE&lt;/code&gt; event subscriber (&lt;code&gt;VectorIndexConfigSubscriber&lt;/code&gt;) at priority &lt;code&gt;-10&lt;/code&gt;. This runs after the upstream subscriber creates the collection table, ensuring the table exists before indexing.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;PostgresPgvectorClient&lt;/code&gt; provides three new methods: &lt;code&gt;createVectorIndex()&lt;/code&gt;, &lt;code&gt;dropVectorIndex()&lt;/code&gt;, and &lt;code&gt;ensureVectorIndex()&lt;/code&gt;. The last compares the current index strategy and similarity metric operator class against the desired configuration and only drops/recreates when needed. Index creation uses the appropriate pgvector operator class (&lt;code&gt;vector_cosine_ops&lt;/code&gt;, &lt;code&gt;vector_l2_ops&lt;/code&gt;, or &lt;code&gt;vector_ip_ops&lt;/code&gt;) based on the configured similarity metric.&lt;/p&gt;
+&lt;p&gt;When clearing all indexed data via &lt;code&gt;deleteAllItems()&lt;/code&gt;, the provider automatically re-applies the configured index strategy after the table is recreated.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;VectorIndexStrategy&lt;/code&gt; enum defines the three options and provides human-readable labels. A &lt;code&gt;VectorIndexException&lt;/code&gt; is thrown on indexing failures and caught by the subscriber, which logs errors without blocking the configuration save.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Site owners using the Postgres AI VDB provider should review their Search API server configuration and select an appropriate vector index strategy:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Navigate to &lt;strong&gt;Configuration → Search and metadata → Search API → [Server] → Edit&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;Under &lt;strong&gt;Database settings&lt;/strong&gt;, select a &lt;strong&gt;Vector index strategy&lt;/strong&gt;:&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;None&lt;/strong&gt; for small datasets (exact search)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;HNSW&lt;/strong&gt; for large datasets (recommended)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;IVFFlat&lt;/strong&gt; as an alternative ANN index&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;Save the configuration&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The index will be created or updated automatically. For large collections, indexing may take a few moments. No code changes are required; this is a configuration-only change exposed through the administrative UI.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 6, 2026 (7 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This feature was proposed and implemented by nikro (Dropsolid) over a nine-day period. The initial implementation was completed in a single iteration with comprehensive inline documentation and benchmark data comparing all three index strategies on a real dataset with 1024-dimension embeddings.&lt;/p&gt;
+&lt;p&gt;abhisekmazumdar (Dropsolid) reviewed the merge request after some delay due to environment setup challenges. Testing covered all strategy transitions, metric-aware operator class selection, and automatic index recreation after clearing indexed data. A few inline suggestions were made in the MR review, and the feature was committed shortly after.&lt;/p&gt;
+&lt;p&gt;The issue summary was kept meticulously up to date with a task checklist tracking completed and outstanding work. The team noted that automated tests were skipped because the module has no existing test coverage and integration tests require a live pgvector connection, making CI difficult. Documentation updates to &lt;code&gt;README.md&lt;/code&gt; were also deferred as low priority.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When an upstream module doesn't expose a lifecycle hook (like submitSettingsForm), you can use a config save event subscriber with lower priority to run logic after the upstream has finished. This ensures dependencies like database tables exist before your code attempts to reference them. &lt;em&gt;(via nikro)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When exposing database index strategies in configuration UI, make the UI metric-aware: if the user changes similarity metric (cosine vs euclidean), automatically recreate the index with the corresponding operator class rather than forcing users to understand the mapping between metrics and operator classes. &lt;em&gt;(via nikro)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3576225"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3507378: Use HEREDOC style string for AI API Explorer</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md</link>
       <guid isPermaLink="false">drupal-ai-3507378</guid>
@@ -850,43 +914,6 @@ foreach ($detection_items as $item) {
 &lt;p&gt;yautja_cetanu identified and reported the regression with multiple affected form fields. d34dman and gxleano coordinated to address the issue as part of the broader FlowDrop UI migration effort, ensuring the fix was integrated systematically rather than patched individually.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3567144"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3566304: The Edit Cog for the Chatbot is hidden behind the chat window.</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3566304.md</link>
-      <guid isPermaLink="false">drupal-ai-3566304</guid>
-      <pubDate>Tue, 17 Feb 2026 11:24:38 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3566304"&gt;#3566304&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A visual bug in the chatbot interface prevented users from accessing the edit button. The configuration control (edit cog) was positioned behind the chat window, making it impossible to click. This issue has been resolved as part of a broader update to the FlowDrop UI components.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This was a CSS z-index or positioning issue in the chatbot user interface where the edit cog control was rendered behind the chat window element. The visual layering problem meant site builders could not access the configuration controls for the chatbot block.&lt;/p&gt;
-&lt;p&gt;The fix was implemented as part of the migration to the latest version of FlowDrop UI in issue &lt;a href="https://www.drupal.org/project/flowdrop_ui_agents/issues/3572310"&gt;#3572310&lt;/a&gt;. No diff is available for this specific issue because the resolution was rolled into the larger UI update. The corrected CSS or layout adjustments ensure the edit controls now appear above the chat window with the proper stacking order.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;yautja_cetanu (FreelyGive)&lt;/li&gt;
-&lt;li&gt;rakhimandhania&lt;/li&gt;
-&lt;li&gt;d34dman (Factorial GmbH)&lt;/li&gt;
-&lt;li&gt;gxleano (Factorial GmbH)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;yautja_cetanu reported the issue with a screenshot documenting the problem. d34dman and gxleano coordinated to ensure the fix was included in the FlowDrop UI migration work.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3566304"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
