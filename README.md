@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3567483: Update manager crashing admin panel with uncaught exceptions parsing version...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3567483.md)
+- [#3560117: [meta] Add Navigation to the Standard profile and recipes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3560117.md)
+- [#3577279: Fix service call in EditorController xss](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577279.md)
+
 **Drupal Canvas**
 - [#3577399: Detect legacy CANVAS_COMPONENT_DIR and migrate to canvas.config.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577399.md)
 - [#3577343:  Bump eslint-config package to 0.1.2 and update CLI to it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577343.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3577313: The installer should allow site templates to scaffold files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577313.md)
 - [#3576882: Use focal point widget on image and SVG forms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576882.md)
 - [#3577153: SiteExporter repeats indexed arrays, potentially bloating recipe.yml to tens of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577153.md)
-
-**Drupal Core**
-- [#3575585: Convert remaining themes to OOP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575585.md)
-- [#3040302: "Edit summary" button for the text with summary widget has unthemable markup](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3040302.md)
-- [#3568092: Convert editor.module procedural submit, validate and Ajax callbacks to methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568092.md)
 
 **Drupal AI**
 - [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)

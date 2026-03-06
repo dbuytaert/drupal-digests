@@ -5,6 +5,129 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3567483: Update manager crashing admin panel with uncaught exceptions parsing version strings</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3567483.md</link>
+      <guid isPermaLink="false">drupal-core-3567483</guid>
+      <pubDate>Fri, 06 Mar 2026 12:13:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e808e76c844f19c6f28c4c0150f342365ce6cc19"&gt;e808e76&lt;/a&gt; · +69/-12 prod · +21/-0 test · 6 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3567483"&gt;#3567483&lt;/a&gt; · 10 contributors · 36 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Update module could crash sites with a white screen when processing malformed version strings from external update feeds. This happened when Drupal.org introduced a &amp;quot;main&amp;quot; branch, but the same issue could occur with any invalid version string from update feeds, whether due to accidental errors, compromised servers, or man-in-the-middle attacks. The Update module now validates version strings before processing them and silently filters out invalid entries instead of crashing. This ensures that unexpected data from external sources cannot take down site administration pages.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was uncaught exceptions when the &lt;code&gt;composer/semver&lt;/code&gt; library encountered invalid version strings like &amp;quot;main&amp;quot; while parsing update XML feeds. The &lt;code&gt;ProjectCoreCompatibility&lt;/code&gt; class called Composer's semantic version comparison functions without validating input from external sources.&lt;/p&gt;
+&lt;p&gt;The fix wraps three locations in &lt;code&gt;ProjectCoreCompatibility&lt;/code&gt; with try-catch blocks for &lt;code&gt;UnexpectedValueException&lt;/code&gt;. Before comparing versions, the code now validates each version string using &lt;code&gt;VersionParser::normalize()&lt;/code&gt;. Invalid versions are filtered out early in &lt;code&gt;getPossibleCoreUpdateVersions()&lt;/code&gt;. The method also catches exceptions when calling &lt;code&gt;Semver::satisfiedBy()&lt;/code&gt; and &lt;code&gt;Semver::sort()&lt;/code&gt;, returning an empty array instead of crashing. In &lt;code&gt;getCompatibilityRanges()&lt;/code&gt;, the code catches exceptions from &lt;code&gt;Semver::satisfies()&lt;/code&gt; and continues to the next version.&lt;/p&gt;
+&lt;p&gt;The fix does not log these errors. Since site owners cannot fix malformed data from external feeds, and invalid releases remain in feeds permanently once published, logging would only create noise without actionable information.&lt;/p&gt;
+&lt;p&gt;A unit test was added to verify that invalid version strings like &amp;quot;main&amp;quot; are properly filtered without throwing exceptions.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 14, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 6, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;cassius&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;jpoesen&lt;/li&gt;
+&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;jastraat (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was reported when Drupal.org opened the &amp;quot;main&amp;quot; branch, immediately causing crashes on Drupal 8.9, 9.x, and 10.2 sites. The drupal.org team quickly deployed a server-side fix in &lt;a href="https://www.drupal.org/node/3567494"&gt;#3567494&lt;/a&gt; to filter &amp;quot;main&amp;quot; from update feeds, but cmlara correctly argued this only addressed the symptom. External update feeds could provide malformed data through accidents, compromises, or attacks, and Drupal core needed defensive validation.&lt;/p&gt;
+&lt;p&gt;The discussion clarified that Drupal 10.3+ was already protected by filtering in &lt;a href="https://www.drupal.org/node/3112962"&gt;#3112962&lt;/a&gt;, but older versions remained vulnerable. dww and catch emphasized that external data should never crash a site. After jastraat confirmed the fix resolved a real-world issue with the Suggestion module's faulty alpha release, the team debated whether to log validation errors. They ultimately decided against logging since site owners cannot fix external feed problems and invalid releases persist forever.&lt;/p&gt;
+&lt;p&gt;The fix took nearly two months from report to commit, reflecting the careful discussion about proper error handling for external data.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When processing externally-sourced data (from APIs, feeds, or user input), wrap operations that might throw exceptions in try-catch blocks. External data can be malformed accidentally, compromised through attacks, or intercepted, and uncaught exceptions from parsing invalid data should never crash the application. Log errors if actionable by users, or silently skip invalid entries when users cannot fix the problem. &lt;em&gt;(via cmlara, catch, dww, longwave)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3567483"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3560117: [meta] Add Navigation to the Standard profile and recipes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3560117.md</link>
+      <guid isPermaLink="false">drupal-core-3560117</guid>
+      <pubDate>Fri, 06 Mar 2026 12:10:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3560117"&gt;#3560117&lt;/a&gt; · 8 contributors · 17 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This meta issue coordinated the work needed to add the Navigation module to Drupal's Standard profile and recipes. Navigation is the modern replacement for the Toolbar module, providing a new administrative interface. Before Navigation could be enabled by default, critical accessibility issues had to be resolved and the module needed to be marked stable. This change paves the way for eventually deprecating Toolbar and removing legacy JavaScript libraries like Underscore and Backbone from Drupal core.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This meta issue tracked the coordination of multiple child issues required to enable the Navigation module in Standard profile and recipes. The main technical work happened in child issue &lt;a href="https://www.drupal.org/node/3575171"&gt;#3575171&lt;/a&gt;, which added Navigation to Standard profile and recipes, and &lt;a href="https://www.drupal.org/node/3560118"&gt;#3560118&lt;/a&gt;, which replaced Toolbar with Navigation in the Umami demo profile.&lt;/p&gt;
+&lt;p&gt;The issue was initially postponed on &lt;a href="https://www.drupal.org/node/3391723"&gt;#3391723&lt;/a&gt; until critical accessibility issues were resolved. These included fixing focusable elements in closed sidebars, high contrast mode refinements, and invalid ARIA attributes. Once the accessibility team confirmed all blocking issues were fixed, the work proceeded.&lt;/p&gt;
+&lt;p&gt;A performance consideration was also addressed in &lt;a href="https://www.drupal.org/node/3576727"&gt;#3576727&lt;/a&gt;, which integrated Navigation's performance test into &lt;code&gt;StandardPerformanceTest&lt;/code&gt;. The standalone &lt;code&gt;\Drupal\Tests\navigation\FunctionalJavascript\PerformanceTest&lt;/code&gt; became redundant after this change.&lt;/p&gt;
+&lt;p&gt;The meta issue itself contains no code changes; all implementation happened in the child issues.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 26, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This meta issue was opened in late November 2024 and marked critical because it blocks the eventual deprecation of Toolbar module and removal of Underscore and Backbone JavaScript libraries from core. The issue was initially postponed on accessibility fixes from &lt;a href="https://www.drupal.org/node/3391723"&gt;#3391723&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The path forward became clear once several RTBC accessibility issues were committed to Drupal 11.4, including fixes for focusable elements in closed sidebars and high contrast mode. The core team decided to proceed with preparing merge requests while the final accessibility issues were being resolved, since there would be no code conflicts.&lt;/p&gt;
+&lt;p&gt;The decision to update both the install profile and recipes together kept them synchronized. By the time the child issues were completed, all accessibility blockers identified by the accessibility team had been resolved, allowing the work to proceed smoothly. The issue was fixed once all child issues were merged.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3560117"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3577279: Fix service call in EditorController xss</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577279.md</link>
+      <guid isPermaLink="false">drupal-core-3577279</guid>
+      <pubDate>Fri, 06 Mar 2026 12:00:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a68fc4c46a4264a94d1d6b69a4c70e4a00191068"&gt;a68fc4c&lt;/a&gt; · +1/-1 · 1 file&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577279"&gt;#3577279&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A critical bug in the editor module controller was using an incorrect service identifier in its fallback code. The constructor was trying to load a service called &lt;code&gt;editor.element&lt;/code&gt; which does not exist, instead of the correct service identifier for the Element class. This would cause errors when the controller was instantiated without the required dependency, breaking the deprecated code path that was meant to maintain backward compatibility during the transition period.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;EditorController&lt;/code&gt; constructor accepts an &lt;code&gt;Element&lt;/code&gt; service as a dependency. To maintain backward compatibility during deprecation, it includes fallback code that uses &lt;code&gt;\Drupal::service()&lt;/code&gt; when the dependency is not provided.&lt;/p&gt;
+&lt;p&gt;The fallback incorrectly referenced the service as &lt;code&gt;'editor.element'&lt;/code&gt;, which does not exist in the service container. The correct service identifier is the fully qualified class name &lt;code&gt;Element::class&lt;/code&gt;, which resolves to the proper service registered in the container.&lt;/p&gt;
+&lt;p&gt;This bug would trigger a service not found exception whenever code instantiated &lt;code&gt;EditorController&lt;/code&gt; without passing the &lt;code&gt;$editorElement&lt;/code&gt; parameter. The error prevented the deprecated code path from working, breaking backward compatibility for any code not yet updated to use dependency injection properly. The fix changes the string literal to use the class constant, aligning with Drupal's convention of using class names as service identifiers.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This critical bug was identified and fixed within 24 hours of being reported. The issue was opened on March 5th and committed on March 6th, demonstrating rapid response to a critical regression. The quick turnaround prevented the incorrect service identifier from causing wider problems in production environments during the deprecation transition period.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3577279"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3575585: Convert remaining themes to OOP</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575585.md</link>
       <guid isPermaLink="false">drupal-core-3575585</guid>
@@ -851,156 +974,6 @@ $session_repository-&amp;gt;deleteAll($uid);
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3576074"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3572628: Mobile sidebar should close by ESCAPE key</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572628.md</link>
-      <guid isPermaLink="false">drupal-core-3572628</guid>
-      <pubDate>Mon, 02 Mar 2026 16:52:22 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/302f90773338a57fe1693e468fc76b7643a14d4c"&gt;302f907&lt;/a&gt; · +66/-6 prod · +80/-10 test · 10 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3572628"&gt;#3572628&lt;/a&gt; · 6 contributors · 35 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The mobile Navigation sidebar can now be closed by pressing the Escape key, meeting accessibility requirements. Previously, keyboard users had no way to close the mobile sidebar with the Escape key, creating an inequitable experience compared to mouse users. The fix implements a hierarchical behavior: Escape closes submenus first, and if no submenu is open, it closes the entire sidebar and returns focus to the &amp;quot;Expand sidebar&amp;quot; button. This completes a critical accessibility gap identified in the Navigation module's accessibility review.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This change adds two key behaviors to the Navigation module's mobile sidebar. First, in &lt;code&gt;admin-toolbar-wrapper.js&lt;/code&gt;, a new &lt;code&gt;keydown&lt;/code&gt; event listener detects the Escape key when the sidebar is expanded and triggers the mobile toggle button to close it. When the sidebar closes via user input, focus moves to the &amp;quot;Expand sidebar&amp;quot; button, following WCAG best practices for focus management in slide-out navigation.&lt;/p&gt;
-&lt;p&gt;Second, the &lt;code&gt;arrow-navigation.js&lt;/code&gt; file now implements hierarchical Escape key handling. The code checks if the user is inside a popover submenu before closing. If they are inside a popover that is open or on a non-trigger element, Escape closes only that submenu using &lt;code&gt;stopPropagation()&lt;/code&gt; to prevent the event from bubbling to the parent handler. If no submenu is open, the Escape key bubbles to the document-level handler and closes the entire sidebar.&lt;/p&gt;
-&lt;p&gt;The template adds &lt;code&gt;data-drupal-selector=&amp;quot;admin-toolbar-mobile-trigger&amp;quot;&lt;/code&gt; to identify the expand button for focus management. New Nightwatch tests verify both wide and narrow viewport behaviors, including focus return to the trigger button. This incorporates code from issue &lt;a href="https://www.drupal.org/project/drupal/issues/3541741"&gt;#3541741&lt;/a&gt; that fixed submenu Escape handling.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 10, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 2, 2026 (20 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kentr&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;rkoller&lt;/li&gt;
-&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was the last high-priority accessibility issue blocking the Navigation module's accessibility review in &lt;a href="https://www.drupal.org/project/drupal/issues/3391723"&gt;#3391723&lt;/a&gt;. It was originally postponed on &lt;a href="https://www.drupal.org/project/drupal/issues/3443571"&gt;#3443571&lt;/a&gt; to avoid merge conflicts, then unblocked when that focus trap issue landed. The team discussed working on it at Florida DrupalCamp 2026's contribution sprint, but kentr completed the implementation beforehand. The solution incorporated code from &lt;a href="https://www.drupal.org/project/drupal/issues/3541741"&gt;#3541741&lt;/a&gt; by hinal05, which fixed a related submenu-closing issue. After manual testing by lauriii confirmed the behavior, catch committed it to both main and 11.x branches given the strong consensus on approach and its role as the final blocker.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When implementing keyboard navigation for layered UI elements (e.g., sidebar with sub-menus), the ESC key should close the most recently opened layer. If already at the top level, ESC should close the entire component and return focus to the trigger element that opened it, creating an equitable experience between keyboard and pointer users. &lt;em&gt;(via kentr, mherchel)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572628"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3534144: [12.x] [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md</link>
-      <guid isPermaLink="false">drupal-core-3534144</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 02 Mar 2026 02:34:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical plan&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3534144"&gt;#3534144&lt;/a&gt; · 5 contributors · 33 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal 12 platform requirements have been established to ensure sites run on secure, well-supported infrastructure. The most significant change is requiring PHP 8.5, following the new policy to adopt the latest stable PHP version at beta release. Database requirements reflect conservative increases that balance access to modern features with practical hosting constraints. Most database versions remain the same or receive modest bumps, recognizing that database upgrades are harder for hosting providers than PHP updates. These requirements align with Ubuntu LTS releases and vendor support cycles to maximize compatibility.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Drupal 12 will require PHP 8.5, MySQL 8.0 or higher, MariaDB 10.11 or higher, PostgreSQL 18 or higher, and SQLite 3.45 or higher.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This meta issue coordinated the platform requirement decisions for Drupal 12 across multiple subsystems. The PHP 8.5 requirement implements the recently approved policy to require the highest stable PHP release available when a major version reaches beta.&lt;/p&gt;
-&lt;p&gt;For databases, the team applied draft policies that consider vendor LTS cycles, Ubuntu availability, and end-of-life dates. MySQL stays at 8.0 despite being near EOL because hosts struggle with database upgrades and the security surface is low. MariaDB increases from 10.6 to 10.11 to follow their LTS policy more closely. PostgreSQL bumps from 16 to 18, adopting the version available six months before release. SQLite remains at 3.45 since no pressing features require a newer version.&lt;/p&gt;
-&lt;p&gt;The Composer requirement recommends version 2.9.3 for security but doesn't enforce it strictly since Package Manager now uses local Composer when available. The decisions prioritize making Drupal 12 adoption easier for hosts while ensuring sites run on secure platforms. Multiple documentation pages were updated following the announcement.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 4, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This meta issue brought together core committers and release managers to establish platform requirements through collaborative discussion. quietone coordinated the issue, drafted the announcement, and systematically updated all documentation pages. catch clarified policy implementation and provided analysis on database security surfaces versus PHP. longwave researched Ubuntu LTS shipping versions and proposed starting points for each database. xjm offered historical perspective on minimum versus recommended versions. gábor hojtsy updated documentation and published the official announcement at https://www.drupal.org/about/core/blog/announcing-drupal-1200-platform-requirements. The team balanced adoption ease with security and modern feature access.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3534144"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3570235: Deprecate functions in syslog.module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570235.md</link>
-      <guid isPermaLink="false">drupal-core-3570235</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sun, 01 Mar 2026 15:15:59 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4dcc7892403799954d502525d4c342da205887fe"&gt;4dcc789&lt;/a&gt; · +80/-16 · 4 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3570235"&gt;#3570235&lt;/a&gt; · 4 contributors · 24 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Syslog module's two remaining procedural functions are now deprecated because they were only used internally by the module itself. The module has been refactored to use modern dependency injection and config targets, making the configuration form simpler and more maintainable. This cleanup removes unnecessary public API surface while keeping all functionality working exactly as before. No contributed modules were found to be using these functions, so the deprecation has no known external impact.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;syslog_facility_list()&lt;/code&gt; and &lt;code&gt;syslog_logging_settings_submit()&lt;/code&gt; deprecated without replacement; functionality moved to protected methods in &lt;code&gt;SyslogHooks&lt;/code&gt; class&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two functions in &lt;code&gt;syslog.module&lt;/code&gt; have been deprecated: &lt;code&gt;syslog_facility_list()&lt;/code&gt; and &lt;code&gt;syslog_logging_settings_submit()&lt;/code&gt;. Both were only used internally by the Syslog module to build and process its configuration form.&lt;/p&gt;
-&lt;p&gt;The functionality has been moved into the &lt;code&gt;SyslogHooks&lt;/code&gt; class. The facility list is now a protected &lt;code&gt;facilityList()&lt;/code&gt; method called directly from the form alter hook. The submit handler is no longer needed because the form now uses config targets (&lt;code&gt;#config_target&lt;/code&gt;) to automatically save values to &lt;code&gt;syslog.settings&lt;/code&gt; configuration.&lt;/p&gt;
-&lt;p&gt;Additional improvements include proper dependency injection of &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; into the hooks class, and removal of manual configuration loading and default value setting that config targets handle automatically. The form now relies on the Form API's built-in config target system to handle both populating default values and saving submitted values.&lt;/p&gt;
-&lt;p&gt;These functions are deprecated without replacement since they were never intended as public API and no known external usage exists.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you are calling &lt;code&gt;syslog_facility_list()&lt;/code&gt; or &lt;code&gt;syslog_logging_settings_submit()&lt;/code&gt;, you must update your code. These functions are deprecated in Drupal 11.4.0 and will be removed in Drupal 12.0.0 and 13.0.0 respectively.&lt;/p&gt;
-&lt;p&gt;There is no direct replacement. If you need a list of syslog facilities, implement your own array:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$facilities = [
-  LOG_LOCAL0 =&amp;gt; 'LOG_LOCAL0',
-  LOG_LOCAL1 =&amp;gt; 'LOG_LOCAL1',
-  // ... etc
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you were relying on the submit handler, use config targets in your form instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$form['my_field'] = [
-  '#type' =&amp;gt; 'textfield',
-  '#config_target' =&amp;gt; 'my_module.settings:my_key',
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;See &lt;a href="https://www.drupal.org/node/3566774"&gt;#3566774&lt;/a&gt; for details.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 29, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 1, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;nicxvan opened the issue and drove the refactoring to completion. dcam provided thorough review across multiple iterations, including verifying that no contributed modules actually used these functions despite initial search results suggesting otherwise, and conducting manual testing of the form functionality after each change. longwave suggested further simplification by removing the default value keys since config targets handle that automatically, reducing code even more.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3570235"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
