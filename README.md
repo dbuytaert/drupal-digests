@@ -10,9 +10,14 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
+- [#3568264: Update code component props schema to support 'array' type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568264.md)
 - [#3577508: Update eslint rules for the more flexible component discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577508.md)
-- [#3576865: Allow adding custom fonts via AssetLibrary](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576865.md)
-- [#3577399: Detect legacy CANVAS_COMPONENT_DIR and migrate to canvas.config.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577399.md)
+
+**Drupal Core**
+- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
+- [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
+- [#3577569: Fix phpstan baseline on main](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577569.md)
 
 **Drupal AI**
 - [#3576225: Index Strategy for the Drupal-created collections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
 - [#3576540: Authenticated users should not have permission to access the dashboard by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576540.md)
 - [#3577313: The installer should allow site templates to scaffold files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577313.md)
-
-**Drupal Core**
-- [#3577569: Fix phpstan baseline on main](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577569.md)
-- [#3553402: Remove text references to "Drupal 8"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3553402.md)
-- [#3039248: Deprecate views_ui_contextual_links_suppress(),...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3039248.md)
 
 
 ## About
