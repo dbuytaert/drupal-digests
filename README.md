@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
+- [#3576225: Index Strategy for the Drupal-created collections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md)
+- [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
+
 **Drupal Canvas**
 - [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
 - [#3568264: Update code component props schema to support 'array' type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568264.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
 - [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
 - [#3577569: Fix phpstan baseline on main](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577569.md)
-
-**Drupal AI**
-- [#3576225: Index Strategy for the Drupal-created collections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md)
-- [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
-- [#3573054: Create Document Loader Plugin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3573054.md)
 
 **Drupal CMS**
 - [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
