@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3046985: The word "Second" needs translation context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3046985.md)
+- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
+- [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
+
 **Drupal CMS**
 - [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
 - [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
 - [#3568264: Update code component props schema to support 'array' type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568264.md)
 - [#3577508: Update eslint rules for the more flexible component discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577508.md)
-
-**Drupal Core**
-- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
-- [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
-- [#3577569: Fix phpstan baseline on main](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577569.md)
 
 
 ## About
