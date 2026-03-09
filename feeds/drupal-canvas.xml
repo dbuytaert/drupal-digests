@@ -5,6 +5,90 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3558448: UI must only set `value` on `StaticPropSource`s, not on `DynamicPropSource`s nor `HostEntityUrlPropSource`s</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3558448.md</link>
+      <guid isPermaLink="false">drupal-canvas-3558448</guid>
+      <pubDate>Mon, 09 Mar 2026 15:57:34 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/ecbce82d0e951e2df3ddd1baf8ea5a7722f06b1b"&gt;ecbce82&lt;/a&gt; · +56/-85 · 2 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3558448"&gt;#3558448&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas UI was incorrectly sending a &lt;code&gt;value&lt;/code&gt; field when linking dynamic or host entity URL data sources to component properties. This caused the server to receive unnecessary data and in some cases triggered errors. The UI was originally built around static prop sources, and dynamic sources were added later without fully refactoring the linking mechanism. This fix updates the prop linker to only send the source reference, not a value placeholder, making the data flow cleaner and preventing the server from receiving malformed requests.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;PropLinker&lt;/code&gt; component was sending &lt;code&gt;{[propName]: 'noop'}&lt;/code&gt; in the &lt;code&gt;values&lt;/code&gt; object whenever linking any prop source type, even though only &lt;code&gt;StaticPropSource&lt;/code&gt; needs a &lt;code&gt;value&lt;/code&gt; field. &lt;code&gt;DynamicPropSource&lt;/code&gt; and &lt;code&gt;HostEntityUrlPropSource&lt;/code&gt; only require a &lt;code&gt;source&lt;/code&gt; reference since their values are computed server-side.&lt;/p&gt;
+&lt;p&gt;The fix introduces a new action &lt;code&gt;_linkPropToEntityValue&lt;/code&gt; that replaces &lt;code&gt;_updateExistingComponentValuesForLinking&lt;/code&gt; specifically for prop linking scenarios. This new action only updates the &lt;code&gt;source&lt;/code&gt; field in the model and explicitly removes any resolved value for the linked prop by deleting it from the &lt;code&gt;resolved&lt;/code&gt; object before sending to the server.&lt;/p&gt;
+&lt;p&gt;The refactored code checks that a valid evaluated component model exists and that the prop exists in the component metadata before proceeding. It then sends only the updated &lt;code&gt;source&lt;/code&gt; and cleaned &lt;code&gt;resolved&lt;/code&gt; object to the &lt;code&gt;updateComponent&lt;/code&gt; endpoint, eliminating the unnecessary &lt;code&gt;value&lt;/code&gt; field that was causing issues.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 18, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 9, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;jessebaker (Acquia)&lt;/li&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue emerged from work on &lt;a href="https://www.drupal.org/node/3555068"&gt;#3555068&lt;/a&gt; where a workaround was added server-side to handle the incorrect data from the UI. The team recognized this was technical debt from the original static-prop-centric UI implementation, with dynamic sources bolted on later under tight deadlines.&lt;/p&gt;
+&lt;p&gt;Jesse Baker attempted an initial fix but got stuck understanding the interaction between client and server. He also discovered a related bug during testing which was split into &lt;a href="https://www.drupal.org/node/3558719"&gt;#3558719&lt;/a&gt;. Wim Leers proposed a simpler approach: don't send a value field at all for non-static sources. The team agreed to pair program to bridge frontend and backend knowledge gaps.&lt;/p&gt;
+&lt;p&gt;Benjamin Melançon ultimately implemented the solution, creating a dedicated action for prop linking that cleanly separates concerns. The fix merged after confirming it simplified the programmatic linking code while fixing the core issue.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When sending data to an API that only accepts application/x-www-form-urlencoded, JavaScript undefined values are serialized as the string literal &amp;quot;undefined&amp;quot; rather than being omitted. Either omit the key-value pair entirely from the object before serialization, or switch to application/json where undefined values are automatically omitted during JSON.stringify(). &lt;em&gt;(via jessebaker)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When building UI features around new abstractions (like DynamicPropSource) on top of a system designed for older patterns (like StaticPropSource), bolting on new functionality without refactoring creates technical debt. Under aggressive deadlines, this is understandable and necessary, but the underlying assumptions should be refactored once time permits. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3558448"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3556265: Create ability to unpublish Canvas pages	</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556265.md</link>
+      <guid isPermaLink="false">drupal-canvas-3556265</guid>
+      <pubDate>Mon, 09 Mar 2026 14:22:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/24183129b73508e99feee5ddbf06ac715ce438f0"&gt;2418312&lt;/a&gt; · +1265/-146 prod · +657/-25 test · 32 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3556265"&gt;#3556265&lt;/a&gt; · 16 contributors · 93 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas pages can now be unpublished after being published, allowing editors to temporarily hide pages from visitors without deleting them. The unpublish action is staged through auto-save and takes effect when publishing changes, matching Canvas's existing workflow. Draft pages (never published) automatically publish when changes are published, while previously published pages can be unpublished or re-published. The homepage cannot be unpublished. This feature works alongside the Trash module for complementary workflows and is designed to be compatible with future Workspaces integration.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Canvas pages implement &lt;code&gt;EntityPublishedInterface&lt;/code&gt; with a boolean &lt;code&gt;status&lt;/code&gt; field, but need to distinguish three states: draft (never published), published, and unpublished (previously published). Rather than adding a stored field, the implementation uses &lt;code&gt;AutoSaveManager::entityIsConsideredNew()&lt;/code&gt; to determine if a page is a draft based on whether it still has the default &amp;quot;Untitled page&amp;quot; title. This works because Canvas creates all pages through the UI and controls the initial title.&lt;/p&gt;
+&lt;p&gt;A new PATCH endpoint (&lt;code&gt;canvas.api.content.patch&lt;/code&gt;) allows updating a page's published status through auto-save. When a user clicks &amp;quot;Unpublish page,&amp;quot; the auto-save entry is updated with &lt;code&gt;status = 0&lt;/code&gt;. When &amp;quot;Review changes&amp;quot; is published, the unpublish action takes effect on the live entity. The same workflow works in reverse for publishing an unpublished page.&lt;/p&gt;
+&lt;p&gt;The operation links (unpublish/publish) use core's &lt;code&gt;disable&lt;/code&gt;/&lt;code&gt;enable&lt;/code&gt; link relation types, which are semantically appropriate for entities implementing &lt;code&gt;EntityPublishedInterface&lt;/code&gt;. Homepage unpublishing is prevented both for the current homepage and any staged homepage configuration.&lt;/p&gt;
+&lt;p&gt;Published pages with auto-saved unpublish operations show a &amp;quot;🕦Unpublish&amp;quot; indicator with clock icon. Unpublished pages (non-drafts) show an &amp;quot;Unpublished&amp;quot; badge and display a &amp;quot;Publish page&amp;quot; action. Draft pages show neither action since they use the main Publish button. This approach avoids Views plugins and complex migrations, keeping the implementation compatible with future Workspaces integration where draft pages would exist as published entities within workspace.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 5, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 9, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When a boolean field must distinguish between three states (e.g., draft/published/archived), check if two states share the same boolean value and can be differentiated by metadata like revision history or default field values. This avoids adding storage fields that complicate future migrations to workflow systems like Workspaces or Content Moderation. &lt;em&gt;(via tedbow, lauriii)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When building custom workflow features that will eventually be replaced by established systems (like Workspaces or Content Moderation), minimize schema changes and stored state. Compute state from existing data when possible, so the migration path involves removing code rather than migrating data and deprecating fields. &lt;em&gt;(via tedbow, catch, lauriii)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When implementing stop-gap solutions before a planned architectural change, prioritize the simplicity of the eventual migration over feature completeness. A smaller, easily-removable implementation is preferable to a comprehensive solution that creates technical debt and complex deprecation paths. &lt;em&gt;(via catch, lauriii, tedbow)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3556265"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md</link>
       <guid isPermaLink="false">drupal-canvas-3577627</guid>
@@ -230,6 +314,49 @@
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3577343"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3555062: Simplify canvas_stark: remove semi-coupled theme engine + improve React embedding</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3555062.md</link>
+      <guid isPermaLink="false">drupal-canvas-3555062</guid>
+      <pubDate>Thu, 05 Mar 2026 19:50:19 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/b341f14fabdaa2ef3c8e35f8375ba1cb40b8604f"&gt;b341f14&lt;/a&gt; · +833/-661 prod · +27/-19 test · +101/-220 infra · 90 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; · 4 contributors · 19 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas Stark theme now uses custom HTML elements in Twig templates instead of a separate theme engine to embed React components. This simplifies how forms render in the Canvas UI by making templates more readable and reducing the number of internal processing stages. Instead of JSON configuration files that few people understood, developers now work with familiar Twig syntax that includes custom tags like &lt;code&gt;&amp;lt;drupal-canvas-form&amp;gt;&lt;/code&gt; which map directly to React components. The change removes approximately 500 lines of theme engine code while achieving the same functionality.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Canvas previously used a custom &amp;quot;semi-coupled&amp;quot; theme engine that processed Twig templates containing JSON configuration. These JSON files mapped render array properties to React component props, requiring developers to understand both the theme engine's special syntax and its processing pipeline.&lt;/p&gt;
+&lt;p&gt;The new approach eliminates the theme engine entirely. Twig templates now use custom HTML elements (like &lt;code&gt;&amp;lt;drupal-canvas-input&amp;gt;&lt;/code&gt; or &lt;code&gt;&amp;lt;drupal-canvas-textarea&amp;gt;&lt;/code&gt;) that Hyperscriptify converts to React components on the client side. A new &lt;code&gt;CanvasPropVisitor&lt;/code&gt; Twig node visitor detects when variables appear inside these custom element attributes and automatically wraps them with a &lt;code&gt;jsx_attributes&lt;/code&gt; filter. This filter converts Attribute objects and arrays to JSON, ensuring React receives properly formatted props.&lt;/p&gt;
+&lt;p&gt;For props that need to be elements (not strings), a new &lt;code&gt;slot()&lt;/code&gt; Twig function wraps content in &lt;code&gt;&amp;lt;element-prop slot=&amp;quot;name&amp;quot;&amp;gt;&lt;/code&gt; tags. Hyperscriptify maps these slots to React props with element values, leveraging the Web Components slots API pattern.&lt;/p&gt;
+&lt;p&gt;The visitor includes logic to detect the &lt;code&gt;children&lt;/code&gt; attribute within custom elements and throws a syntax error, since &lt;code&gt;children&lt;/code&gt; is reserved in React. It parses the Twig buffer character-by-character to determine context, handling escaped quotes and tracking whether the parser is inside an attribute value.&lt;/p&gt;
+&lt;p&gt;Templates moved from &lt;code&gt;process_as_jsx/&lt;/code&gt; directories to regular locations. The media library still uses standard Twig templates (not React) because dialogs need rendered HTML before insertion into the page. Theme suggestion hooks moved from a dedicated &lt;code&gt;SemiCoupledThemeEngineHooks&lt;/code&gt; class into &lt;code&gt;canvas_stark.theme&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 29, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 5, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue took about 4 months from opening to commit, with significant collaboration across 4 contributors and 19 comments. The approach was strongly endorsed early on by phenaproxima, who highlighted maintainability gains from removing the &amp;quot;dark magic&amp;quot; of the semi-coupled theme engine. wim leers requested clarifications on the complex Twig parsing logic but ultimately approved. phenaproxima again emphasized the clean variable naming and helpful comments made the low-level string parsing approachable despite its complexity. bnjmnm acknowledged phenaproxima for helping push the change across the finish line. A follow-up issue &lt;a href="https://www.drupal.org/node/3577643"&gt;#3577643&lt;/a&gt; was opened for adding kernel and unit tests for the new Twig enhancements.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3555062"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
@@ -688,124 +815,6 @@
 &lt;p&gt;This prototype was opened on February 16, 2026 by balintbrews and committed nine days later on February 25. The issue establishes an experimental local development tool to explore Canvas component previewing outside a full Drupal environment. Effulgentsia organized it under the Canvas IDE meta issue and praised the work. Catch raised concerns about namespace conflicts with the existing Workbench contrib module, noting the potential for user confusion despite no technical namespace collision (the package uses &lt;code&gt;@drupal-canvas/workbench&lt;/code&gt; in npm). Effulgentsia opened a follow-up issue to decide if the name should change. The prototype introduces substantial infrastructure: a discovery system, Vite compatibility layer, and preview runtime that together demonstrate feasibility of a Storybook-like experience for Canvas components.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3573867"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3573996: Add utils for converting between Canvas component trees and json-render</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573996.md</link>
-      <guid isPermaLink="false">drupal-canvas-3573996</guid>
-      <pubDate>Wed, 25 Feb 2026 11:23:54 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/39de79b88a4b0e762628f440bec5ff49c8fcf617"&gt;39de79b&lt;/a&gt; · +231/-0 prod · +616/-0 test · +148/-1 infra · 6 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3573996"&gt;#3573996&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas pages can now be rendered and edited in local development environments using json-render, a library that renders React components from JSON specifications. This enables developers to work on Canvas pages outside of Drupal, using familiar tools like IDEs and version control. The new utilities convert between Canvas's flat component tree format (where components are linked by parent IDs) and json-render's nested specification format, making it possible to prototype Canvas workbenches and editing experiences in standalone React applications.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Canvas stores component trees as flat arrays where each node references its parent by UUID. The json-render library expects a nested specification with a single root element and slots. Three new utilities bridge these formats.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;canvasTreeToSpec()&lt;/code&gt; walks the flat Canvas array and reconstructs parent-child relationships into json-render's nested structure. When multiple root components exist, it wraps them in a synthetic &lt;code&gt;canvas:component-tree&lt;/code&gt; element since json-render requires a single root. Named slots map directly; the default &lt;code&gt;children&lt;/code&gt; slot maps to json-render's special &lt;code&gt;children&lt;/code&gt; array.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;specToCanvasTree()&lt;/code&gt; reverses this conversion. It traverses the json-render spec depth-first, generating Canvas nodes with parent UUIDs and slot names. It preserves existing UUIDs when round-tripping and strips the synthetic wrapper element to restore multi-root trees.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;renderCanvasTree()&lt;/code&gt; combines conversion with rendering using &lt;code&gt;@json-render/react&lt;/code&gt;. A fallback component handles the synthetic wrapper transparently and logs warnings for unknown component types.&lt;/p&gt;
-&lt;p&gt;These utilities depend on a forked version of json-render that supports named slots (proposed in upstream PR #105), installed via npm aliases until the feature merges upstream. The implementation includes comprehensive round-trip tests validating structure preservation, slot ordering, and edge cases like orphaned components.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 25, 2026 (7 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;wotnak implemented the conversion utilities with careful attention to edge cases and comprehensive test coverage, including round-trip validation and error handling for malformed trees. balintbrews provided context about the broader architectural vision, clarifying that UI demonstrations would come later when the workbench prototype materialized. effulgentsia organized the work within the larger IDE integration meta issue, helping connect this foundation to the project roadmap. The issue demonstrates thoughtful API design for a feature that will enable new development workflows.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3573996"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575072: Component preview doesn't work for code components in Safari</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575072.md</link>
-      <guid isPermaLink="false">drupal-canvas-3575072</guid>
-      <pubDate>Tue, 24 Feb 2026 19:22:23 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/0522ab2163a3b7ab0d3d127a98875ab6c8fb1c1f"&gt;0522ab2&lt;/a&gt; · +172/-30 · 1 file&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575072"&gt;#3575072&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Component previews in Safari were broken due to authentication issues. When hovering over code components in the library, Safari would show an HTTP 401 error and authentication prompt instead of the preview. This was caused by iframes lacking the authentication context needed for assets that require session information. The fix changes how previews are rendered so they inherit the current session, making previews work correctly in Safari and other browsers.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The component preview system creates iframes to display component markup. Previously, it generated HTML content, created a blob URL with &lt;code&gt;URL.createObjectURL()&lt;/code&gt;, and set that as the iframe's &lt;code&gt;src&lt;/code&gt; attribute. In Safari, iframes loaded from blob URLs do not share the authentication context of the parent page. Code components include assets that require authentication (like &lt;code&gt;api/v0/auto-save&lt;/code&gt; endpoints), causing 401 errors.&lt;/p&gt;
-&lt;p&gt;The fix switches from &lt;code&gt;src&lt;/code&gt; with a blob URL to &lt;code&gt;srcDoc&lt;/code&gt; with inline HTML content. Iframes using &lt;code&gt;srcDoc&lt;/code&gt; inherit the parent page's security context and session, allowing authenticated requests to succeed. The solution also converts relative asset URLs (in &lt;code&gt;&amp;lt;link&amp;gt;&lt;/code&gt;, &lt;code&gt;&amp;lt;script&amp;gt;&lt;/code&gt;, and &lt;code&gt;&amp;lt;canvas-island&amp;gt;&lt;/code&gt; tags) to absolute URLs so they load correctly.&lt;/p&gt;
-&lt;p&gt;An additional enhancement watches for size changes in components with &lt;code&gt;&amp;lt;canvas-island&amp;gt;&lt;/code&gt; elements. These can change dimensions after hydration, so an interval checks every 250ms for up to 5 seconds and recalculates scaling if the size changes. This ensures previews remain properly scaled even after client-side hydration completes.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
-&lt;li&gt;jessebaker (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;bnjmnm fixed the core authentication issue by switching to &lt;code&gt;srcDoc&lt;/code&gt; and added logic to handle dynamic resizing of canvas-island components during hydration. lauriii reported the issue with clear reproduction steps and screenshots that made the Safari-specific problem easy to understand.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3575072"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575055: Missing Documentation for Link Prop</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575055.md</link>
-      <guid isPermaLink="false">drupal-canvas-3575055</guid>
-      <pubDate>Mon, 23 Feb 2026 01:44:29 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/9aefa521529d2f9416fcc7c6d3dc0d2d9506033e"&gt;9aefa52&lt;/a&gt; · +30/-0 · 1 file&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575055"&gt;#3575055&lt;/a&gt; · 2 contributors · 7 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Drupal Canvas documentation now includes guidance on defining link properties in Single Directory Components. The new documentation explains how to use the &lt;code&gt;uri&lt;/code&gt; and &lt;code&gt;uri-reference&lt;/code&gt; formats in component schemas to accept absolute URLs or relative paths. This helps component developers understand when to use each format and how to validate link inputs properly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Canvas documentation site adds a new &amp;quot;Link&amp;quot; section to the props documentation page. This section explains how to use JSON Schema's &lt;code&gt;format: uri&lt;/code&gt; and &lt;code&gt;format: uri-reference&lt;/code&gt; properties for link validation in Single Directory Component schemas.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;uri&lt;/code&gt; format requires absolute URLs with a scheme, like &lt;code&gt;https://example.com&lt;/code&gt; or &lt;code&gt;internal:/node/1&lt;/code&gt;. The &lt;code&gt;uri-reference&lt;/code&gt; format accepts both absolute URLs and relative paths like &lt;code&gt;/about&lt;/code&gt; or &lt;code&gt;../page.html&lt;/code&gt;. The documentation includes YAML schema examples for both formats and a Twig usage example showing how to render the link value in a component template.&lt;/p&gt;
-&lt;p&gt;This is documentation-only and does not change any code behavior. It helps developers choose the appropriate format constraint when authoring component schemas that accept link properties.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;peterrubin&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;peterrubin identified the documentation gap. lauriii added the missing documentation explaining the difference between &lt;code&gt;uri&lt;/code&gt; and &lt;code&gt;uri-reference&lt;/code&gt; formats with practical examples for component developers.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3575055"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>

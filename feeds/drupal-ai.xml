@@ -142,63 +142,41 @@
 &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_file_to_text/-/commit/f28f169a94690c4570ccc48a5e40b12b8da930c2"&gt;f28f169&lt;/a&gt; · +1075/-430 prod · +493/-0 test · +282/-38 infra · 23 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3573054"&gt;#3573054&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3573054"&gt;#3573054&lt;/a&gt; · 5 contributors · 27 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI File to Text module now provides a unified document loader plugin that converts files to text, HTML, or Markdown. Out of the box it supports Word documents, spreadsheets, PDFs, plain text, and Markdown files. Other modules can add support for new file types by registering extractor services without modifying this module. All automators, agent function calls, and the document loader plugin flow through the same extensible architecture. The system automatically adapts when new file types are added, making recipes and agents portable across different document loader implementations.&lt;/p&gt;
+&lt;p&gt;The AI File to Text module now provides a Document Loader plugin that allows other modules to convert documents into text, HTML, or Markdown without knowing which underlying service is being used. This makes it easier to build portable AI agents and automators that work with documents. The module ships with support for Word, PDF, spreadsheets, plain text, and Markdown files out of the box. Other modules can add support for new file types by registering extractor services without modifying the core module.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;Affects module maintainers.&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document_loader:file&lt;/code&gt; plugin for converting documents, spreadsheets, and text files to text, HTML, or Markdown. New &lt;code&gt;ai_file_to_text.extractor&lt;/code&gt; service tag for registering custom file type handlers.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document_loader:file&lt;/code&gt; plugin for document conversion; extractors can be registered via &lt;code&gt;ai_file_to_text.extractor&lt;/code&gt; service tag.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change introduces &lt;code&gt;FileDocumentLoader&lt;/code&gt;, a &lt;code&gt;document_loader&lt;/code&gt; plugin (ID &lt;code&gt;document_loader:file&lt;/code&gt;) that serves as the single entry point for all file conversions. It delegates to &lt;code&gt;FileExtractorManager&lt;/code&gt;, which auto-discovers all services tagged &lt;code&gt;ai_file_to_text.extractor&lt;/code&gt;. Each extractor implements &lt;code&gt;ExtractorInterface&lt;/code&gt; and declares its &lt;code&gt;document_loader_type&lt;/code&gt;, supported file extensions, and output formats.&lt;/p&gt;
-&lt;p&gt;Seven built-in extractors handle ten file extensions across five document types: Word (docx/doc/odt), spreadsheets (xlsx/xls/ods/csv via PhpSpreadsheet), PDF (smalot/pdfparser and optional Poppler), plain text, and Markdown.&lt;/p&gt;
-&lt;p&gt;The manager collects document loader types and output formats at construction. A &lt;code&gt;hook_document_loader_info_alter()&lt;/code&gt; implementation patches the cached plugin definition so type-based discovery works for dynamically registered types.&lt;/p&gt;
-&lt;p&gt;When extractors have different output capabilities (e.g. PDF supports HTML but PowerPoint only text), the alter hook splits the plugin into multiple definitions—one per capability group—ensuring accurate filtering. The manager validates per-extension output format support and falls back to text when an unsupported format is requested.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;SpreadsheetExtractor&lt;/code&gt; replaces separate CSV and ODS extractors, using PhpSpreadsheet for consistent rich-text cell styling, merged cells, and automatic heading detection. AI automators and the &lt;code&gt;file_to_text&lt;/code&gt; function call now use the document loader plugin instead of calling extractors directly.&lt;/p&gt;
+&lt;p&gt;The module now integrates with the Document Loader plugin system. A single &lt;code&gt;FileDocumentLoader&lt;/code&gt; plugin serves as the entry point for all file conversions, delegating to the existing &lt;code&gt;FileExtractorManager&lt;/code&gt; layer. Each extractor now declares its &lt;code&gt;document_loader_type&lt;/code&gt; (e.g. &lt;code&gt;document_loader_type:pdf&lt;/code&gt;) and supported output formats via &lt;code&gt;getDocumentLoaderType()&lt;/code&gt; and &lt;code&gt;getSupportedOutputFormats()&lt;/code&gt; interface methods.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;FileExtractorManager&lt;/code&gt; collects all extractors tagged with &lt;code&gt;ai_file_to_text.extractor&lt;/code&gt;, builds an extension-to-extractor map, and aggregates document loader types and output formats. A &lt;code&gt;hook_document_loader_info_alter()&lt;/code&gt; implementation patches the cached plugin definition so &lt;code&gt;getLoaderByType()&lt;/code&gt; can discover the plugin for any type, including types added by third-party modules.&lt;/p&gt;
+&lt;p&gt;When extractors have different output capabilities (e.g. PDF supports HTML but PowerPoint supports only text), the alter hook splits the plugin definition into multiple entries, each with accurate &lt;code&gt;output_types&lt;/code&gt;. This prevents false positives when filtering by output format. The &lt;code&gt;FileExtractorManager&lt;/code&gt; validates per-extension format support and falls back to plain text when a requested format is unsupported.&lt;/p&gt;
+&lt;p&gt;The existing AI automators and function calls now use the unified Document Loader plugin instead of calling extractors directly. The &lt;code&gt;CsvExtractor&lt;/code&gt; and &lt;code&gt;OdsExtractor&lt;/code&gt; classes were merged into a single &lt;code&gt;SpreadsheetExtractor&lt;/code&gt; using PHPOffice/PhpSpreadsheet for all tabular formats.&lt;/p&gt;
 &lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Third-party modules can add support for new file types by creating an extractor class and registering it as a tagged service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// src/Extractor/PptxExtractor.php
-namespace Drupal\your_module\Extractor;
+&lt;p&gt;To use the Document Loader plugin in custom code, create a &lt;code&gt;FileInput&lt;/code&gt; object and call &lt;code&gt;load()&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai_file_to_text\DocumentLoaderType\Input\FileInput;
 
-use Drupal\ai_file_to_text\Extractor\ExtractorInterface;
-
-class PptxExtractor implements ExtractorInterface {
-  public function isAvailable(): bool {
-    return TRUE;
-  }
-
-  public function getDocumentLoaderType(): string {
-    return 'document_loader_type:presentation';
-  }
-
-  public function getSupportedOutputFormats(): array {
-    return ['text'];
-  }
-
-  public function getSupportedExtensions(): array {
-    return ['pptx'];
-  }
-
-  public function extractText(string $file_path, string $extension = ''): string {
-    // Extraction logic here.
-  }
-
-  public function extractHtml(string $file_path, string $extension = '', array $options = []): string {
-    return '';
-  }
-}
+$input = new FileInput('public://docs/report.pdf', 'markdown');
+$loader = \Drupal::service('plugin.manager.document_loader')
+  -&amp;gt;createInstance('document_loader:file');
+$output = $loader-&amp;gt;load($input);
+$markdown = $output-&amp;gt;getContent();
 &lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# your_module.services.yml
-services:
+&lt;p&gt;Or discover by type:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$loader = \Drupal::service('plugin.manager.document_loader')
+  -&amp;gt;getLoaderByType('document_loader_type:spreadsheet', 'html');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To add support for a new file type, implement &lt;code&gt;ExtractorInterface&lt;/code&gt; with methods &lt;code&gt;isAvailable()&lt;/code&gt;, &lt;code&gt;getDocumentLoaderType()&lt;/code&gt;, &lt;code&gt;getSupportedOutputFormats()&lt;/code&gt;, &lt;code&gt;getSupportedExtensions()&lt;/code&gt;, &lt;code&gt;extractText()&lt;/code&gt;, and &lt;code&gt;extractHtml()&lt;/code&gt;. Register it as a service tagged with &lt;code&gt;ai_file_to_text.extractor&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;services:
   your_module.extractor.pptx:
     class: Drupal\your_module\Extractor\PptxExtractor
     tags:
       - { name: ai_file_to_text.extractor }
 &lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The &lt;code&gt;FileExtractorManager&lt;/code&gt; automatically discovers the new extractor and registers its type with the document loader plugin system. No changes to &lt;code&gt;ai_file_to_text&lt;/code&gt; are needed.&lt;/p&gt;
-&lt;p&gt;Modules using the document loader plugin can now call &lt;code&gt;getLoaderByType('document_loader_type:presentation')&lt;/code&gt; or process &lt;code&gt;.pptx&lt;/code&gt; files via the unified &lt;code&gt;document_loader:file&lt;/code&gt; plugin.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -213,11 +191,11 @@ services:
 &lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue opened with a clear goal: create a plugin architecture for document loading to abstract file conversion across modules. After initial implementation by unqunq with three separate plugins, ahmad khader proposed a unified architecture using a single &lt;code&gt;FileDocumentLoader&lt;/code&gt; plugin backed by tagged extractor services. This approach better supported extensibility and reduced duplication. The team iterated on capability grouping to handle extractors with different output format support, ensuring accurate plugin discovery without false positives. robloach provided UI feedback on naming and validation. The final solution unified automators, function calls, and the document loader plugin under one extractor manager, with comprehensive unit tests covering dynamic type registration and mixed-capability scenarios.&lt;/p&gt;
+&lt;p&gt;This feature was proposed by marcus_johansson in February 2026 to reduce overlap with the Unstructured module and enable portable AI workflows. unqunq created the first implementation (MR !1) splitting functionality into three separate plugins. ahmad khader then proposed a unified architecture in a new branch with a single &lt;code&gt;FileDocumentLoader&lt;/code&gt; plugin that dynamically discovers types from tagged extractor services. After several iterations addressing UI feedback from robloach and refining the capability grouping logic to prevent false positives in type lookups, the unified approach was committed. The collaboration demonstrates the value of trying multiple approaches before settling on the simplest extensible design.&lt;/p&gt;
 &lt;h2&gt;Lessons learned&lt;/h2&gt;
 &lt;ul&gt;
-&lt;li&gt;When building plugins that wrap multiple similar operations, use a single plugin with dynamic dispatch instead of creating separate plugins per operation. Let tagged services handle the variations, and use hook_alter to register their capabilities in the plugin definition. This allows third-party modules to extend functionality by adding services without modifying the plugin system itself. &lt;em&gt;(via ahmad khader)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When designing plugin architectures, place the extension point at the lowest useful level. Let higher-level components (plugins) delegate to lower-level extensible services rather than requiring new plugins for each variation. This creates a clearer separation: plugins define integration points with the framework, while services implement the domain logic that varies. &lt;em&gt;(via ahmad khader)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When building plugin systems for file processing, use a manager to dispatch to format-specific handlers rather than creating separate plugins for each file type. Register each handler as a tagged service that declares its supported types, and let the manager collect all types at construction time to automatically expose them through a single unified plugin. This allows third-party modules to add new file format support without modifying the core plugin system. &lt;em&gt;(via ahmad khader)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When abstracting functionality across multiple implementations, use a plugin type system that lets consumers request capabilities generically (e.g., 'any document loader that handles DocX to Markdown') without specifying which implementation to use. This enables portable configuration and recipes that work regardless of which specific implementation is installed. &lt;em&gt;(via marcus_johansson)&lt;/em&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3573054"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;

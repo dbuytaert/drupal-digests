@@ -9,25 +9,25 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Canvas**
+- [#3558448: UI must only set `value` on `StaticPropSource`s, not on `DynamicPropSource`s...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3558448.md)
+- [#3556265: Create ability to unpublish Canvas pages	](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556265.md)
+- [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
+
+**Drupal CMS**
+- [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
+- [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
+- [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
+
 **Drupal Core**
 - [#3046985: The word "Second" needs translation context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3046985.md)
 - [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
 - [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
 
-**Drupal CMS**
-- [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
-- [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
-- [#3576540: Authenticated users should not have permission to access the dashboard by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3576540.md)
-
 **Drupal AI**
 - [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
 - [#3576225: Index Strategy for the Drupal-created collections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md)
 - [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
-
-**Drupal Canvas**
-- [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
-- [#3568264: Update code component props schema to support 'array' type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3568264.md)
-- [#3577508: Update eslint rules for the more flexible component discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577508.md)
 
 
 ## About
