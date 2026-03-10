@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Core**
+- [#3572171: Persist is_syncing across container rebuilds](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572171.md)
+- [#3578028: Update underscore.js to 1.13.8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578028.md)
 - [#3534144: [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
-- [#3046985: The word "Second" needs translation context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3046985.md)
-- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
 
 **Drupal CMS**
 - [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
