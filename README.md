@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Canvas**
+- [#3577767: Linker not appearing for `type: string, format: date`](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577767.md)
 - [#3558448: UI must only set `value` on `StaticPropSource`s, not on `DynamicPropSource`s...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3558448.md)
 - [#3556265: Create ability to unpublish Canvas pages	](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556265.md)
-- [#3577627: Add support for TypeScript syntax in @drupal-canvas/eslint-config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577627.md)
 
 **Drupal CMS**
 - [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
