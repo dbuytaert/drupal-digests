@@ -9,25 +9,25 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)
+- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
+- [#3574420: Add Drupal CMS 2.0 support to CCC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574420.md)
+
+**Drupal Canvas**
+- [#3570560: PHPCS: in_array() → \in_array()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3570560.md)
+- [#3578094: Fix REST API violation of the Canvas Page PATCH operation: auto-save operations...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578094.md)
+- [#3577767: Linker not appearing for `type: string, format: date`](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577767.md)
+
 **Drupal Core**
-- [#3572171: Persist is_syncing across container rebuilds](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572171.md)
-- [#3578028: Update underscore.js to 1.13.8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578028.md)
-- [#3534144: [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
+- [#3571143: Convert BlockHooks::pageTop to attachment in BlockController::demo](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571143.md)
+- [#3469143: MainContentViewSubscriber should use a service locator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3469143.md)
+- [#3397041: Autowire core modules that do not require explicit configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3397041.md)
 
 **Drupal CMS**
 - [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
 - [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
 - [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
-
-**Drupal Canvas**
-- [#3577767: Linker not appearing for `type: string, format: date`](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577767.md)
-- [#3558448: UI must only set `value` on `StaticPropSource`s, not on `DynamicPropSource`s...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3558448.md)
-- [#3556265: Create ability to unpublish Canvas pages	](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556265.md)
-
-**Drupal AI**
-- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
-- [#3576225: Index Strategy for the Drupal-created collections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md)
-- [#3507378: Use HEREDOC style string for AI API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3507378.md)
 
 
 ## About
