@@ -9,20 +9,20 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3534144: [meta] Set Drupal 12 platform and browser requirements by Jan 15 2026](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534144.md)
+- [#3046985: The word "Second" needs translation context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3046985.md)
+- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
+
+**Drupal CMS**
+- [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
+- [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
+- [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
+
 **Drupal Canvas**
 - [#3577767: Linker not appearing for `type: string, format: date`](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577767.md)
 - [#3558448: UI must only set `value` on `StaticPropSource`s, not on `DynamicPropSource`s...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3558448.md)
 - [#3556265: Create ability to unpublish Canvas pages	](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556265.md)
-
-**Drupal CMS**
-- [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
-- [#3575283: Add the ability to export a site template as a ZIP file](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md)
-- [#3577570: SiteExporter should not set a version in the exported composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577570.md)
-
-**Drupal Core**
-- [#3046985: The word "Second" needs translation context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3046985.md)
-- [#3572051: hook_icon_pack_alter() is undocumented](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md)
-- [#3568144: Convert editor_filter_xss() to a element.editor service method](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568144.md)
 
 **Drupal AI**
 - [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
