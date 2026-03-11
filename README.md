@@ -9,15 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
-**Drupal Core**
-- [#3575792: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575792.md)
-- [#3538177: Remove jQuery UI _focusedElement and _focusTabbable from dialog Ajax](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3538177.md)
-- [#3285176: Warning message links to "available updates" even if user does not have...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3285176.md)
-
 **Drupal Canvas**
+- [#3552914: Unify import maps between backend and code editor preview](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552914.md)
+- [#3548282: Cannot delete default image from an optional image: it reappears](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3548282.md)
 - [#3554197: Content templates: support linking multiple-cardinality field widgets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3554197.md)
-- [#3570560: PHPCS: in_array() → \in_array()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3570560.md)
-- [#3578094: Fix REST API violation of the Canvas Page PATCH operation: auto-save operations...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578094.md)
+
+**Drupal Core**
+- [#3564589: Prepend path to error log in js_testing_log.js](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564589.md)
+- [#3347842: Deprecate the trusted data concept in configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3347842.md)
+- [#3575792: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575792.md)
 
 **Drupal AI**
 - [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)

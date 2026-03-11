@@ -5,6 +5,115 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3552914: Unify import maps between backend and code editor preview</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552914.md</link>
+      <guid isPermaLink="false">drupal-canvas-3552914</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 11 Mar 2026 16:12:45 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/88aa12cd41f6a17f9ded4acbd63eabc063171a4b"&gt;88aa12c&lt;/a&gt; · +187/-82 prod · +69/-3 test · +19/-6 infra · 13 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3552914"&gt;#3552914&lt;/a&gt; · 5 contributors · 19 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas code components rely on JavaScript import maps to resolve module specifiers. Previously, the import map logic was duplicated between the backend and the code editor preview UI, creating maintenance burden and inconsistency risk. This change unifies import map generation on the backend, passing it to the UI via drupalSettings. A new hook allows modules and themes to add or replace import map entries, enabling custom JavaScript libraries and Tailwind CSS plugins to be made available to code components.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;hook_canvas_importmap_alter()&lt;/code&gt; allows modules and themes to add or modify JavaScript import map entries for Canvas code components&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;GlobalImports&lt;/code&gt; service now builds the complete import map structure including both global imports and scoped imports, returning an array with &lt;code&gt;imports&lt;/code&gt; and &lt;code&gt;scopes&lt;/code&gt; keys matching the import map specification. The service invokes &lt;code&gt;hook_canvas_importmap_alter()&lt;/code&gt; to allow modules and themes to modify the map before cache-busting query strings are appended to global imports.&lt;/p&gt;
+&lt;p&gt;The code editor preview previously duplicated the import map in the TypeScript &lt;code&gt;Preview&lt;/code&gt; component. It now reads existing import map tags from the main document, merges in preview-specific additions (the auto-save endpoint for component dependencies), and injects them into the iframe. This eliminates the duplication and ensures the preview uses the same import map as the backend.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;JsComponent&lt;/code&gt; plugin and &lt;code&gt;CanvasController&lt;/code&gt; now call &lt;code&gt;getImportMap()&lt;/code&gt; instead of the former &lt;code&gt;getGlobalImports()&lt;/code&gt; method. Scoped imports (component-specific dependencies) are merged with the base map structure.&lt;/p&gt;
+&lt;p&gt;A test module demonstrates the hook by adding a new package, overriding an existing one, and adding scoped imports. The Astro bundler configuration was updated to handle Preact subpath imports correctly, ensuring bare specifiers are preserved in the output so they resolve through the import map with proper cache-busting.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Implement &lt;code&gt;hook_canvas_importmap_alter()&lt;/code&gt; to add custom JavaScript libraries or Tailwind CSS plugins:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function my_module_canvas_importmap_alter(array &amp;amp;$import_maps): void {
+  $module_path = \Drupal::service('extension.path.resolver')
+    -&amp;gt;getPath('module', 'my_module');
+
+  // Add a new package.
+  $import_maps['imports']['my-library'] = \base_path() . $module_path . '/js/my-library.js';
+
+  // Replace an existing package.
+  $import_maps['imports']['clsx'] = \base_path() . $module_path . '/js/custom-clsx.js';
+
+  // Add scoped imports.
+  $import_maps['scopes']['/my-scope/'] = [
+    'preact' =&amp;gt; \base_path() . $module_path . '/js/custom-preact.js',
+  ];
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The hook runs for both modules and themes. Cache-busting query strings are appended automatically after the hook fires. See the new documentation at &lt;code&gt;/apis/import-maps&lt;/code&gt; for Tailwind CSS plugin examples.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 17, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 11, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;nagwani&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was opened in October 2025 and committed in March 2026 after 19 comments. The initial proposal identified duplication between backend and preview import map logic. Comment #4 from balintbrews noted a discussion with effulgentsia about using core's &lt;code&gt;#import_maps&lt;/code&gt; render array attribute, though ultimately a Canvas-specific hook was chosen with the understanding it may be deprecated when core's &lt;code&gt;hook_importmap_alter()&lt;/code&gt; from &lt;a href="https://www.drupal.org/node/3398525"&gt;#3398525&lt;/a&gt; becomes available. larowlan in comment #3 emphasized the importance of considering future API changes since &amp;quot;APIs are forever.&amp;quot; The solution required careful coordination between the PHP service, React preview component, and Astro bundler configuration to ensure import map consistency across all contexts.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3552914"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3548282: Cannot delete default image from an optional image: it reappears</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3548282.md</link>
+      <guid isPermaLink="false">drupal-canvas-3548282</guid>
+      <pubDate>Wed, 11 Mar 2026 15:00:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/97d9895710c759d64686f29799ae729e7da2097f"&gt;97d9895&lt;/a&gt; · +912/-29 prod · +307/-8 test · 23 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3548282"&gt;#3548282&lt;/a&gt; · 7 contributors · 35 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Optional image and video properties in components can now be properly cleared. Previously, when users removed a default image from an optional property, it would reappear after page refresh or publish. The system now correctly distinguishes between &amp;quot;no value set yet&amp;quot; (use default) and &amp;quot;user intentionally removed the value&amp;quot; (respect empty state). This fix ensures that removing a default image from an optional property persists across page loads and publishes, preventing the default from unexpectedly returning.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue stemmed from the backend incorrectly falling back to &lt;code&gt;DefaultRelativeUrlPropSource&lt;/code&gt; whenever an optional image/video prop had an empty value, even when the user explicitly removed it. The fix introduces explicit tracking of user deletion intent by preserving NULL values in prop sources.&lt;/p&gt;
+&lt;p&gt;Backend changes in &lt;code&gt;GeneratedFieldExplicitInputUxComponentSourceBase&lt;/code&gt; now check whether the client sent an explicit &lt;code&gt;value&lt;/code&gt; key that differs from the default. When a user removes an optional prop, the system stores it as &lt;code&gt;StaticPropSource&lt;/code&gt; with &lt;code&gt;value: null&lt;/code&gt; instead of falling back to the default. The validation step was updated to skip &lt;code&gt;ComponentValidator&lt;/code&gt; checks for optional props whose value evaluated to NULL, preventing false errors. The model serialization preserves NULL values explicitly to maintain the distinction between &amp;quot;unset&amp;quot; and &amp;quot;deleted&amp;quot;.&lt;/p&gt;
+&lt;p&gt;Frontend changes added a new &lt;code&gt;DefaultImagePreview&lt;/code&gt; React component that displays a thumbnail of the default image with a &amp;quot;Remove default&amp;quot; button (only for optional props). Clicking the button sends a PATCH request with &lt;code&gt;value: null&lt;/code&gt; to persist the deletion. The component is integrated via a custom element in the media library fieldset template and only renders when no user-selected media exists and the current value matches the default.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;fieldWidgetCompleteFormAlter&lt;/code&gt; hook now passes &lt;code&gt;#component_prop_name&lt;/code&gt; through the render array to identify which prop each widget manages, enabling correct scoping when multiple image props exist in the same component form.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 11, 2026 (5 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This bug was introduced in late July 2025 by &lt;a href="https://www.drupal.org/node/3534601"&gt;#3534601&lt;/a&gt; (video prop support) and went undetected because an end-to-end test assertion fired before the unwanted default image reappeared. Git bisect quickly identified the problematic line in &lt;code&gt;GeneratedFieldExplicitInputUxComponentSourceBase.php&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix required careful coordination between frontend and backend to distinguish user intent from system defaults. The issue links to three related past issues (&lt;a href="https://www.drupal.org/node/3518253"&gt;#3518253&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3508170"&gt;#3508170&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3528393"&gt;#3528393&lt;/a&gt;) that created the complex state management around optional images, explaining why this regression occurred.&lt;/p&gt;
+&lt;p&gt;Multiple iterations addressed edge cases like multiple image props in one component form and ensuring required images cannot have defaults removed. The final implementation added both unit tests and Playwright tests covering SDC components, code components, and mixed required/optional scenarios.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When implementing optional form fields with defaults, distinguish between 'no value set yet' (use default) and 'user intentionally cleared the value' (respect empty state). Store explicit deletion as a NULL value in the data layer rather than falling back to defaults, so the user's intent to leave the field empty is preserved across saves. &lt;em&gt;(via bnjmnm, narendrar, wim leers, tedbow)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When async operations complete after assertions run, tests may pass while the system enters an incorrect state. Add delays or wait conditions that ensure the full state transition completes before asserting the final outcome. &lt;em&gt;(via bnjmnm)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When multiple instances of the same widget exist in a form, ensure state changes target only the intended instance. Pass unique identifiers through render arrays to prevent cross-contamination when JavaScript manipulates widget state. &lt;em&gt;(via bnjmnm)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3548282"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3554197: Content templates: support linking multiple-cardinality field widgets</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3554197.md</link>
       <guid isPermaLink="false">drupal-canvas-3554197</guid>
@@ -143,17 +252,16 @@
 &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/6a1adff85c46fbe1a02557775edae071bf25c3e3"&gt;6a1adff&lt;/a&gt; · +51/-7 · 4 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577767"&gt;#3577767&lt;/a&gt; · 2 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577767"&gt;#3577767&lt;/a&gt; · 2 contributors · 10 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas provides a linker feature that allows site builders to connect component properties to dynamic data sources from Drupal entities. This feature was not working for date-only fields (as opposed to date-time fields). The linker button would not appear when configuring these fields, preventing builders from connecting date properties to entity data. This fix restores the linker functionality for date-only fields by updating how the Canvas theme handles datetime wrapper elements.&lt;/p&gt;
+&lt;p&gt;The linker feature was not working for date-only fields in component templates. When site builders tried to connect a date field to dynamic data, the linker button would not appear. This prevented date fields from being linked to content properties like &amp;quot;Authored on&amp;quot; or &amp;quot;Changed&amp;quot; dates. The fix ensures that date fields show the linker button just like other field types, allowing site builders to make date fields dynamic in their component templates.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The linker relies on prop link data being passed through form element render arrays to special label components in the Canvas theme. For most field types, this data is attached to the &lt;code&gt;#label_attributes&lt;/code&gt; property. However, some field widgets use custom theme wrappers that render their own label UI instead of using the standard form element label template.&lt;/p&gt;
-&lt;p&gt;The datetime widget for date-only fields uses a &lt;code&gt;datetime_wrapper&lt;/code&gt; theme wrapper that renders its own title element. Previously, prop link data was only passed through to &lt;code&gt;fieldset&lt;/code&gt; wrappers. The fix adds &lt;code&gt;datetime_wrapper&lt;/code&gt; to the list of wrappers that receive the &lt;code&gt;#prop_link_data&lt;/code&gt; element property.&lt;/p&gt;
-&lt;p&gt;The Canvas Stark theme's &lt;code&gt;datetime-wrapper.html.twig&lt;/code&gt; template was updated to render the &lt;code&gt;canvas-drupal-label&lt;/code&gt; component (which includes the linker button) instead of a plain &lt;code&gt;&amp;lt;h4&amp;gt;&lt;/code&gt; tag, matching the pattern already used for fieldsets.&lt;/p&gt;
-&lt;p&gt;The test suite was expanded to verify linker functionality for date-only fields and added prop-specific value overrides to handle cases where the same entity field renders differently depending on the target prop's format requirements.&lt;/p&gt;
+&lt;p&gt;The linker appears for most field widgets automatically, but some widgets use custom wrapper templates instead of the standard form element label template. Previously, only fieldsets received the prop link data needed to render the linker. Date-only fields use &lt;code&gt;datetime_wrapper&lt;/code&gt; as their theme wrapper, which was not included in this logic.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;datetime_wrapper&lt;/code&gt; to the list of wrappers that receive prop link data in &lt;code&gt;GeneratedFieldExplicitInputUxComponentSourceBase&lt;/code&gt;. The corresponding theme preprocess function and Twig template were updated to render the linker using the same &lt;code&gt;canvas-drupal-label&lt;/code&gt; component already used by fieldsets.&lt;/p&gt;
+&lt;p&gt;This mirrors the approach from &lt;a href="https://www.drupal.org/node/3550848"&gt;#3550848&lt;/a&gt; which fixed linker rendering for date-time fields. The test suite was expanded to verify that date-only fields can be linked to various date properties and that the linked values display correctly in component previews.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -167,7 +275,7 @@
 &lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was identified and fixed quickly, moving from report to commit in just two days. The bug was straightforward once identified: a single conditional needed updating, plus the corresponding template change. The test coverage expansion was the most substantial part of the patch, ensuring the linker works correctly across different date field formats and adding infrastructure for prop-specific expected values in tests.&lt;/p&gt;
+&lt;p&gt;This issue was fixed within two days of being reported. Wim Leers initially deferred to bnjmnm given the Redux-integrated field widget context, and flagged &lt;a href="https://www.drupal.org/node/3550848"&gt;#3550848&lt;/a&gt; as closely related. The solution followed the same pattern established in that earlier issue, extending the wrapper detection logic to include &lt;code&gt;datetime_wrapper&lt;/code&gt; alongside &lt;code&gt;fieldset&lt;/code&gt;. The fix included comprehensive test coverage to prevent regression.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3577767"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -735,97 +843,6 @@
 &lt;p&gt;This issue progressed efficiently from report to fix within three weeks. jessebaker identified the UX gap by comparing to industry-standard design tools. The proposed resolution suggested exploring gesture libraries, which proved to be the right direction. Both lauriii and bnjmnm contributed code to the fork, with the final implementation carefully handling browser differences between Chrome/Firefox and Safari's gesture event models. The solution required tuning sensitivity constants based on manual testing to achieve the right feel, demonstrating the value of iterative UX refinement.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572881"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3572847: Add missing validation to component trees being saved into content entities in tests— and simplify `CanvasTestSetup`</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572847.md</link>
-      <guid isPermaLink="false">drupal-canvas-3572847</guid>
-      <pubDate>Tue, 03 Mar 2026 11:47:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/789db653730100ee221ebdc048073fef21e31f17"&gt;789db65&lt;/a&gt; · +155/-73 prod · +182/-159 test · 30 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3572847"&gt;#3572847&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas tests now validate all component trees before saving them into content entities. Previously, some test fixtures created invalid component trees without validation, which could hide bugs and lead to incorrect reasoning about Canvas behavior. This gap became apparent during Drupal 11.3 testing. The project added validation to &lt;code&gt;CanvasTestSetup&lt;/code&gt; and all kernel tests that create component trees, simplified test fixtures by removing unnecessary adapter usage, and extended the custom PHPCS rule to automatically enforce this requirement going forward. This ensures all tests work with valid data and makes future test authoring safer.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;CanvasTestSetup&lt;/code&gt; creates test fixtures for Cypress end-to-end tests and many kernel tests. It was creating content entities with component trees but skipping validation, allowing invalid data into the test database. Similarly, some kernel tests like &lt;code&gt;BlockComponentTest::testGetExplicitInput()&lt;/code&gt; created nodes with component trees without validating them first.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;self::assertEntityIsValid()&lt;/code&gt; calls throughout the test suite. This new helper method in &lt;code&gt;CanvasKernelTestBase&lt;/code&gt; validates both content entities and config entities with helpful output when validation fails. All component tree creation in tests now goes through validation before saving.&lt;/p&gt;
-&lt;p&gt;The implementation also simplified test fixtures. Many tests used complex &lt;code&gt;StaticPropSource&lt;/code&gt; structures and adapters when simple values would suffice. For example, image inputs changed from full entity reference expressions to just &lt;code&gt;['target_id' =&amp;gt; 4]&lt;/code&gt;. This makes tests more readable while still exercising the same Canvas functionality.&lt;/p&gt;
-&lt;p&gt;A custom PHPCS rule now detects manual &lt;code&gt;assertSame([], self::violationsToArray(...))&lt;/code&gt; patterns in &lt;code&gt;CanvasKernelTestBase&lt;/code&gt; subclasses and requires using &lt;code&gt;self::assertEntityIsValid()&lt;/code&gt; instead. This enforces consistent validation patterns across the test suite.&lt;/p&gt;
-&lt;p&gt;The work also introduced &lt;code&gt;DataProviderWithComponentTreeTrait::populateActiveComponentVersionPlaceholders()&lt;/code&gt; to handle test data that uses placeholder component versions, replacing the more narrowly-focused trait name that only mentioned block components.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 11, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 3, 2026 (19 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue took a straightforward path from identification to commit across three weeks. Wim Leers identified gaps in test validation after &lt;a href="https://www.drupal.org/node/3561392"&gt;#3561392&lt;/a&gt; revealed that some test fixtures created invalid component trees. Penyaskito initially questioned validating all entity creation in tests but agreed after Wim clarified the issue focused on component trees, not unrelated entity fields. Phenaproxima provided thorough reviews and emphasized the unsexy but necessary nature of this work, which significantly improved Canvas testability. The final implementation extended the custom PHPCS rule using AI assistance to enforce validation requirements automatically going forward. The issue uncovered two additional bugs (&lt;a href="https://www.drupal.org/node/3576701"&gt;#3576701&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3576694"&gt;#3576694&lt;/a&gt;) during final implementation.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When test fixtures create entities, validate them before saving. Invalid test data leads to incorrect reasoning about failures and can hide legitimate bugs in the system under test. &lt;em&gt;(via wim leers, phenaproxima)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When test infrastructure is shared across many tests (like fixtures or setup classes), enforce validation there even for entities tangential to the feature being tested. Simple mistakes in widely-used fixtures skew reasoning across the entire test suite. &lt;em&gt;(via wim leers, phenaproxima)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572847"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574687: Convert `@group foo` to `#[Group(…)]` + other annotations — to restore the ability to run a subset of Canvas' test suite, enforce it using PHPCS</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574687.md</link>
-      <guid isPermaLink="false">drupal-canvas-3574687</guid>
-      <pubDate>Mon, 02 Mar 2026 18:05:49 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/06d7936a2cf463a02c83d087cb6aa8db6d5d50e1"&gt;06d7936&lt;/a&gt; · +60/-0 prod · +658/-414 test · +1/-1 infra · 100 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574687"&gt;#3574687&lt;/a&gt; · 3 contributors · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas' test suite converted all PHPUnit annotations to PHP attributes. PHPUnit 11 stopped recognizing comment-based annotations like &lt;code&gt;@group&lt;/code&gt; and &lt;code&gt;@dataProvider&lt;/code&gt;, so tests could not be grouped or filtered. After conversion to attributes like &lt;code&gt;#[Group('…')]&lt;/code&gt; and &lt;code&gt;#[DataProvider('…')]&lt;/code&gt;, the test suite can once again run targeted subsets. A new PHPCS sniff enforces attributes going forward.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;PHPUnit 11 dropped support for docblock annotations, requiring a wholesale migration to PHP 8 attributes. Canvas used PHPUnit's &lt;code&gt;--group&lt;/code&gt; flag to run test subsets in CI, such as JavaScript component tests or slow tests. Without attributes, &lt;code&gt;--group JavaScriptComponents&lt;/code&gt; found no tests.&lt;/p&gt;
-&lt;p&gt;The conversion touched every annotation PHPUnit reads: &lt;code&gt;@group&lt;/code&gt;, &lt;code&gt;@covers&lt;/code&gt;, &lt;code&gt;@coversClass&lt;/code&gt;, &lt;code&gt;@dataProvider&lt;/code&gt;, and &lt;code&gt;@testWith&lt;/code&gt;. PHPUnit does not allow mixing annotations and attributes in a single file, so partial migration was impossible. The Rector rule from &lt;a href="https://www.drupal.org/node/3446380"&gt;#3446380&lt;/a&gt; automated the bulk conversion.&lt;/p&gt;
-&lt;p&gt;One test class required refactoring: &lt;code&gt;PropSourceTest&lt;/code&gt; declared &lt;code&gt;@covers&lt;/code&gt; on individual test methods, which PHPUnit 11 forbids. That class split into an abstract base and one concrete subclass per prop source, each covering only its own class.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;PhpunitAnnotationsSniff&lt;/code&gt; detects forbidden annotations and points developers to the correct attribute syntax. This sniff can be deleted once Canvas requires Drupal 12, which will enforce attributes core-wide.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 19, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 2, 2026 (10 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;gurnoor kaur&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Wim Leers opened the issue after discovering CI could no longer filter tests by group. Penyaskito pointed to the Rector automation from &lt;a href="https://www.drupal.org/node/3446380"&gt;#3446380&lt;/a&gt;, which provided the conversion script. Gurnoor kaur made the first commit to the merge request. Wim Leers used AI-assisted tooling (Opus 4.6) to generate the PHPCS sniff and perform the bulk refactoring, completing the work in a single day instead of two.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When upgrading to PHPUnit 11+, test annotations like &lt;code&gt;@group&lt;/code&gt;, &lt;code&gt;@dataProvider&lt;/code&gt;, and &lt;code&gt;@covers&lt;/code&gt; must all be converted to PHP attributes in the same file. PHPUnit no longer allows mixing annotations and attributes within a single test class—convert all annotations at once to restore functionality like group-based test filtering. &lt;em&gt;(via wim leers, longwave)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When a framework upgrade breaks existing workflows, enforce the new patterns with automated tooling. After manually converting code (e.g., using Rector to migrate annotations to attributes), add linting rules to prevent regressions and guide future contributors toward the correct approach. &lt;em&gt;(via wim leers)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3574687"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
