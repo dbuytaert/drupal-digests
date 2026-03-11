@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Canvas**
+- [#3554197: Content templates: support linking multiple-cardinality field widgets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3554197.md)
+- [#3570560: PHPCS: in_array() → \in_array()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3570560.md)
+- [#3578094: Fix REST API violation of the Canvas Page PATCH operation: auto-save operations...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578094.md)
+
 **Drupal Core**
 - [#3285176: Warning message links to "available updates" even if user does not have...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3285176.md)
 - [#3549730: Enable LongLineDeclaration ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549730.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)
 - [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
 - [#3574420: Add Drupal CMS 2.0 support to CCC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574420.md)
-
-**Drupal Canvas**
-- [#3570560: PHPCS: in_array() → \in_array()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3570560.md)
-- [#3578094: Fix REST API violation of the Canvas Page PATCH operation: auto-save operations...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578094.md)
-- [#3577767: Linker not appearing for `type: string, format: date`](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577767.md)
 
 **Drupal CMS**
 - [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
