@@ -130,35 +130,19 @@
 &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a038e2bcc3c40b10b49b1f8b9fc322ef02ab4200"&gt;a038e2b&lt;/a&gt; · +178/-148 prod · +470/-478 test · 180 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3347842"&gt;#3347842&lt;/a&gt; · 7 contributors · 39 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3347842"&gt;#3347842&lt;/a&gt; · 8 contributors · 40 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's configuration system no longer supports &amp;quot;trusted data&amp;quot; mode, which previously allowed configuration to be saved without schema validation. This mode was originally added to improve installation performance by skipping repeated schema checks, but it created fragile code patterns where entities and configuration had to manually sort data when marked as trusted. The change removes this dual-path complexity, making the configuration system more predictable and easier to maintain. Installation performance is preserved through other optimizations introduced since the trusted data mode was created.&lt;/p&gt;
+&lt;p&gt;The configuration system previously allowed code to bypass schema validation by marking data as &amp;quot;trusted.&amp;quot; This optimization was added years ago to speed up site installation, but it created maintenance problems. Code had to check whether data was trusted and handle sorting and validation differently depending on the answer. This made the system fragile and harder to reason about.&lt;/p&gt;
+&lt;p&gt;With this change, all configuration saves now apply schema validation and normalization. The trusted data parameter is deprecated but still accepted for backward compatibility. The system is now more consistent and predictable. Tests that need to write invalid configuration for upgrade path testing can use a new test trait instead of the deprecated API.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The trusted data concept allowed calling &lt;code&gt;Config::save(TRUE)&lt;/code&gt; or &lt;code&gt;ConfigEntityInterface::trustData()&lt;/code&gt; to skip schema validation and normalization. This was introduced to reduce schema cache rebuilds during site installation, but created inconsistencies where some code paths applied schema sorting (like alphabetizing permissions) while others did not.&lt;/p&gt;
-&lt;p&gt;The removal involves deprecating &lt;code&gt;Config::save($has_trusted_data)&lt;/code&gt; and &lt;code&gt;ConfigEntityInterface::trustData()&lt;/code&gt;. All saves now apply schema validation and normalization consistently. The original performance problem is mitigated by multi-module install (introduced separately), which significantly reduced schema rebuilds during installation.&lt;/p&gt;
-&lt;p&gt;Throughout the codebase, calls like &lt;code&gt;$config-&amp;gt;save(TRUE)&lt;/code&gt; become &lt;code&gt;$config-&amp;gt;save()&lt;/code&gt;, and &lt;code&gt;$entity-&amp;gt;trustData()-&amp;gt;save()&lt;/code&gt; becomes &lt;code&gt;$entity-&amp;gt;save()&lt;/code&gt;. The &lt;code&gt;ConfigEntityStorage::doSave()&lt;/code&gt; method now always updates entity properties from the normalized config values stored after save.&lt;/p&gt;
-&lt;p&gt;For testing scenarios that need to write invalid config, a new &lt;code&gt;RawConfigWriterTrait&lt;/code&gt; provides &lt;code&gt;writeRawConfig()&lt;/code&gt; and &lt;code&gt;writeRawConfigEntity()&lt;/code&gt; methods that bypass the entity system entirely.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;hasTrustedData()&lt;/code&gt; method is deliberately not deprecated yet, deferred until Drupal 13 when the ability to mark data as trusted is fully removed. This eases the upgrade path for the few contrib modules using it.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;For tests that previously used &lt;code&gt;trustData()&lt;/code&gt; to save invalid configuration for update path testing, use the new &lt;code&gt;RawConfigWriterTrait&lt;/code&gt;. Include the trait in your test class and call &lt;code&gt;writeRawConfig($name, $data)&lt;/code&gt; for simple config or &lt;code&gt;writeRawConfigEntity($entity)&lt;/code&gt; for config entities. This bypasses schema validation without using the deprecated API.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Tests\Traits\Core\Config\RawConfigWriterTrait;
-
-class MyUpdateTest extends KernelTestBase {
-  use RawConfigWriterTrait;
-
-  public function testUpdate() {
-    // Write invalid config for testing the update path.
-    $this-&amp;gt;writeRawConfig('mymodule.settings', [
-      'invalid_key' =&amp;gt; 'value',
-    ]);
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In hook_update_N implementations, remove any calls to &lt;code&gt;trustData()&lt;/code&gt;. The entity system now always normalizes data on save.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;ConfigEntityInterface::hasTrustedData()&lt;/code&gt; method remains available until Drupal 13, so contrib code calling it does not need immediate changes.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;$has_trusted_data&lt;/code&gt; parameter on &lt;code&gt;Config::save()&lt;/code&gt; and the &lt;code&gt;trustData()&lt;/code&gt; method on config entities are now deprecated. Internally, the system still respects the flag when present to maintain backward compatibility, but all new code should assume schema validation always runs.&lt;/p&gt;
+&lt;p&gt;During saves, configuration is now normalized according to schema even when coming from module installation or configuration sync. This ensures data is properly sorted and typed. The original performance concern (repeated schema cache rebuilds during install) has been largely mitigated by multi-module installation improvements that reduce cache rebuilds.&lt;/p&gt;
+&lt;p&gt;The Views module benefited from a side effect: it no longer loads all action configuration entities just to check if any exist for a given entity type. The bulk form field plugin now registers for all entity types with a base table, not just those that already have actions defined. This reduces query counts on cold cache page loads.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;RawConfigWriterTrait&lt;/code&gt; provides a testing API for upgrade tests that need to write configuration without schema validation. It writes directly to storage and invalidates caches, bypassing the entity system entirely.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;hasTrustedData()&lt;/code&gt; method is not yet deprecated because only three modules use it. It will be deprecated in Drupal 13 when it can only return FALSE, allowing a simpler upgrade path for contrib.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -175,13 +159,13 @@ class MyUpdateTest extends KernelTestBase {
 &lt;li&gt;catch (Third and Grove)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was opened in March 2023 by alexpott to address a long-standing code smell. The &amp;quot;trusted data&amp;quot; mechanism originally improved installation performance but created maintenance burdens, particularly around sorting behavior.&lt;/p&gt;
-&lt;p&gt;The change remained dormant for nearly three years until Wim Leers connected it to broader config validation work in 2024. The key breakthrough came from recognizing that multi-module install (introduced separately) had already mitigated most of the original performance concerns.&lt;/p&gt;
-&lt;p&gt;Borisson_, bircher, and catch provided detailed reviews over several iterations. A late-stage decision preserved &lt;code&gt;hasTrustedData()&lt;/code&gt; to ease the upgrade path for contrib, deferring its deprecation to Drupal 13. The change was committed in March 2026, nearly three years after opening, demonstrating the careful deliberation required for foundational API changes.&lt;/p&gt;
+&lt;p&gt;This issue was opened by alexpott in March 2023 to address a code smell in the configuration system. The &amp;quot;trusted data&amp;quot; concept was originally introduced to improve performance during site installation, but it created fragility and forced workarounds in other parts of the codebase.&lt;/p&gt;
+&lt;p&gt;The change sat for nearly three years before serious work began. Once active development started in early 2026, it moved quickly through review. Multiple committers and reviewers (wim leers, andypost, bircher, borisson_, catch) contributed to refining the approach. A key decision emerged late in the process: rather than deprecate &lt;code&gt;hasTrustedData()&lt;/code&gt; immediately, the team decided to wait until Drupal 13 after the ability to trust data was removed, making it easier for contrib modules to upgrade incrementally.&lt;/p&gt;
+&lt;p&gt;The MR revealed unexpected benefits: removing trusted data eliminated unnecessary action configuration loads in Views, reducing query counts in performance tests. The change was committed to main in March 2026 and backported to 11.x within hours.&lt;/p&gt;
 &lt;h2&gt;Lessons learned&lt;/h2&gt;
 &lt;ul&gt;
-&lt;li&gt;When performance optimizations bypass normal data processing (like sorting or validation), they create fragility by requiring duplicate logic in multiple code paths. For example, if schema normally sorts configuration but trusted data skips schema processing, entities must sort their own data when marked trusted. This duplication makes the system fragile because changes in one place won't automatically apply to the other. Remove the bypass and accept the performance cost, or find optimizations that don't require skipping normal processing. &lt;em&gt;(via alexpott)&lt;/em&gt;&lt;/li&gt;
-&lt;li&gt;When deprecating an API that consumers check (like hasTrustedData()), delay deprecating the check method until the version after the setter/usage is removed. This gives contrib a single upgrade path: stop calling trustData() in version N, then remove hasTrustedData() checks in N+1 when it only returns false. Deprecating both simultaneously forces contributors to handle two changes at once. &lt;em&gt;(via alexpott, catch)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When configuration data is normalized and validated on save, duplication of normalization logic across entities becomes fragile. If some code paths skip normalization (via a 'trusted data' flag), each entity must handle normalization separately even when schema already defines the canonical form. Normalize consistently at one layer rather than conditionally at multiple layers. &lt;em&gt;(via alexpott)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When performance optimizations skip validation during bulk operations like installation or import, configuration can become denormalized over time as schemas evolve or relationships change. Even if data was normalized when saved, schema changes or new related entities can introduce noise. Validate and normalize on every save to maintain consistency, accepting the performance cost. &lt;em&gt;(via alexpott, donquixote)&lt;/em&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3347842"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
