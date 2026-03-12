@@ -10,19 +10,19 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal Core**
+- [#3568387: Move text_summary to TextSummary service and deprecate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568387.md)
+- [#3547353: Move HIDDEN, CLOSED and OPEN constants in CommentItemInterface to new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547353.md)
 - [#3571994: Reduce container rebuilds in functional tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571994.md)
-- [#3577684: uninstall-contact.php doesn't delete entity displays](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577684.md)
-- [#3564589: Prepend path to error log in js_testing_log.js](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564589.md)
+
+**Drupal Canvas**
+- [#3578710: Adopt PHPStan architecture tester: detect architecture violations + missing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578710.md)
+- [#3577631: Add font support in the UI within a brand kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577631.md)
+- [#3552914: Unify import maps between backend and code editor preview](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552914.md)
 
 **Drupal CMS**
 - [#3578624: Fix utility page content template config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578624.md)
 - [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
 - [#3577923: SiteExporter should remove recipe dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577923.md)
-
-**Drupal Canvas**
-- [#3577631: Add font support in the UI within a brand kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577631.md)
-- [#3552914: Unify import maps between backend and code editor preview](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552914.md)
-- [#3548282: Cannot delete default image from an optional image: it reappears](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3548282.md)
 
 **Drupal AI**
 - [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)

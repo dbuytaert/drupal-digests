@@ -5,6 +5,154 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3568387: Move text_summary to TextSummary service and deprecate</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568387.md</link>
+      <guid isPermaLink="false">drupal-core-3568387</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 12 Mar 2026 14:45:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/acf3e5fa3a414f4f5e4a895d1b012d0b3e306f65"&gt;acf3e5f&lt;/a&gt; · +322/-210 prod · +28/-26 test · 12 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3568387"&gt;#3568387&lt;/a&gt; · 6 contributors · 44 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core is modernizing its text processing utilities by moving functionality from procedural functions into services. The &lt;code&gt;text_summary()&lt;/code&gt; function, which generates trimmed summaries of text content, has been deprecated. This function is widely used to create automatic excerpts of content when a manual summary is not provided. The new service-based approach provides better dependency management and follows current Drupal architectural standards. This is part of an ongoing effort to eventually remove the text module's &lt;code&gt;.module&lt;/code&gt; file entirely by eliminating procedural code.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;text_summary()&lt;/code&gt; function is deprecated; use the &lt;code&gt;TextSummary&lt;/code&gt; service instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;TextSummary&lt;/code&gt; service encapsulates the same logic previously in the &lt;code&gt;text_summary()&lt;/code&gt; procedural function. The &lt;code&gt;generate()&lt;/code&gt; method accepts the same parameters: text content (now typed as &lt;code&gt;string|\Stringable&lt;/code&gt;), an optional text format ID, and a character length limit (now required as &lt;code&gt;int&lt;/code&gt;, defaulting to 600).&lt;/p&gt;
+&lt;p&gt;The service is autowired and depends on &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt; to load filter format entities. The implementation remains identical to the original function: it checks for the &lt;code&gt;&amp;lt;!--break--&amp;gt;&lt;/code&gt; delimiter, truncates to the specified length, attempts to break at paragraph or sentence boundaries, and normalizes HTML when appropriate filters are enabled.&lt;/p&gt;
+&lt;p&gt;Core usages in &lt;code&gt;NodeTokensHooks&lt;/code&gt; and &lt;code&gt;TextTrimmedFormatter&lt;/code&gt; have been updated to call &lt;code&gt;\Drupal::service(TextSummary::class)-&amp;gt;generate()&lt;/code&gt;. The deprecated &lt;code&gt;text_summary()&lt;/code&gt; function now serves as a thin wrapper that triggers a deprecation notice and delegates to the service.&lt;/p&gt;
+&lt;p&gt;The new service uses strict types and proper type hints. The third parameter &lt;code&gt;$size&lt;/code&gt; is now required as &lt;code&gt;int&lt;/code&gt; in the service signature, though the deprecated function maintains backward compatibility by reading from &lt;code&gt;text.settings&lt;/code&gt; configuration when &lt;code&gt;NULL&lt;/code&gt; is passed.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace calls to &lt;code&gt;text_summary()&lt;/code&gt; with the &lt;code&gt;TextSummary&lt;/code&gt; service:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$summary = text_summary($text, $format, $size);
+
+// After:
+$summary = \Drupal::service(TextSummary::class)-&amp;gt;generate($text, $format, $size);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;For dependency injection:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyClass {
+  public function __construct(
+    protected TextSummary $textSummary,
+  ) {}
+
+  public function process($text, $format, $size) {
+    return $this-&amp;gt;textSummary-&amp;gt;generate($text, $format, $size);
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note that the third parameter &lt;code&gt;$size&lt;/code&gt; should now be passed as an integer. Previously, passing &lt;code&gt;NULL&lt;/code&gt; would read from &lt;code&gt;text.settings&lt;/code&gt; configuration, but the new service defaults to 600 characters if omitted.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 19, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 12, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue took nearly two months from opening to commit, with 44 comments discussing implementation details. The path was not straightforward, involving several key design decisions.&lt;/p&gt;
+&lt;p&gt;Early in the process, contributors debated whether to make the new API internal. Berdir argued against it, noting that the function is used in contrib and has value as a public API. The team decided to keep it public.&lt;/p&gt;
+&lt;p&gt;A significant discussion centered on type hints. Initial attempts to add strict types caused test failures when &lt;code&gt;FilteredMarkup&lt;/code&gt; objects were passed instead of strings. Berdir suggested accepting &lt;code&gt;string|\Stringable&lt;/code&gt;, which resolved the issue while properly documenting behavior.&lt;/p&gt;
+&lt;p&gt;Another debate concerned the &lt;code&gt;$size&lt;/code&gt; parameter. Berdir proposed making it required in the new service (removing the &lt;code&gt;NULL&lt;/code&gt; default that read from config) to simplify the API going forward, deferring config cleanup to a separate issue &lt;a href="https://www.drupal.org/node/3436677"&gt;#3436677&lt;/a&gt;. This approach made the new service cleaner while maintaining backward compatibility in the deprecated function.&lt;/p&gt;
+&lt;p&gt;Nicxvan made the key contribution of converting from a static helper class to a proper service with dependency injection, improving testability and architectural consistency.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When deprecating a procedural function in favor of a service method, avoid reading configuration with implicit defaults in the new API. Require all parameters explicitly at the service boundary, and keep configuration-reading logic in the deprecated wrapper for backward compatibility. This makes the new API clearer and allows removing configuration dependencies later. &lt;em&gt;(via berdir, nicxvan)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When adding type hints to a new service that replaces existing code, use string|\Stringable instead of just string for text parameters that may receive markup objects. This prevents type errors when FilteredMarkup or similar objects are passed, which is common in Drupal's rendering system. &lt;em&gt;(via berdir)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;In kernel tests, use Drupal::service() instead of $this-&amp;gt;container-&amp;gt;get() to retrieve services. After a container rebuild, $this-&amp;gt;container can point to outdated objects, while Drupal::service() always retrieves from the current container. &lt;em&gt;(via godotislate)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3568387"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3547353: Move HIDDEN, CLOSED and OPEN constants in CommentItemInterface to new CommentingStatus enum</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547353.md</link>
+      <guid isPermaLink="false">drupal-core-3547353</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 12 Mar 2026 14:22:19 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/979d45e3cba93cbc12c04d127949165d8f470409"&gt;979d45e&lt;/a&gt; · +344/-272 prod · +296/-304 test · +24/-0 infra · 157 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3547353"&gt;#3547353&lt;/a&gt; · 5 contributors · 42 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The comment system now uses a modern enum to represent whether comments are open, closed, or hidden. This replaces older numeric constants with clearer, type-safe code that is easier to understand and maintain. The change makes comment status values consistent with how other parts of Drupal handle options. Sites and modules can continue using the old constants during the transition period, but should update to the enum for future compatibility.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Constants &lt;code&gt;CommentItemInterface::HIDDEN&lt;/code&gt;, &lt;code&gt;CommentItemInterface::CLOSED&lt;/code&gt;, and &lt;code&gt;CommentItemInterface::OPEN&lt;/code&gt; deprecated in favor of &lt;code&gt;CommentingStatus&lt;/code&gt; enum cases.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;CommentingStatus&lt;/code&gt; enum with &lt;code&gt;Hidden&lt;/code&gt;, &lt;code&gt;Closed&lt;/code&gt;, and &lt;code&gt;Open&lt;/code&gt; cases provides type-safe comment field status values.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three class constants on &lt;code&gt;CommentItemInterface&lt;/code&gt; (&lt;code&gt;HIDDEN&lt;/code&gt;, &lt;code&gt;CLOSED&lt;/code&gt;, &lt;code&gt;OPEN&lt;/code&gt;) have been deprecated and replaced with a new &lt;code&gt;CommentingStatus&lt;/code&gt; enum. The enum defines three cases: &lt;code&gt;Hidden&lt;/code&gt; (0), &lt;code&gt;Closed&lt;/code&gt; (1), and &lt;code&gt;Open&lt;/code&gt; (2), matching the original constant values for backward compatibility.&lt;/p&gt;
+&lt;p&gt;Throughout core, status checks now compare against enum cases rather than integer constants. The enum uses &lt;code&gt;OptionsEnumTrait&lt;/code&gt; to provide translatable labels and an &lt;code&gt;asOptions()&lt;/code&gt; method for form element options. Widget and filter classes use &lt;code&gt;CommentingStatus::asOptions()&lt;/code&gt; instead of manually building option arrays.&lt;/p&gt;
+&lt;p&gt;Most code reads the status value from the field and converts it to an enum case using &lt;code&gt;CommentingStatus::tryFrom()&lt;/code&gt;, then compares that case. When writing values, code uses &lt;code&gt;-&amp;gt;value&lt;/code&gt; to get the integer representation. The &lt;code&gt;CommentTestTrait::addDefaultCommentField()&lt;/code&gt; method signature now accepts either a &lt;code&gt;CommentingStatus&lt;/code&gt; enum case or an integer for the default value parameter, checking the type and converting integers to enum cases.&lt;/p&gt;
+&lt;p&gt;The interface constants remain but are marked deprecated with &lt;code&gt;@see&lt;/code&gt; tags pointing to the change record. They will be removed in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace references to &lt;code&gt;CommentItemInterface::OPEN&lt;/code&gt;, &lt;code&gt;CommentItemInterface::CLOSED&lt;/code&gt;, and &lt;code&gt;CommentItemInterface::HIDDEN&lt;/code&gt; with the new enum:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+$status = CommentItemInterface::OPEN;
+if ($entity-&amp;gt;comment-&amp;gt;status == CommentItemInterface::CLOSED) { }
+
+// After
+use Drupal\comment\CommentingStatus;
+$status = CommentingStatus::Open-&amp;gt;value;
+if (CommentingStatus::tryFrom((int) $entity-&amp;gt;comment-&amp;gt;status) == CommentingStatus::Closed) { }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;For form element options:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+'#options' =&amp;gt; [
+  CommentItemInterface::OPEN =&amp;gt; $this-&amp;gt;t('Open'),
+  CommentItemInterface::CLOSED =&amp;gt; $this-&amp;gt;t('Closed'),
+  CommentItemInterface::HIDDEN =&amp;gt; $this-&amp;gt;t('Hidden'),
+],
+
+// After
+'#options' =&amp;gt; CommentingStatus::asOptions(),
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;When creating entities or fields with a default status value, pass the enum case's value property or use the enum directly where supported.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 18, 2025&lt;/li&gt;
+&lt;li&gt;First commit: March 10, 2026 (5 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: March 12, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was opened on 2025-09-18 and committed in four installments over two days in March 2026, six months later. The initial work moved three integer constants to a new enum. The MR required multiple rebases due to conflicts with ongoing core development, including fixes to long line declarations and changes to test structure.&lt;/p&gt;
+&lt;p&gt;A key challenge emerged after the first commit: the 11.x branch had deprecated modules already split to contrib that still used the old constants. Rather than fixing those deprecated modules, the team added a new PHPStan baseline to ignore those deprecation warnings, which godotislate successfully committed after some iteration on the approach. This pragmatic solution avoided changing modules that were already removed from 11.x development.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3547353"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3571994: Reduce container rebuilds in functional tests</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571994.md</link>
       <guid isPermaLink="false">drupal-core-3571994</guid>
@@ -781,116 +929,6 @@ $filtered = \Drupal::service('element.editor')-&amp;gt;filterXss($html, $format,
 &lt;p&gt;This issue was opened and resolved the same day it was reported. The failure was blocking continuous integration on multiple issues, making it a critical priority. The contributor identified that the baseline drift originated from &lt;a href="https://www.drupal.org/project/drupal/issues/3560357"&gt;#3560357&lt;/a&gt;, which had added the missing return type but hadn't updated the baseline. The fix was straightforward once the root cause was identified, and it was committed within hours to unblock other work.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3577569"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3553402: Remove text references to "Drupal 8"</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3553402.md</link>
-      <guid isPermaLink="false">drupal-core-3553402</guid>
-      <pubDate>Fri, 06 Mar 2026 13:54:54 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a0ca9c2bf359ac72565fc904dca5515cdf1e668a"&gt;a0ca9c2&lt;/a&gt; · +32/-30 prod · +6/-12 test · 20 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3553402"&gt;#3553402&lt;/a&gt; · 16 contributors · 44 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core documentation and comments have been updated to remove outdated references to &amp;quot;Drupal 8&amp;quot; where the version number is no longer necessary. The codebase now uses generic &amp;quot;Drupal&amp;quot; terminology for concepts that apply to all modern versions, making documentation more accurate and less confusing for developers. References to &amp;quot;Drupal 8&amp;quot; remain only where historically specific, such as in migration paths or when explaining legacy decisions. This cleanup improves documentation clarity without changing any functionality.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The issue performed a comprehensive audit of &amp;quot;Drupal 8&amp;quot; references throughout core. Contributors identified over a hundred instances and categorized them into those that should be updated versus those that should remain version-specific. The final changes removed &amp;quot;Drupal 8&amp;quot; from nine locations where the documentation now applies to all current Drupal versions.&lt;/p&gt;
-&lt;p&gt;Updated files include API documentation in &lt;code&gt;theme.api.php&lt;/code&gt; (removing &amp;quot;Drupal 8&amp;quot; from Twig descriptions), &lt;code&gt;core.api.php&lt;/code&gt; (cache tags documentation), and several render element classes. The update message for old schema versions now says &amp;quot;Drupal 8 (or later)&amp;quot; and links to current upgrade documentation. Two &lt;code&gt;@todo&lt;/code&gt; comments in &lt;code&gt;Checkboxes&lt;/code&gt; and &lt;code&gt;Select&lt;/code&gt; elements were updated to link to their follow-up issues per documentation standards. One comment in &lt;code&gt;Renderer.php&lt;/code&gt; was changed from present to past tense to clarify it describes a historical Drupal 8 development constraint.&lt;/p&gt;
-&lt;p&gt;Migration-related references were intentionally preserved because they refer specifically to migrating from Drupal 6/7 to Drupal 8. Test fixtures and migration plugin documentation also kept version-specific references where historically accurate.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
-&lt;li&gt;Committed: March 6, 2026 (4 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mdranove&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;chikaramike&lt;/li&gt;
-&lt;li&gt;roxflame&lt;/li&gt;
-&lt;li&gt;ceri_d&lt;/li&gt;
-&lt;li&gt;binssss&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;kanchanandhini6&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;jbodony&lt;/li&gt;
-&lt;li&gt;bwkerenza&lt;/li&gt;
-&lt;li&gt;lostcarpark&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;sujal kshatri&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue had an exceptionally collaborative path spanning DrupalCon Nara 2025, DrupalCamp England, and mentored contribution sessions. The issue was reserved for mentored contribution and attracted 16 contributors, many making their first core contribution.&lt;/p&gt;
-&lt;p&gt;At DrupalCon Nara, contributors &lt;code&gt;roxflame&lt;/code&gt;, &lt;code&gt;ceri_d&lt;/code&gt;, and &lt;code&gt;chikaramike&lt;/code&gt; (mentored by &lt;code&gt;binssss&lt;/code&gt;) conducted the initial comprehensive audit, creating a shared Google Doc to categorize all &amp;quot;Drupal 8&amp;quot; references. They worked with &lt;code&gt;xjm&lt;/code&gt; to determine which references should be updated versus preserved. This thorough categorization became the foundation for the final scope.&lt;/p&gt;
-&lt;p&gt;The merge request required multiple iterations. After the initial changes, reviewers found additional instances that needed updating. Later, the &lt;code&gt;migrate_drupal_ui&lt;/code&gt; module removal caused a merge conflict that &lt;code&gt;sujal kshatri&lt;/code&gt; resolved. At DrupalCamp England, &lt;code&gt;jbodony&lt;/code&gt; and &lt;code&gt;bwkerenza&lt;/code&gt; (mentored by &lt;code&gt;lostcarpark&lt;/code&gt;) performed another review confirming the remaining &amp;quot;Drupal 8&amp;quot; references were appropriately preserved.&lt;/p&gt;
-&lt;p&gt;The collaborative approach demonstrated how mentored contribution can effectively tackle documentation cleanup while onboarding new contributors.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3553402"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3039248: Deprecate views_ui_contextual_links_suppress(), views_ui_contextual_links_suppress_push(), views_ui_contextual_links_suppress_pop()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3039248.md</link>
-      <guid isPermaLink="false">drupal-core-3039248</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 06 Mar 2026 13:01:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3742821e2b1aafca167e62631fb8df80a5e1e361"&gt;3742821&lt;/a&gt; · +32/-50 · 6 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3039248"&gt;#3039248&lt;/a&gt; · 9 contributors · 40 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Three functions originally intended to suppress contextual links during Views preview have been deprecated. These functions have not worked correctly for several years due to changes in how contextual links are rendered. Investigation revealed they never prevented contextual links from appearing in the preview. Since no contributed modules actively use them and they serve no purpose, they are being removed without replacement.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Three &lt;code&gt;views_ui&lt;/code&gt; procedural functions (&lt;code&gt;views_ui_contextual_links_suppress()&lt;/code&gt;, &lt;code&gt;views_ui_contextual_links_suppress_push()&lt;/code&gt;, &lt;code&gt;views_ui_contextual_links_suppress_pop()&lt;/code&gt;) deprecated with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;views_ui_contextual_links_suppress()&lt;/code&gt;, &lt;code&gt;views_ui_contextual_links_suppress_push()&lt;/code&gt;, and &lt;code&gt;views_ui_contextual_links_suppress_pop()&lt;/code&gt; functions were deprecated as part of the effort to remove &lt;code&gt;drupal_static()&lt;/code&gt; usage from core. Originally these functions were meant to suppress contextual links of entities within Views preview results.&lt;/p&gt;
-&lt;p&gt;During review, developers discovered these functions stopped working when contextual links switched from using &lt;code&gt;#contextual_links&lt;/code&gt; render elements to &lt;code&gt;#contextual_links_placeholder&lt;/code&gt;. The suppression check in &lt;code&gt;ViewsUiHooks::contextualLinksViewAlter()&lt;/code&gt; was never called because the placeholder rendering path doesn't invoke the alter hook. Additionally, the push/pop calls wrapped around building the render array, but contextual links are rendered later during prerender, after suppression was already popped.&lt;/p&gt;
-&lt;p&gt;A search of contributed modules found only one module calling these functions, which has no stable release. The functions now only trigger deprecation warnings and no longer attempt to suppress contextual links. All related code has been removed from &lt;code&gt;ViewUI::renderPreview()&lt;/code&gt; and the alter hook.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Remove any calls to &lt;code&gt;views_ui_contextual_links_suppress()&lt;/code&gt;, &lt;code&gt;views_ui_contextual_links_suppress_push()&lt;/code&gt;, or &lt;code&gt;views_ui_contextual_links_suppress_pop()&lt;/code&gt; from your code. There is no replacement, as these functions have not worked correctly for several years and contextual links cannot be suppressed this way.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 11, 2019&lt;/li&gt;
-&lt;li&gt;Committed: March 6, 2026 (6 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;naresh_bavaskar (QED42)&lt;/li&gt;
-&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;alex_optim (GOLEMS GABB)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was opened in 2019 as part of the effort to remove &lt;code&gt;drupal_static()&lt;/code&gt; from core. After several early attempts to refactor the functions into a service, longwave investigated in comment #26 and discovered the code hadn't worked since contextual links rendering changed. This shifted the approach from refactoring to deprecating without replacement. The discovery that these functions were non-functional simplified the path forward, allowing the team to deprecate them cleanly rather than maintaining broken code. The issue took seven years from opening to commit, but the final resolution was straightforward once the non-functionality was confirmed.&lt;/p&gt;
-&lt;h2&gt;Lessons learned&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;When deprecating broken functionality that no longer works as intended and has minimal contrib usage, deprecate with no replacement and schedule for removal in the next major version. Document why the code stopped working rather than attempting to fix unmaintained features. &lt;em&gt;(via longwave, nicxvan)&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3039248"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
