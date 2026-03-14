@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal Core**
+- [#3573869: Remove deprecated code from Views and Views UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573869.md)
+- [#3550083: robots.txt should disallow all '/search/' and '/search?' pages by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3550083.md)
+- [#3568387: Move text_summary to TextSummary service and deprecate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568387.md)
+
 **Drupal AI**
 - [#3569776:  Adopt AI Core shared UI library in CCC and escape data before rendering](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569776.md)
 - [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)
@@ -18,11 +23,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3578865: Hydrating a component tree with an instance containing garbage values...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578865.md)
 - [#3578710: Adopt PHPStan architecture tester: detect architecture violations + missing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578710.md)
 - [#3577631: Add font support in the UI within a brand kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3577631.md)
-
-**Drupal Core**
-- [#3550083: robots.txt should disallow all '/search/' and '/search?' pages by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3550083.md)
-- [#3568387: Move text_summary to TextSummary service and deprecate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568387.md)
-- [#3547353: Move HIDDEN, CLOSED and OPEN constants in CommentItemInterface to new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547353.md)
 
 **Drupal CMS**
 - [#3569068: Provide the documentation structure in mkdocs.yml format for parsing into...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3569068.md)
