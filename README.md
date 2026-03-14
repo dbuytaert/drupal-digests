@@ -9,6 +9,11 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
+**Drupal AI**
+- [#3569776:  Adopt AI Core shared UI library in CCC and escape data before rendering](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569776.md)
+- [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)
+- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
+
 **Drupal Canvas**
 - [#3578865: Hydrating a component tree with an instance containing garbage values...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578865.md)
 - [#3578710: Adopt PHPStan architecture tester: detect architecture violations + missing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578710.md)
@@ -23,11 +28,6 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 - [#3569068: Provide the documentation structure in mkdocs.yml format for parsing into...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3569068.md)
 - [#3578624: Fix utility page content template config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578624.md)
 - [#3578145: Strip site name & email from the site:export](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3578145.md)
-
-**Drupal AI**
-- [#3574445: Add Drupal CMS 2.0 CCC install steps on the project page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574445.md)
-- [#3571925: Output streaming is handled inconsistently, fails to work in API AI-explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3571925.md)
-- [#3574420: Add Drupal CMS 2.0 support to CCC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574420.md)
 
 
 ## About
