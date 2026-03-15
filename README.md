@@ -10,9 +10,9 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 ## Latest issue summaries
 
 **Drupal AI**
+- [#3577427: Update context item revision diff feature for progressive enhancement](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577427.md)
 - [#3577745: Context item revision comparison is missing some scope info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577745.md)
 - [#3522130: Add client-side transform for daterange_default to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3522130.md)
-- [#3569776:  Adopt AI Core shared UI library in CCC and escape data before rendering](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3569776.md)
 
 **Drupal Core**
 - [#3573869: Remove deprecated code from Views and Views UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573869.md)
