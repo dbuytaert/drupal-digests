@@ -5,6 +5,55 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
+      <title>#3578657: Drupal 10: Error on /admin/ai/context/items/add: scheduler_content_moderation_integration module conflict</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3578657.md</link>
+      <guid isPermaLink="false">drupal-ai-3578657</guid>
+      <pubDate>Sun, 15 Mar 2026 20:29:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/4446c84a858858dc1baff02ba4d2f632b20624c3"&gt;4446c84&lt;/a&gt; · +184/-10 prod · +774/-46 test · +28/-9 infra · 15 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3578657"&gt;#3578657&lt;/a&gt; · 5 contributors · 67 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A critical bug prevented the AI Context module from working immediately after installation on Drupal 10. When users tried to create their first AI Context item, the page crashed with a fatal error about missing scheduler integration fields. The error only occurred on Drupal 10, not Drupal 11, and required visiting a settings page first to trigger initialization. This fix ensures the required field definitions are created automatically before they are needed, making the module work correctly on fresh Drupal 10 installations without manual workarounds.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue was a timing race condition specific to Drupal 10. The &lt;code&gt;ai_context_item/default&lt;/code&gt; bundle was already registered with the content moderation workflow, and Scheduler was enabled. When users visited &lt;code&gt;/admin/ai/context/items/add&lt;/code&gt; immediately after installation, Scheduler Content Moderation Integration (SCMI) ran its form hooks before its &lt;code&gt;publish_state&lt;/code&gt; and &lt;code&gt;unpublish_state&lt;/code&gt; field storage definitions were materialized. This caused SCMI to dereference null when checking for those fields, triggering a fatal error.&lt;/p&gt;
+&lt;p&gt;The fix introduces &lt;code&gt;AiSchedulerContentModerationSync&lt;/code&gt;, a dedicated class that lazily synchronizes SCMI field storage definitions before Scheduler's hooks run. The module now implements &lt;code&gt;hook_scheduler_hide_publish_date()&lt;/code&gt; and &lt;code&gt;hook_scheduler_hide_unpublish_date()&lt;/code&gt;, uses &lt;code&gt;hook_module_implements_alter()&lt;/code&gt; to ensure these run first, and triggers the sync during &lt;code&gt;hook_modules_installed()&lt;/code&gt; for any relevant module (ai_context, scheduler, or SCMI). The sync operation is idempotent and safe to call multiple times.&lt;/p&gt;
+&lt;p&gt;The fix only targets Drupal 10, where the issue was reproducible. Drupal 11 did not exhibit this problem. Test coverage was expanded to verify the add form works immediately after install with Scheduler enabled, and existing test workarounds that disabled Scheduler were removed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 15, 2026 (3 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dstorozhuk (iTech4web)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;annmarysruthy (QED42)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This critical bug was reported March 11 and fixed by March 15, with an intense four-day sprint involving 67 comments and five contributors. The issue was discovered on a fresh installation and initially included detailed reproduction steps and AI-generated analysis.&lt;/p&gt;
+&lt;p&gt;Scott Falconer provided crucial debugging in comment #16, reproducing the issue on Drupal 10.6.5, identifying the exact failure state (SCMI fields not materialized), and confirming the workaround. He proposed the initial fix strategy and provided the core sync logic.&lt;/p&gt;
+&lt;p&gt;Dstorozhuk refactored the implementation into object-oriented style using &lt;code&gt;AiSchedulerContentModerationSync&lt;/code&gt;, removed test workarounds, and worked to restore Drupal 10 to the CI matrix. He ran into challenging pipeline issues where tests failed locally but passed remotely (comment #62), which delayed final validation.&lt;/p&gt;
+&lt;p&gt;Kristen Pol managed the process, coordinated scope discussions to keep focus on the core fix, performed extensive AI-assisted code review, and tested manually on Drupal 10.5.8 to confirm the error and fix. Ann Mary helped with early verification on Drupal 11.&lt;/p&gt;
+&lt;p&gt;The collaboration showed strong teamwork under deadline pressure, with clear technical diagnosis, iterative refinement, and pragmatic scope management to ship the fix quickly. The team added TODO comments to remove the Drupal 10-specific workaround when support is eventually dropped.&lt;/p&gt;
+&lt;h2&gt;Lessons learned&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;When a module's configuration entity type is marked as moderated and integrates with Scheduler, field storage for moderation integration fields (like publish_state and unpublish_state) must be materialized before any form_alter hooks attempt to access those fields. If lazy initialization is unavoidable, eagerly synchronize field storage definitions in your module's hook_form_alter implementation before delegating to third-party integrations, ensuring dependent modules don't dereference null field definitions. &lt;em&gt;(via scott falconer)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;When configuration is required for entity forms to render but isn't created during module installation, visiting the entity add form will fail. Ensure default configuration entities are created in hook_install or provide lazy initialization in form_alter before any hook that depends on that configuration runs, so users don't encounter errors on first use. &lt;em&gt;(via scott falconer, dstorozhuk)&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3578657"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3577427: Update context item revision diff feature for progressive enhancement</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577427.md</link>
       <guid isPermaLink="false">drupal-ai-3577427</guid>
@@ -844,40 +893,6 @@ $input-&amp;gt;setChatStructuredJsonSchema($schema);
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3575626"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574182: Add support for Summarize</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574182.md</link>
-      <guid isPermaLink="false">drupal-ai-3574182</guid>
-      <pubDate>Wed, 25 Feb 2026 10:26:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_huggingface/-/commit/2d02b4c3d99a468d0ce17d94be5193f30701e164"&gt;2d02b4c&lt;/a&gt; · +46/-8 · 3 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574182"&gt;#3574182&lt;/a&gt; · 3 contributors · 8 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Huggingface AI provider now supports text summarization. This allows site owners to automatically generate summaries of longer texts using Huggingface's summarization models. The feature integrates with the AI module's new summarization operation type, making it available through the AI framework's standard interfaces and explorer tools. Sites using Huggingface as their AI provider can now leverage summarization capabilities alongside existing features like chat, embeddings, and image classification.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This change implements the &lt;code&gt;SummarizationInterface&lt;/code&gt; in the &lt;code&gt;HuggingfaceProvider&lt;/code&gt; class, adding support for the summarization operation type introduced in the AI module (&lt;a href="https://www.drupal.org/node/3574178"&gt;#3574178&lt;/a&gt;).&lt;/p&gt;
-&lt;p&gt;The implementation adds a &lt;code&gt;summarize()&lt;/code&gt; method that accepts text input (as a string, array, or &lt;code&gt;SummarizationInput&lt;/code&gt; object), calls the Huggingface API's summarization endpoint, and returns a &lt;code&gt;SummarizationOutput&lt;/code&gt; object containing the generated summary. The method normalizes input by extracting the text property when a &lt;code&gt;SummarizationInput&lt;/code&gt; object is provided, validates that the text is not empty, and makes the API request through the existing &lt;code&gt;HuggingfaceApi::summarization()&lt;/code&gt; client method.&lt;/p&gt;
-&lt;p&gt;The provider's capabilities configuration is updated to include &lt;code&gt;summarize&lt;/code&gt; in both the &lt;code&gt;MODEL_MAPPING&lt;/code&gt; array (which maps the operation to Huggingface's &lt;code&gt;summarization&lt;/code&gt; filter for model discovery) and the &lt;code&gt;getSupportedOperationTypes()&lt;/code&gt; method. This enables the AI module to discover compatible Huggingface models and present summarization functionality through the explorer interface.&lt;/p&gt;
-&lt;p&gt;Minor cleanup includes fixing an unused parameter issue in the existing text generation method and adding a content type parameter to image classification requests.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 18, 2026&lt;/li&gt;
-&lt;li&gt;Committed: February 25, 2026 (7 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was opened and implemented by marcus_johansson as part of adding summarization support to the AI module framework. The change was completed quickly, moving from opening to commit in just one week. The implementation was straightforward, adding Huggingface provider support to match the core summarization operation type added in &lt;a href="https://www.drupal.org/node/3574178"&gt;#3574178&lt;/a&gt;. Abhisekmazumdar reviewed and approved the change during testing of the related task, confirming the implementation was ready to merge. The coordinated work between the core AI module enhancement and this provider implementation demonstrates efficient feature rollout across the AI ecosystem.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3574182"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>

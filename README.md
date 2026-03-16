@@ -9,15 +9,15 @@ AI generated summaries of noteworthy Drupal issues: what changed, why it matters
 
 ## Latest issue summaries
 
-**Drupal AI**
-- [#3577427: Update context item revision diff feature for progressive enhancement](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577427.md)
-- [#3577745: Context item revision comparison is missing some scope info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577745.md)
-- [#3522130: Add client-side transform for daterange_default to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3522130.md)
-
 **Drupal Core**
+- [#3570917: Deprecate editor_image_upload_settings_form() and move the logic to a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570917.md)
 - [#3573869: Remove deprecated code from Views and Views UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573869.md)
 - [#3550083: robots.txt should disallow all '/search/' and '/search?' pages by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3550083.md)
-- [#3568387: Move text_summary to TextSummary service and deprecate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568387.md)
+
+**Drupal AI**
+- [#3578657: Drupal 10: Error on /admin/ai/context/items/add:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3578657.md)
+- [#3577427: Update context item revision diff feature for progressive enhancement](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577427.md)
+- [#3577745: Context item revision comparison is missing some scope info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577745.md)
 
 **Drupal Canvas**
 - [#3578865: Hydrating a component tree with an instance containing garbage values...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3578865.md)

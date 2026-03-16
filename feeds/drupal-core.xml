@@ -5,6 +5,78 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3570917: Deprecate editor_image_upload_settings_form() and move the logic to a service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570917.md</link>
+      <guid isPermaLink="false">drupal-core-3570917</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 15 Mar 2026 20:35:46 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c03369417f900ee7bbd3bc1235ca304dc7ea8955"&gt;c033694&lt;/a&gt; · +817/-710 prod · +15/-5 test · 11 files&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3570917"&gt;#3570917&lt;/a&gt; · 7 contributors · 28 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The function that generates the image upload settings form for text editors has been converted to a service. This change supports the ongoing effort to modernize core by eliminating procedural code from .module files. The form itself remains unchanged, so site owners see no difference. Third-party editor plugins that provide image upload configuration should use the new service instead of the deprecated function.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;editor_image_upload_settings_form()&lt;/code&gt; deprecated; use &lt;code&gt;EditorImageUploadSettings::getForm()&lt;/code&gt; instead&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;editor_image_upload_settings_form()&lt;/code&gt; function previously lived in &lt;code&gt;editor.admin.inc&lt;/code&gt; and provided a reusable form for configuring image upload settings. Any text editor plugin offering image insertion could call this function to generate the upload settings form, including fields for storage scheme, directory, file size limits, and image dimensions.&lt;/p&gt;
+&lt;p&gt;This function has been moved to a new &lt;code&gt;EditorImageUploadSettings&lt;/code&gt; service with a &lt;code&gt;getForm()&lt;/code&gt; method. The service accepts &lt;code&gt;ConfigFactoryInterface&lt;/code&gt; and &lt;code&gt;StreamWrapperManagerInterface&lt;/code&gt; through constructor injection, and uses &lt;code&gt;StringTranslationTrait&lt;/code&gt; for translations. The form structure and behavior remain identical.&lt;/p&gt;
+&lt;p&gt;Core plugins like CKEditor5 &lt;code&gt;Image&lt;/code&gt; and the test &lt;code&gt;UnicornEditor&lt;/code&gt; plugin now inject this service and call &lt;code&gt;getForm()&lt;/code&gt; instead of loading the .inc file and calling the procedural function. The deprecated function now triggers an error and delegates to the service.&lt;/p&gt;
+&lt;p&gt;The entire &lt;code&gt;editor.admin.inc&lt;/code&gt; file is deprecated in 11.4 and will be removed in 13.0, since it contains only this one function. An unrelated change in the diff moves Olivero theme hooks to a hook class, which appears to be part of the same broader modernization effort.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom text editor plugins that call &lt;code&gt;editor_image_upload_settings_form()&lt;/code&gt; should inject the &lt;code&gt;EditorImageUploadSettings&lt;/code&gt; service and call &lt;code&gt;getForm()&lt;/code&gt; instead.&lt;/p&gt;
+&lt;p&gt;Before:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+  $form_state-&amp;gt;loadInclude('editor', 'admin.inc');
+  $form['image_upload'] = editor_image_upload_settings_form($form_state-&amp;gt;get('editor'));
+  return $form;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function __construct(
+  array $configuration,
+  $plugin_id,
+  $plugin_definition,
+  #[Autowire(service: EditorImageUploadSettings::class)]
+  protected EditorImageUploadSettings $editorImageUploadSettings,
+) {
+  parent::__construct($configuration, $plugin_id, $plugin_definition);
+}
+
+public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+  $form['image_upload'] = $this-&amp;gt;editorImageUploadSettings-&amp;gt;getForm($form_state-&amp;gt;get('editor'));
+  return $form;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The plugin must also implement &lt;code&gt;ContainerFactoryPluginInterface&lt;/code&gt; to support dependency injection.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 1, 2026&lt;/li&gt;
+&lt;li&gt;First commit: March 13, 2026 (1 month later)&lt;/li&gt;
+&lt;li&gt;Last commit: March 15, 2026 (2 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue opened February 1, 2026 as part of the broader effort to eliminate core .module files. The initial approach proposed a trait, but after discussion the team decided a service was more appropriate. Contributors noted that injecting services into traits is complex and unsolved, and this function itself uses services internally. The conversion to a service was straightforward. The MR was committed to main March 13, then backported to 11.x with a separate MR that went in March 15. A brief discussion emerged about whether to remove the backward compatibility layer immediately in main or handle it in a follow-up cleanup issue.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3570917"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3573869: Remove deprecated code from Views and Views UI</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573869.md</link>
       <guid isPermaLink="false">drupal-core-3573869</guid>
@@ -897,46 +969,6 @@ if (CommentingStatus::tryFrom((int) $entity-&amp;gt;comment-&amp;gt;status) == C
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3046985"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3572051: hook_icon_pack_alter() is undocumented</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572051.md</link>
-      <guid isPermaLink="false">drupal-core-3572051</guid>
-      <pubDate>Fri, 06 Mar 2026 19:41:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/65b0772b1e8b178a45cdf54ada47c8b9ab6dc880"&gt;65b0772&lt;/a&gt; · +45/-0 · 3 files&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3572051"&gt;#3572051&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The hook &lt;code&gt;hook_icon_pack_alter()&lt;/code&gt; was previously undocumented, making it difficult for developers to discover or use. This hook allows modules to modify icon pack definitions that are part of Drupal's core Icon API. With proper documentation now in place, developers can more easily customize icon packs provided by core or contributed modules. The documentation includes a practical example showing how to change the label of the navigation icon pack.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Icon API in Drupal core includes an &lt;code&gt;IconPackManager&lt;/code&gt; plugin manager that discovers icon pack definitions from YAML files. Like other plugin managers, it supports an alter hook through &lt;code&gt;alterInfo()&lt;/code&gt; to allow modifications during discovery. However, &lt;code&gt;hook_icon_pack_alter()&lt;/code&gt; was never documented, making it effectively invisible to developers.&lt;/p&gt;
-&lt;p&gt;The new documentation was added to &lt;code&gt;core/lib/Drupal/Core/Render/theme.api.php&lt;/code&gt; alongside other theme and rendering-related hooks. The hook receives an array of icon pack definitions keyed by pack ID and allows modules to modify any aspect of these definitions. The documentation includes a simple example that changes the label of the navigation icon pack.&lt;/p&gt;
-&lt;p&gt;Discussion during review clarified that &lt;code&gt;theme.api.php&lt;/code&gt; was the appropriate location rather than &lt;code&gt;core.api.php&lt;/code&gt;, since it contains other theme-related hooks regardless of whether they can only be invoked by modules or themes. A follow-up issue was opened to explore allowing themes to invoke this alter hook as well.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 6, 2026 (28 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;tstoeckler (resc.)&lt;/li&gt;
-&lt;li&gt;kanchanandhini6&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue provided a straightforward first-time contribution opportunity. After initial guidance on where to place the documentation and what existing hooks to model it after, the contributor quickly produced working code. The main iteration came from a mid-review discussion about whether the hook belonged in &lt;code&gt;core.api.php&lt;/code&gt; or &lt;code&gt;theme.api.php&lt;/code&gt;. After examining precedent with hooks like &lt;code&gt;hook_library_info_build()&lt;/code&gt;, the team agreed to move it to &lt;code&gt;theme.api.php&lt;/code&gt; as more appropriate for theme-related functionality. A follow-up issue was filed to potentially expand theme support for the hook. The change was committed to all active branches within one month of opening.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This summary is AI-generated and may contain errors. Check the &lt;a href="https://www.drupal.org/node/3572051"&gt;original issue on Drupal.org&lt;/a&gt; for the full picture. For more digests, see &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
 </description>
     </item>
   </channel>
