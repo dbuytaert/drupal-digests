@@ -1,13 +1,13 @@
 *Updated April 26, 2026*
 
-**TL;DR:** [503 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [503 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [142 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
 **Drupal Core**
-_376 summaries · 167 new this week_
+_376 summaries · 161 new this week_
 - [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
 - [#3035340: Deprecate core/modules/views_ui/admin.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035340.md)
@@ -33,7 +33,7 @@ _10 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [142 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -45,11 +45,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_139 rules · 130 new this week_
+_142 rules · 132 new this week_
 
-- [Add FileUrlGeneratorInterface argument to AttachmentsProcessor constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-fileurlgeneratorinterface-argument-to-3366561.php)
-- [Replace deprecated REQUEST_TIME constant with \Drupal::time()->getRequestTime()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-request-time-constant-with-drupal-time-3395986.php)
-- [Replace deprecated NodeStorage::revisionIds() and userRevisionIds() with entity...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-nodestorage-revisionids-and-3396062.php)
+- [Rename hook_preprocess_block_content_add_list to hook_preprocess_entity_add_list](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-hook-preprocess-block-content-add-list-to-hook-3346394.php)
+- [Remove deprecated trustData() calls and save(TRUE) argument in config](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-trustdata-calls-and-save-true-argument-in-3347842.php)
+- [Replace deprecated MatchingRouteNotFoundException with ResourceNotFoundException](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-matchingroutenotfoundexception-with-3350922.php)
 
 
 ## RSS feeds
