@@ -1,0 +1,2682 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Drupal Rector Rules</title>
+    <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
+    <link>https://github.com/dbuytaert/drupal-digests</link>
+    <item>
+      <title>Replace @group legacy annotation with #[IgnoreDeprecations] attribute</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc73a-b700-77db-8bfe-49e2b6ce8a4c.md</link>
+      <guid isPermaLink="false">019dc73a-b700-77db-8bfe-49e2b6ce8a4c</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 00:40:07 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3417066"&gt;#3417066&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces the &lt;code&gt;@group legacy&lt;/code&gt; PHPDoc annotation (a symfony/phpunit-bridge concept) with the &lt;code&gt;#[\PHPUnit\Framework\Attributes\IgnoreDeprecations]&lt;/code&gt; PHP 8 attribute required by PHPUnit 10+. Drupal dropped &lt;code&gt;symfony/phpunit-bridge&lt;/code&gt; in Drupal 11 (issue &lt;a href="https://www.drupal.org/node/3417066"&gt;#3417066&lt;/a&gt;); test classes and methods that intentionally exercise deprecated APIs must use the native PHPUnit attribute instead.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;/**
+ * Tests deprecated behaviour.
+ *
+ * @covers ::foo
+ * @group legacy
+ */
+public function testLegacyBehavior(): void {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;/**
+ * Tests deprecated behaviour.
+ *
+ * @covers ::foo
+ */
+#[\PHPUnit\Framework\Attributes\IgnoreDeprecations]
+public function testLegacyBehavior(): void {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Comment\Doc;
+use PhpParser\Node;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class GroupLegacyToIgnoreDeprecationsRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace @group legacy docblock annotation with #[IgnoreDeprecations] PHP 8 attribute for PHPUnit 10+ compatibility',
+            [
+                new CodeSample(
+                    '/**
+ * Tests deprecated behaviour.
+ *
+ * @covers ::foo
+ * @group legacy
+ */
+public function testLegacyBehavior(): void {}',
+                    '/**
+ * Tests deprecated behaviour.
+ *
+ * @covers ::foo
+ */
+#[\PHPUnit\Framework\Attributes\IgnoreDeprecations]
+public function testLegacyBehavior(): void {}'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ClassMethod::class, Class_::class];
+    }
+
+    /** @param ClassMethod|Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        $docComment = $node-&amp;gt;getDocComment();
+        if ($docComment === null) {
+            return null;
+        }
+
+        $docText = $docComment-&amp;gt;getText();
+        if (!str_contains($docText, '@group legacy')) {
+            return null;
+        }
+
+        // Skip if #[IgnoreDeprecations] attribute is already present.
+        foreach ($node-&amp;gt;attrGroups as $attrGroup) {
+            foreach ($attrGroup-&amp;gt;attrs as $attr) {
+                $name = $this-&amp;gt;getName($attr-&amp;gt;name);
+                if ($name === 'PHPUnit\\Framework\\Attributes\\IgnoreDeprecations'
+                    || $name === 'IgnoreDeprecations'
+                ) {
+                    return null;
+                }
+            }
+        }
+
+        // Add the #[IgnoreDeprecations] attribute.
+        $node-&amp;gt;attrGroups[] = new AttributeGroup([
+            new Attribute(new FullyQualified('PHPUnit\\Framework\\Attributes\\IgnoreDeprecations')),
+        ]);
+
+        // Remove the @group legacy line from the docblock.
+        $newDocText = preg_replace('/^[ \t]*\*[ \t]*@group legacy[ \t]*\r?\n/m', '', $docText);
+
+        // Clean up a trailing bare &amp;quot; *\n&amp;quot; left when @group legacy was the last annotation.
+        $newDocText = preg_replace('/\n[ \t]*\*[ \t]*\n([ \t]*\*\/)$/', &amp;quot;\n$1&amp;quot;, $newDocText);
+
+        // If the docblock is now essentially empty (/** */), remove it entirely.
+        if (preg_match('/^\/\*\*\s*\*\/\s*$/', trim($newDocText))) {
+            $node-&amp;gt;setAttribute('comments', []);
+        } else {
+            $node-&amp;gt;setAttribute('comments', [new Doc($newDocText)]);
+        }
+
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([GroupLegacyToIgnoreDeprecationsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove deprecated Updater postInstall/postInstallTasks overrides</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc735-d5c0-7210-80b3-ed0fb595295b.md</link>
+      <guid isPermaLink="false">019dc735-d5c0-7210-80b3-ed0fb595295b</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 00:34:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3417136"&gt;#3417136&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes &lt;code&gt;postInstall()&lt;/code&gt; and &lt;code&gt;postInstallTasks()&lt;/code&gt; method overrides in classes that extend &lt;code&gt;Drupal\Core\Updater\Updater&lt;/code&gt;, &lt;code&gt;Module&lt;/code&gt;, or &lt;code&gt;Theme&lt;/code&gt;. Both methods are deprecated in &lt;code&gt;drupal:11.1.0&lt;/code&gt; with no replacement and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;, because the entire install-via-URL flow was eliminated from core. Overrides are dead code — Drupal no longer calls them.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Updater\Updater;
+
+class MyUpdater extends Updater {
+  public function postInstallTasks() {
+    return [['#type' =&amp;gt; 'link', '#title' =&amp;gt; 'My task']];
+  }
+  public function postInstall() {
+    \Drupal::logger('mymodule')-&amp;gt;info('Installed.');
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Updater\Updater;
+
+class MyUpdater extends Updater {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Removes overrides of Updater::postInstall() and Updater::postInstallTasks()
+ * in subclasses of Drupal\Core\Updater\Updater (and its known subclasses
+ * Module and Theme). Both methods are deprecated in drupal:11.1.0 with no
+ * replacement and removed in drupal:12.0.0.
+ */
+final class RemoveUpdaterPostInstallMethodsRector extends AbstractRector
+{
+    private const DEPRECATED_METHODS = ['postInstall', 'postInstallTasks'];
+
+    private const UPDATER_BASE_CLASSES = [
+        'Drupal\\Core\\Updater\\Updater',
+        'Drupal\\Core\\Updater\\Module',
+        'Drupal\\Core\\Updater\\Theme',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove overrides of deprecated Updater::postInstall() and Updater::postInstallTasks() (drupal:11.1.0, removed drupal:12.0.0)',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+use Drupal\Core\Updater\Updater;
+
+class MyUpdater extends Updater {
+  public function postInstallTasks() {
+    return [['#type' =&amp;gt; 'link', '#title' =&amp;gt; 'My task']];
+  }
+  public function postInstall() {
+    \Drupal::logger('mymodule')-&amp;gt;info('Installed.');
+  }
+}
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+use Drupal\Core\Updater\Updater;
+
+class MyUpdater extends Updater {
+}
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+
+        $parentName = $node-&amp;gt;extends-&amp;gt;toString();
+        if (!in_array($parentName, self::UPDATER_BASE_CLASSES, true)) {
+            return null;
+        }
+
+        $modified = false;
+        $newStmts = [];
+        foreach ($node-&amp;gt;stmts as $stmt) {
+            if ($stmt instanceof ClassMethod
+                &amp;amp;&amp;amp; in_array($this-&amp;gt;getName($stmt), self::DEPRECATED_METHODS, true)
+            ) {
+                $modified = true;
+                continue;
+            }
+            $newStmts[] = $stmt;
+        }
+
+        if (!$modified) {
+            return null;
+        }
+
+        $node-&amp;gt;stmts = $newStmts;
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveUpdaterPostInstallMethodsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated movePointerTo() with getDriver()-&gt;mouseOver()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc730-7e0d-701d-b9f0-eac94671d2f9.md</link>
+      <guid isPermaLink="false">019dc730-7e0d-701d-b9f0-eac94671d2f9</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 00:28:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3421202"&gt;#3421202&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites &lt;code&gt;$this-&amp;gt;movePointerTo('#id')&lt;/code&gt; calls deprecated in drupal:11.1.0 and removed in drupal:12.0.0. The replacement is &lt;code&gt;$this-&amp;gt;getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver()&lt;/code&gt;, which requires an XPath locator instead of a CSS selector. This rule handles the common case of simple CSS ID selectors (&lt;code&gt;#foo&lt;/code&gt;), converting them to the XPath equivalent &lt;code&gt;.//*[@id=&amp;quot;foo&amp;quot;]&lt;/code&gt; automatically.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;movePointerTo('#my-element');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver('.//*[@id=&amp;quot;my-element&amp;quot;]');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated movePointerTo() with getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver().
+ *
+ * movePointerTo() is deprecated in drupal:11.1.0 and removed in drupal:12.0.0.
+ * It accepted a CSS selector; the replacement mouseOver() requires an XPath
+ * expression. This rule handles the common case of simple CSS ID selectors
+ * (#foo), converting them to the equivalent XPath (.//*[@id=&amp;quot;foo&amp;quot;]).
+ */
+final class MovePointerToMouseOverRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated movePointerTo() with getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver()',
+            [
+                new CodeSample(
+                    '$this-&amp;gt;movePointerTo(\'#my-element\');',
+                    '$this-&amp;gt;getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver(\'.//*[@id=&amp;quot;my-element&amp;quot;]\'  );'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /**
+     * @param MethodCall $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        // Only match $this-&amp;gt;movePointerTo(...)
+        if (!$node-&amp;gt;var instanceof Variable) {
+            return null;
+        }
+        if ($this-&amp;gt;getName($node-&amp;gt;var) !== 'this') {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'movePointerTo')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 1) {
+            return null;
+        }
+
+        $arg = $node-&amp;gt;args[0]-&amp;gt;value;
+
+        // Only handle string literals with a simple CSS ID selector (#foo).
+        // Other selector types cannot be auto-converted to XPath safely.
+        if (!$arg instanceof String_) {
+            return null;
+        }
+
+        $cssSelector = $arg-&amp;gt;value;
+
+        // Match simple CSS ID selectors: #identifier (letters, digits, _ and -)
+        if (!preg_match('/^#([a-zA-Z][a-zA-Z0-9_-]*)$/', $cssSelector, $matches)) {
+            return null;
+        }
+
+        $xpathSelector = './/*[@id=&amp;quot;' . $matches[1] . '&amp;quot;]';
+
+        // Build: $this-&amp;gt;getSession()-&amp;gt;getDriver()-&amp;gt;mouseOver($xpathSelector)
+        $getSession = new MethodCall($node-&amp;gt;var, 'getSession', []);
+        $getDriver = new MethodCall($getSession, 'getDriver', []);
+
+        return new MethodCall(
+            $getDriver,
+            'mouseOver',
+            [new Arg(new String_($xpathSelector))]
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([MovePointerToMouseOverRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace addCachedDiscovery() method call with plugin_manager_cache_clear tag</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc72a-3b7c-7027-aaf5-03bd8222e998.md</link>
+      <guid isPermaLink="false">019dc72a-3b7c-7027-aaf5-03bd8222e998</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 00:22:06 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3432827"&gt;#3432827&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces deprecated &lt;code&gt;addMethodCall('addCachedDiscovery', [new Reference($id)])&lt;/code&gt; calls on the &lt;code&gt;plugin.cache_clearer&lt;/code&gt; service definition with &lt;code&gt;$container-&amp;gt;getDefinition($id)-&amp;gt;addTag('plugin_manager_cache_clear')&lt;/code&gt;. The &lt;code&gt;CachedDiscoveryClearer::addCachedDiscovery()&lt;/code&gt; method is deprecated in &lt;code&gt;drupal:11.1.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;; the new approach uses a tagged service iterator driven by the &lt;code&gt;plugin_manager_cache_clear&lt;/code&gt; tag.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$container-&amp;gt;getDefinition('plugin.cache_clearer')
+    -&amp;gt;addMethodCall('addCachedDiscovery', [new Reference('my.plugin.manager')]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$container-&amp;gt;getDefinition('my.plugin.manager')-&amp;gt;addTag('plugin_manager_cache_clear');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated addMethodCall('addCachedDiscovery', ...) patterns with
+ * the new plugin_manager_cache_clear tag approach introduced in Drupal 11.1.
+ */
+final class ReplaceAddCachedDiscoveryMethodCallRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            &amp;quot;Replace deprecated \$def-&amp;gt;addMethodCall('addCachedDiscovery', [new Reference(\$id)]) with \$container-&amp;gt;getDefinition(\$id)-&amp;gt;addTag('plugin_manager_cache_clear')&amp;quot;,
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+$container-&amp;gt;getDefinition('plugin.cache_clearer')
+    -&amp;gt;addMethodCall('addCachedDiscovery', [new Reference('my.plugin.manager')]);
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+$container-&amp;gt;getDefinition('my.plugin.manager')-&amp;gt;addTag('plugin_manager_cache_clear');
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /** @param MethodCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Match: -&amp;gt;addMethodCall('addCachedDiscovery', [...])
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'addMethodCall')) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;getArgs();
+        if (count($args) &amp;lt; 2) {
+            return null;
+        }
+
+        // First arg must be the string 'addCachedDiscovery'
+        $firstArg = $args[0]-&amp;gt;value;
+        if (!$firstArg instanceof String_ || $firstArg-&amp;gt;value !== 'addCachedDiscovery') {
+            return null;
+        }
+
+        // Second arg must be an array containing a new Reference(...)
+        $secondArg = $args[1]-&amp;gt;value;
+        if (!$secondArg instanceof \PhpParser\Node\Expr\Array_) {
+            return null;
+        }
+
+        // Find the Reference service ID from the array
+        $serviceIdNode = null;
+        foreach ($secondArg-&amp;gt;items as $item) {
+            if ($item === null) {
+                continue;
+            }
+            $itemValue = $item-&amp;gt;value;
+            if ($itemValue instanceof New_) {
+                $className = $itemValue-&amp;gt;class;
+                if ($className instanceof Name) {
+                    $shortName = $className-&amp;gt;getLast();
+                    if ($shortName === 'Reference' &amp;amp;&amp;amp; count($itemValue-&amp;gt;getArgs()) &amp;gt;= 1) {
+                        $serviceIdNode = $itemValue-&amp;gt;getArgs()[0]-&amp;gt;value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($serviceIdNode === null) {
+            return null;
+        }
+
+        // Build: $container-&amp;gt;getDefinition($serviceId)-&amp;gt;addTag('plugin_manager_cache_clear')
+        $containerVar = new Variable('container');
+
+        $getDefinitionCall = new MethodCall(
+            $containerVar,
+            'getDefinition',
+            [new Arg($serviceIdNode)]
+        );
+
+        return new MethodCall(
+            $getDefinitionCall,
+            'addTag',
+            [new Arg(new String_('plugin_manager_cache_clear'))]
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceAddCachedDiscoveryMethodCallRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated Number::alphadecimalToInt(null/'') calls with 0</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc726-46e9-74a9-b04e-3acc1865f49d.md</link>
+      <guid isPermaLink="false">019dc726-46e9-74a9-b04e-3acc1865f49d</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 00:17:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3442810"&gt;#3442810&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Calling &lt;code&gt;Number::alphadecimalToInt()&lt;/code&gt; with &lt;code&gt;NULL&lt;/code&gt; or an empty string &lt;code&gt;''&lt;/code&gt; is deprecated in drupal:11.2.0 and removed in drupal:12.0.0. Both arguments always produced a return value of &lt;code&gt;0&lt;/code&gt;, so the rule replaces those static calls with the integer literal &lt;code&gt;0&lt;/code&gt; directly, eliminating the deprecation with no behaviour change.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$a = Number::alphadecimalToInt(NULL);
+$b = Number::alphadecimalToInt('');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$a = 0;
+$b = 0;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Scalar\LNumber;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replace deprecated Number::alphadecimalToInt(null/'') calls with 0.
+ *
+ * Passing NULL or an empty string to Number::alphadecimalToInt() is deprecated
+ * in drupal:11.2.0 and removed in drupal:12.0.0. Both values always returned 0,
+ * so the literal call can be replaced with the integer 0 directly.
+ */
+final class AlphadecimalToIntNullOrEmptyRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated Number::alphadecimalToInt(null) or Number::alphadecimalToInt(\'\') calls with 0',
+            [
+                new CodeSample(
+                    'Number::alphadecimalToInt(NULL);',
+                    '0;'
+                ),
+                new CodeSample(
+                    &amp;quot;Number::alphadecimalToInt('');&amp;quot;,
+                    '0;'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [StaticCall::class];
+    }
+
+    /** @param StaticCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'alphadecimalToInt')) {
+            return null;
+        }
+
+        if (!$this-&amp;gt;isObjectType($node-&amp;gt;class, new \PHPStan\Type\ObjectType('Drupal\\Component\\Utility\\Number'))) {
+            return null;
+        }
+
+        // Must have exactly one argument.
+        if (count($node-&amp;gt;args) !== 1) {
+            return null;
+        }
+
+        $arg = $node-&amp;gt;args[0];
+        if (!$arg instanceof \PhpParser\Node\Arg) {
+            return null;
+        }
+
+        $value = $arg-&amp;gt;value;
+
+        // Match null literal.
+        if ($value instanceof \PhpParser\Node\Expr\ConstFetch) {
+            $constName = strtolower($this-&amp;gt;getName($value-&amp;gt;name));
+            if ($constName === 'null') {
+                return new LNumber(0);
+            }
+        }
+
+        // Match empty string literal.
+        if ($value instanceof \PhpParser\Node\Scalar\String_ &amp;amp;&amp;amp; $value-&amp;gt;value === '') {
+            return new LNumber(0);
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AlphadecimalToIntNullOrEmptyRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove deprecated $settings['state_cache'] assignment for Drupal 11</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc709-5e7d-72b7-8c99-8b19bcde0d7f.md</link>
+      <guid isPermaLink="false">019dc709-5e7d-72b7-8c99-8b19bcde0d7f</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:46:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3436954"&gt;#3436954&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes &lt;code&gt;$settings['state_cache']&lt;/code&gt; assignments from settings files. The &lt;code&gt;state_cache&lt;/code&gt; setting was deprecated in &lt;code&gt;drupal:11.0.0&lt;/code&gt; — state caching is now permanently enabled and the setting has no effect. Leaving it in place triggers a deprecation warning via &lt;code&gt;Settings::$deprecatedSettings&lt;/code&gt;. The replacement is simply removing the line.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeVisitor;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class RemoveStateCacheSettingRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            &amp;quot;Remove deprecated \$settings['state_cache'] assignment. The state_cache setting is deprecated in drupal:11.0.0 and should be removed from settings files since state caching is now permanently enabled.&amp;quot;,
+            [
+                new CodeSample(
+                    &amp;quot;\$settings['state_cache'] = TRUE;&amp;quot;,
+                    ''
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Expression::class];
+    }
+
+    /**
+     * @param Expression $node
+     * @return NodeVisitor::REMOVE_NODE|null
+     */
+    public function refactor(Node $node): ?int
+    {
+        if (!$node-&amp;gt;expr instanceof Assign) {
+            return null;
+        }
+
+        $assign = $node-&amp;gt;expr;
+
+        if (!$assign-&amp;gt;var instanceof ArrayDimFetch) {
+            return null;
+        }
+
+        $arrayDimFetch = $assign-&amp;gt;var;
+
+        if (!$this-&amp;gt;isName($arrayDimFetch-&amp;gt;var, 'settings')) {
+            return null;
+        }
+
+        if (!$arrayDimFetch-&amp;gt;dim instanceof String_) {
+            return null;
+        }
+
+        if ($arrayDimFetch-&amp;gt;dim-&amp;gt;value !== 'state_cache') {
+            return null;
+        }
+
+        return NodeVisitor::REMOVE_NODE;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveStateCacheSettingRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated Sql::getMigrationPluginManager() with property access</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc701-a6a5-7576-bda1-5c1ebe3b3582.md</link>
+      <guid isPermaLink="false">019dc701-a6a5-7576-bda1-5c1ebe3b3582</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:37:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3439369"&gt;#3439369&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The protected method &lt;code&gt;getMigrationPluginManager()&lt;/code&gt; on &lt;code&gt;Drupal\migrate\Plugin\migrate\id_map\Sql&lt;/code&gt; was deprecated in drupal:9.5.0 and removed in drupal:11.0.0. Subclasses that called &lt;code&gt;$this-&amp;gt;getMigrationPluginManager()&lt;/code&gt; must instead access the &lt;code&gt;$this-&amp;gt;migrationPluginManager&lt;/code&gt; property directly. The unrelated &lt;code&gt;Migration::getMigrationPluginManager()&lt;/code&gt; is intentionally excluded.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$manager = $this-&amp;gt;getMigrationPluginManager();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$manager = $this-&amp;gt;migrationPluginManager;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\PropertyFetch;
+use PhpParser\Node\Expr\Variable;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated Sql::getMigrationPluginManager() with property access.
+ *
+ * The protected method getMigrationPluginManager() was deprecated in
+ * drupal:9.5.0 and removed in drupal:11.0.0. Subclasses of Sql that called
+ * this method should access $this-&amp;gt;migrationPluginManager directly.
+ *
+ * Note: Migration::getMigrationPluginManager() is NOT deprecated and is
+ * intentionally excluded from this transformation.
+ *
+ * @see https://www.drupal.org/node/3277306
+ */
+final class MigrateSqlGetMigrationPluginManagerRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated Sql::getMigrationPluginManager() calls with direct property access $this-&amp;gt;migrationPluginManager.',
+            [
+                new CodeSample(
+                    '$manager = $this-&amp;gt;getMigrationPluginManager();',
+                    '$manager = $this-&amp;gt;migrationPluginManager;'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /** @param MethodCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Only target $this-&amp;gt;getMigrationPluginManager() with no arguments.
+        if (!$node-&amp;gt;var instanceof Variable) {
+            return null;
+        }
+        if ($node-&amp;gt;var-&amp;gt;name !== 'this') {
+            return null;
+        }
+        if ($this-&amp;gt;getName($node-&amp;gt;name) !== 'getMigrationPluginManager') {
+            return null;
+        }
+        if ($node-&amp;gt;args !== []) {
+            return null;
+        }
+
+        // Skip Migration::getMigrationPluginManager() which is NOT deprecated.
+        // Only the Sql (id_map) version was deprecated and removed in 11.0.0.
+        if ($this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\migrate\Plugin\Migration'))) {
+            return null;
+        }
+
+        // Replace with $this-&amp;gt;migrationPluginManager property fetch.
+        return new PropertyFetch(
+            new Variable('this'),
+            'migrationPluginManager'
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([MigrateSqlGetMigrationPluginManagerRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Convert drupalGet() headers to associative array format</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6fa-42b8-7668-a748-6a87aa9b6e6a.md</link>
+      <guid isPermaLink="false">019dc6fa-42b8-7668-a748-6a87aa9b6e6a</guid>
+      <category>deprecation</category>
+      <category>reliability</category>
+      <pubDate>Sat, 25 Apr 2026 23:29:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3440169"&gt;#3440169&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation, reliability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites deprecated &lt;code&gt;drupalGet()&lt;/code&gt; &lt;code&gt;$headers&lt;/code&gt; argument patterns deprecated in Drupal 11.1.0. Integer-keyed colon-separated strings like &lt;code&gt;['X-Requested-With: XMLHttpRequest']&lt;/code&gt; are split into &lt;code&gt;['X-Requested-With' =&amp;gt; 'XMLHttpRequest']&lt;/code&gt;. Null header values like &lt;code&gt;['Accept-Language' =&amp;gt; NULL]&lt;/code&gt; are replaced with empty strings. See change records https://www.drupal.org/node/3456178 and https://www.drupal.org/node/3456233.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;drupalGet('/path', [], ['X-Requested-With: XMLHttpRequest']);
+$this-&amp;gt;drupalGet('', [], ['Accept-Language' =&amp;gt; NULL]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;drupalGet('/path', [], ['X-Requested-With' =&amp;gt; 'XMLHttpRequest']);
+$this-&amp;gt;drupalGet('', [], ['Accept-Language' =&amp;gt; '']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Rewrites deprecated drupalGet() $headers argument formats:
+ *  - Integer-keyed 'Header-Name: value' strings =&amp;gt; ['Header-Name' =&amp;gt; 'value']
+ *  - Null header values =&amp;gt; empty string ''
+ */
+final class DrupalGetHeadersAssocArrayRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Convert drupalGet() $headers from indexed colon-separated strings or null values to an associative array, as required by Drupal 11.1.0.',
+            [
+                new CodeSample(
+                    '$this-&amp;gt;drupalGet(\'/path\', [], [\'X-Requested-With: XMLHttpRequest\']);',
+                    '$this-&amp;gt;drupalGet(\'/path\', [], [\'X-Requested-With\' =&amp;gt; \'XMLHttpRequest\']);'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /**
+     * @param MethodCall $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'drupalGet')) {
+            return null;
+        }
+
+        // $headers is the third argument (index 2).
+        if (count($node-&amp;gt;args) &amp;lt; 3) {
+            return null;
+        }
+
+        $headersArg = $node-&amp;gt;args[2];
+        if (!$headersArg instanceof Arg) {
+            return null;
+        }
+
+        $headersArray = $headersArg-&amp;gt;value;
+        if (!$headersArray instanceof Array_) {
+            return null;
+        }
+
+        $changed = false;
+
+        foreach ($headersArray-&amp;gt;items as $item) {
+            if (!$item instanceof ArrayItem) {
+                continue;
+            }
+
+            // Pattern 1: integer-keyed item with 'Header-Name: value' string.
+            // Deprecated since drupal:11.1.0 — see https://www.drupal.org/node/3456178
+            if ($item-&amp;gt;key === null &amp;amp;&amp;amp; $item-&amp;gt;value instanceof String_) {
+                $raw = $item-&amp;gt;value-&amp;gt;value;
+                if (str_contains($raw, ':')) {
+                    [$headerName, $headerValue] = explode(':', $raw, 2);
+                    $item-&amp;gt;key   = new String_(trim($headerName));
+                    $item-&amp;gt;value = new String_(trim($headerValue));
+                    $changed = true;
+                    continue;
+                }
+            }
+
+            // Pattern 2: null header value.
+            // Deprecated since drupal:11.1.0 — see https://www.drupal.org/node/3456233
+            if ($item-&amp;gt;value instanceof ConstFetch
+                &amp;amp;&amp;amp; strtolower((string) $item-&amp;gt;value-&amp;gt;name) === 'null'
+            ) {
+                $item-&amp;gt;value = new String_('');
+                $changed = true;
+            }
+        }
+
+        return $changed ? $node : null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([DrupalGetHeadersAssocArrayRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove deprecated ModuleHandlerInterface::writeCache() and getHookInfo()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6f7-12c7-77d2-9673-f706fd97fa3f.md</link>
+      <guid isPermaLink="false">019dc6f7-12c7-77d2-9673-f706fd97fa3f</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:26:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes calls to &lt;code&gt;ModuleHandlerInterface::writeCache()&lt;/code&gt; (no replacement needed) and replaces calls to &lt;code&gt;ModuleHandlerInterface::getHookInfo()&lt;/code&gt; with &lt;code&gt;[]&lt;/code&gt; — both deprecated in drupal:11.1.0 and removed in drupal:12.0.0 as part of the OOP hooks refactor (issue &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;). The new hook system no longer uses a cache or hook-info array, so both methods are no-ops.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;moduleHandler-&amp;gt;writeCache();
+$hookInfo = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$hookInfo = [];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeVisitor;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Removes deprecated ModuleHandlerInterface::writeCache() calls and replaces
+ * ModuleHandlerInterface::getHookInfo() with [] — both deprecated in
+ * drupal:11.1.0 and removed in drupal:12.0.0.
+ */
+final class RemoveModuleHandlerDeprecatedMethodsRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove deprecated ModuleHandlerInterface::writeCache() calls (no replacement) and replace ModuleHandlerInterface::getHookInfo() with [] (deprecated in drupal:11.1.0, removed from drupal:12.0.0).',
+            [
+                new CodeSample(
+                    '$this-&amp;gt;moduleHandler-&amp;gt;writeCache();',
+                    ''
+                ),
+                new CodeSample(
+                    '$hookInfo = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();',
+                    '$hookInfo = [];'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Expression::class, MethodCall::class];
+    }
+
+    /**
+     * @param Expression|MethodCall $node
+     * @return int|Node|null
+     */
+    public function refactor(Node $node)
+    {
+        // Remove standalone expression statements for writeCache() and
+        // standalone getHookInfo() calls (result not used).
+        if ($node instanceof Expression &amp;amp;&amp;amp; $node-&amp;gt;expr instanceof MethodCall) {
+            $call = $node-&amp;gt;expr;
+            if ($this-&amp;gt;isModuleHandlerMethodCall($call, 'writeCache')
+                || $this-&amp;gt;isModuleHandlerMethodCall($call, 'getHookInfo')) {
+                return NodeVisitor::REMOVE_NODE;
+            }
+        }
+
+        // Replace getHookInfo() used inside a larger expression (e.g. an
+        // assignment) with an empty array literal.
+        if ($node instanceof MethodCall
+            &amp;amp;&amp;amp; $this-&amp;gt;isModuleHandlerMethodCall($node, 'getHookInfo')) {
+            return new Array_([]);
+        }
+
+        return null;
+    }
+
+    private function isModuleHandlerMethodCall(MethodCall $call, string $methodName): bool
+    {
+        return $this-&amp;gt;isName($call-&amp;gt;name, $methodName)
+            &amp;amp;&amp;amp; $this-&amp;gt;isObjectType(
+                $call-&amp;gt;var,
+                new ObjectType('Drupal\Core\Extension\ModuleHandlerInterface')
+            );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveModuleHandlerDeprecatedMethodsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated editor_load() with entity storage load()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6f0-336d-7639-9252-b81478b91ee5.md</link>
+      <guid isPermaLink="false">019dc6f0-336d-7639-9252-b81478b91ee5</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:18:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3447794"&gt;#3447794&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;editor_load($format_id)&lt;/code&gt; function (deprecated in drupal:11.2.0, removed in drupal:12.0.0) with the canonical replacement &lt;code&gt;\Drupal::entityTypeManager()-&amp;gt;getStorage('editor')-&amp;gt;load($format_id)&lt;/code&gt;. The old helper loaded all editor config entities at once via &lt;code&gt;Editor::loadMultiple()&lt;/code&gt;, which triggers a costly &lt;code&gt;ConfigFactory::listAll()&lt;/code&gt; on warm caches; the new form loads only the requested entity.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$editor = editor_load($format_id);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$editor = \Drupal::entityTypeManager()-&amp;gt;getStorage('editor')-&amp;gt;load($format_id);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated editor_load() with the entity storage equivalent.
+ */
+final class EditorLoadDeprecationRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            &amp;quot;Replace deprecated editor_load(\$format_id) with \\Drupal::entityTypeManager()-&amp;gt;getStorage('editor')-&amp;gt;load(\$format_id)&amp;quot;,
+            [
+                new CodeSample(
+                    &amp;quot;\$editor = editor_load(\$format_id);&amp;quot;,
+                    &amp;quot;\$editor = \\Drupal::entityTypeManager()-&amp;gt;getStorage('editor')-&amp;gt;load(\$format_id);&amp;quot;
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node, 'editor_load')) {
+            return null;
+        }
+
+        // Build: \Drupal::entityTypeManager()-&amp;gt;getStorage('editor')-&amp;gt;load($format_id)
+        $drupalClass = new FullyQualified('Drupal');
+
+        // \Drupal::entityTypeManager()
+        $entityTypeManagerCall = new StaticCall(
+            $drupalClass,
+            'entityTypeManager',
+            []
+        );
+
+        // -&amp;gt;getStorage('editor')
+        $getStorageCall = new MethodCall(
+            $entityTypeManagerCall,
+            'getStorage',
+            [new Node\Arg(new String_('editor'))]
+        );
+
+        // -&amp;gt;load($format_id) — preserve the original argument
+        $originalArg = $node-&amp;gt;args[0] ?? new Node\Arg(new Node\Expr\ConstFetch(new Name('null')));
+
+        return new MethodCall(
+            $getStorageCall,
+            'load',
+            [$originalArg]
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([EditorLoadDeprecationRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace empty-string description with NULL in EntityFormMode::create()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6ed-c576-71da-9f48-b797a72ad049.md</link>
+      <guid isPermaLink="false">019dc6ed-c576-71da-9f48-b797a72ad049</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:16:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3448457"&gt;#3448457&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal 11.2.0, setting the &lt;code&gt;description&lt;/code&gt; property of an &lt;code&gt;EntityFormMode&lt;/code&gt; to an empty string &lt;code&gt;''&lt;/code&gt; was deprecated; it must be &lt;code&gt;null&lt;/code&gt; in Drupal 12.0.0. This rule targets &lt;code&gt;EntityFormMode::create()&lt;/code&gt; calls (both short and fully-qualified class names) where &lt;code&gt;description&lt;/code&gt; is set to &lt;code&gt;''&lt;/code&gt; and replaces the value with &lt;code&gt;NULL&lt;/code&gt;. See https://www.drupal.org/node/3452144.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;EntityFormMode::create([
+  'id' =&amp;gt; 'user.test',
+  'label' =&amp;gt; 'Test',
+  'description' =&amp;gt; '',
+  'targetEntityType' =&amp;gt; 'user',
+]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;EntityFormMode::create([
+  'id' =&amp;gt; 'user.test',
+  'label' =&amp;gt; 'Test',
+  'description' =&amp;gt; NULL,
+  'targetEntityType' =&amp;gt; 'user',
+]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces empty-string description with NULL in EntityFormMode::create() calls.
+ *
+ * In Drupal 11.2.0, setting the description of an EntityFormMode to an empty
+ * string was deprecated. Code must use NULL instead.
+ *
+ * @see https://www.drupal.org/project/drupal/issues/3448457
+ * @see https://www.drupal.org/node/3452144
+ */
+final class EntityFormModeEmptyDescriptionToNullRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace empty-string description with NULL in EntityFormMode::create() calls',
+            [
+                new CodeSample(
+                    &amp;quot;EntityFormMode::create([\n  'id' =&amp;gt; 'user.test',\n  'label' =&amp;gt; 'Test',\n  'description' =&amp;gt; '',\n  'targetEntityType' =&amp;gt; 'user',\n]);&amp;quot;,
+                    &amp;quot;EntityFormMode::create([\n  'id' =&amp;gt; 'user.test',\n  'label' =&amp;gt; 'Test',\n  'description' =&amp;gt; NULL,\n  'targetEntityType' =&amp;gt; 'user',\n]);&amp;quot;
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [StaticCall::class];
+    }
+
+    /**
+     * @param StaticCall $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        // Only target create() static calls.
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'create')) {
+            return null;
+        }
+
+        if (!$node-&amp;gt;class instanceof Name) {
+            return null;
+        }
+
+        $className = $this-&amp;gt;getName($node-&amp;gt;class);
+        if ($className !== 'Drupal\\Core\\Entity\\Entity\\EntityFormMode'
+            &amp;amp;&amp;amp; $className !== 'EntityFormMode'
+        ) {
+            return null;
+        }
+
+        if (empty($node-&amp;gt;args)) {
+            return null;
+        }
+
+        $firstArg = $node-&amp;gt;args[0];
+        if (!$firstArg instanceof Arg) {
+            return null;
+        }
+
+        if (!$firstArg-&amp;gt;value instanceof Array_) {
+            return null;
+        }
+
+        $changed = false;
+        foreach ($firstArg-&amp;gt;value-&amp;gt;items as $item) {
+            if (!$item instanceof ArrayItem) {
+                continue;
+            }
+
+            if ($item-&amp;gt;key === null) {
+                continue;
+            }
+
+            // Check key is the string 'description'.
+            if (!$item-&amp;gt;key instanceof String_) {
+                continue;
+            }
+
+            if ($item-&amp;gt;key-&amp;gt;value !== 'description') {
+                continue;
+            }
+
+            // Check value is an empty string.
+            if (!$item-&amp;gt;value instanceof String_) {
+                continue;
+            }
+
+            if ($item-&amp;gt;value-&amp;gt;value !== '') {
+                continue;
+            }
+
+            // Replace '' with NULL.
+            $item-&amp;gt;value = new ConstFetch(new Name('NULL'));
+            $changed = true;
+        }
+
+        return $changed ? $node : null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([EntityFormModeEmptyDescriptionToNullRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Add $moduleExtensionList to NodeViewsData subclass constructors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6e9-fa64-74e4-81c9-1954a6ca66e0.md</link>
+      <guid isPermaLink="false">019dc6e9-fa64-74e4-81c9-1954a6ca66e0</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:11:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3449181"&gt;#3449181&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal 11.2.0, &lt;code&gt;NodeViewsData::__construct()&lt;/code&gt; gained a seventh parameter &lt;code&gt;?ModuleExtensionList $moduleExtensionList&lt;/code&gt; (required in 12.0.0, see change record &lt;a href="https://www.drupal.org/node/3493129"&gt;#3493129&lt;/a&gt;). This rule finds subclasses that still call &lt;code&gt;parent::__construct()&lt;/code&gt; with only 6 arguments, adds the &lt;code&gt;$moduleExtensionList&lt;/code&gt; nullable parameter to the constructor signature, passes it to &lt;code&gt;parent::__construct()&lt;/code&gt;, and injects &lt;code&gt;extension.list.module&lt;/code&gt; via &lt;code&gt;$container-&amp;gt;get()&lt;/code&gt; inside &lt;code&gt;createInstance()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyNodeViewsData extends NodeViewsData {
+    public function __construct(
+        EntityTypeInterface $entity_type,
+        SqlEntityStorageInterface $storage_controller,
+        EntityTypeManagerInterface $entity_type_manager,
+        ModuleHandlerInterface $module_handler,
+        TranslationInterface $translation_manager,
+        EntityFieldManagerInterface $entity_field_manager,
+    ) {
+        parent::__construct($entity_type, $storage_controller, $entity_type_manager, $module_handler, $translation_manager, $entity_field_manager);
+    }
+
+    public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
+        return new static(
+            $entity_type,
+            $container-&amp;gt;get('entity_type.manager')-&amp;gt;getStorage($entity_type-&amp;gt;id()),
+            $container-&amp;gt;get('entity_type.manager'),
+            $container-&amp;gt;get('module_handler'),
+            $container-&amp;gt;get('string_translation'),
+            $container-&amp;gt;get('entity_field.manager'),
+        );
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyNodeViewsData extends NodeViewsData {
+    public function __construct(
+        EntityTypeInterface $entity_type,
+        SqlEntityStorageInterface $storage_controller,
+        EntityTypeManagerInterface $entity_type_manager,
+        ModuleHandlerInterface $module_handler,
+        TranslationInterface $translation_manager,
+        EntityFieldManagerInterface $entity_field_manager,
+        ?\Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList = NULL,
+    ) {
+        parent::__construct($entity_type, $storage_controller, $entity_type_manager, $module_handler, $translation_manager, $entity_field_manager, $moduleExtensionList);
+    }
+
+    public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
+        return new static(
+            $entity_type,
+            $container-&amp;gt;get('entity_type.manager')-&amp;gt;getStorage($entity_type-&amp;gt;id()),
+            $container-&amp;gt;get('entity_type.manager'),
+            $container-&amp;gt;get('module_handler'),
+            $container-&amp;gt;get('string_translation'),
+            $container-&amp;gt;get('entity_field.manager'),
+            $container-&amp;gt;get('extension.list.module'),
+        );
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name;
+use PhpParser\Node\NullableType;
+use PhpParser\Node\Param;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitorAbstract;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Fixes NodeViewsData subclasses whose __construct() omits the $moduleExtensionList
+ * argument added in Drupal 11.2.0 (deprecated; required in 12.0.0).
+ *
+ * @see https://www.drupal.org/node/3493129
+ */
+final class AddModuleExtensionListToNodeViewsDataConstructRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add $moduleExtensionList parameter to NodeViewsData subclass constructors and pass it to parent::__construct()',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+class MyNodeViewsData extends NodeViewsData {
+    public function __construct(
+        EntityTypeInterface $entity_type,
+        SqlEntityStorageInterface $storage_controller,
+        EntityTypeManagerInterface $entity_type_manager,
+        ModuleHandlerInterface $module_handler,
+        TranslationInterface $translation_manager,
+        EntityFieldManagerInterface $entity_field_manager,
+    ) {
+        parent::__construct($entity_type, $storage_controller, $entity_type_manager, $module_handler, $translation_manager, $entity_field_manager);
+    }
+}
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+class MyNodeViewsData extends NodeViewsData {
+    public function __construct(
+        EntityTypeInterface $entity_type,
+        SqlEntityStorageInterface $storage_controller,
+        EntityTypeManagerInterface $entity_type_manager,
+        ModuleHandlerInterface $module_handler,
+        TranslationInterface $translation_manager,
+        EntityFieldManagerInterface $entity_field_manager,
+        ?\Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList = NULL,
+    ) {
+        parent::__construct($entity_type, $storage_controller, $entity_type_manager, $module_handler, $translation_manager, $entity_field_manager, $moduleExtensionList);
+    }
+}
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Only process classes that extend NodeViewsData.
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+
+        $extendsName = $this-&amp;gt;getName($node-&amp;gt;extends);
+        if ($extendsName === null) {
+            return null;
+        }
+
+        // Match short name or FQN.
+        if ($extendsName !== 'NodeViewsData'
+            &amp;amp;&amp;amp; !str_ends_with($extendsName, '\\NodeViewsData')
+        ) {
+            return null;
+        }
+
+        $changed = false;
+
+        foreach ($node-&amp;gt;getMethods() as $method) {
+            $methodName = $this-&amp;gt;getName($method);
+
+            if ($methodName === '__construct') {
+                $changed = $this-&amp;gt;fixConstructMethod($method) || $changed;
+            }
+
+            if ($methodName === 'createInstance') {
+                $changed = $this-&amp;gt;fixCreateInstanceMethod($method) || $changed;
+            }
+        }
+
+        return $changed ? $node : null;
+    }
+
+    /**
+     * Adds $moduleExtensionList parameter and passes it to parent::__construct().
+     */
+    private function fixConstructMethod(ClassMethod $method): bool
+    {
+        // Already has 7+ params – already fixed or custom.
+        if (count($method-&amp;gt;params) &amp;gt;= 7) {
+            // Still check if parent::__construct() needs the 7th arg.
+            return $this-&amp;gt;fixParentConstructCall($method);
+        }
+
+        // Only act when the constructor has exactly 6 params (the original 6
+        // EntityViewsData params, without $moduleExtensionList).
+        if (count($method-&amp;gt;params) !== 6) {
+            return false;
+        }
+
+        // Add nullable $moduleExtensionList parameter with NULL default.
+        $nullableType = new NullableType(new Name\FullyQualified('Drupal\Core\Extension\ModuleExtensionList'));
+        $param = new Param(
+            new Variable('moduleExtensionList'),
+            new Node\Expr\ConstFetch(new Name('NULL')),
+            $nullableType,
+            false,
+            false,
+            [],
+            0,
+            []
+        );
+        $method-&amp;gt;params[] = $param;
+
+        return $this-&amp;gt;fixParentConstructCall($method);
+    }
+
+    /**
+     * Finds parent::__construct() calls with 6 args and appends $moduleExtensionList.
+     */
+    private function fixParentConstructCall(ClassMethod $method): bool
+    {
+        if ($method-&amp;gt;stmts === null) {
+            return false;
+        }
+
+        $traverser = new NodeTraverser();
+        $visitor = new class(false) extends NodeVisitorAbstract {
+            public bool $modified = false;
+
+            public function __construct(bool $initial)
+            {
+                $this-&amp;gt;modified = $initial;
+            }
+
+            public function enterNode(Node $node): ?Node
+            {
+                if (!$node instanceof StaticCall) {
+                    return null;
+                }
+
+                if (!$node-&amp;gt;class instanceof Name) {
+                    return null;
+                }
+
+                if ($node-&amp;gt;class-&amp;gt;toString() !== 'parent') {
+                    return null;
+                }
+
+                if (!$node-&amp;gt;name instanceof Node\Identifier) {
+                    return null;
+                }
+
+                if ($node-&amp;gt;name-&amp;gt;toString() !== '__construct') {
+                    return null;
+                }
+
+                // Only fix if exactly 6 args (the original 6, missing $moduleExtensionList).
+                if (count($node-&amp;gt;args) !== 6) {
+                    return null;
+                }
+
+                $node-&amp;gt;args[] = new Arg(new Variable('moduleExtensionList'));
+                $this-&amp;gt;modified = true;
+
+                return $node;
+            }
+        };
+
+        $traverser-&amp;gt;addVisitor($visitor);
+        $traverser-&amp;gt;traverse($method-&amp;gt;stmts);
+
+        return $visitor-&amp;gt;modified;
+    }
+
+    /**
+     * In createInstance, fixes new static(...) calls that omit extension.list.module.
+     */
+    private function fixCreateInstanceMethod(ClassMethod $method): bool
+    {
+        if ($method-&amp;gt;stmts === null) {
+            return false;
+        }
+
+        $traverser = new NodeTraverser();
+        $visitor = new class(false) extends NodeVisitorAbstract {
+            public bool $modified = false;
+
+            public function __construct(bool $initial)
+            {
+                $this-&amp;gt;modified = $initial;
+            }
+
+            public function enterNode(Node $node): ?Node
+            {
+                if (!$node instanceof Node\Expr\New_) {
+                    return null;
+                }
+
+                // Match new static(...) with exactly 6 args.
+                if (!$node-&amp;gt;class instanceof Name || $node-&amp;gt;class-&amp;gt;toString() !== 'static') {
+                    return null;
+                }
+
+                if (count($node-&amp;gt;args) !== 6) {
+                    return null;
+                }
+
+                // Append $container-&amp;gt;get('extension.list.module') as 7th arg.
+                $containerGet = new Node\Expr\MethodCall(
+                    new Variable('container'),
+                    'get',
+                    [new Arg(new String_('extension.list.module'))]
+                );
+                $node-&amp;gt;args[] = new Arg($containerGet);
+                $this-&amp;gt;modified = true;
+
+                return $node;
+            }
+        };
+
+        $traverser-&amp;gt;addVisitor($visitor);
+        $traverser-&amp;gt;traverse($method-&amp;gt;stmts);
+
+        return $visitor-&amp;gt;modified;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddModuleExtensionListToNodeViewsDataConstructRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated PluginBase::isConfigurable() with instanceof ConfigurableInterface</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc6e3-f52c-728a-a0fc-8695da628156.md</link>
+      <guid isPermaLink="false">019dc6e3-f52c-728a-a0fc-8695da628156</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 23:05:21 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3459533"&gt;#3459533&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;PluginBase::isConfigurable()&lt;/code&gt; method with an &lt;code&gt;instanceof \Drupal\Component\Plugin\ConfigurableInterface&lt;/code&gt; check. The method was deprecated in &lt;code&gt;drupal:11.1.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. The rule targets only &lt;code&gt;$this-&amp;gt;isConfigurable()&lt;/code&gt; to avoid false positives on other classes (e.g., &lt;code&gt;CKEditor5PluginDefinition&lt;/code&gt;, &lt;code&gt;Action&lt;/code&gt;) that have their own &lt;code&gt;isConfigurable()&lt;/code&gt; implementations with different semantics.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;isConfigurable()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this instanceof \Drupal\Component\Plugin\ConfigurableInterface
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\Instanceof_;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces calls to the deprecated PluginBase::isConfigurable() with
+ * an instanceof check against ConfigurableInterface.
+ *
+ * Deprecated in drupal:11.1.0, removed in drupal:12.0.0.
+ * @see https://www.drupal.org/node/3198285
+ */
+final class PluginBaseIsConfigurableRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated PluginBase::isConfigurable() calls with instanceof \Drupal\Component\Plugin\ConfigurableInterface',
+            [
+                new CodeSample(
+                    '$this-&amp;gt;isConfigurable()',
+                    '$this instanceof \Drupal\Component\Plugin\ConfigurableInterface'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /**
+     * @param MethodCall $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        // Only target calls named isConfigurable with no arguments.
+        if ($this-&amp;gt;getName($node-&amp;gt;name) !== 'isConfigurable') {
+            return null;
+        }
+
+        if ($node-&amp;gt;args !== []) {
+            return null;
+        }
+
+        // Only rewrite $this-&amp;gt;isConfigurable() — the PluginBase pattern.
+        // Other classes (CKEditor5PluginDefinition, Action) have their own
+        // isConfigurable() with different semantics that must not be rewritten.
+        if (!$node-&amp;gt;var instanceof Variable) {
+            return null;
+        }
+
+        if ($this-&amp;gt;getName($node-&amp;gt;var) !== 'this') {
+            return null;
+        }
+
+        return new Instanceof_(
+            $node-&amp;gt;var,
+            new FullyQualified('Drupal\Component\Plugin\ConfigurableInterface')
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([PluginBaseIsConfigurableRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove addToAssertionCount(1) workaround from setUp() in BrowserTestBase subclasses</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc4cc-e71a-7709-b232-2d7ca44f394e.md</link>
+      <guid isPermaLink="false">019dc4cc-e71a-7709-b232-2d7ca44f394e</guid>
+      <category>deprecation</category>
+      <category>reliability</category>
+      <pubDate>Sat, 25 Apr 2026 13:20:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3468204"&gt;#3468204&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation, reliability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes the legacy &lt;code&gt;$this-&amp;gt;addToAssertionCount(1)&lt;/code&gt; call from &lt;code&gt;setUp()&lt;/code&gt; in classes extending &lt;code&gt;BrowserTestBase&lt;/code&gt; (or &lt;code&gt;WebDriverTestBase&lt;/code&gt;). The call was a PHPUnit 6 workaround added because &lt;code&gt;assertSession()&lt;/code&gt; did not increment PHPUnit's assertion counter; since &lt;code&gt;UiHelperTrait::assertSession()&lt;/code&gt; now does increment the count, the workaround is redundant and misleads developers about actual test assertions.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function setUp(): void {
+    parent::setUp();
+    // Ensure that the test is not marked as risky because of no assertions.
+    $this-&amp;gt;addToAssertionCount(1);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function setUp(): void {
+    parent::setUp();
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Scalar\LNumber;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Expression;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Removes $this-&amp;gt;addToAssertionCount(1) from setUp() in BrowserTestBase
+ * subclasses. This was a PHPUnit 6 workaround because assertSession() did not
+ * increment the PHPUnit assertion count. Since assertSession() now does
+ * increment the count, the call is unnecessary and misleading.
+ */
+final class RemoveAddToAssertionCountFromSetUpRector extends AbstractRector
+{
+    /**
+     * Known Drupal browser-test base-class short names.
+     */
+    private const BROWSER_TEST_BASES = [
+        'BrowserTestBase',
+        'WebDriverTestBase',
+        'InstallerTestBase',
+        'JavascriptTestBase',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove $this-&amp;gt;addToAssertionCount(1) workaround from setUp() in BrowserTestBase subclasses',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+protected function setUp(): void {
+    parent::setUp();
+    // Ensure that the test is not marked as risky because of no assertions.
+    $this-&amp;gt;addToAssertionCount(1);
+}
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+protected function setUp(): void {
+    parent::setUp();
+}
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;extendsBrowserTestBase($node)) {
+            return null;
+        }
+
+        $changed = false;
+        foreach ($node-&amp;gt;getMethods() as $method) {
+            if (!$this-&amp;gt;isName($method, 'setUp')) {
+                continue;
+            }
+            if ($this-&amp;gt;removeAddToAssertionCount1($method)) {
+                $changed = true;
+            }
+        }
+
+        return $changed ? $node : null;
+    }
+
+    /**
+     * Returns true when the class directly extends one of the known Drupal
+     * browser-test base classes (short-name match).
+     */
+    private function extendsBrowserTestBase(Class_ $class): bool
+    {
+        if ($class-&amp;gt;extends === null) {
+            return false;
+        }
+        $parentShortName = $class-&amp;gt;extends-&amp;gt;getLast();
+        return in_array($parentShortName, self::BROWSER_TEST_BASES, true);
+    }
+
+    /**
+     * Removes every `$this-&amp;gt;addToAssertionCount(1)` statement from the given
+     * method body. Returns true when at least one statement was removed.
+     */
+    private function removeAddToAssertionCount1(ClassMethod $method): bool
+    {
+        if ($method-&amp;gt;stmts === null || $method-&amp;gt;stmts === []) {
+            return false;
+        }
+
+        $changed = false;
+        $newStmts = [];
+        foreach ($method-&amp;gt;stmts as $stmt) {
+            if ($this-&amp;gt;isAddToAssertionCount1Statement($stmt)) {
+                $changed = true;
+                continue;
+            }
+            $newStmts[] = $stmt;
+        }
+
+        if ($changed) {
+            $method-&amp;gt;stmts = $newStmts;
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Returns true when $stmt is exactly `$this-&amp;gt;addToAssertionCount(1);`.
+     */
+    private function isAddToAssertionCount1Statement(Node $stmt): bool
+    {
+        if (!$stmt instanceof Expression) {
+            return false;
+        }
+        $expr = $stmt-&amp;gt;expr;
+        if (!$expr instanceof MethodCall) {
+            return false;
+        }
+        if (!$expr-&amp;gt;var instanceof Variable || !$this-&amp;gt;isName($expr-&amp;gt;var, 'this')) {
+            return false;
+        }
+        if (!$this-&amp;gt;isName($expr-&amp;gt;name, 'addToAssertionCount')) {
+            return false;
+        }
+        if (count($expr-&amp;gt;args) !== 1) {
+            return false;
+        }
+        $firstArg = $expr-&amp;gt;args[0];
+        if (!$firstArg instanceof Arg) {
+            return false;
+        }
+        return $firstArg-&amp;gt;value instanceof LNumber &amp;amp;&amp;amp; $firstArg-&amp;gt;value-&amp;gt;value === 1;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveAddToAssertionCountFromSetUpRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Update MainContentViewSubscriber subclass constructors to new 2-arg signature</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc4c2-bb28-76d6-ba47-fbfc31096d2b.md</link>
+      <guid isPermaLink="false">019dc4c2-bb28-76d6-ba47-fbfc31096d2b</guid>
+      <category>deprecation</category>
+      <category>reliability</category>
+      <pubDate>Sat, 25 Apr 2026 13:09:49 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3469143"&gt;#3469143&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation, reliability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal 11.x, &lt;code&gt;MainContentViewSubscriber::__construct()&lt;/code&gt; changed from &lt;code&gt;(ClassResolverInterface, RouteMatchInterface, array)&lt;/code&gt; to &lt;code&gt;(RouteMatchInterface, ServiceLocator)&lt;/code&gt;. This rule updates subclass constructors that forward those arguments: it removes the &lt;code&gt;ClassResolverInterface&lt;/code&gt; parameter, converts the &lt;code&gt;array $mainContentRenderers&lt;/code&gt; parameter to &lt;code&gt;ServiceLocator&lt;/code&gt; with the &lt;code&gt;#[AutowireLocator('render.main_content_renderer', 'format')]&lt;/code&gt; attribute, and rewrites the &lt;code&gt;parent::__construct()&lt;/code&gt; call to match.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\DependencyInjection\ClassResolverInterface;
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+class MySubscriber extends MainContentViewSubscriber {
+    public function __construct(
+        ClassResolverInterface $classResolver,
+        RouteMatchInterface $routeMatch,
+        array $mainContentRenderers,
+    ) {
+        parent::__construct($classResolver, $routeMatch, $mainContentRenderers);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
+use Symfony\Component\DependencyInjection\ServiceLocator;
+
+class MySubscriber extends MainContentViewSubscriber {
+    public function __construct(
+        RouteMatchInterface $routeMatch,
+        #[AutowireLocator('render.main_content_renderer', 'format')]
+        ServiceLocator $mainContentRenderers,
+    ) {
+        parent::__construct($routeMatch, $mainContentRenderers);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class UpdateMainContentViewSubscriberConstructorRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Update parent::__construct() in MainContentViewSubscriber subclasses: remove ClassResolverInterface param and convert array renderers param to ServiceLocator',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'PHP'
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+class MySubscriber extends MainContentViewSubscriber {
+    public function __construct(
+        ClassResolverInterface $classResolver,
+        RouteMatchInterface $routeMatch,
+        array $mainContentRenderers,
+    ) {
+        parent::__construct($classResolver, $routeMatch, $mainContentRenderers);
+    }
+}
+PHP,
+                    &amp;lt;&amp;lt;&amp;lt;'PHP'
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
+use Symfony\Component\DependencyInjection\ServiceLocator;
+
+class MySubscriber extends MainContentViewSubscriber {
+    public function __construct(
+        RouteMatchInterface $routeMatch,
+        #[AutowireLocator('render.main_content_renderer', 'format')]
+        ServiceLocator $mainContentRenderers,
+    ) {
+        parent::__construct($routeMatch, $mainContentRenderers);
+    }
+}
+PHP
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+
+        if ($node-&amp;gt;extends-&amp;gt;getLast() !== 'MainContentViewSubscriber') {
+            return null;
+        }
+
+        $constructMethod = null;
+        foreach ($node-&amp;gt;getMethods() as $method) {
+            if ($this-&amp;gt;isName($method-&amp;gt;name, '__construct')) {
+                $constructMethod = $method;
+                break;
+            }
+        }
+
+        if ($constructMethod === null) {
+            return null;
+        }
+
+        $parentCall = $this-&amp;gt;findParentConstructCall($constructMethod);
+        if ($parentCall === null || count($parentCall-&amp;gt;args) !== 3) {
+            return null;
+        }
+
+        $arg0 = $parentCall-&amp;gt;args[0];
+        $arg2 = $parentCall-&amp;gt;args[2];
+
+        if (!$arg0 instanceof Arg || !$arg2 instanceof Arg) {
+            return null;
+        }
+
+        if (!$arg0-&amp;gt;value instanceof Variable || !$arg2-&amp;gt;value instanceof Variable) {
+            return null;
+        }
+
+        $classResolverVarName = $arg0-&amp;gt;value-&amp;gt;name;
+        $arrayVarName = $arg2-&amp;gt;value-&amp;gt;name;
+
+        $classResolverParamIndex = null;
+        $arrayParamIndex = null;
+
+        foreach ($constructMethod-&amp;gt;params as $index =&amp;gt; $param) {
+            if (!$param-&amp;gt;var instanceof Variable) {
+                continue;
+            }
+
+            if ($param-&amp;gt;var-&amp;gt;name === $classResolverVarName &amp;amp;&amp;amp; $this-&amp;gt;isClassResolverInterfaceType($param-&amp;gt;type)) {
+                $classResolverParamIndex = $index;
+            }
+
+            if ($param-&amp;gt;var-&amp;gt;name === $arrayVarName &amp;amp;&amp;amp; $this-&amp;gt;isArrayType($param-&amp;gt;type)) {
+                $arrayParamIndex = $index;
+            }
+        }
+
+        if ($classResolverParamIndex === null || $arrayParamIndex === null) {
+            return null;
+        }
+
+        $arrayParam = $constructMethod-&amp;gt;params[$arrayParamIndex];
+        $arrayParam-&amp;gt;type = new FullyQualified('Symfony\Component\DependencyInjection\ServiceLocator');
+        $arrayParam-&amp;gt;attrGroups[] = $this-&amp;gt;createAutoWireLocatorAttributeGroup();
+
+        unset($constructMethod-&amp;gt;params[$classResolverParamIndex]);
+        $constructMethod-&amp;gt;params = array_values($constructMethod-&amp;gt;params);
+
+        array_splice($parentCall-&amp;gt;args, 0, 1);
+
+        return $node;
+    }
+
+    private function findParentConstructCall(ClassMethod $classMethod): ?StaticCall
+    {
+        $parentCall = null;
+        $this-&amp;gt;traverseNodesWithCallable((array) $classMethod-&amp;gt;stmts, function (Node $node) use (&amp;amp;$parentCall): void {
+            if (
+                $node instanceof StaticCall
+                &amp;amp;&amp;amp; $node-&amp;gt;class instanceof Name
+                &amp;amp;&amp;amp; $this-&amp;gt;isName($node-&amp;gt;class, 'parent')
+                &amp;amp;&amp;amp; $this-&amp;gt;isName($node-&amp;gt;name, '__construct')
+            ) {
+                $parentCall = $node;
+            }
+        });
+
+        return $parentCall;
+    }
+
+    private function isClassResolverInterfaceType(?Node $type): bool
+    {
+        if ($type instanceof Name) {
+            return str_ends_with($type-&amp;gt;toString(), 'ClassResolverInterface');
+        }
+
+        return false;
+    }
+
+    private function isArrayType(?Node $type): bool
+    {
+        if ($type instanceof Identifier) {
+            return $type-&amp;gt;name === 'array';
+        }
+
+        return false;
+    }
+
+    private function createAutoWireLocatorAttributeGroup(): AttributeGroup
+    {
+        $attribute = new Attribute(
+            new FullyQualified('Symfony\Component\DependencyInjection\Attribute\AutowireLocator'),
+            [
+                new Arg(new String_('render.main_content_renderer')),
+                new Arg(new String_('format')),
+            ]
+        );
+
+        return new AttributeGroup([$attribute]);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([UpdateMainContentViewSubscriberConstructorRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Rename ResourceResponseValidator namespace from jsonapi to jsonapi_response_validator</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc4b8-ef8f-732a-ab19-4a7ff4144d4e.md</link>
+      <guid isPermaLink="false">019dc4b8-ef8f-732a-ab19-4a7ff4144d4e</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 12:59:07 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3472008"&gt;#3472008&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal core issue &lt;a href="https://www.drupal.org/node/3472008"&gt;#3472008&lt;/a&gt;, &lt;code&gt;ResourceResponseValidator&lt;/code&gt; was moved from the &lt;code&gt;jsonapi&lt;/code&gt; module into a new &lt;code&gt;jsonapi_response_validator&lt;/code&gt; submodule. Any code importing &lt;code&gt;Drupal\jsonapi\EventSubscriber\ResourceResponseValidator&lt;/code&gt; must be updated to &lt;code&gt;Drupal\jsonapi_response_validator\EventSubscriber\ResourceResponseValidator&lt;/code&gt;. This rule rewrites the &lt;code&gt;use&lt;/code&gt; import statement; the short class name in the body of the file remains valid after the rename.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\jsonapi\EventSubscriber\ResourceResponseValidator;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\jsonapi_response_validator\EventSubscriber\ResourceResponseValidator;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Name;
+use PhpParser\Node\Stmt\UseUse;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Renames the namespace of ResourceResponseValidator from the jsonapi module
+ * to the new jsonapi_response_validator submodule.
+ *
+ * The class moved from Drupal\jsonapi\EventSubscriber\ResourceResponseValidator
+ * to Drupal\jsonapi_response_validator\EventSubscriber\ResourceResponseValidator
+ * in Drupal core issue #3472008.
+ */
+final class RenameResourceResponseValidatorRector extends AbstractRector
+{
+    private const OLD_CLASS = 'Drupal\\jsonapi\\EventSubscriber\\ResourceResponseValidator';
+    private const NEW_CLASS = 'Drupal\\jsonapi_response_validator\\EventSubscriber\\ResourceResponseValidator';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Rename ResourceResponseValidator from Drupal\\jsonapi\\EventSubscriber to Drupal\\jsonapi_response_validator\\EventSubscriber',
+            [
+                new CodeSample(
+                    'use Drupal\\jsonapi\\EventSubscriber\\ResourceResponseValidator;',
+                    'use Drupal\\jsonapi_response_validator\\EventSubscriber\\ResourceResponseValidator;'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [UseUse::class];
+    }
+
+    /** @param UseUse $node */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node-&amp;gt;name-&amp;gt;toString() !== self::OLD_CLASS) {
+            return null;
+        }
+
+        $node-&amp;gt;name = new Name(explode('\\\\', self::NEW_CLASS));
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RenameResourceResponseValidatorRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove deprecated $tag argument from TwigNodeTrans constructor</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc4b3-3762-7603-aa99-8fec83654861.md</link>
+      <guid isPermaLink="false">019dc4b3-3762-7603-aa99-8fec83654861</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 12:52:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3473440"&gt;#3473440&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Since twig/twig 3.12, the 6th &lt;code&gt;$tag&lt;/code&gt; constructor argument of &lt;code&gt;Drupal\Core\Template\TwigNodeTrans&lt;/code&gt; is deprecated and ignored. Drupal core removed this parameter in issue &lt;a href="https://www.drupal.org/node/3473440"&gt;#3473440&lt;/a&gt;. Contrib modules with custom &lt;code&gt;TokenParser&lt;/code&gt; implementations that pass &lt;code&gt;$this-&amp;gt;getTag()&lt;/code&gt; as the 6th argument need this argument dropped.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new TwigNodeTrans($body, $plural, $count, $options, $lineno, $this-&amp;gt;getTag());
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new TwigNodeTrans($body, $plural, $count, $options, $lineno);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Name;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Removes the deprecated 6th $tag constructor argument from TwigNodeTrans.
+ *
+ * Since twig/twig 3.12, the &amp;quot;tag&amp;quot; constructor argument of
+ * Drupal\Core\Template\TwigNodeTrans is deprecated and ignored. Drupal core
+ * fixed this in #3473440 by removing the parameter from the constructor.
+ */
+final class RemoveTwigNodeTransTagArgumentRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove the deprecated 6th $tag argument from TwigNodeTrans constructor calls',
+            [
+                new CodeSample(
+                    'new TwigNodeTrans($body, $plural, $count, $options, $lineno, $this-&amp;gt;getTag());',
+                    'new TwigNodeTrans($body, $plural, $count, $options, $lineno);'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node-&amp;gt;class instanceof Name) {
+            return null;
+        }
+
+        $className = $this-&amp;gt;getName($node-&amp;gt;class);
+        // Match both fully-qualified and imported class names.
+        if ($className !== 'TwigNodeTrans'
+            &amp;amp;&amp;amp; $className !== 'Drupal\\Core\\Template\\TwigNodeTrans') {
+            return null;
+        }
+
+        // The deprecated form has a 6th argument ($tag).
+        if (count($node-&amp;gt;args) !== 6) {
+            return null;
+        }
+
+        // Remove the 6th argument.
+        array_pop($node-&amp;gt;args);
+
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveTwigNodeTransTagArgumentRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Rename navigation.settings logo config keys to nested logo.xxx format</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc4af-ed92-7797-8d3c-7b133be86be6.md</link>
+      <guid isPermaLink="false">019dc4af-ed92-7797-8d3c-7b133be86be6</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 12:49:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3474123"&gt;#3474123&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal issue &lt;a href="https://www.drupal.org/node/3474123"&gt;#3474123&lt;/a&gt; restructured the &lt;code&gt;navigation.settings&lt;/code&gt; config schema so that logo-related keys move from a flat &lt;code&gt;logo_xxx&lt;/code&gt; naming convention to a nested &lt;code&gt;logo&lt;/code&gt; mapping. Calls to &lt;code&gt;-&amp;gt;get('logo_provider')&lt;/code&gt;, &lt;code&gt;-&amp;gt;get('logo_height')&lt;/code&gt;, &lt;code&gt;-&amp;gt;set('logo_managed', ...)&lt;/code&gt;, etc., and &lt;code&gt;#config_target&lt;/code&gt; strings using the old keys must be updated. Failing to do so causes config reads and writes to silently return &lt;code&gt;null&lt;/code&gt; or fail validation.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$config-&amp;gt;get('logo_provider');
+$config-&amp;gt;get('logo_managed');
+$config-&amp;gt;get('logo_max_filesize');
+$config-&amp;gt;get('logo_height');
+$config-&amp;gt;get('logo_width');
+$config-&amp;gt;set('logo_managed', $fid);
+$form['x']['#config_target'] = 'navigation.settings:logo_provider';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$config-&amp;gt;get('logo.provider');
+$config-&amp;gt;get('logo.managed');
+$config-&amp;gt;get('logo.max.filesize');
+$config-&amp;gt;get('logo.max.height');
+$config-&amp;gt;get('logo.max.width');
+$config-&amp;gt;set('logo.managed', $fid);
+$form['x']['#config_target'] = 'navigation.settings:logo.provider';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Renames navigation.settings config keys from flat logo_xxx to nested logo.xxx.
+ *
+ * Drupal issue #3474123 restructured the Navigation module settings schema so
+ * that logo-related keys are nested under a 'logo' mapping instead of using
+ * flat underscore-separated names.
+ */
+final class NavigationSettingsLogoKeysRector extends AbstractRector
+{
+    /**
+     * Maps old flat config key names to their new nested equivalents.
+     */
+    private const KEY_MAP = [
+        'logo_provider'      =&amp;gt; 'logo.provider',
+        'logo_managed'       =&amp;gt; 'logo.managed',
+        'logo_max_filesize'  =&amp;gt; 'logo.max.filesize',
+        'logo_height'        =&amp;gt; 'logo.max.height',
+        'logo_width'         =&amp;gt; 'logo.max.width',
+    ];
+
+    /**
+     * Maps old #config_target strings to their new equivalents.
+     */
+    private const CONFIG_TARGET_MAP = [
+        'navigation.settings:logo_provider'     =&amp;gt; 'navigation.settings:logo.provider',
+        'navigation.settings:logo_managed'      =&amp;gt; 'navigation.settings:logo.managed',
+        'navigation.settings:logo_max_filesize' =&amp;gt; 'navigation.settings:logo.max.filesize',
+        'navigation.settings:logo_height'       =&amp;gt; 'navigation.settings:logo.max.height',
+        'navigation.settings:logo_width'        =&amp;gt; 'navigation.settings:logo.max.width',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Rename navigation.settings config keys from flat logo_xxx format to nested logo.xxx format (Drupal #3474123)',
+            [
+                new CodeSample(
+                    &amp;quot;\$config-&amp;gt;get('logo_provider');&amp;quot;,
+                    &amp;quot;\$config-&amp;gt;get('logo.provider');&amp;quot;
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class, String_::class];
+    }
+
+    /**
+     * @param MethodCall|String_ $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node instanceof MethodCall) {
+            return $this-&amp;gt;refactorMethodCall($node);
+        }
+
+        if ($node instanceof String_) {
+            return $this-&amp;gt;refactorConfigTargetString($node);
+        }
+
+        return null;
+    }
+
+    private function refactorMethodCall(MethodCall $node): ?MethodCall
+    {
+        $methodName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if (!in_array($methodName, ['get', 'set'], true)) {
+            return null;
+        }
+
+        if (empty($node-&amp;gt;args) || !$node-&amp;gt;args[0] instanceof Node\Arg) {
+            return null;
+        }
+
+        $firstArgValue = $node-&amp;gt;args[0]-&amp;gt;value;
+        if (!$firstArgValue instanceof String_) {
+            return null;
+        }
+
+        $oldKey = $firstArgValue-&amp;gt;value;
+        if (!isset(self::KEY_MAP[$oldKey])) {
+            return null;
+        }
+
+        $firstArgValue-&amp;gt;value = self::KEY_MAP[$oldKey];
+        return $node;
+    }
+
+    private function refactorConfigTargetString(String_ $node): ?String_
+    {
+        if (!isset(self::CONFIG_TARGET_MAP[$node-&amp;gt;value])) {
+            return null;
+        }
+
+        $node-&amp;gt;value = self::CONFIG_TARGET_MAP[$node-&amp;gt;value];
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([NavigationSettingsLogoKeysRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN with \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc3ed-245e-753c-b8ab-cb541c9e2ee3.md</link>
+      <guid isPermaLink="false">019dc3ed-245e-753c-b8ab-cb541c9e2ee3</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 09:16:31 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3477277"&gt;#3477277&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces the global constant &lt;code&gt;LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt; with the class constant &lt;code&gt;\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt;. The global constant was deprecated in Drupal 11.2.0 and will be removed in Drupal 12.0.0 as part of moving the value to a more accessible location that does not require &lt;code&gt;locale.module&lt;/code&gt; to be loaded.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN constant
+ * with \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN.
+ */
+final class LocaleTranslationDefaultServerPatternRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN with \\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN',
+            [
+                new CodeSample(
+                    '$pattern = LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN;',
+                    '$pattern = \\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN;'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ConstFetch::class];
+    }
+
+    /** @param ConstFetch $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node, 'LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN')) {
+            return null;
+        }
+
+        return new ClassConstFetch(
+            new FullyQualified('Drupal'),
+            'TRANSLATION_DEFAULT_SERVER_PATTERN'
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([LocaleTranslationDefaultServerPatternRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Remove overrides of deprecated HandlerBase::defineExtraOptions()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc3d8-6a57-7506-96e5-c6a6c5db8a8c.md</link>
+      <guid isPermaLink="false">019dc3d8-6a57-7506-96e5-c6a6c5db8a8c</guid>
+      <category>deprecation</category>
+      <pubDate>Sat, 25 Apr 2026 08:53:53 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3485084"&gt;#3485084&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes &lt;code&gt;defineExtraOptions()&lt;/code&gt; method overrides from Views Handler subclasses. The method was deprecated in &lt;code&gt;drupal:11.2.0&lt;/code&gt;, removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;, and has no replacement — Drupal core never called it, so any override is dead code. The deprecation trigger in &lt;code&gt;HandlerBase&lt;/code&gt; itself is left untouched.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\HandlerBase;
+
+class MyViewsFilter extends HandlerBase {
+  public function defineExtraOptions(&amp;amp;$option) {
+    $option['my_key'] = ['default' =&amp;gt; 'value'];
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\HandlerBase;
+
+class MyViewsFilter extends HandlerBase {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Removes overrides of the deprecated HandlerBase::defineExtraOptions() method.
+ *
+ * The method was deprecated in drupal:11.2.0 and removed in drupal:12.0.0
+ * with no replacement. Any override in a subclass is dead code because
+ * Drupal core never calls this method.
+ *
+ * @see https://www.drupal.org/node/3486781
+ */
+final class RemoveDefineExtraOptionsOverrideRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove overrides of the deprecated HandlerBase::defineExtraOptions() which has no replacement.',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Drupal\views\Plugin\views\HandlerBase;
+
+class MyViewsFilter extends HandlerBase {
+  public function defineExtraOptions(&amp;amp;$option) {
+    $option['my_key'] = ['default' =&amp;gt; 'value'];
+  }
+}
+CODE_SAMPLE
+                    ,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Drupal\views\Plugin\views\HandlerBase;
+
+class MyViewsFilter extends HandlerBase {
+}
+CODE_SAMPLE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /**
+     * @param Class_ $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        // Do not remove from HandlerBase itself — the deprecation trigger stays.
+        // Use the short class name (Identifier), not the FQCN from getName().
+        if ($node-&amp;gt;name instanceof Identifier &amp;amp;&amp;amp; $node-&amp;gt;name-&amp;gt;toString() === 'HandlerBase') {
+            return null;
+        }
+
+        $changed = false;
+        $newStmts = [];
+
+        foreach ($node-&amp;gt;stmts as $stmt) {
+            if ($stmt instanceof ClassMethod &amp;amp;&amp;amp; $this-&amp;gt;getName($stmt) === 'defineExtraOptions') {
+                // Drop this method override — no replacement exists.
+                $changed = true;
+                continue;
+            }
+            $newStmts[] = $stmt;
+        }
+
+        if (!$changed) {
+            return null;
+        }
+
+        $node-&amp;gt;stmts = $newStmts;
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveDefineExtraOptionsOverrideRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+  </channel>
+</rss>

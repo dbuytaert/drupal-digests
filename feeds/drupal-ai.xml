@@ -1,0 +1,941 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Drupal AI</title>
+    <description>Stay informed about developments in Drupal AI.</description>
+    <link>https://www.drupal.org/project/drupal-ai</link>
+    <item>
+      <title>#3585786: Add universal pre-load and post-load hooks to DocumentLoaderManager::loadFromInput()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3585786.md</link>
+      <guid isPermaLink="false">019dba58-6373-75c0-9577-4d776635e0f9</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 22 Apr 2026 19:32:38 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +376/−12 · php +312/−8 · md +63/−4 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/document_loader/-/commit/c39782baf13ee5f81446bbff88e8a7edf29d6869"&gt;c39782b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585786"&gt;#3585786&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;document_loader&lt;/code&gt; module now exposes two alter hooks that let other modules intercept every document load centrally, without patching individual consumers. A new optional &lt;code&gt;$caller&lt;/code&gt; parameter on &lt;code&gt;loadFromInput()&lt;/code&gt; and &lt;code&gt;loadFromData()&lt;/code&gt; identifies which consumer triggered the load (MDX editor, FWA field widget action, agent tool, explorer form, Drush, or direct API), so hook implementations can apply conditional logic per consumer.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; New optional &lt;code&gt;string $caller = 'api'&lt;/code&gt; parameter added to &lt;code&gt;DocumentLoaderManager::loadFromInput()&lt;/code&gt; and &lt;code&gt;loadFromData()&lt;/code&gt;; &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; added as a new required constructor dependency of &lt;code&gt;DocumentLoaderManager&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new hooks: &lt;code&gt;hook_document_loader_pre_load_alter&lt;/code&gt; (fires before loading, mutable: &lt;code&gt;output_format&lt;/code&gt;, &lt;code&gt;max_length&lt;/code&gt;, &lt;code&gt;loader&lt;/code&gt;) and &lt;code&gt;hook_document_loader_post_load_alter&lt;/code&gt; (fires after loading, mutable: &lt;code&gt;content&lt;/code&gt;, &lt;code&gt;format&lt;/code&gt;, &lt;code&gt;metadata&lt;/code&gt;, &lt;code&gt;source&lt;/code&gt;, &lt;code&gt;original_bytes&lt;/code&gt;, &lt;code&gt;loader_label&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core problem was that &lt;code&gt;DocumentLoaderManager::loadFromInput()&lt;/code&gt; is the single entry point for all document loading but provided no extension point for other modules. The fix adds two &lt;code&gt;ModuleHandlerInterface::alter()&lt;/code&gt; calls inside &lt;code&gt;loadFromInput()&lt;/code&gt;, each split into a mutable first parameter and a read-only second parameter to make the hook contract self-documenting.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;hook_document_loader_pre_load_alter(array &amp;amp;$params, array $context)&lt;/code&gt; fires after validation and access checks but before &lt;code&gt;$loader-&amp;gt;load()&lt;/code&gt;. The mutable &lt;code&gt;$params&lt;/code&gt; array carries &lt;code&gt;output_format&lt;/code&gt;, &lt;code&gt;max_length&lt;/code&gt;, and &lt;code&gt;loader&lt;/code&gt;; the read-only &lt;code&gt;$context&lt;/code&gt; carries &lt;code&gt;document_loader_type&lt;/code&gt;, &lt;code&gt;input&lt;/code&gt;, and &lt;code&gt;caller&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;hook_document_loader_post_load_alter(array &amp;amp;$result_data, array $load_context)&lt;/code&gt; fires after the loader runs but before the immutable &lt;code&gt;DocumentLoaderResult&lt;/code&gt; is constructed. The mutable &lt;code&gt;$result_data&lt;/code&gt; array carries &lt;code&gt;content&lt;/code&gt;, &lt;code&gt;format&lt;/code&gt;, &lt;code&gt;metadata&lt;/code&gt;, &lt;code&gt;source&lt;/code&gt;, &lt;code&gt;original_bytes&lt;/code&gt;, and &lt;code&gt;loader_label&lt;/code&gt;; &lt;code&gt;$load_context&lt;/code&gt; is read-only and includes the full load configuration plus &lt;code&gt;caller&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Both &lt;code&gt;loadFromInput()&lt;/code&gt; and &lt;code&gt;loadFromData()&lt;/code&gt; receive a new optional &lt;code&gt;string $caller = 'api'&lt;/code&gt; parameter. Existing consumers pass it as a PHP named argument: &lt;code&gt;DocumentLoaderAction&lt;/code&gt; (FWA) passes &lt;code&gt;caller: 'fwa'&lt;/code&gt;, &lt;code&gt;DocumentLoaderTool&lt;/code&gt; passes &lt;code&gt;caller: 'tool'&lt;/code&gt;, &lt;code&gt;DocumentLoaderCommands&lt;/code&gt; passes &lt;code&gt;caller: 'drush'&lt;/code&gt;, and &lt;code&gt;DocumentLoaderExplorerForm&lt;/code&gt; passes &lt;code&gt;caller: 'explorer'&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ModuleHandlerInterface&lt;/code&gt; is injected into &lt;code&gt;DocumentLoaderManager&lt;/code&gt; as a new last constructor argument and registered via &lt;code&gt;@module_handler&lt;/code&gt; in &lt;code&gt;document_loader.services.yml&lt;/code&gt;. Full hook documentation lives in the new &lt;code&gt;document_loader.api.php&lt;/code&gt; file. Kernel tests in &lt;code&gt;DocumentLoaderHooksTest&lt;/code&gt; verify both hooks fire correctly using a &lt;code&gt;document_loader_test&lt;/code&gt; fixture module that reads override values from Drupal state.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Existing call sites for &lt;code&gt;loadFromInput()&lt;/code&gt; and &lt;code&gt;loadFromData()&lt;/code&gt; continue to work without changes because &lt;code&gt;$caller&lt;/code&gt; defaults to &lt;code&gt;'api'&lt;/code&gt;. Pass it as a named argument to distinguish your consumer in hook implementations:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$result = $manager-&amp;gt;loadFromInput(
+  'document_loader_type:pdf',
+  $input,
+  $account,
+  'markdown',
+  5000,
+  caller: 'my_module',
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you have a service that manually constructs or decorates &lt;code&gt;DocumentLoaderManager&lt;/code&gt;, add &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; as its final constructor argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new DocumentLoaderManager(
+  $plugin_manager,
+  $config_factory,
+  $document_loader_plugin_manager,
+  $type_factory,
+  $file_system,
+  $file_input_normalizer,
+  $module_handler, // new
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 20, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 22, 2026 (2 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;robloach manually validated the hooks by building a custom module that modified content, confirmed it worked, then added the kernel test suite (&lt;code&gt;DocumentLoaderHooksTest&lt;/code&gt;) to the merge request before marking it RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3581363: Add drupal:mdx-fill event support to MDX editor for external content injection</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3581363.md</link>
+      <guid isPermaLink="false">019dbf7d-0d63-7270-9ca3-380684b8f615</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 22 Apr 2026 18:37:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 99 files, +2666/−341 · md +2069/−220 · php +465/−29 · yml +110/−19 · css +19/−73 · svg +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/fda79aacc710bb5ee48c834ea5196f5c384a38e5"&gt;fda79aa&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581363"&gt;#3581363&lt;/a&gt; · 3 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI module's MDX markdown editor widget now supports being filled programmatically from JavaScript. Any code on the page can dispatch a &lt;code&gt;drupal:mdx-fill&lt;/code&gt; custom DOM event on the underlying textarea element, passing the desired markdown string in &lt;code&gt;event.detail.content&lt;/code&gt;, and the editor will update its visual state and keep Drupal's form state in sync automatically. This makes it straightforward to integrate the MDX editor with AI-assist features or other tools that need to inject generated content into the field.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drupal:mdx-fill&lt;/code&gt; custom DOM event on the textarea element lets external JavaScript set the MDX editor content programmatically via &lt;code&gt;event.detail.content&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The MDX editor is a React component (&lt;code&gt;Editor&lt;/code&gt;) mounted by &lt;code&gt;initTextareaEditors()&lt;/code&gt; in &lt;code&gt;main.jsx&lt;/code&gt;. Previously there was no way for code outside the React tree to call methods on the editor instance.&lt;/p&gt;
+&lt;p&gt;The fix introduces two cooperating pieces. First, the &lt;code&gt;Editor&lt;/code&gt; component gains an &lt;code&gt;onRef&lt;/code&gt; prop. A &lt;code&gt;useEffect&lt;/code&gt; hook fires once the component mounts and calls &lt;code&gt;onRef(editorRef.current)&lt;/code&gt;, exposing the MDXEditor instance (which carries &lt;code&gt;setMarkdown&lt;/code&gt;) to the caller. Second, in &lt;code&gt;initTextareaEditors()&lt;/code&gt; an &lt;code&gt;editorMethods&lt;/code&gt; object (&lt;code&gt;{ current: null }&lt;/code&gt;) is created before &lt;code&gt;createRoot().render()&lt;/code&gt;. The &lt;code&gt;onRef&lt;/code&gt; callback stores the live ref there. After rendering, a &lt;code&gt;drupal:mdx-fill&lt;/code&gt; event listener is attached to the original textarea. When that event fires, the listener reads &lt;code&gt;event.detail.content&lt;/code&gt;, guards that it is a string, calls &lt;code&gt;editorMethods.current.setMarkdown(content)&lt;/code&gt; to update the React visual editor, writes the value to &lt;code&gt;textarea.value&lt;/code&gt;, and dispatches synthetic &lt;code&gt;input&lt;/code&gt; and &lt;code&gt;change&lt;/code&gt; events so that Drupal's form handling sees the update. The commit was authored by ahmad khader and cherry-picked to the &lt;code&gt;1.x&lt;/code&gt;, &lt;code&gt;1.4.x&lt;/code&gt;, &lt;code&gt;2.x&lt;/code&gt;, and &lt;code&gt;2.0.x&lt;/code&gt; branches.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 22, 2026 (28 days and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;unqunq (DigitalTrotter)&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;ahmad khader reviewed the initial merge request and identified two correctness issues: a missing &lt;code&gt;onRef&lt;/code&gt; dependency in the &lt;code&gt;useEffect&lt;/code&gt; dependency array, and the need for proper content validation and textarea synchronization inside the event listener. They opened a corrected merge request (!1524) addressing both points and moved the issue to RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3542602: Use an existing entity option for the entity reference automator type</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3542602.md</link>
+      <guid isPermaLink="false">019db6e4-4037-71b7-bc6b-ccdf1b663d88</guid>
+      <pubDate>Wed, 22 Apr 2026 17:35:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 81 files, +3983/−196 · md +3251/−182 · css +357/−4 · yml +273/−1 · js +81/−9 · svg +21&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3542602"&gt;#3542602&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &amp;quot;LLM: Entity reference&amp;quot; AI automator type can now reuse existing entities instead of always creating new ones. When configuring the automator, editors can tick a new &amp;quot;Use existing entity&amp;quot; checkbox beneath each enabled field. If all checked fields match an existing entity in the database, that entity is referenced rather than a duplicate being created. If no match is found, the automator falls back to creating a new entity as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change lives entirely in &lt;code&gt;modules/ai_automators/src/PluginBaseClasses/EntityReference.php&lt;/code&gt;, which is the abstract base class for the &amp;quot;LLM: Entity reference&amp;quot; automator plugin.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Form layer.&lt;/strong&gt; &lt;code&gt;extraFormFields()&lt;/code&gt; now renders an &lt;code&gt;automator_entity_field_use_existing_{field}&lt;/code&gt; checkbox for every enabled target-bundle field, alongside the existing enable/generate pair. The checkbox is shown only when its corresponding &lt;code&gt;automator_entity_field_enable_{field}&lt;/code&gt; checkbox is checked (via &lt;code&gt;#states&lt;/code&gt;). The config key is saved with the rest of the automator configuration.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Storage layer.&lt;/strong&gt; &lt;code&gt;storeValues()&lt;/code&gt; was extended to perform an entity lookup before deciding whether to create. For each LLM-generated value set, the method:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Builds an entity query filtered to the configured bundle.&lt;/li&gt;
+&lt;li&gt;Iterates the generated field values; for any field where &lt;code&gt;automator_config['entity_field_use_existing_{field}']&lt;/code&gt; is non-empty, it adds a &lt;code&gt;condition()&lt;/code&gt; to the query and sets a &lt;code&gt;$hasMatchFields&lt;/code&gt; flag.&lt;/li&gt;
+&lt;li&gt;If at least one match field is configured and the query returns results, the found entity IDs are collected and &lt;code&gt;$useExisting&lt;/code&gt; is set to true.&lt;/li&gt;
+&lt;li&gt;When &lt;code&gt;$useExisting&lt;/code&gt; is true the existing IDs are appended to &lt;code&gt;$targets&lt;/code&gt;; otherwise the original entity-creation path runs unchanged.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The lookup uses AND semantics: all fields marked &amp;quot;use existing&amp;quot; must match simultaneously. This was an explicit design decision raised by &lt;code&gt;marcus_johansson&lt;/code&gt; during DrupalCon review; the initial patch used ANY (OR) matching and was reworked to AND before merge.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 22, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;merilainen (Wunder)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;anjaliprasannan&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, &lt;code&gt;marcus_johansson&lt;/code&gt; noted (citing a discussion at DrupalCon) that the matching logic must be AND-based: checking two fields should only match an entity when both values are equal, not either one. &lt;code&gt;merilainen&lt;/code&gt;, who opened the issue and wrote the original patch, updated the logic accordingly. Later, a PHPStan error was flagged after a rebase; &lt;code&gt;ahmad khader&lt;/code&gt; stepped in to fix it, retargeted the branch to &lt;code&gt;1.4.x&lt;/code&gt; at &lt;code&gt;marcus_johansson&lt;/code&gt;'s request, and brought the merge request to completion.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3575594: Add css to make the mdxeditor slightly taller</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575594.md</link>
+      <guid isPermaLink="false">019db609-c962-724e-b565-8902b30274af</guid>
+      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +4/−0 · css +4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/70d3319e9a18b706c3d54c6129168b25d1d2f790"&gt;70d3319&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575594"&gt;#3575594&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The MDXEditor rich-text field in the AI module was too short when empty, making it difficult to work with. A &lt;code&gt;min-height: 240px&lt;/code&gt; CSS rule (roughly 8 lines of text) has been added so the editor presents a usable amount of space before any content is entered. This is a visual-only change with no functional impact.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The MDXEditor component rendered its &lt;code&gt;[contenteditable]&lt;/code&gt; area with no minimum height, so the editor collapsed to nearly nothing when the field was empty. The fix adds one CSS rule to the AI Core module's MDXEditor stylesheet targeting &lt;code&gt;.mdxeditor .mdxeditor-rich-text-editor [contenteditable]&lt;/code&gt; and setting &lt;code&gt;min-height: 240px&lt;/code&gt;. The selector scope (&lt;code&gt;.mdxeditor&lt;/code&gt; parent plus &lt;code&gt;.mdxeditor-rich-text-editor&lt;/code&gt; wrapper) ensures the rule applies only inside the rich-text editing surface and does not affect other contenteditable elements on the page. The change was committed to the 1.x, 1.3.x, 1.4.x, 2.0.x, and 2.x branches.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 25, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 2, 2026 (1 month later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 17, 2026 (14 days and 7 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;bbruno (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;erichomanchuk (Foster Interactive Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3483462: Add event for checkIfEmpty check</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3483462.md</link>
+      <guid isPermaLink="false">019d9b86-17e4-714a-b77b-1b72cce82783</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +22/−0 · php +22&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/0be3cb1d4486e6f392e561ded153869833e916f6"&gt;0be3cb1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3483462"&gt;#3483462&lt;/a&gt; · 17 contributors · 52 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 17&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Automators module previously ran each automator rule only when the target field was empty (or in edit mode with a changed source). There was no programmatic way to force a rule to re-run on entities that already had values. This change adds a Symfony event, &lt;code&gt;ai_automator.should_process_field&lt;/code&gt;, that fires after the empty-check logic runs, letting developers override the process/skip decision with a custom event subscriber. A companion interface gives rule plugins a hook to adjust the normalized value before the event fires. Two pre-existing bugs in the base-mode decision logic and original-entity retrieval were also corrected in the same commit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ShouldProcessFieldEvent&lt;/code&gt; (event name &lt;code&gt;ai_automator.should_process_field&lt;/code&gt;) and &lt;code&gt;AiAutomatorPostCheckIfEmptyInterface&lt;/code&gt; allow external code to override or adjust automator field processing decisions.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The decision of whether to run an automator rule lives in &lt;code&gt;AiAutomatorEntityModifier&lt;/code&gt; in two private methods: &lt;code&gt;tokenShouldSave()&lt;/code&gt; for token-mode rules and &lt;code&gt;baseShouldSave()&lt;/code&gt; for base-mode rules. Both previously hard-coded their boolean return based directly on the output of &lt;code&gt;checkIfEmpty()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The commit rewires both methods around a three-step pipeline:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Post-check normalization.&lt;/strong&gt; A new &lt;code&gt;applyPostCheckIfEmpty()&lt;/code&gt; helper checks whether the rule implements the new &lt;code&gt;AiAutomatorPostCheckIfEmptyInterface&lt;/code&gt;. If it does, &lt;code&gt;postCheckIfEmpty(ContentEntityInterface $entity, array $value, array $automatorConfig)&lt;/code&gt; is called and its return value replaces &lt;code&gt;$value&lt;/code&gt; (ignored when the return is not an array, or when &lt;code&gt;checkIfEmpty()&lt;/code&gt; returned a non-array type). &lt;code&gt;RuleBase&lt;/code&gt; now implements this interface with a passthrough default so all existing rules need no changes; rules not extending &lt;code&gt;RuleBase&lt;/code&gt; may opt in by implementing the interface.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Initial decision.&lt;/strong&gt; A new &lt;code&gt;isValueEmptyAfterCheck(mixed $value)&lt;/code&gt; helper computes the initial &lt;code&gt;$shouldProcess&lt;/code&gt; boolean from the normalized value, handling both array and scalar returns from &lt;code&gt;checkIfEmpty()&lt;/code&gt; without array-access errors on non-arrays.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Event dispatch.&lt;/strong&gt; A new &lt;code&gt;ShouldProcessFieldEvent&lt;/code&gt; (constant &lt;code&gt;EVENT_NAME = 'ai_automator.should_process_field'&lt;/code&gt;) is constructed with the entity, field definition, and full automator config, then dispatched. Subscribers call &lt;code&gt;setShouldProcess(TRUE|FALSE)&lt;/code&gt; to override the decision in either direction. The return value of both methods becomes &lt;code&gt;$event-&amp;gt;shouldProcess()&lt;/code&gt;. The event class lives in &lt;code&gt;modules/ai_automators/src/Event/ShouldProcessFieldEvent.php&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Two pre-existing bugs were fixed in &lt;code&gt;baseShouldSave()&lt;/code&gt;. The original three &lt;code&gt;if&lt;/code&gt;-blocks were partly unreachable (the second and third conditions were strict subsets of the first) and did not correctly implement the stated intent (run when value is empty, or when edit mode is on and the source field changed). This was replaced with a clear two-branch condition. The original-entity retrieval also had a bug: &lt;code&gt;isset($entity-&amp;gt;original) &amp;amp;&amp;amp; json_encode(...)&lt;/code&gt; produced a boolean AND result rather than the serialized value. A new &lt;code&gt;getOriginalEntity()&lt;/code&gt; helper fixes this and adds Drupal 10/11 compatibility, preferring &lt;code&gt;getOriginal()&lt;/code&gt; (available since Drupal 11.2) and falling back to the magic &lt;code&gt;$entity-&amp;gt;original&lt;/code&gt; property for older versions.&lt;/p&gt;
+&lt;p&gt;Documentation was added in a new &lt;code&gt;modules/ai_automators/ai_automators.api.php&lt;/code&gt; and in &lt;code&gt;README.md&lt;/code&gt;. Unit tests in &lt;code&gt;AiAutomatorEntityModifierDecisionTest&lt;/code&gt; and &lt;code&gt;ShouldProcessFieldEventTest&lt;/code&gt; cover event getters/setters, force-process and force-skip overrides, the &lt;code&gt;postCheckIfEmpty()&lt;/code&gt; hook path, and safe handling of non-array and object returns from &lt;code&gt;checkIfEmpty()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Rule plugins that extend &lt;code&gt;RuleBase&lt;/code&gt; automatically inherit the default no-op &lt;code&gt;postCheckIfEmpty()&lt;/code&gt; and require no changes.&lt;/p&gt;
+&lt;p&gt;Rule plugins that do &lt;strong&gt;not&lt;/strong&gt; extend &lt;code&gt;RuleBase&lt;/code&gt; may optionally implement the new interface to gain the same hook point:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai_automators\PluginInterfaces\AiAutomatorPostCheckIfEmptyInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+
+class MyCustomRule implements AiAutomatorTypeInterface, AiAutomatorPostCheckIfEmptyInterface {
+
+  public function postCheckIfEmpty(ContentEntityInterface $entity, array $value, array $automatorConfig = []): array {
+    // Return [] to force the automator to treat the field as empty and run.
+    return $value;
+  }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To force an automator rule to re-process an already-filled field, subscribe to the new event:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai_automators\Event\ShouldProcessFieldEvent;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+final class MyAutomatorSubscriber implements EventSubscriberInterface {
+
+  public static function getSubscribedEvents(): array {
+    return [ShouldProcessFieldEvent::EVENT_NAME =&amp;gt; 'onShouldProcessField'];
+  }
+
+  public function onShouldProcessField(ShouldProcessFieldEvent $event): void {
+    if ($event-&amp;gt;getEntity()-&amp;gt;bundle() === 'article') {
+      $event-&amp;gt;setShouldProcess(TRUE);
+    }
+  }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 25, 2024&lt;/li&gt;
+&lt;li&gt;First commit: April 2, 2026 (1 year later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 17, 2026 (14 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design intent was not obvious from the original issue text. After a first attempt by ltsereteli stalled, marcus_johansson clarified in comment &lt;a href="https://www.drupal.org/node/16285145"&gt;#16285145&lt;/a&gt; that the goal was to override the processing &lt;em&gt;decision&lt;/em&gt; entirely rather than manipulate the field value: &amp;quot;if you for instance want to rerun 500 entities for whatever reason, you don't need to empty them first, but can just hook into this event.&amp;quot; That clarification unblocked the approach taken in the final implementation. scott falconer re-rolled the patch for the 1.3.x branch, cleaned up the broken &lt;code&gt;baseShouldSave()&lt;/code&gt; logic, added the D10/D11 original-entity compatibility shim, and expanded the unit test coverage before the change was ported to 2.0.x by a.dmitriiev.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3582856: Add Input Length Limit guardrail plugin against DoW attacks</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582856.md</link>
+      <guid isPermaLink="false">019d857f-33e5-770a-9eef-867765b2b1a4</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +603/−0 · php +582 · yml +20 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/9af5bb0e63429b979c2e0e53a2f8fb5cb5dc9c62"&gt;9af5bb0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;New &lt;code&gt;input_length_limit&lt;/code&gt; guardrail plugin blocks chat requests that exceed a configurable character or token count before they reach the AI provider API. This provides a safety net against denial-of-wallet attacks (consuming expensive API tokens), context stuffing attacks, and overwhelming the model's context window.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;ai.guardrail.settings.input_length_limit&lt;/code&gt; config schema with &lt;code&gt;max_length&lt;/code&gt;, &lt;code&gt;use_tokens&lt;/code&gt;, &lt;code&gt;tokenizer_model&lt;/code&gt;, &lt;code&gt;check_all_messages&lt;/code&gt;, and &lt;code&gt;violation_message&lt;/code&gt; keys.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;input_length_limit&lt;/code&gt; guardrail plugin blocks chat input exceeding a configurable character or token count.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The AI module's guardrail system had no built-in way to limit the length of user input sent to AI providers. The new &lt;code&gt;InputLengthLimit&lt;/code&gt; plugin (&lt;code&gt;src/Plugin/AiGuardrail/InputLengthLimit.php&lt;/code&gt;) extends &lt;code&gt;AiGuardrailPluginBase&lt;/code&gt; and implements &lt;code&gt;processInput()&lt;/code&gt; as a pre-generate guardrail.&lt;/p&gt;
+&lt;p&gt;The plugin only applies to &lt;code&gt;ChatInput&lt;/code&gt;. Non-chat input types (e.g. &lt;code&gt;TextToImageInput&lt;/code&gt;) receive a &lt;code&gt;PassResult&lt;/code&gt; and are skipped. By default, it measures the last user message only. When &lt;code&gt;check_all_messages&lt;/code&gt; is enabled, it concatenates all &lt;code&gt;ChatMessage&lt;/code&gt; texts (joined with newlines) and measures the total.&lt;/p&gt;
+&lt;p&gt;Length measurement supports two modes: character-based counting via &lt;code&gt;mb_strlen()&lt;/code&gt; (the default), and token-based counting via the &lt;code&gt;ai.tokenizer&lt;/code&gt; service with a configurable &lt;code&gt;tokenizer_model&lt;/code&gt; (defaults to &lt;code&gt;gpt-4&lt;/code&gt;). When the measured length exceeds &lt;code&gt;max_length&lt;/code&gt;, the plugin returns a &lt;code&gt;StopResult&lt;/code&gt; with a configurable violation message supporting &lt;code&gt;@count&lt;/code&gt;, &lt;code&gt;@max&lt;/code&gt;, and &lt;code&gt;@unit&lt;/code&gt; placeholders. The &lt;code&gt;processOutput()&lt;/code&gt; method always returns &lt;code&gt;PassResult&lt;/code&gt; since this is an input-only guardrail.&lt;/p&gt;
+&lt;p&gt;The configuration form uses Drupal &lt;code&gt;#states&lt;/code&gt; to show the &lt;code&gt;tokenizer_model&lt;/code&gt; field only when &lt;code&gt;use_tokens&lt;/code&gt; is checked. A bug in the initial implementation used the wrong form element name selector for this visibility toggle, which was fixed during review.&lt;/p&gt;
+&lt;p&gt;Config schema was added at &lt;code&gt;ai.guardrail.settings.input_length_limit&lt;/code&gt; with five properties: &lt;code&gt;max_length&lt;/code&gt; (integer), &lt;code&gt;use_tokens&lt;/code&gt; (boolean), &lt;code&gt;tokenizer_model&lt;/code&gt; (string), &lt;code&gt;check_all_messages&lt;/code&gt; (boolean), and &lt;code&gt;violation_message&lt;/code&gt; (string). Unit tests cover character limits, token limits, all-messages mode, last-message-only mode, custom violation messages, multibyte characters, and non-chat input passthrough. Kernel tests verify the full guardrail pipeline using &lt;code&gt;AiGuardrail&lt;/code&gt; and &lt;code&gt;AiGuardrailSet&lt;/code&gt; config entities with the EchoAI test provider.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 2, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 9, 2026 (6 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 17, 2026 (8 days and 5 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, ahmad khader found a bug where the &lt;code&gt;tokenizer_model&lt;/code&gt; field visibility state used the wrong form element name (&lt;code&gt;use_tokens&lt;/code&gt; instead of &lt;code&gt;guardrail_settings[use_tokens]&lt;/code&gt;), fixed it, and moved the issue to RTBC. marcus_johansson split a broader guardrail config schema bug discovered during this work into a separate issue &lt;a href="https://www.drupal.org/node/3583785"&gt;#3583785&lt;/a&gt; for backporting.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3582575: Add agent skill and drush generator for Guardrail plugins</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582575.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-951c6cf19283</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +723/−0 · md +332 · twig +332 · php +58 · gitignore +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/cc6a52e8ddffd8177d7953cda04d22a4d8478361"&gt;cc6a52e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582575"&gt;#3582575&lt;/a&gt; · 3 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Drupal AI module now ships a Drush code generator and an AI agent skill to help developers create custom guardrail plugins. Before this change, creating a guardrail required knowing the full plugin API: the &lt;code&gt;#[AiGuardrail]&lt;/code&gt; attribute, base class hierarchy, four result types, streaming interfaces, and config schema requirements. The new &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt; command (alias: &lt;code&gt;ai-guardrail&lt;/code&gt;) asks five questions and writes a ready-to-edit plugin stub. The agent skill at &lt;code&gt;.agents/skills/create-guardrail-plugin/SKILL.md&lt;/code&gt; gives AI coding assistants (such as Claude or GitHub Copilot) a structured guide to scaffold guardrails from a natural-language description.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt; command (alias &lt;code&gt;ai-guardrail&lt;/code&gt;) scaffolds a deterministic or non-deterministic &lt;code&gt;AiGuardrail&lt;/code&gt; plugin stub in any module.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Guardrail plugins (&lt;code&gt;#[AiGuardrail]&lt;/code&gt;) run before and after AI generation and return one of four result types from &lt;code&gt;Drupal\ai\Guardrail\Result\&lt;/code&gt;: &lt;code&gt;PassResult&lt;/code&gt;, &lt;code&gt;StopResult&lt;/code&gt;, &lt;code&gt;RewriteInputResult&lt;/code&gt;, or &lt;code&gt;RewriteOutputResult&lt;/code&gt;. Two distinct plugin patterns exist: deterministic (fixed rules, extends &lt;code&gt;AiGuardrailPluginBase&lt;/code&gt;, implements &lt;code&gt;ConfigurableInterface&lt;/code&gt; + &lt;code&gt;PluginFormInterface&lt;/code&gt;) and non-deterministic (calls an AI provider internally, additionally implements &lt;code&gt;NonDeterministicGuardrailInterface&lt;/code&gt;, &lt;code&gt;NonStreamableGuardrailInterface&lt;/code&gt;, and &lt;code&gt;ContainerFactoryPluginInterface&lt;/code&gt;, uses &lt;code&gt;NeedsAiPluginManagerTrait&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Drush generator&lt;/strong&gt; (&lt;code&gt;src/Drush/Generators/GuardrailGenerator.php&lt;/code&gt;) extends &lt;code&gt;DrupalCodeGenerator\Command\BaseGenerator&lt;/code&gt; and is registered via the &lt;code&gt;#[Generator]&lt;/code&gt; attribute with name &lt;code&gt;plugin:ai:guardrail&lt;/code&gt; and alias &lt;code&gt;ai-guardrail&lt;/code&gt;. The &lt;code&gt;generate()&lt;/code&gt; method interviews for module machine name, label, plugin ID (auto-derived as snake_case from the label), description, and deterministic/non-deterministic choice, then writes &lt;code&gt;src/Plugin/AiGuardrail/{ClassName}.php&lt;/code&gt; from one of two Twig templates at &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;. The deterministic template produces &lt;code&gt;processInput()&lt;/code&gt; with a &lt;code&gt;ChatInput&lt;/code&gt; type check, last-message extraction via &lt;code&gt;end($messages)&lt;/code&gt;, and &lt;code&gt;@todo&lt;/code&gt; markers for custom validation logic, plus full &lt;code&gt;ConfigurableInterface&lt;/code&gt; boilerplate. The non-deterministic template adds the &lt;code&gt;NeedsAiPluginManagerTrait&lt;/code&gt;, a &lt;code&gt;create()&lt;/code&gt; method injecting &lt;code&gt;AiProviderFormHelper&lt;/code&gt; via &lt;code&gt;ai.form_helper&lt;/code&gt;, provider/model configuration in &lt;code&gt;buildConfigurationForm()&lt;/code&gt; using &lt;code&gt;AiProviderFormHelper::generateAiProvidersForm()&lt;/code&gt;, and &lt;code&gt;submitConfigurationForm()&lt;/code&gt; that extracts and type-casts LLM config keys using &lt;code&gt;CastUtility::typeCast()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Agent skill&lt;/strong&gt; (&lt;code&gt;.agents/skills/create-guardrail-plugin/SKILL.md&lt;/code&gt;) is a structured prompt document consumed by AI coding assistants via the &lt;code&gt;/create-guardrail-plugin&lt;/code&gt; slash command. It walks through four steps: determine guardrail type, gather requirements, run &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt;, add config schema to &lt;code&gt;config/schema/ai.schema.yml&lt;/code&gt; under the key &lt;code&gt;ai.guardrail.settings.{plugin_id}&lt;/code&gt;, and optionally generate a kernel test using the EchoAI provider. Config schema guidance was added during review (comment #8) after a reviewer found it missing when testing the skill against the &lt;code&gt;InputLengthLimit&lt;/code&gt; guardrail from &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;#[Generator]&lt;/code&gt; attribute sets &lt;code&gt;templatePath&lt;/code&gt; to &lt;code&gt;__DIR__ . '/../../../templates/Plugin/_ai-guardrail'&lt;/code&gt;, which is the actual location of the Twig files. The SKILL.md reference section lists &lt;code&gt;templates/guardrail/deterministic.twig&lt;/code&gt; (the older path discussed in review), but the authoritative path used by the generator is &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 1, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 8, 2026 (7 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 17, 2026 (9 days and 5 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, ahmad khader tested the agent skill by running the exact one-shot prompt from comment #5 against the &lt;code&gt;InputLengthLimit&lt;/code&gt; guardrail from &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt;. The generated code passed &lt;code&gt;php -l&lt;/code&gt; and &lt;code&gt;phpstan --level=1&lt;/code&gt; with zero errors, but the reviewer found that config schema instructions were missing from the skill. This gap was documented in detail in comment #8 and was then incorporated into the SKILL.md before the issue was fixed. The reviewer also raised a naming convention concern about the Twig template directory (&lt;code&gt;templates/guardrail/&lt;/code&gt; vs &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;), and the generator was updated to use the latter path.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3574519: Fix the tag-release to work on linux</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3574519.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-948a5a8755d9</guid>
+      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +126/−86 · sh +124/−84 · json +2/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/4a7957036067f84df18a3d0cd0a8c1e8605665fb"&gt;4a79570&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574519"&gt;#3574519&lt;/a&gt; · 5 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This is an internal tooling change. The &lt;code&gt;scripts/tag-release.sh&lt;/code&gt; script in the Drupal AI module used bash/zsh-specific constructs (&lt;code&gt;pushd&lt;/code&gt;/&lt;code&gt;popd&lt;/code&gt;, &lt;code&gt;[[ ]]&lt;/code&gt;, &lt;code&gt;read -p&lt;/code&gt;) despite its &lt;code&gt;#!/bin/sh&lt;/code&gt; shebang. On Linux, where &lt;code&gt;/bin/sh&lt;/code&gt; is typically a minimal POSIX shell like dash, this caused errors such as &amp;quot;pushd: not found&amp;quot;. The script was rewritten to use only POSIX-compliant shell constructs so it works on both Linux and macOS. The required Node.js version was also updated from v20 to v24+.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;tag-release.sh&lt;/code&gt; script automates creating tagged releases of the Drupal AI module. It clones the repo, builds JS UIs in three subdirectories (&lt;code&gt;modules/ai_ckeditor&lt;/code&gt;, &lt;code&gt;ui/mdxeditor&lt;/code&gt;, &lt;code&gt;ui/json-schema-editor&lt;/code&gt;), commits the build artifacts, creates a git tag, removes the artifacts, and pushes.&lt;/p&gt;
+&lt;p&gt;The original script declared &lt;code&gt;#!/bin/sh&lt;/code&gt; but relied on bash/zsh features. On Linux where &lt;code&gt;/bin/sh&lt;/code&gt; is typically dash, &lt;code&gt;pushd&lt;/code&gt;/&lt;code&gt;popd&lt;/code&gt; are unavailable, causing the npm commands to run in the wrong directory and fail with &amp;quot;ENOENT: no such file or directory&amp;quot; errors.&lt;/p&gt;
+&lt;p&gt;The rewrite makes the script POSIX-compliant. &lt;code&gt;pushd&lt;/code&gt;/&lt;code&gt;popd&lt;/code&gt; for directory changes during builds are replaced with &lt;code&gt;npm --prefix &amp;quot;$DIR&amp;quot;&lt;/code&gt; in the new &lt;code&gt;build_dir()&lt;/code&gt; helper function, which avoids directory changes entirely. The &lt;code&gt;reset_version()&lt;/code&gt; function uses &lt;code&gt;cd&lt;/code&gt;/&lt;code&gt;cd -&lt;/code&gt; instead. Bash-specific &lt;code&gt;[[ ]]&lt;/code&gt; conditionals become &lt;code&gt;[ ]&lt;/code&gt;, &lt;code&gt;read -p&lt;/code&gt; becomes &lt;code&gt;printf&lt;/code&gt; followed by &lt;code&gt;read&lt;/code&gt;, and &lt;code&gt;echo&lt;/code&gt; with escape sequences becomes &lt;code&gt;printf&lt;/code&gt;. Color variables are assigned via &lt;code&gt;$(printf '\033[...')&lt;/code&gt; subshells instead of bare escape-sequence strings.&lt;/p&gt;
+&lt;p&gt;Other improvements bundled in: a &lt;code&gt;check_dependency()&lt;/code&gt; function validates node and npm versions up front using POSIX &lt;code&gt;case&lt;/code&gt; pattern matching. The minimum Node.js version was raised from v20 to v24, and an npm &amp;gt;= v11 check was added. The macOS-only &lt;code&gt;open&lt;/code&gt; command now falls back to &lt;code&gt;xdg-open&lt;/code&gt; on Linux. &lt;code&gt;git tag &amp;quot;$TAG&amp;quot; HEAD&lt;/code&gt; was changed to &lt;code&gt;git tag -a &amp;quot;$TAG&amp;quot;&lt;/code&gt; to create annotated tags that open an editor for the tag message. Error handling was added with &lt;code&gt;|| exit 1&lt;/code&gt; throughout the script.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;ui/json-schema-editor/package.json&lt;/code&gt; dependency keys were reordered alphabetically. The &lt;code&gt;package-lock.json&lt;/code&gt; was regenerated, adding &lt;code&gt;resolved&lt;/code&gt;/&lt;code&gt;integrity&lt;/code&gt; fields and picking up minor dependency version bumps (rollup 4.57.1 to 4.59.0, etc.).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 19, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 9, 2026 (1 month later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 17, 2026 (8 days and 6 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;marcus_johansson identified the problem, rewrote the script with full POSIX support, and used it to produce the RC2 release on Ubuntu 22. abhisekmazumdar tested the script end-to-end and successfully created a tag (1.3.1) with it.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3559183: Create first improvement of agent form</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3559183.md</link>
+      <guid isPermaLink="false">019d9f00-70f4-73af-afb6-96a540302853</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 07 Apr 2026 08:51:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +255/−45 · css +146 · js +43/−39 · php +41/−4 · json +13/−1 · yml +6/−1 · txt +3 · eslintignore +1 · gitignore +1 · stylelintignore +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_agents/-/commit/652d1941c56df141353dd8ca3c7477f84bc3eaf3"&gt;652d194&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3559183"&gt;#3559183&lt;/a&gt; · 10 contributors · 42 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The add/edit Agent form in the AI Agents module has been redesigned to be significantly less overwhelming. Tool configuration is now shown in lightweight MicroModal pop-ups rather than expanding inline on the main form. The system prompt textarea now uses the MDXEditor component with token typeahead. The structured output schema field now uses the dedicated &lt;code&gt;ai_json_schema&lt;/code&gt; element. Advanced settings (max loops, default information tools, orchestration/triage classification flags, and structured output) are collapsed into an &amp;quot;Advanced settings&amp;quot; section by default. Per-property tool restrictions are displayed as a compact table. The minimum required version of the &lt;code&gt;drupal/ai&lt;/code&gt; base module is now &lt;code&gt;^1.3.0&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum drupal/ai version raised from ^1.2.0 to ^1.3.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The agent entity form class &lt;code&gt;AiAgentForm&lt;/code&gt; (&lt;code&gt;src/Form/AiAgentForm.php&lt;/code&gt;) was substantially restructured. The most visible change is that each selected tool's configuration is rendered inside a MicroModal dialog: &lt;code&gt;createToolUsageForm()&lt;/code&gt; now wraps the tool container in modal markup using namespaced CSS classes (&lt;code&gt;.ai-modal__overlay&lt;/code&gt;, &lt;code&gt;.ai-modal__container&lt;/code&gt;, &lt;code&gt;.ai-modal__header&lt;/code&gt;, &lt;code&gt;.ai-modal__content&lt;/code&gt;) to avoid collisions with themes or other modules. A &amp;quot;Configure&amp;quot; button is injected into each tool card in the tool library picker via a new &lt;code&gt;hook_preprocess_ai_tools_library_item()&lt;/code&gt; implementation in &lt;code&gt;ai_agents.module&lt;/code&gt;. The button carries a &lt;code&gt;data-tool&lt;/code&gt; attribute and the &lt;code&gt;.dynamic-tool-modal&lt;/code&gt; class that the JS uses to call &lt;code&gt;MicroModal.show(id)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;MicroModal 0.4.10 is bundled as &lt;code&gt;js/micromodal.min.js&lt;/code&gt;, sourced via npm (&lt;code&gt;package.json&lt;/code&gt;) and committed to the repository. This was preferred over a &lt;code&gt;libraries.yml&lt;/code&gt; CDN reference or Composer asset packagist in order to keep the library and its license metadata available locally without external CDN dependencies or privacy concerns. A companion &lt;code&gt;css/micromodal.css&lt;/code&gt; provides the &lt;code&gt;.ai-modal__*&lt;/code&gt; styles, with z-index 1300 for the overlay and 1310 for the fixed header (calibrated against Drupal core toolbar and Gin theme layers), plus Gin dark-mode overrides using &lt;code&gt;.gin--dark-mode&lt;/code&gt; and Gin CSS custom properties.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;js/agents_form.js&lt;/code&gt; was rewritten from jQuery to vanilla JS using Drupal's &lt;code&gt;once()&lt;/code&gt; API under two &lt;code&gt;Drupal.behaviors&lt;/code&gt;. &lt;code&gt;openToolsModal&lt;/code&gt; initialises MicroModal and attaches click handlers to &lt;code&gt;.dynamic-tool-modal&lt;/code&gt; buttons. &lt;code&gt;aiAgentsToolUsageRefresh&lt;/code&gt; uses a &lt;code&gt;MutationObserver&lt;/code&gt; on &lt;code&gt;document.body&lt;/code&gt; to detect when the jQuery UI tool-selection dialog is removed from the DOM, then dispatches a &lt;code&gt;mousedown&lt;/code&gt; event on the &lt;code&gt;[data-ai-tools-library-form-element-update]&lt;/code&gt; element to trigger an AJAX refresh. This indirection is necessary because the jQuery UI &lt;code&gt;dialog:afterclose&lt;/code&gt; event is unavailable without loading jQuery. The library definition in &lt;code&gt;ai_agents.libraries.yml&lt;/code&gt; now declares &lt;code&gt;core/drupal&lt;/code&gt; and &lt;code&gt;core/once&lt;/code&gt; as explicit dependencies.&lt;/p&gt;
+&lt;p&gt;Form field reorganisation: &lt;code&gt;max_loops&lt;/code&gt; (default raised from 3 to 10), &lt;code&gt;default_information_tools&lt;/code&gt;, the &lt;code&gt;orchestration_agent&lt;/code&gt; and &lt;code&gt;triage_agent&lt;/code&gt; checkboxes (now placed under a &lt;code&gt;classification&lt;/code&gt; sub-details), and the structured output block are moved under a new collapsed &lt;code&gt;prompt_detail &amp;gt; advanced&lt;/code&gt; details element. Per-property restrictions changed from individual fieldsets to a &lt;code&gt;#type table&lt;/code&gt; element with the &lt;code&gt;.ai-agent-property-restrictions-table&lt;/code&gt; class. The structured output schema field changed from &lt;code&gt;#type textarea&lt;/code&gt; to &lt;code&gt;#type ai_json_schema&lt;/code&gt;. Tool settings (&lt;code&gt;return_directly&lt;/code&gt;, &lt;code&gt;require_usage&lt;/code&gt;, &lt;code&gt;description_enabled&lt;/code&gt;, &lt;code&gt;description_override&lt;/code&gt;, &lt;code&gt;progress_message&lt;/code&gt;, &lt;code&gt;use_artifacts&lt;/code&gt;) are now nested under &lt;code&gt;tool_usage[$tool_id][tool_settings]&lt;/code&gt;; property restriction values are at &lt;code&gt;tool_usage[$tool_id][property_restrictions][table][$property_name][restrictions]&lt;/code&gt;. The &lt;code&gt;save()&lt;/code&gt; method was updated to read from these new paths.&lt;/p&gt;
+&lt;p&gt;A static &lt;code&gt;afterBuildToolsLibrary()&lt;/code&gt; &lt;code&gt;#after_build&lt;/code&gt; callback sets &lt;code&gt;#limit_validation_errors = []&lt;/code&gt; on the AJAX &lt;code&gt;update_widget&lt;/code&gt; button so the form can rebuild after tool selection without requiring all fields to pass validation first.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;system_prompt&lt;/code&gt; textarea now carries a &lt;code&gt;data-mdxeditor&lt;/code&gt; attribute and passes &lt;code&gt;drupalSettings&lt;/code&gt; config that includes a typeahead plugin populated from &lt;code&gt;\Drupal::service('token')-&amp;gt;getInfo()&lt;/code&gt;, enabling inline token autocomplete in the MDXEditor component. The &lt;code&gt;Token&lt;/code&gt; service is injected into &lt;code&gt;AiAgentForm&lt;/code&gt; via its constructor. The &lt;code&gt;AiAgent&lt;/code&gt; entity properties &lt;code&gt;$orchestration_agent&lt;/code&gt; and &lt;code&gt;$triage_agent&lt;/code&gt; were changed from &lt;code&gt;bool&lt;/code&gt; to &lt;code&gt;?bool = NULL&lt;/code&gt; to prevent PHP errors on agents that pre-date those fields.&lt;/p&gt;
+&lt;p&gt;The minimum &lt;code&gt;drupal/ai&lt;/code&gt; requirement in &lt;code&gt;composer.json&lt;/code&gt; was bumped from &lt;code&gt;^1.2.0&lt;/code&gt; to &lt;code&gt;^1.3.0&lt;/code&gt; to cover dependencies on newer AI module form elements and the MDXEditor component.&lt;/p&gt;
+&lt;p&gt;Three follow-up issues were filed for work delegated to the &lt;code&gt;drupal/ai&lt;/code&gt; upstream: sticky category tabs in the tool library modal (&lt;a href="https://www.drupal.org/node/3579424"&gt;#3579424&lt;/a&gt;), a trash-icon replacement for the tool removal button (&lt;a href="https://www.drupal.org/node/3579423"&gt;#3579423&lt;/a&gt;), MDXEditor dark-mode rendering (&lt;a href="https://www.drupal.org/node/3582474"&gt;#3582474&lt;/a&gt;), and Tool Explorer dark-mode rendering (&lt;a href="https://www.drupal.org/node/3582473"&gt;#3582473&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 21, 2025&lt;/li&gt;
+&lt;li&gt;Committed: April 7, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;emma horrell (The University of Edinburgh)&lt;/li&gt;
+&lt;li&gt;ferran_bosch (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;bbruno (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;angela saldaña (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;jibran&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The review cycle drove substantial improvements. &lt;strong&gt;abhisekmazumdar&lt;/strong&gt; caught two bugs that would have shipped: a JavaScript crash when clicking &amp;quot;Configure&amp;quot; on the Add Agent form (the modal HTML and the AJAX-refreshed tool card section lived in separate DOM subtrees, so &lt;code&gt;MicroModal.show()&lt;/code&gt; could not find the element), and tool settings silently dropping on save because &lt;code&gt;save()&lt;/code&gt; was still reading from the old flat form element paths after the nesting changed. abhisekmazumdar also pushed a CSS follow-up commit that replaced a hardcoded element-ID selector in &lt;code&gt;agents_form.css&lt;/code&gt; with the generic &lt;code&gt;.ai-agent-property-restrictions-table&lt;/code&gt; class (fixing column sizing for all tools, not just one), renamed &lt;code&gt;.modal__*&lt;/code&gt; to &lt;code&gt;.ai-modal__*&lt;/code&gt; throughout, and set the z-index values against Drupal core and Gin theme layers. &lt;strong&gt;jibran&lt;/strong&gt; observed that the JS file was close to a full rewrite anyway and suggested removing the jQuery dependency. &lt;strong&gt;ajv009&lt;/strong&gt; (Alphons) acted on that suggestion, rewriting &lt;code&gt;agents_form.js&lt;/code&gt; to vanilla JS with Drupal's &lt;code&gt;once()&lt;/code&gt; API and replacing the jQuery UI dialog close event with a &lt;code&gt;MutationObserver&lt;/code&gt;, which also resolved the outstanding ESLint errors that had been blocking the merge.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3579632: Add ai:logs Drush command for inspecting AI LLM calls from the CLI</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579632.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94eb8ee91afd</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 03 Apr 2026 03:12:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +471/−0 · php +468 · md +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_logging/-/commit/a3ad1c964ab5a5db308a635617e8a06c24cf2820"&gt;a3ad1c9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579632"&gt;#3579632&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The ai_logging module now provides a &lt;code&gt;drush ai:logs&lt;/code&gt; command (aliases &lt;code&gt;ail&lt;/code&gt;, &lt;code&gt;ai-logs&lt;/code&gt;) to inspect AI LLM call logs from the terminal. The command queries &lt;code&gt;ai_log&lt;/code&gt; entities and displays prompts, responses, provider/model metadata, and tags. It supports filtering by tag (&lt;code&gt;--tag=ai_agents&lt;/code&gt;) or provider (&lt;code&gt;--provider=anthropic&lt;/code&gt;), limiting result count (&lt;code&gt;--count=20&lt;/code&gt;), and viewing single entries with full text (&lt;code&gt;--id=42&lt;/code&gt;). This is useful for debugging AI agents, chatbots, or other AI-powered features without opening the Drupal admin UI. The ai_logging module must be enabled and logging must be turned on at /admin/config/ai/logging/settings.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drush ai:logs&lt;/code&gt; command (aliases &lt;code&gt;ail&lt;/code&gt;, &lt;code&gt;ai-logs&lt;/code&gt;) for inspecting AI LLM call logs&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;AiLogCommands&lt;/code&gt; Drush command class uses &lt;code&gt;AutowireTrait&lt;/code&gt; for dependency injection and injects &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt; to query the &lt;code&gt;ai_log&lt;/code&gt; entity storage. The command has two modes: list mode (default) returns multiple log entries sorted by &lt;code&gt;created&lt;/code&gt; DESC then &lt;code&gt;id&lt;/code&gt; DESC, and single-entry mode (&lt;code&gt;--id=N&lt;/code&gt;) returns one full entry. List mode truncates &lt;code&gt;prompt&lt;/code&gt; and &lt;code&gt;output_text&lt;/code&gt; fields to 80 characters using core's &lt;code&gt;Unicode::truncate()&lt;/code&gt;. Filtering is implemented via entity query conditions on &lt;code&gt;tags&lt;/code&gt; or &lt;code&gt;provider&lt;/code&gt; fields. The command returns &lt;code&gt;RowsOfFields&lt;/code&gt;, so Drush provides &lt;code&gt;--format=json|yaml|csv|table&lt;/code&gt;, &lt;code&gt;--fields&lt;/code&gt;, and &lt;code&gt;--filter&lt;/code&gt; options automatically. The &lt;code&gt;ValidateModulesEnabled&lt;/code&gt; attribute ensures ai_logging is enabled before execution. Ten kernel tests cover list mode, filtering, single-entry lookup, truncation, empty results, and row structure. The initial implementation was rewritten after maintainer feedback to use Drush's built-in formatters instead of custom output logic, reducing the command from approximately 500 lines to 130 lines and dropping custom token estimation and formatting utilities.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 3, 2026 (16 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
+&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;scott_euser (comment #16) reviewed the initial implementation and noted it was overcomplicated with custom formatters, token counters, and truncation logic, and questioned whether to accept it given the project is minimally maintained. ajv009 (comment #18) rewrote the entire command based on that feedback, replacing all custom output formatting with Drush's built-in &lt;code&gt;RowsOfFields&lt;/code&gt; formatter, replacing custom utilities with core functions like &lt;code&gt;Unicode::truncate()&lt;/code&gt;, and adding kernel test coverage. The rewrite reduced the code from approximately 500 lines to 130 lines and made the command composable with Drush's standard options. The simplified version was accepted.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3577469: Add possibility to record video of functional testing and to run all functional testing on tags</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577469.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94c64c881745</guid>
+      <pubDate>Wed, 01 Apr 2026 08:02:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +976/−22 · md +468 · php +388/−21 · sh +92 · txt +16/−1 · yml +12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/d00935c2a4e4aa44298b9ba7e0f0677528a4f479"&gt;d00935c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577469"&gt;#3577469&lt;/a&gt; · 6 contributors · 40 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This is an internal change to the testing infrastructure. FunctionalJavascript tests can now record videos of their execution, making it easier to diagnose test failures. Tests also run selectively in CI: on main branches they skip entirely, on issue branches only tests tagged with the issue number run, and on tagged releases all tests run. This has no effect on sites using the module.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue addressed functional test maintainability and debuggability concerns. The solution added video recording and selective test execution.&lt;/p&gt;
+&lt;p&gt;The base test class (&lt;code&gt;BaseClassFunctionalJavascriptTests&lt;/code&gt;) now supports opt-in video recording. When a test sets &lt;code&gt;$videoRecording = TRUE&lt;/code&gt;, Chrome runs non-headless and ffmpeg captures the Selenium container's X display (&lt;code&gt;:99.0&lt;/code&gt;) at 25fps with 750k bitrate, saving MP4 files organized by module and test class. The recording lifecycle is managed in &lt;code&gt;setUp()&lt;/code&gt; and &lt;code&gt;tearDown()&lt;/code&gt;. The implementation uses &lt;code&gt;proc_open()&lt;/code&gt; to spawn ffmpeg with x11grab input, and stops gracefully by writing 'q' to stdin (ensuring the MP4 moov atom is finalized) with fallback to SIGTERM/SIGKILL. The &lt;code&gt;getMinkDriverArgs()&lt;/code&gt; override strips &lt;code&gt;--headless&lt;/code&gt; from Chrome options when recording is enabled.&lt;/p&gt;
+&lt;p&gt;A new shell script (&lt;code&gt;scripts/filter-functionaljavascript-tests.sh&lt;/code&gt;) removes test files before discovery to work around a run-tests.sh limitation where &lt;code&gt;--directory&lt;/code&gt; ignores &lt;code&gt;@group&lt;/code&gt; filtering. On main branches (matching &lt;code&gt;^[0-9]+(\.[0-9]+)?\.x$&lt;/code&gt;), all FunctionalJavascript tests are removed. On issue branches, only tests with &lt;code&gt;@group {issue_number}&lt;/code&gt; are kept. On tags, all tests run. The script exports &lt;code&gt;HAS_FJS=1/0&lt;/code&gt; so &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; can skip ffmpeg installation when no tests will run. The script examines &lt;code&gt;CI_COMMIT_TAG&lt;/code&gt;, &lt;code&gt;CI_MERGE_REQUEST_SOURCE_BRANCH_NAME&lt;/code&gt;, and &lt;code&gt;CI_COMMIT_BRANCH&lt;/code&gt; to determine context, then uses &lt;code&gt;find&lt;/code&gt; with vendor/node_modules exclusions and &lt;code&gt;grep -Fq&lt;/code&gt; to check for issue number annotations.&lt;/p&gt;
+&lt;p&gt;Other base class improvements: changed default theme from &lt;code&gt;stark&lt;/code&gt; to &lt;code&gt;claro&lt;/code&gt; for realistic admin UI testing, moved output paths from &lt;code&gt;sites/default/files/simpletest/&lt;/code&gt; to &lt;code&gt;sites/simpletest/&lt;/code&gt; to match core conventions, added &lt;code&gt;setDefaultProvider()&lt;/code&gt; helper to reduce boilerplate, and added strict typing throughout.&lt;/p&gt;
+&lt;p&gt;The two existing FunctionalJavascript tests were updated to enable video recording, add &lt;code&gt;@group 3577469&lt;/code&gt;, use strict typing, and use the new &lt;code&gt;setDefaultProvider()&lt;/code&gt; helper. The &lt;code&gt;AutoCompleteTagsTaxonomyTest&lt;/code&gt; namespace was corrected to remove an extra &amp;quot;Tests&amp;quot; segment.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 1, 2026 (25 days and 5 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;harivansh (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;b_sharpe (ImageX)&lt;/li&gt;
+&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
+&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;hestenet (Drupal Association)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;marcus_johansson proposed the approach based on prior Behat experience and implemented the initial video recording. b_sharpe reviewed and requested changes to the filter script: using &lt;code&gt;grep -Fq&lt;/code&gt; instead of &lt;code&gt;grep -q&lt;/code&gt; to avoid regex interpretation of issue numbers, adding vendor and bower_components exclusions, and changing paths from &lt;code&gt;sites/default/files/simpletest/&lt;/code&gt; to &lt;code&gt;sites/simpletest/&lt;/code&gt; to match core conventions. ajv009 tested the implementation locally with DDEV, Selenium, and ffmpeg, implemented b_sharpe's requested changes, and documented the use of AI assistance in the review process. There was discussion about H.264 licensing concerns, resolved when marcus_johansson confirmed that shipping the encoder (via apt packages) rather than using it is what triggers licensing requirements. a.dmitriiev provided final approval.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3456973: AI integration for Views bulk operations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3456973.md</link>
+      <guid isPermaLink="false">019d857f-33e3-726a-abae-0ee7c69deaa8</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 01 Apr 2026 08:02:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +581/−0 · php +581&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/2e5294ddf6d67d25b09abe4c65cad2807ac0f08f"&gt;2e5294d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3456973"&gt;#3456973&lt;/a&gt; · 10 contributors · 54 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;AI Automators in the &lt;code&gt;ai_automators&lt;/code&gt; submodule can now be run in bulk via Views Bulk Operations or any other Drupal action UI. To use this, set the automator's worker type to &amp;quot;Action&amp;quot; when configuring it. The automator will not run during normal entity saves - only when explicitly triggered as an action. If &lt;code&gt;edit_mode&lt;/code&gt; is disabled on the automator, entities that already have a value for the target field are skipped, which avoids unnecessary AI API calls on existing content.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New valid value &lt;code&gt;'action'&lt;/code&gt; for the &lt;code&gt;worker_type&lt;/code&gt; property on &lt;code&gt;ai_automator&lt;/code&gt; config entities; automators with this type are exposed as Drupal actions and do not run during entity save&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ActionProcessing&lt;/code&gt; process rule plugin (&lt;code&gt;id: 'action'&lt;/code&gt;) and &lt;code&gt;RunAutomatorAction&lt;/code&gt; action plugin (&lt;code&gt;id: 'ai_automators_run'&lt;/code&gt;) with &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; in &lt;code&gt;ai_automators&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Background.&lt;/strong&gt; &lt;code&gt;ai_automators&lt;/code&gt; processes fields on entity save using pluggable worker types (called process rules). Previously there was no way to run an automator on demand against a filtered set of existing entities.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;New process rule: &lt;code&gt;ActionProcessing&lt;/code&gt;.&lt;/strong&gt; A new &lt;code&gt;AiAutomatorProcessRule&lt;/code&gt; plugin (&lt;code&gt;id: 'action'&lt;/code&gt;, class &lt;code&gt;ActionProcessing&lt;/code&gt;) implements &lt;code&gt;AiAutomatorDirectProcessInterface&lt;/code&gt; and returns &lt;code&gt;FALSE&lt;/code&gt; from &lt;code&gt;shouldProcessDirectly()&lt;/code&gt;. This prevents the automator from firing during entity presave. It lives in &lt;code&gt;src/Plugin/AiAutomatorProcess/ActionProcessing.php&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Derivative action plugins.&lt;/strong&gt; &lt;code&gt;RunAutomatorAction&lt;/code&gt; (&lt;code&gt;id: 'ai_automators_run'&lt;/code&gt;) extends &lt;code&gt;EntityActionBase&lt;/code&gt; and uses &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; to create one derivative per &lt;code&gt;ai_automator&lt;/code&gt; config entity whose &lt;code&gt;worker_type&lt;/code&gt; equals &lt;code&gt;'action'&lt;/code&gt;. Each derivative is labeled &lt;code&gt;&amp;quot;AI: [automator label]&amp;quot;&lt;/code&gt; and scoped to the automator's entity type. &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; loads all &lt;code&gt;ai_automator&lt;/code&gt; configs and filters by &lt;code&gt;worker_type === 'action'&lt;/code&gt; inside &lt;code&gt;getDerivativeDefinitions()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Cache invalidation.&lt;/strong&gt; &lt;code&gt;AiAutomator::postSave()&lt;/code&gt; and &lt;code&gt;AiAutomator::postDelete()&lt;/code&gt; call &lt;code&gt;\Drupal::service('plugin.manager.action')-&amp;gt;clearCachedDefinitions()&lt;/code&gt; so derived action definitions stay in sync with config changes without manual cache clears.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Access and bundle checking.&lt;/strong&gt; &lt;code&gt;RunAutomatorAction::access()&lt;/code&gt; compares the entity's bundle against the automator's target bundle. A mismatch returns &lt;code&gt;AccessResult::forbidden()&lt;/code&gt; with the automator config entity as a cacheable dependency. Performing this check in &lt;code&gt;access()&lt;/code&gt; rather than &lt;code&gt;execute()&lt;/code&gt; means VBO correctly reports bundle-mismatched entities as skipped rather than silently counting them as processed.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;edit_mode&lt;/code&gt; and recursion prevention.&lt;/strong&gt; &lt;code&gt;execute()&lt;/code&gt; checks whether the target field already has a value and, if &lt;code&gt;edit_mode&lt;/code&gt; is off, skips the entity with a status message. After calling &lt;code&gt;generateResponse()&lt;/code&gt;, the entity is saved inside a &lt;code&gt;ai_automators_entity_can_save_toggle(FALSE)&lt;/code&gt; / &lt;code&gt;finally { ai_automators_entity_can_save_toggle(TRUE) }&lt;/code&gt; guard to prevent the automator hook from re-triggering. Errors from &lt;code&gt;generateResponse()&lt;/code&gt; are caught and logged without aborting the batch.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Naming decision.&lt;/strong&gt; The initial implementation named the worker type &lt;code&gt;bulk_action&lt;/code&gt;. &lt;code&gt;fago&lt;/code&gt; requested renaming it to &lt;code&gt;action&lt;/code&gt; because the core action plugin system is general-purpose and not limited to VBO. All class names, plugin IDs, and file names were updated accordingly.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Deferred scope.&lt;/strong&gt; Processor subforms (allowing per-processor configuration UI) were proposed during review but deferred to a separate issue per &lt;code&gt;fago&lt;/code&gt;'s recommendation.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 25, 2024&lt;/li&gt;
+&lt;li&gt;First commit: March 26, 2026 (1 year later)&lt;/li&gt;
+&lt;li&gt;Last commit: April 1, 2026 (5 days and 11 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;petar_basic (drunomics)&lt;/li&gt;
+&lt;li&gt;harivansh (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;fago (drunomics)&lt;/li&gt;
+&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
+&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The worker type was initially named &lt;code&gt;bulk_action&lt;/code&gt;; &lt;code&gt;fago&lt;/code&gt; requested renaming to &lt;code&gt;action&lt;/code&gt; because Drupal action plugins are general-purpose and not VBO-specific. The bundle mismatch check was moved from &lt;code&gt;execute()&lt;/code&gt; to &lt;code&gt;access()&lt;/code&gt; after &lt;code&gt;petar_basic&lt;/code&gt; noted that the original placement caused VBO to silently count skipped entities as successfully processed. An initial backport to 1.x broke tests due to structural differences in &lt;code&gt;AiAutomator&lt;/code&gt; entity definitions across branches; it was reverted and a proper backport was prepared separately.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3579478: Add LiteLLM guardrails type and sync from proxy</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579478.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e97f38e931</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 31 Mar 2026 15:51:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +1162/−3 · php +1154/−3 · yml +8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_litellm/-/commit/5f5b069e92022b0214b9d3f5069d67cf09adbcc8"&gt;5f5b069&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579478"&gt;#3579478&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This feature integrates LiteLLM Proxy's server-side guardrail system with Drupal's AI module. Site administrators can sync guardrails configured in their LiteLLM proxy into Drupal as config entities, then attach them to guardrail sets. When a request is sent, the guardrail names are included in the API payload so the proxy enforces them server-side. This allows sites to use guardrails like PII masking or prompt injection detection without implementing the logic in Drupal.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; plugin (type &lt;code&gt;AiGuardrail&lt;/code&gt;) for pass-through guardrails enforced by LiteLLM Proxy&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;LiteLLM Proxy exposes a &lt;code&gt;GET /guardrails/list&lt;/code&gt; endpoint that returns guardrails configured in its &lt;code&gt;config.yaml&lt;/code&gt;. Each guardrail has a name, type, and enforcement mode (pre_call, post_call, during_call). The proxy enforces guardrails when the request payload includes a &lt;code&gt;guardrails&lt;/code&gt; array with the names to apply.&lt;/p&gt;
+&lt;p&gt;The new &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; plugin (&lt;code&gt;AiGuardrail&lt;/code&gt; type) is a pass-through plugin. Its &lt;code&gt;processInput()&lt;/code&gt; and &lt;code&gt;processOutput()&lt;/code&gt; methods always return &lt;code&gt;PassResult&lt;/code&gt; because Drupal does not enforce anything itself. The plugin stores only the &lt;code&gt;guardrail_name&lt;/code&gt; from its configuration.&lt;/p&gt;
+&lt;p&gt;The sync flow lives in &lt;code&gt;LiteLlmAiConfigForm::syncGuardrails()&lt;/code&gt;. It calls &lt;code&gt;LiteLlmAiClient::guardrails()&lt;/code&gt;, which fetches the list from the proxy and extracts the &lt;code&gt;guardrail_name&lt;/code&gt; field from each entry. For each name, the sync method generates a config entity ID by lowercasing, replacing non-alphanumeric characters with underscores, prepending &lt;code&gt;litellm_&lt;/code&gt;, and truncating to 64 characters. If an entity with that ID exists, it is updated. Otherwise a new &lt;code&gt;ai_guardrail&lt;/code&gt; entity is created with plugin type &lt;code&gt;litellm_guardrail&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;When &lt;code&gt;LiteLlmAiProvider::chat()&lt;/code&gt; receives a &lt;code&gt;ChatInput&lt;/code&gt; with a guardrail set, it walks the pre-generate and post-generate guardrails. For each &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; instance, it extracts the &lt;code&gt;guardrail_name&lt;/code&gt; from the plugin configuration. The names are deduplicated and injected into &lt;code&gt;$this-&amp;gt;configuration['guardrails']&lt;/code&gt; before delegating to the parent &lt;code&gt;chat()&lt;/code&gt; method (which passes configuration values into the request payload). The key is then removed from configuration so it does not bleed into subsequent calls.&lt;/p&gt;
+&lt;p&gt;A &lt;code&gt;hook_form_alter()&lt;/code&gt; implementation adds a notice to guardrail set forms when LiteLLM guardrails are present, explaining that the pre/post distinction in Drupal is irrelevant because enforcement timing is controlled by the proxy configuration.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 16, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 31, 2026 (15 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;ajv009's review caught three edge cases: entity ID collisions when different guardrail names normalize to the same ID, entity ID length exceeding the 64-character config entity limit, and swallowed errors in &lt;code&gt;LiteLlmAiClient::guardrails()&lt;/code&gt; that hid connection failures behind a generic message. The length limit was fixed in the final implementation by truncating IDs to 64 characters. ajv009 also noted this MR adds the first tests to the module. nikro agreed with the findings and welcomed the test coverage.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3579681: Canvas AI: Add 'YAML Path Equals' and 'YAML Path Exists' plugins</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579681.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94ed6d36d688</guid>
+      <pubDate>Fri, 27 Mar 2026 13:34:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +378/−0 · php +365 · yml +12 · json +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/2bccd05b019b0ec6ff740125775e63f88955f780"&gt;2bccd05&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579681"&gt;#3579681&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas AI agents that generate YAML-formatted tool inputs (like the Page Builder and Template Builder agents) can now be tested with two new validation plugins. &lt;code&gt;YAML Path Exists&lt;/code&gt; checks whether a specific path is present in the YAML output. &lt;code&gt;YAML Path Equals&lt;/code&gt; checks whether a value at a specific path matches an expected value. Test authors can use these plugins when writing automated tests for Canvas AI agents using the AI Agents Test module. This is a testing-only change with no user-facing effects.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Canvas AI agents generate tool parameters in YAML format. The AI Agents Test module provides an &lt;code&gt;AgentsParameterTest&lt;/code&gt; plugin system for validating those parameters, but it lacked plugins specifically for YAML validation.&lt;/p&gt;
+&lt;p&gt;This change adds a new test module &lt;code&gt;canvas_ai_agents_test&lt;/code&gt; with two new &lt;code&gt;AgentsParameterTest&lt;/code&gt; plugins. Both plugins validate only the &lt;code&gt;component_structure&lt;/code&gt; parameter.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;YamlPathExistsTest&lt;/code&gt; plugin checks whether one or more dot-notated paths exist in the YAML. The &lt;code&gt;YamlPathEqualsTest&lt;/code&gt; plugin checks whether values at specific paths match expected values using &lt;code&gt;path=value&lt;/code&gt; syntax. Both plugins support multiple checks separated by newlines and support escaping literal dots in keys with a backslash (e.g., &lt;code&gt;sdc\.canvas_test_sdc\.heading&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;YamlPathHelper&lt;/code&gt; service handles the shared YAML parsing and path traversal logic. It uses Symfony's YAML component to parse the string and walks the parsed array using a regex-split path that preserves escaped dots. The service returns an array indicating whether the path exists, the value if found, and any parse errors.&lt;/p&gt;
+&lt;p&gt;Both plugins inject the helper service, split the rule value by newlines, and call &lt;code&gt;getValueAtPath()&lt;/code&gt; for each path. They record detailed results for each check using the base plugin's &lt;code&gt;createDetailedResultRow()&lt;/code&gt; method.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 27, 2026 (10 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3577685: Add JSON output format</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577685.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94ce338807ec</guid>
+      <pubDate>Thu, 19 Mar 2026 02:37:36 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +568/−36 · php +535/−25 · md +33/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_file_to_text/-/commit/722f64cb80f7f230f04b637ebf4d2a7f7e4210e7"&gt;722f64c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577685"&gt;#3577685&lt;/a&gt; · 4 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI File to Text module now supports JSON as a fourth output format alongside plain text, HTML, and Markdown. This is needed for the Document Loader module when storing extracted content in JSON fields. Spreadsheets and CSV files produce structured JSON with column headers as keys, making the data ready for programmatic use. Other document types (PDFs, Word documents, etc.) output a structured JSON DOM tree that preserves document structure like headings, lists, tables, and inline formatting. This maintains semantic information that would be lost in plain text while providing a machine-readable format.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ExtractorInterface&lt;/code&gt; gains a new &lt;code&gt;extractJson()&lt;/code&gt; method. For spreadsheet and CSV extractors, the method returns native tabular JSON where each row becomes an object keyed by column headers. For other file types, JSON is derived from HTML output using a new &lt;code&gt;HtmlToJsonTrait&lt;/code&gt; that converts the HTML to a structured DOM tree via &lt;code&gt;DOMDocument&lt;/code&gt;. Element nodes become associative arrays with &lt;code&gt;tag&lt;/code&gt;, optional &lt;code&gt;attributes&lt;/code&gt;, and optional &lt;code&gt;children&lt;/code&gt; keys. Text nodes become plain strings. Whitespace-only text nodes are filtered out.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;FileExtractorManager&lt;/code&gt; handles routing: when JSON is requested, it checks if the extractor natively supports JSON (via &lt;code&gt;getSupportedOutputFormats()&lt;/code&gt;). If so, it calls &lt;code&gt;extractJson()&lt;/code&gt; directly. If not, but the extractor supports HTML, it extracts HTML with native headings enabled and converts to JSON using the trait. Text-only extractors fall back to plain text.&lt;/p&gt;
+&lt;p&gt;JSON is included in the aggregated output formats when any extractor supports HTML, since it can be derived. The &lt;code&gt;PopplerPdfExtractor&lt;/code&gt; declares native JSON support with a fallback to text-wrapped JSON if HTML extraction fails.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 19, 2026 (11 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;unqunq (DigitalTrotter)&lt;/li&gt;
+&lt;li&gt;velmir_taky&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3575590: Add ai_agents_debugger debug and ai_agents_explorer explore operations and links in CCC</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575590.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94a463bc968b</guid>
+      <pubDate>Wed, 18 Mar 2026 01:20:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +231/−7 · php +217/−7 · css +12 · json +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/2622c39ab43f7f44e3d457a8ea0c58a4247e2d56"&gt;2622c39&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575590"&gt;#3575590&lt;/a&gt; · 4 contributors · 28 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Context module now provides quick access to debug and explore tools directly from the agent settings interface. When the &lt;code&gt;ai_agents_debugger&lt;/code&gt; or &lt;code&gt;ai_agents_explorer&lt;/code&gt; modules are enabled, links appear both in the agent list table (as dropdown operations) and on individual agent edit pages. This eliminates the need to manually construct URLs or navigate separately to debugging tools, making agent development and troubleshooting faster.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds conditional links to two forms in the AI Context module: &lt;code&gt;AiContextAgentsForm&lt;/code&gt; (the agent list) and &lt;code&gt;AiContextAgentForm&lt;/code&gt; (individual agent edit page).&lt;/p&gt;
+&lt;p&gt;In the agent list form, the &amp;quot;Configure context items&amp;quot; link is converted to a dropbutton that can include &amp;quot;Debug agent&amp;quot; and &amp;quot;Explore agent&amp;quot; operations. In the individual agent edit form, debug and explore links are appended inline after the agent description text, styled as subtle bracketed links.&lt;/p&gt;
+&lt;p&gt;Both forms check whether &lt;code&gt;ai_agents_debugger&lt;/code&gt; and &lt;code&gt;ai_agents_explorer&lt;/code&gt; modules are enabled via &lt;code&gt;ModuleHandlerInterface&lt;/code&gt;, and whether the current user has the required permissions (&lt;code&gt;debug ai agents&lt;/code&gt; and &lt;code&gt;use the agent explorer&lt;/code&gt; respectively). The links point to the debug and explorer routes with the &lt;code&gt;agent_id&lt;/code&gt; passed as a query parameter, and open in new tabs.&lt;/p&gt;
+&lt;p&gt;CSS styling is added for the inline links to match the Gin admin theme aesthetic. The test suite is expanded to verify link visibility based on module state and user permissions, including exact element counts to ensure links appear only once per context.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 18, 2026 (20 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;axioteo (E-Sepia Web Innovation)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;unqunq (DigitalTrotter)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3556909: [Discuss] Decouple AI Context from AI Agents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3556909.md</link>
+      <guid isPermaLink="false">019d9ef5-10c7-7522-867e-2926794bcb4d</guid>
+      <pubDate>Wed, 18 Mar 2026 00:36:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3556909"&gt;#3556909&lt;/a&gt; · 3 contributors · 30 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This discussion issue for the &lt;code&gt;ai_context&lt;/code&gt; contributed module proposed decoupling AI Context items from AI Agents so that context (such as a company writing style guide) could be used by any AI-powered integration, not only agent-based ones. Use cases like automators that generate newsletters or AI Translate tools that produce culturally appropriate translations would benefit from shared context even without an agent. The discussion concluded that the approach was viable and the concrete implementation was folded into the companion issue &lt;a href="https://www.drupal.org/node/3574359"&gt;#3574359&lt;/a&gt; (Refactor context selection logic), which is now closed fixed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_context&lt;/code&gt; module's context request pipeline was initially scoped around agents. The key class cited in the thread is &lt;code&gt;AiContextRequestFactory&lt;/code&gt;, whose &lt;code&gt;fromParameters&lt;/code&gt; factory method was shown to construct an &lt;code&gt;AiContextRequest&lt;/code&gt; without requiring an &lt;code&gt;agent_id&lt;/code&gt;, supporting agent-free callers such as automators and translation workflows. The &lt;code&gt;AiContextRequest&lt;/code&gt; value object collects parameters including &lt;code&gt;task&lt;/code&gt;, &lt;code&gt;scopeSubscriptions&lt;/code&gt;, &lt;code&gt;alwaysInclude&lt;/code&gt;, &lt;code&gt;neverInclude&lt;/code&gt;, &lt;code&gt;consumerId&lt;/code&gt;, &lt;code&gt;entityType&lt;/code&gt;, &lt;code&gt;entityId&lt;/code&gt;, &lt;code&gt;maxItems&lt;/code&gt;, &lt;code&gt;maxTokens&lt;/code&gt;, and &lt;code&gt;selectionMode&lt;/code&gt;. The discussion also raised smart context selection: tagging context items by category (Design System, Content, Brand, etc.) so a relevance selector could automatically include only appropriate items, reducing the need for manual agent-to-context wiring. Concrete code changes, including refactoring &lt;code&gt;fromParameters&lt;/code&gt; and the selection logic, were tracked and resolved in &lt;a href="https://www.drupal.org/node/3574359"&gt;#3574359&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 10, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;marcus_johansson opened the issue and later reviewed the emerging implementation, flagging that changes to the &lt;code&gt;fromParameters&lt;/code&gt; signature would be a breaking-change concern after release and recommending that the loose parameter array be replaced with a strongly typed DTO to simplify validation and testing. kristen pol drove the planning thread across multiple sprints: she proposed tagging context items by category to enable smarter automatic selection, linked in the related architecture and scoping issues (&lt;a href="https://www.drupal.org/node/3559379"&gt;#3559379&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3564706"&gt;#3564706&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3568679"&gt;#3568679&lt;/a&gt;), and ultimately folded the resolution into &lt;a href="https://www.drupal.org/node/3574359"&gt;#3574359&lt;/a&gt; once the approach was agreed upon.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3579414: Remove hardcoded tool parameter check and use plugin discovery</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579414.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e75dc06954</guid>
+      <pubDate>Tue, 17 Mar 2026 09:50:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +33/−25 · php +33/−25&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_agents_test/-/commit/2ec94a8cabae4e01929ecce913e8b83435e8a884"&gt;2ec94a8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579414"&gt;#3579414&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Agents Test module now automatically discovers and displays all available parameter test plugins when creating agent tests. Previously, the interactive test form hardcoded a fixed list of parameter validation rules, meaning custom plugins couldn't be used even though the system supported them. This change makes the module properly extensible, allowing developers to create custom parameter validation plugins that immediately appear in the testing interface.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;InteractiveAgentTestForm&lt;/code&gt; class was building parameter test options using a hardcoded array of ten validation rules (empty, isset, not_set, equals, etc.), even though &lt;code&gt;AgentsParameterTest&lt;/code&gt; items were already implemented as plugins with a discovery system. This meant custom plugins existed but couldn't be selected in the UI.&lt;/p&gt;
+&lt;p&gt;The fix injects the &lt;code&gt;AgentsParameterTestPluginManager&lt;/code&gt; service into the form and replaces the hardcoded options array with a new &lt;code&gt;getParameterTestOptions()&lt;/code&gt; method. This method queries the plugin manager for all available definitions and builds the options list dynamically from their labels, preserving the 'empty' (No rules) option as the first entry.&lt;/p&gt;
+&lt;p&gt;The form states logic for showing/hiding the value field was also refactored. Instead of listing all checks that should show the field, it now uses an inverse approach, hiding the field only for 'empty', 'isset', and 'not_set'. This makes the visibility rules work automatically for new plugins without requiring code changes.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 16, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 17, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was opened and resolved within one day, with a straightforward implementation. The problem was clearly identified: the plugin system existed but wasn't being used for UI rendering. The solution followed established Drupal patterns of injecting the plugin manager and using discovery to populate form options, making this a textbook example of fixing a plugin system integration gap.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3522130: Add client-side transform for daterange_default to ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3522130.md</link>
+      <guid isPermaLink="false">019d857f-33e3-726a-abae-0ef8a76113c6</guid>
+      <pubDate>Sat, 14 Mar 2026 21:05:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +285/−16 · js +276/−2 · php +4/−14 · yml +4 · md +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/0974302b2a77071c7b795753e3fd84327fbd7969"&gt;0974302&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3522130"&gt;#3522130&lt;/a&gt; · 5 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas now supports date range fields in component properties. Previously, components using date range elements would trigger a logic exception because the necessary data transformations were missing. This fix enables site builders to use date range widgets when editing component instances, allowing them to specify both start and end dates that flow correctly through the component rendering system. The implementation ensures dates are properly converted to UTC ISO format for storage and display.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The Canvas system uses field widgets from core to edit component properties in the sidebar. Each widget type requires a client-side transform to convert form values into the format expected by components. The &lt;code&gt;daterange_default&lt;/code&gt; widget was missing this transform, causing exceptions when components declared date range properties.&lt;/p&gt;
+&lt;p&gt;The fix adds a &lt;code&gt;dateRange&lt;/code&gt; transform that processes both &lt;code&gt;value&lt;/code&gt; and &lt;code&gt;end_value&lt;/code&gt; fields from the date range widget. It reuses the existing &lt;code&gt;dateTime&lt;/code&gt; transform logic to handle both date-only and datetime types. The transform extracts date and optional time values from the form structure, converts them to UTC ISO-8601 strings, and returns an object with &lt;code&gt;value&lt;/code&gt; and &lt;code&gt;end_value&lt;/code&gt; properties.&lt;/p&gt;
+&lt;p&gt;The implementation includes null guards aligned with other transforms, a new &lt;code&gt;canvas.transform.dateRange&lt;/code&gt; library definition, widget mapping registration in &lt;code&gt;ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()&lt;/code&gt;, and comprehensive test coverage including Cypress end-to-end tests that verify autosave PATCH requests contain correct date values. The fix also removes a test override and TODO comment that were blocking &lt;code&gt;daterange_default&lt;/code&gt; support.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 1, 2025&lt;/li&gt;
+&lt;li&gt;Committed: March 14, 2026 (10 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue took ten months from opening to commit, progressing through several iterations. The initial report identified the missing transform when enabling comprehensive component property testing. Scott Falconer implemented the solution but initially included out-of-scope Cypress test stabilization work. After feedback from Wim Leers requesting those changes be extracted to a separate issue, Scott narrowed the merge request to focus solely on date range support. Lauriii made their first commit to this issue's fork before the final landing. The fix also addressed &lt;a href="https://www.drupal.org/node/3523379"&gt;#3523379&lt;/a&gt;'s proposed resolution and appears aligned with &lt;a href="https://www.drupal.org/node/3546401"&gt;#3546401&lt;/a&gt;, consolidating multiple related concerns into one solution.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3576225: Index Strategy for the Drupal-created collections</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md</link>
+      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94b29cdeae88</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 06 Mar 2026 16:31:06 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +571/−67 · php +562/−67 · yml +9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_vdb_provider_postgres/-/commit/c4933a3d380c83f7ab76f24934976ca392570c17"&gt;c4933a3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576225"&gt;#3576225&lt;/a&gt; · 4 contributors · 11 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI VDB Provider Postgres module now allows you to choose how your vector search data is indexed. You can select between exact search for small datasets or use HNSW or IVFFlat strategies for faster searches on large datasets. This setting is exposed in the Search API server configuration form and can be changed at any time. The module automatically creates or updates the database index when you save your configuration, and it respects your chosen similarity metric (cosine, euclidean, or inner product) when building the index.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;VectorIndexStrategy&lt;/code&gt; enum and &lt;code&gt;PostgresPgvectorClient::ensureVectorIndex()&lt;/code&gt; method for managing pgvector index strategies&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;PostgresProvider&lt;/code&gt; plugin now exposes a &lt;strong&gt;Vector index strategy&lt;/strong&gt; select element in &lt;code&gt;buildSettingsForm()&lt;/code&gt; with three options: None (exact search via sequential scan), HNSW (Hierarchical Navigable Small World), and IVFFlat. The selected strategy is persisted in &lt;code&gt;database_settings.vector_index_strategy&lt;/code&gt; within the Search API server configuration.&lt;/p&gt;
+&lt;p&gt;Because the upstream &lt;code&gt;ai_search&lt;/code&gt; module does not invoke provider &lt;code&gt;submitSettingsForm()&lt;/code&gt; during normal form submission, index application happens via a &lt;code&gt;ConfigEvents::SAVE&lt;/code&gt; event subscriber at priority &lt;code&gt;-10&lt;/code&gt;. This runs after the upstream subscriber (priority &lt;code&gt;0&lt;/code&gt;) that creates the collection table, ensuring the table exists before index operations.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;PostgresPgvectorClient::ensureVectorIndex()&lt;/code&gt; method compares the current index state (strategy and operator class) against the desired configuration and only drops and recreates the index when they differ. The operator class is derived from the configured similarity metric: &lt;code&gt;vector_cosine_ops&lt;/code&gt;, &lt;code&gt;vector_l2_ops&lt;/code&gt;, or &lt;code&gt;vector_ip_ops&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;VectorIndexStrategy&lt;/code&gt; backed enum provides case definitions, human-readable labels, and form options. &lt;code&gt;VectorIndexException&lt;/code&gt; is thrown on index operation failures and logged without failing the entire config save. Index changes are also reapplied after clearing all indexed data via &lt;code&gt;deleteAllItems()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No external code changes are required. This is a new feature exposed through the UI.&lt;/p&gt;
+&lt;p&gt;If you maintain custom code that directly calls &lt;code&gt;PostgresPgvectorClient&lt;/code&gt; methods or extends &lt;code&gt;PostgresProvider&lt;/code&gt;, note that the client now provides public methods &lt;code&gt;ensureVectorIndex()&lt;/code&gt;, &lt;code&gt;createVectorIndex()&lt;/code&gt;, &lt;code&gt;dropVectorIndex()&lt;/code&gt;, and &lt;code&gt;getVectorIndexStrategy()&lt;/code&gt; for managing pgvector indexes programmatically. The new &lt;code&gt;VectorIndexStrategy&lt;/code&gt; enum is available at &lt;code&gt;\Drupal\ai_vdb_provider_postgres\Enum\VectorIndexStrategy&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: March 6, 2026 (7 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This feature request was opened and implemented by nikro (Dropsolid) with testing and review by abhisekmazumdar (Dropsolid). The issue was opened on February 27, 2026 and committed on March 6, 2026, a turnaround of about one week.&lt;/p&gt;
+&lt;p&gt;The initial patch was comprehensive, including the enum, event subscriber, client methods, form integration, and automatic reapplication after clearing data. abhisekmazumdar noted they had delayed review while setting up the required pgvector environment, but once tested the feature worked as designed across all transitions (None to HNSW, HNSW to IVFFlat, etc.) and correctly applied metric-aware operator classes.&lt;/p&gt;
+&lt;p&gt;The diff included PHPCS cleanup of pre-existing code style issues (unqualified type hints, trailing commas, docblock formatting), which nikro noted upfront in comment #4. The issue summary tracked completion of six planned tasks; the last two (automated tests and documentation updates) were skipped. Tests were deemed impractical due to the need for a live pgvector connection in CI, and documentation was considered low priority.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+  </channel>
+</rss>
