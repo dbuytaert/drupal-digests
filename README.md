@@ -1,16 +1,16 @@
 *Updated April 26, 2026*
 
-**TL;DR:** [502 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [503 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
 **Drupal Core**
-_375 summaries · 166 new this week_
+_376 summaries · 167 new this week_
+- [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
 - [#3035340: Deprecate core/modules/views_ui/admin.inc](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035340.md)
-- [#3550054: Move FORM_SEPARATE_PAGE and FORM_BELOW constants in CommentItemInterface to new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3550054.md)
 
 **Drupal Canvas**
 _52 summaries · 13 new this week_
