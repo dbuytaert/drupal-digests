@@ -5,6 +5,215 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace deprecated NodeStorage::revisionIds() and userRevisionIds() with entity queries</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc75d-1930-74bc-b44f-9b400de54c7b.md</link>
+      <guid isPermaLink="false">019dc75d-1930-74bc-b44f-9b400de54c7b</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 01:17:40 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3396062"&gt;#3396062&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;NodeStorage::revisionIds()&lt;/code&gt; and &lt;code&gt;NodeStorage::userRevisionIds()&lt;/code&gt; methods (deprecated in Drupal 11.3.0, removed in 13.0.0) with equivalent entity queries using &lt;code&gt;array_keys()&lt;/code&gt; and &lt;code&gt;getQuery()&lt;/code&gt;. The &lt;code&gt;revisionIds()&lt;/code&gt; replacement queries by &lt;code&gt;nid&lt;/code&gt;; the &lt;code&gt;userRevisionIds()&lt;/code&gt; replacement queries by &lt;code&gt;uid&lt;/code&gt;. Only rewrites calls on objects typed as &lt;code&gt;NodeStorageInterface&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$ids = $storage-&amp;gt;revisionIds($node);
+$revisions = $storage-&amp;gt;userRevisionIds($account);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$ids = array_keys($storage-&amp;gt;getQuery()-&amp;gt;allRevisions()-&amp;gt;condition('nid', $node-&amp;gt;id())-&amp;gt;accessCheck(FALSE)-&amp;gt;execute());
+$revisions = array_keys($storage-&amp;gt;getQuery()-&amp;gt;allRevisions()-&amp;gt;accessCheck(FALSE)-&amp;gt;condition('uid', $account-&amp;gt;id())-&amp;gt;execute());
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Name;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated NodeStorage::revisionIds() and
+ * NodeStorage::userRevisionIds() with equivalent entity queries.
+ *
+ * Introduced in Drupal 11.3.0:
+ * https://www.drupal.org/node/3519185
+ */
+final class NodeStorageDeprecatedMethodsRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated NodeStorage::revisionIds() and NodeStorage::userRevisionIds() with entity queries.',
+            [
+                new CodeSample(
+                    '$storage-&amp;gt;revisionIds($node);',
+                    'array_keys($storage-&amp;gt;getQuery()-&amp;gt;allRevisions()-&amp;gt;condition(\'nid\', $node-&amp;gt;id())-&amp;gt;accessCheck(FALSE)-&amp;gt;execute());'
+                ),
+                new CodeSample(
+                    '$storage-&amp;gt;userRevisionIds($account);',
+                    'array_keys($storage-&amp;gt;getQuery()-&amp;gt;allRevisions()-&amp;gt;accessCheck(FALSE)-&amp;gt;condition(\'uid\', $account-&amp;gt;id())-&amp;gt;execute());'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /** @param MethodCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        $methodName = $this-&amp;gt;getName($node-&amp;gt;name);
+
+        if ($methodName === 'revisionIds') {
+            if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\\node\\NodeStorageInterface'))) {
+                return null;
+            }
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+
+            $nodeArg = $node-&amp;gt;args[0] instanceof Arg ? $node-&amp;gt;args[0]-&amp;gt;value : $node-&amp;gt;args[0];
+
+            $getQuery     = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($node-&amp;gt;var, 'getQuery');
+            $allRevisions = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($getQuery, 'allRevisions');
+            $nodeId       = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($nodeArg, 'id');
+            $condition    = new MethodCall($allRevisions, 'condition', [
+                new Arg(new String_('nid')),
+                new Arg($nodeId),
+            ]);
+            $accessCheck  = new MethodCall($condition, 'accessCheck', [
+                new Arg(new ConstFetch(new Name('FALSE'))),
+            ]);
+            $execute      = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($accessCheck, 'execute');
+
+            return $this-&amp;gt;nodeFactory-&amp;gt;createFuncCall('array_keys', [new Arg($execute)]);
+        }
+
+        if ($methodName === 'userRevisionIds') {
+            if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\\node\\NodeStorageInterface'))) {
+                return null;
+            }
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+
+            $accountArg = $node-&amp;gt;args[0] instanceof Arg ? $node-&amp;gt;args[0]-&amp;gt;value : $node-&amp;gt;args[0];
+
+            $getQuery     = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($node-&amp;gt;var, 'getQuery');
+            $allRevisions = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($getQuery, 'allRevisions');
+            $accessCheck  = new MethodCall($allRevisions, 'accessCheck', [
+                new Arg(new ConstFetch(new Name('FALSE'))),
+            ]);
+            $accountId    = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($accountArg, 'id');
+            $condition    = new MethodCall($accessCheck, 'condition', [
+                new Arg(new String_('uid')),
+                new Arg($accountId),
+            ]);
+            $execute      = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($condition, 'execute');
+
+            return $this-&amp;gt;nodeFactory-&amp;gt;createFuncCall('array_keys', [new Arg($execute)]);
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([NodeStorageDeprecatedMethodsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated drupal_requirements_severity() with RequirementSeverity::maxSeverityFromRequirements()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc75a-32b5-72c5-83d1-76d2ba5ec984.md</link>
+      <guid isPermaLink="false">019dc75a-32b5-72c5-83d1-76d2ba5ec984</guid>
+      <category>deprecation</category>
+      <pubDate>Sun, 26 Apr 2026 01:14:30 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3410938"&gt;#3410938&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.2 deprecated the &lt;code&gt;drupal_requirements_severity()&lt;/code&gt; procedural function in favour of the new &lt;code&gt;\Drupal\Core\Extension\Requirement\RequirementSeverity::maxSeverityFromRequirements()&lt;/code&gt; static method. The new method returns a typed &lt;code&gt;RequirementSeverity&lt;/code&gt; enum instead of a raw &lt;code&gt;int&lt;/code&gt;, improving type safety throughout the requirements system. This rule automates the call-site migration.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$severity = drupal_requirements_severity($requirements);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$severity = \Drupal\Core\Extension\Requirement\RequirementSeverity::maxSeverityFromRequirements($requirements);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\FuncCall;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated drupal_requirements_severity() with
+ * RequirementSeverity::maxSeverityFromRequirements().
+ */
+final class DrupalRequirementsSeverityToEnumRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated drupal_requirements_severity() with \\Drupal\\Core\\Extension\\Requirement\\RequirementSeverity::maxSeverityFromRequirements()',
+            [
+                new CodeSample(
+                    '$severity = drupal_requirements_severity($requirements);',
+                    '$severity = \\Drupal\\Core\\Extension\\Requirement\\RequirementSeverity::maxSeverityFromRequirements($requirements);'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node, 'drupal_requirements_severity')) {
+            return null;
+        }
+
+        return $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
+            'Drupal\\Core\\Extension\\Requirement\\RequirementSeverity',
+            'maxSeverityFromRequirements',
+            $node-&amp;gt;args
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([DrupalRequirementsSeverityToEnumRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace @group legacy annotation with #[IgnoreDeprecations] attribute</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc73a-b700-77db-8bfe-49e2b6ce8a4c.md</link>
       <guid isPermaLink="false">019dc73a-b700-77db-8bfe-49e2b6ce8a4c</guid>
@@ -2474,204 +2683,6 @@ final class NavigationSettingsLogoKeysRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([NavigationSettingsLogoKeysRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN with \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc3ed-245e-753c-b8ab-cb541c9e2ee3.md</link>
-      <guid isPermaLink="false">019dc3ed-245e-753c-b8ab-cb541c9e2ee3</guid>
-      <category>deprecation</category>
-      <pubDate>Sat, 25 Apr 2026 09:16:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3477277"&gt;#3477277&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces the global constant &lt;code&gt;LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt; with the class constant &lt;code&gt;\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt;. The global constant was deprecated in Drupal 11.2.0 and will be removed in Drupal 12.0.0 as part of moving the value to a more accessible location that does not require &lt;code&gt;locale.module&lt;/code&gt; to be loaded.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\ConstFetch;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Replaces deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN constant
- * with \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN.
- */
-final class LocaleTranslationDefaultServerPatternRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN with \\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN',
-            [
-                new CodeSample(
-                    '$pattern = LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN;',
-                    '$pattern = \\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN;'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [ConstFetch::class];
-    }
-
-    /** @param ConstFetch $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node, 'LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN')) {
-            return null;
-        }
-
-        return new ClassConstFetch(
-            new FullyQualified('Drupal'),
-            'TRANSLATION_DEFAULT_SERVER_PATTERN'
-        );
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([LocaleTranslationDefaultServerPatternRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove overrides of deprecated HandlerBase::defineExtraOptions()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc3d8-6a57-7506-96e5-c6a6c5db8a8c.md</link>
-      <guid isPermaLink="false">019dc3d8-6a57-7506-96e5-c6a6c5db8a8c</guid>
-      <category>deprecation</category>
-      <pubDate>Sat, 25 Apr 2026 08:53:53 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3485084"&gt;#3485084&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes &lt;code&gt;defineExtraOptions()&lt;/code&gt; method overrides from Views Handler subclasses. The method was deprecated in &lt;code&gt;drupal:11.2.0&lt;/code&gt;, removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;, and has no replacement — Drupal core never called it, so any override is dead code. The deprecation trigger in &lt;code&gt;HandlerBase&lt;/code&gt; itself is left untouched.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\HandlerBase;
-
-class MyViewsFilter extends HandlerBase {
-  public function defineExtraOptions(&amp;amp;$option) {
-    $option['my_key'] = ['default' =&amp;gt; 'value'];
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\HandlerBase;
-
-class MyViewsFilter extends HandlerBase {
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Stmt\Class_;
-use PhpParser\Node\Stmt\ClassMethod;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Removes overrides of the deprecated HandlerBase::defineExtraOptions() method.
- *
- * The method was deprecated in drupal:11.2.0 and removed in drupal:12.0.0
- * with no replacement. Any override in a subclass is dead code because
- * Drupal core never calls this method.
- *
- * @see https://www.drupal.org/node/3486781
- */
-final class RemoveDefineExtraOptionsOverrideRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove overrides of the deprecated HandlerBase::defineExtraOptions() which has no replacement.',
-            [
-                new CodeSample(
-                    &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Drupal\views\Plugin\views\HandlerBase;
-
-class MyViewsFilter extends HandlerBase {
-  public function defineExtraOptions(&amp;amp;$option) {
-    $option['my_key'] = ['default' =&amp;gt; 'value'];
-  }
-}
-CODE_SAMPLE
-                    ,
-                    &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Drupal\views\Plugin\views\HandlerBase;
-
-class MyViewsFilter extends HandlerBase {
-}
-CODE_SAMPLE
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Class_::class];
-    }
-
-    /**
-     * @param Class_ $node
-     */
-    public function refactor(Node $node): ?Node
-    {
-        // Do not remove from HandlerBase itself — the deprecation trigger stays.
-        // Use the short class name (Identifier), not the FQCN from getName().
-        if ($node-&amp;gt;name instanceof Identifier &amp;amp;&amp;amp; $node-&amp;gt;name-&amp;gt;toString() === 'HandlerBase') {
-            return null;
-        }
-
-        $changed = false;
-        $newStmts = [];
-
-        foreach ($node-&amp;gt;stmts as $stmt) {
-            if ($stmt instanceof ClassMethod &amp;amp;&amp;amp; $this-&amp;gt;getName($stmt) === 'defineExtraOptions') {
-                // Drop this method override — no replacement exists.
-                $changed = true;
-                continue;
-            }
-            $newStmts[] = $stmt;
-        }
-
-        if (!$changed) {
-            return null;
-        }
-
-        $node-&amp;gt;stmts = $newStmts;
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveDefineExtraOptionsOverrideRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
