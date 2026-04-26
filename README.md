@@ -1,6 +1,6 @@
 *Updated April 26, 2026*
 
-**TL;DR:** [502 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [137 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [502 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -33,7 +33,7 @@ _10 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [137 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [139 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -45,11 +45,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_137 rules · 128 new this week_
+_139 rules · 130 new this week_
 
+- [Add FileUrlGeneratorInterface argument to AttachmentsProcessor constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-fileurlgeneratorinterface-argument-to-3366561.php)
+- [Replace deprecated REQUEST_TIME constant with \Drupal::time()->getRequestTime()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-request-time-constant-with-drupal-time-3395986.php)
 - [Replace deprecated NodeStorage::revisionIds() and userRevisionIds() with entity...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-nodestorage-revisionids-and-3396062.php)
-- [Replace deprecated drupal_requirements_severity() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-drupal-requirements-severity-with-3410938.php)
-- [Replace @group legacy annotation with #[IgnoreDeprecations] attribute](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-group-legacy-annotation-with-ignoredeprecations-3417066.php)
 
 
 ## RSS feeds
