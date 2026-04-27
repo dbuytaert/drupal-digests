@@ -8,7 +8,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_376 summaries · 140 new this week_
+_376 summaries · 138 new this week_
 
 - [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
@@ -53,7 +53,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_159 rules · 145 new this week_
+_159 rules · 143 new this week_
 
 - [Remove deprecated EntityTypeInterface::setUriCallback() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-entitytypeinterface-seturicallback-calls-2667040.php)
 - [Replace deprecated EntityReferenceEntityFormatter::RECURSIVE_RENDER_LIMIT with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-entityreferenceentityformatter-recursive-2940605.php)
