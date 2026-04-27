@@ -1,6 +1,6 @@
 *Updated April 27, 2026*
 
-**TL;DR:** [505 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [159 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [506 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [161 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,7 +8,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_376 summaries · 139 new this week_
+_377 summaries · 140 new this week_
 
 - [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
@@ -41,7 +41,7 @@ _11 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [159 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [161 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_159 rules · 144 new this week_
+_161 rules · 146 new this week_
 
+- [Add PathMatcherInterface to MenuActiveTrail constructor calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-pathmatcherinterface-to-menuactivetrail-constructor-1578832.php)
+- [Replace deprecated comment_uri() with Comment::permalink()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-comment-uri-with-comment-permalink-2010202.php)
 - [Remove deprecated template_preprocess() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-template-preprocess-calls-2340341.php)
-- [Remove deprecated EntityTypeInterface::setUriCallback() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-entitytypeinterface-seturicallback-calls-2667040.php)
-- [Replace deprecated EntityReferenceEntityFormatter::RECURSIVE_RENDER_LIMIT with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-entityreferenceentityformatter-recursive-2940605.php)
 
 
 ## RSS feeds

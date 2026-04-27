@@ -5,6 +5,198 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Add PathMatcherInterface to MenuActiveTrail constructor calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd0b2-2533-77c9-9e0d-4b622caaff89.md</link>
+      <guid isPermaLink="false">019dd0b2-2533-77c9-9e0d-4b622caaff89</guid>
+      <category>deprecation</category>
+      <pubDate>Mon, 27 Apr 2026 20:47:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1578832"&gt;#1578832&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Adds the missing &lt;code&gt;PathMatcherInterface $pathMatcher&lt;/code&gt; fifth argument to &lt;code&gt;MenuActiveTrail::__construct()&lt;/code&gt; calls. Omitting it is deprecated in drupal:11.2.0 and will be required in drupal:12.0.0 (see https://www.drupal.org/node/3523495). Handles both direct &lt;code&gt;new MenuActiveTrail(...)&lt;/code&gt; instantiation and &lt;code&gt;parent::__construct()&lt;/code&gt; calls in subclasses.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new MenuActiveTrail($menuLinkManager, $routeMatch, $cache, $lock);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new MenuActiveTrail($menuLinkManager, $routeMatch, $cache, $lock, \Drupal::service('path.matcher'));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Stmt\Class_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class MenuActiveTrailPathMatcherRector extends AbstractRector
+{
+    private const MENU_ACTIVE_TRAIL_CLASS = 'Drupal\Core\Menu\MenuActiveTrail';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add PathMatcherInterface argument to MenuActiveTrail::__construct() calls, deprecated in drupal:11.2.0 and required in drupal:12.0.0.',
+            [
+                new CodeSample(
+                    'new MenuActiveTrail($menuLinkManager, $routeMatch, $cache, $lock);',
+                    'new MenuActiveTrail($menuLinkManager, $routeMatch, $cache, $lock, \Drupal::service(\'path.matcher\'));'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class, Class_::class];
+    }
+
+    /** @param New_|Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node instanceof New_) {
+            return $this-&amp;gt;refactorNew($node);
+        }
+        return $this-&amp;gt;refactorClass($node);
+    }
+
+    private function refactorNew(New_ $node): ?New_
+    {
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, self::MENU_ACTIVE_TRAIL_CLASS)) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 4) {
+            return null;
+        }
+        $node-&amp;gt;args[] = new Arg(
+            $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall('Drupal', 'service', ['path.matcher'])
+        );
+        return $node;
+    }
+
+    private function refactorClass(Class_ $node): ?Class_
+    {
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;extends, self::MENU_ACTIVE_TRAIL_CLASS)) {
+            return null;
+        }
+
+        $hasChanges = false;
+        $this-&amp;gt;traverseNodesWithCallable($node-&amp;gt;stmts, function (Node $n) use (&amp;amp;$hasChanges): ?StaticCall {
+            if (!($n instanceof StaticCall)) {
+                return null;
+            }
+            if (!$this-&amp;gt;isName($n-&amp;gt;class, 'parent')) {
+                return null;
+            }
+            if (!$this-&amp;gt;isName($n-&amp;gt;name, '__construct')) {
+                return null;
+            }
+            if (count($n-&amp;gt;args) !== 4) {
+                return null;
+            }
+            $n-&amp;gt;args[] = new Arg(
+                $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall('Drupal', 'service', ['path.matcher'])
+            );
+            $hasChanges = true;
+            return $n;
+        });
+
+        return $hasChanges ? $node : null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([MenuActiveTrailPathMatcherRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated comment_uri() with Comment::permalink()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd0ac-1c2d-70d3-8986-0eb363e46184.md</link>
+      <guid isPermaLink="false">019dd0ac-1c2d-70d3-8986-0eb363e46184</guid>
+      <category>deprecation</category>
+      <pubDate>Mon, 27 Apr 2026 20:40:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2010202"&gt;#2010202&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated &lt;code&gt;comment_uri(CommentInterface $comment)&lt;/code&gt; procedural function (deprecated in Drupal 11.3.0, removed in 12.0.0) to the equivalent &lt;code&gt;$comment-&amp;gt;permalink()&lt;/code&gt; method call. The procedural function was a leftover &lt;code&gt;uri_callback&lt;/code&gt; that now simply delegates to &lt;code&gt;Comment::permalink()&lt;/code&gt;, so the rewrite is a direct one-to-one substitution.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$url = comment_uri($comment);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$url = $comment-&amp;gt;permalink();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\FuncCall;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class CommentUriToPermalinkRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated comment_uri($comment) calls with $comment-&amp;gt;permalink()',
+            [
+                new CodeSample(
+                    'comment_uri($comment);',
+                    '$comment-&amp;gt;permalink();'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;isName($node, 'comment_uri')) {
+            return null;
+        }
+
+        if (count($node-&amp;gt;args) !== 1) {
+            return null;
+        }
+
+        $commentArg = $node-&amp;gt;args[0]-&amp;gt;value;
+
+        return $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($commentArg, 'permalink');
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([CommentUriToPermalinkRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Remove deprecated template_preprocess() calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcff7-d899-751b-a433-3512d2908105.md</link>
       <guid isPermaLink="false">019dcff7-d899-751b-a433-3512d2908105</guid>
@@ -2103,228 +2295,6 @@ final class NodePreviewControllerConstructorRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([NodePreviewControllerConstructorRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Rename hook_preprocess_block_content_add_list to hook_preprocess_entity_add_list</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc9bf-8f69-7721-a27a-5b941cafb04a.md</link>
-      <guid isPermaLink="false">019dc9bf-8f69-7721-a27a-5b941cafb04a</guid>
-      <category>deprecation</category>
-      <pubDate>Sun, 26 Apr 2026 12:24:27 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3346394"&gt;#3346394&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;The &lt;code&gt;block_content_add_list&lt;/code&gt; theme hook is deprecated in drupal:11.3.0 and removed in drupal:12.0.0 in favour of &lt;code&gt;entity_add_list&lt;/code&gt;. Any function implementing &lt;code&gt;hook_preprocess_block_content_add_list&lt;/code&gt; (e.g., &lt;code&gt;MYTHEME_preprocess_block_content_add_list&lt;/code&gt;) must be renamed to &lt;code&gt;MYTHEME_preprocess_entity_add_list&lt;/code&gt;. The rule handles &lt;code&gt;.php&lt;/code&gt;, &lt;code&gt;.module&lt;/code&gt;, &lt;code&gt;.theme&lt;/code&gt;, and &lt;code&gt;.inc&lt;/code&gt; files so contrib modules and themes are all covered. See https://www.drupal.org/node/3530643.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;function mytheme_preprocess_block_content_add_list(&amp;amp;$variables): void {}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;function mytheme_preprocess_entity_add_list(&amp;amp;$variables): void {}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Stmt\Function_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Renames hook_preprocess_block_content_add_list implementations to
- * hook_preprocess_entity_add_list, following the deprecation of the
- * block_content_add_list theme hook in drupal:11.3.0.
- */
-final class RenameBlockContentAddListPreprocessRector extends AbstractRector
-{
-    private const OLD_SUFFIX = '_preprocess_block_content_add_list';
-    private const NEW_SUFFIX = '_preprocess_entity_add_list';
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Rename hook_preprocess_block_content_add_list() implementations to hook_preprocess_entity_add_list()',
-            [
-                new CodeSample(
-                    'function mytheme_preprocess_block_content_add_list(&amp;amp;$variables): void {}',
-                    'function mytheme_preprocess_entity_add_list(&amp;amp;$variables): void {}'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Function_::class];
-    }
-
-    /** @param Function_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        $name = $this-&amp;gt;getName($node);
-        if ($name === null) {
-            return null;
-        }
-
-        if (!str_ends_with($name, self::OLD_SUFFIX)) {
-            return null;
-        }
-
-        $prefix = substr($name, 0, -strlen(self::OLD_SUFFIX));
-        $node-&amp;gt;name = new Identifier($prefix . self::NEW_SUFFIX);
-
-        return $node;
-    }
-}
-
-return RectorConfig::configure()
-    -&amp;gt;withRules([RenameBlockContentAddListPreprocessRector::class])
-    -&amp;gt;withFileExtensions(['php', 'theme', 'inc', 'module']);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated trustData() calls and save(TRUE) argument in config</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dc9bb-4d8e-7694-844b-665487cd475c.md</link>
-      <guid isPermaLink="false">019dc9bb-4d8e-7694-844b-665487cd475c</guid>
-      <category>deprecation</category>
-      <pubDate>Sun, 26 Apr 2026 12:19:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3347842"&gt;#3347842&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes calls to &lt;code&gt;trustData()&lt;/code&gt; on config entities (deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt;, removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;) by stripping the method from fluent chains, and removes the deprecated boolean &lt;code&gt;$has_trusted_data&lt;/code&gt; argument from &lt;code&gt;Config::save()&lt;/code&gt; calls. Both were performance hints that are no longer needed. Contrib and custom code using these patterns triggers &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; errors.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$entity-&amp;gt;trustData()-&amp;gt;save();
-$config-&amp;gt;save(TRUE);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$entity-&amp;gt;save();
-$config-&amp;gt;save();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ConstFetch;
-use PhpParser\Node\Expr\MethodCall;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Removes deprecated trustData() method calls from config entity chains.
- *
- * trustData() is deprecated in drupal:11.4.0 and removed in drupal:13.0.0.
- * It was a no-op optimisation hint; removing it is safe.
- */
-final class RemoveTrustDataCallRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove deprecated trustData() calls from config entity method chains (deprecated in drupal:11.4.0, removed in drupal:13.0.0)',
-            [
-                new CodeSample(
-                    '$entity-&amp;gt;trustData()-&amp;gt;save();',
-                    '$entity-&amp;gt;save();'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [MethodCall::class];
-    }
-
-    /** @param MethodCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'trustData')) {
-            return null;
-        }
-        // Replace the whole trustData() call with its receiver, effectively
-        // removing it from the chain.
-        return $node-&amp;gt;var;
-    }
-}
-
-/**
- * Removes the deprecated $has_trusted_data boolean argument from save() calls.
- *
- * Passing any argument to Config::save() is deprecated in drupal:11.4.0 and
- * removed in drupal:13.0.0. Target boolean literals specifically to avoid
- * false positives on unrelated save() methods.
- */
-final class RemoveConfigSaveTrustedDataArgRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove deprecated boolean $has_trusted_data argument from Config::save() calls (deprecated in drupal:11.4.0, removed in drupal:13.0.0)',
-            [
-                new CodeSample(
-                    '$config-&amp;gt;save(TRUE);',
-                    '$config-&amp;gt;save();'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [MethodCall::class];
-    }
-
-    /** @param MethodCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'save')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 1) {
-            return null;
-        }
-        $arg = $node-&amp;gt;args[0];
-        if (!$arg instanceof Arg) {
-            return null;
-        }
-        // Only strip boolean literals (TRUE / FALSE) — the deprecated param.
-        if (!$arg-&amp;gt;value instanceof ConstFetch) {
-            return null;
-        }
-        $constName = strtolower((string) $arg-&amp;gt;value-&amp;gt;name);
-        if ($constName !== 'true' &amp;amp;&amp;amp; $constName !== 'false') {
-            return null;
-        }
-        $node-&amp;gt;args = [];
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([
-    RemoveTrustDataCallRector::class,
-    RemoveConfigSaveTrustedDataArgRector::class,
-]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
