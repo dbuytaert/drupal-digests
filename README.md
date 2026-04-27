@@ -1,6 +1,6 @@
 *Updated April 27, 2026*
 
-**TL;DR:** [504 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [158 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [505 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [159 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,7 +8,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_376 summaries · 150 new this week_
+_376 summaries · 140 new this week_
 
 - [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
@@ -32,7 +32,7 @@ _65 summaries · 7 new this week_
 
 ### Drupal CMS
 
-_10 summaries · 0 new this week_
+_11 summaries · 1 new this week_
 
 - [#3580694: The project template should always place config outside the web root by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3580694.md)
 - [#3579163: Add support for listing paid site templates in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3579163.md)
@@ -41,7 +41,7 @@ _10 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [158 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [159 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_158 rules · 146 new this week_
+_159 rules · 145 new this week_
 
+- [Remove deprecated EntityTypeInterface::setUriCallback() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-entitytypeinterface-seturicallback-calls-2667040.php)
 - [Replace deprecated EntityReferenceEntityFormatter::RECURSIVE_RENDER_LIMIT with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-entityreferenceentityformatter-recursive-2940605.php)
 - [Replace DefaultSelection with BlockContentSelection for block_content entity...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-defaultselection-with-blockcontentselection-for-2987159.php)
-- [Remove source_module from #[MigrateSource] PHP attributes (Drupal 11.2)](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-source-module-from-migratesource-php-attributes-3009349.php)
 
 
 ## RSS feeds
