@@ -52,7 +52,7 @@ final class FileGetContentHeadersRector extends AbstractRector
     /** @param FuncCall $node */
     public function refactor(Node $node): ?Node
     {
-        if (!($ node->name instanceof Name)) {
+        if (!($node->name instanceof Name)) {
             return null;
         }
 
