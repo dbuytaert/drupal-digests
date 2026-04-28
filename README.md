@@ -1,6 +1,6 @@
 *Updated April 28, 2026*
 
-**TL;DR:** [508 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [164 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [511 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,7 +8,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_375 summaries · 138 new this week_
+_375 summaries · 107 new this week_
 
 - [#3393274: The theme must be passed as a query argument](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md)
 - [#3195427: Olivero does not support core's responsive tables API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md)
@@ -41,7 +41,7 @@ _10 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [164 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_164 rules · 149 new this week_
+_165 rules · 148 new this week_
 
+- [Replace deprecated language module procedural functions with OOP equivalents](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-language-module-procedural-functions-3574727.php)
 - [Rename HelpSearch to SearchHelpSearch in search_help sub-module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-helpsearch-to-searchhelpsearch-in-search-help-sub-3581109.php)
 - [Add $settings argument to new HtaccessWriter() calls (deprecated in...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-settings-argument-to-new-htaccesswriter-calls-360057.php)
-- [Remove deprecated module_handler and controller_resolver args from...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-module-handler-and-controller-resolver-3311365.php)
 
 
 ## RSS feeds
