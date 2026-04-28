@@ -5,6 +5,143 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Add array type hint to by-reference parameters in #[Hook]-decorated methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd5f5-872b-7761-b66c-91ac763bfbaa.md</link>
+      <guid isPermaLink="false">019dd5f5-872b-7761-b66c-91ac763bfbaa</guid>
+      <category>reliability</category>
+      <pubDate>Tue, 28 Apr 2026 21:18:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579922"&gt;#3579922&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; reliability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Adds the missing &lt;code&gt;array&lt;/code&gt; type declaration to by-reference parameters named &lt;code&gt;$variables&lt;/code&gt;, &lt;code&gt;$suggestions&lt;/code&gt;, &lt;code&gt;$form&lt;/code&gt;, or &lt;code&gt;$info&lt;/code&gt; in class methods decorated with &lt;code&gt;#[Hook(...)]&lt;/code&gt;. Preprocess hooks, form_alter hooks, theme_suggestions_alter hooks, and &lt;code&gt;element_info_alter&lt;/code&gt; always receive those arguments as arrays; the explicit type hint improves static analysis and aligns with Drupal's move toward stricter typing.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Hook\Attribute\Hook;
+
+class OliveroHooks {
+    #[Hook('preprocess_node')]
+    public function preprocessNode(&amp;amp;$variables): void {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Hook\Attribute\Hook;
+
+class OliveroHooks {
+    #[Hook('preprocess_node')]
+    public function preprocessNode(array &amp;amp;$variables): void {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Stmt\ClassMethod;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Adds array type hint to by-reference parameters in #[Hook]-decorated methods.
+ *
+ * Preprocess hooks, form_alter hooks, theme_suggestions_alter hooks, and
+ * element_info_alter hooks always receive their primary argument (e.g.
+ * $variables, $form, $suggestions, $info) as an array. This rule adds the
+ * missing explicit `array` type declaration to those untyped by-reference
+ * parameters.
+ */
+final class AddArrayTypeToHookParametersRector extends AbstractRector
+{
+    /**
+     * Parameter names that are known to be arrays in hook implementations.
+     */
+    private const ARRAY_PARAM_NAMES = ['variables', 'suggestions', 'form', 'info'];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add array type hint to known array by-reference parameters in #[Hook]-decorated class methods',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+use Drupal\Core\Hook\Attribute\Hook;
+
+class OliveroHooks {
+    #[Hook('preprocess_node')]
+    public function preprocessNode(&amp;amp;$variables): void {}
+}
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+use Drupal\Core\Hook\Attribute\Hook;
+
+class OliveroHooks {
+    #[Hook('preprocess_node')]
+    public function preprocessNode(array &amp;amp;$variables): void {}
+}
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ClassMethod::class];
+    }
+
+    /** @param ClassMethod $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$this-&amp;gt;hasHookAttribute($node)) {
+            return null;
+        }
+
+        $changed = false;
+        foreach ($node-&amp;gt;params as $param) {
+            // Skip params that already have a type hint.
+            if ($param-&amp;gt;type !== null) {
+                continue;
+            }
+            // Only target by-reference params with known array names.
+            if (!$param-&amp;gt;byRef) {
+                continue;
+            }
+            $paramName = $this-&amp;gt;getName($param-&amp;gt;var);
+            if (!in_array($paramName, self::ARRAY_PARAM_NAMES, true)) {
+                continue;
+            }
+            $param-&amp;gt;type = new Identifier('array');
+            $changed = true;
+        }
+
+        return $changed ? $node : null;
+    }
+
+    private function hasHookAttribute(ClassMethod $node): bool
+    {
+        foreach ($node-&amp;gt;attrGroups as $attrGroup) {
+            foreach ($attrGroup-&amp;gt;attrs as $attr) {
+                $name = $this-&amp;gt;getName($attr-&amp;gt;name);
+                if ($name === 'Hook' || $name === 'Drupal\\Core\\Hook\\Attribute\\Hook') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddArrayTypeToHookParametersRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated language module procedural functions with OOP equivalents</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd353-ffda-71ed-b8b1-d2cd520f21ed.md</link>
       <guid isPermaLink="false">019dd353-ffda-71ed-b8b1-d2cd520f21ed</guid>
@@ -2032,183 +2169,6 @@ final class RemoveLinkWidgetValidateTitleElementRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([RemoveLinkWidgetValidateTitleElementRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add $event_dispatcher to JSON:API ResourceObjectNormalizer/EntityResource constructors</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcb76-1bb1-776e-a79e-440a05fece67.md</link>
-      <guid isPermaLink="false">019dcb76-1bb1-776e-a79e-440a05fece67</guid>
-      <category>deprecation</category>
-      <pubDate>Sun, 26 Apr 2026 20:23:28 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3100732"&gt;#3100732&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Targets subclasses of &lt;code&gt;Drupal\jsonapi\Normalizer\ResourceObjectNormalizer&lt;/code&gt; or &lt;code&gt;Drupal\jsonapi\Controller\EntityResource&lt;/code&gt; that override &lt;code&gt;__construct&lt;/code&gt; and call &lt;code&gt;parent::__construct()&lt;/code&gt; without the new &lt;code&gt;$event_dispatcher&lt;/code&gt; argument. Adds &lt;code&gt;?EventDispatcherInterface $event_dispatcher = NULL&lt;/code&gt; to the method signature and forwards it to the parent call. The omission was deprecated in &lt;code&gt;drupal:11.2.0&lt;/code&gt; and the argument will be required in &lt;code&gt;drupal:12.0.0&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\jsonapi\Normalizer\ResourceObjectNormalizer;
-use Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher;
-
-class MyNormalizer extends ResourceObjectNormalizer {
-    public function __construct(ResourceObjectNormalizationCacher $cacher) {
-        parent::__construct($cacher);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\jsonapi\Normalizer\ResourceObjectNormalizer;
-use Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher;
-
-class MyNormalizer extends ResourceObjectNormalizer {
-    public function __construct(ResourceObjectNormalizationCacher $cacher, ?\Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher = NULL) {
-        parent::__construct($cacher, $event_dispatcher);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\ConstFetch;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Expr\Variable;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
-use PhpParser\Node\Param;
-use PhpParser\Node\Stmt\Class_;
-use PhpParser\Node\Stmt\ClassMethod;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Adds the missing $event_dispatcher argument to constructors of classes
- * that extend ResourceObjectNormalizer or EntityResource (JSON:API) and call
- * parent::__construct() without the new required parameter, which was
- * deprecated in drupal:11.2.0 and will be required in drupal:12.0.0.
- */
-final class AddEventDispatcherToJsonApiConstructorRector extends AbstractRector
-{
-    private const TARGET_SHORT_NAMES = [
-        'ResourceObjectNormalizer',
-        'EntityResource',
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Add missing $event_dispatcher argument to parent::__construct() calls in subclasses of JSON:API ResourceObjectNormalizer or EntityResource (deprecated in drupal:11.2.0, required in drupal:12.0.0).',
-            [
-                new CodeSample(
-                    &amp;lt;&amp;lt;&amp;lt;'CODE'
-use Drupal\jsonapi\Normalizer\ResourceObjectNormalizer;
-use Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher;
-
-class MyNormalizer extends ResourceObjectNormalizer {
-    public function __construct(ResourceObjectNormalizationCacher $cacher) {
-        parent::__construct($cacher);
-    }
-}
-CODE
-                    ,
-                    &amp;lt;&amp;lt;&amp;lt;'CODE'
-use Drupal\jsonapi\Normalizer\ResourceObjectNormalizer;
-use Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher;
-
-class MyNormalizer extends ResourceObjectNormalizer {
-    public function __construct(ResourceObjectNormalizationCacher $cacher, ?\Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher = NULL) {
-        parent::__construct($cacher, $event_dispatcher);
-    }
-}
-CODE
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Class_::class];
-    }
-
-    /** @param Class_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if ($node-&amp;gt;extends === null) {
-            return null;
-        }
-
-        $parentClassName = $this-&amp;gt;getName($node-&amp;gt;extends);
-        if ($parentClassName === null) {
-            return null;
-        }
-
-        $shortName = substr($parentClassName, (int) strrpos($parentClassName, '\\') + 1);
-        if (!in_array($shortName, self::TARGET_SHORT_NAMES, true)) {
-            return null;
-        }
-
-        $constructMethod = null;
-        foreach ($node-&amp;gt;stmts as $stmt) {
-            if ($stmt instanceof ClassMethod &amp;amp;&amp;amp; $this-&amp;gt;isName($stmt, '__construct')) {
-                $constructMethod = $stmt;
-                break;
-            }
-        }
-
-        if ($constructMethod === null) {
-            return null;
-        }
-
-        foreach ($constructMethod-&amp;gt;params as $param) {
-            if ($this-&amp;gt;isName($param-&amp;gt;var, 'event_dispatcher')) {
-                return null;
-            }
-        }
-
-        $parentCall = null;
-        $this-&amp;gt;traverseNodesWithCallable((array) $constructMethod-&amp;gt;stmts, function (Node $n) use (&amp;amp;$parentCall): void {
-            if (
-                $n instanceof StaticCall
-                &amp;amp;&amp;amp; $this-&amp;gt;isName($n-&amp;gt;class, 'parent')
-                &amp;amp;&amp;amp; $this-&amp;gt;isName($n-&amp;gt;name, '__construct')
-            ) {
-                $parentCall = $n;
-            }
-        });
-
-        if (!$parentCall instanceof StaticCall) {
-            return null;
-        }
-
-        foreach ($parentCall-&amp;gt;args as $arg) {
-            if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;value instanceof Variable &amp;amp;&amp;amp; $this-&amp;gt;isName($arg-&amp;gt;value, 'event_dispatcher')) {
-                return null;
-            }
-        }
-
-        $constructMethod-&amp;gt;params[] = new Param(
-            var: new Variable('event_dispatcher'),
-            default: new ConstFetch(new Name('NULL')),
-            type: new NullableType(new Name\FullyQualified('Symfony\Component\EventDispatcher\EventDispatcherInterface'))
-        );
-
-        $parentCall-&amp;gt;args[] = new Arg(new Variable('event_dispatcher'));
-
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([AddEventDispatcherToJsonApiConstructorRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

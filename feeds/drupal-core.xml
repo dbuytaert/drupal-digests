@@ -5,6 +5,626 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3184242: Support brotli compression of assets</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3184242.md</link>
+      <guid isPermaLink="false">019dd5e9-8c63-7053-8b3f-ca5ae5f70e1e</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 28 Apr 2026 20:43:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 80 files, +198/−612 · php +198/−612&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1f55640159dce9fb7c494efe93bc1effdfb2fe41"&gt;1f55640&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3184242"&gt;#3184242&lt;/a&gt; · 16 contributors · 88 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 41&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal now generates Brotli-compressed (&lt;code&gt;.br&lt;/code&gt;) versions of aggregated CSS and JS assets alongside the existing gzip (&lt;code&gt;.gz&lt;/code&gt;) files, provided the PHP &lt;code&gt;brotli&lt;/code&gt; extension is installed. The Apache &lt;code&gt;.htaccess&lt;/code&gt; rules are updated to serve &lt;code&gt;.br&lt;/code&gt; files with priority over &lt;code&gt;.gz&lt;/code&gt; when a client advertises brotli support. The &lt;code&gt;system.performance.css.gzip&lt;/code&gt; and &lt;code&gt;system.performance.js.gzip&lt;/code&gt; config settings are renamed to &lt;code&gt;compress&lt;/code&gt;; an automatic upgrade path migrates existing configuration. Sites without the brotli extension see no change in behaviour.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; system_post_update_migrate_compress_setting() migrates css.gzip and js.gzip to css.compress and js.compress&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; system.performance.css.gzip and system.performance.js.gzip renamed to system.performance.css.compress and system.performance.js.compress&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; system.performance.&lt;em&gt;.gzip config keys deprecated in drupal:11.4.0, removed in drupal:12.0.0; use system.performance.&lt;/em&gt;.compress instead&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change is in &lt;code&gt;AssetDumper::dumpToUri()&lt;/code&gt;. Where it previously checked &lt;code&gt;$file_extension . '.gzip'&lt;/code&gt; to decide whether to write a &lt;code&gt;.gz&lt;/code&gt; file, it now checks the new &lt;code&gt;compress&lt;/code&gt; key first, falling back to the deprecated &lt;code&gt;gzip&lt;/code&gt; key for backward compatibility. When compression is enabled and &lt;code&gt;extension_loaded('brotli')&lt;/code&gt; is true, it writes a &lt;code&gt;.br&lt;/code&gt; file via &lt;code&gt;brotli_compress($data, 11, BROTLI_TEXT)&lt;/code&gt; after writing the &lt;code&gt;.gz&lt;/code&gt; file. The &lt;code&gt;.htaccess&lt;/code&gt; in both &lt;code&gt;sites/&lt;/code&gt; and &lt;code&gt;core/&lt;/code&gt; gains &lt;code&gt;RewriteCond&lt;/code&gt;/&lt;code&gt;RewriteRule&lt;/code&gt; blocks for &lt;code&gt;.css.br&lt;/code&gt; and &lt;code&gt;.js.br&lt;/code&gt;, placed before the gzip rules so brotli is preferred, and matching &lt;code&gt;FilesMatch&lt;/code&gt; blocks set &lt;code&gt;Content-Encoding: br&lt;/code&gt; and &lt;code&gt;Vary: Accept-Encoding&lt;/code&gt;. The &lt;code&gt;system.performance&lt;/code&gt; config schema (in &lt;code&gt;system.schema.yml&lt;/code&gt;) gains a new &lt;code&gt;compress&lt;/code&gt; key under both &lt;code&gt;css&lt;/code&gt; and &lt;code&gt;js&lt;/code&gt;; the existing &lt;code&gt;gzip&lt;/code&gt; key is kept but marked deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; with removal in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. The post-update hook &lt;code&gt;system_post_update_migrate_compress_setting()&lt;/code&gt; copies &lt;code&gt;css.gzip&lt;/code&gt; → &lt;code&gt;css.compress&lt;/code&gt; and &lt;code&gt;js.gzip&lt;/code&gt; → &lt;code&gt;js.compress&lt;/code&gt; and clears the old keys. A new &lt;code&gt;AssetCompressUpdatePathTest&lt;/code&gt; verifies the upgrade path. The design choice to use a single &lt;code&gt;compress&lt;/code&gt; boolean rather than separate per-algorithm flags was settled in the issue thread by &lt;code&gt;andypost&lt;/code&gt; and &lt;code&gt;catch&lt;/code&gt;: because &lt;code&gt;.htaccess&lt;/code&gt; rules always check for &lt;code&gt;.br&lt;/code&gt; files regardless of a per-algorithm config flag, a finer-grained setting would give a false impression of control while still causing filesystem lookups for non-existent files on servers without brotli.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If custom code reads or writes the old config keys, update references:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+\Drupal::config('system.performance')-&amp;gt;get('css.gzip');
+\Drupal::config('system.performance')-&amp;gt;get('js.gzip');
+
+// After
+\Drupal::config('system.performance')-&amp;gt;get('css.compress');
+\Drupal::config('system.performance')-&amp;gt;get('js.compress');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The automatic post-update hook &lt;code&gt;system_post_update_migrate_compress_setting()&lt;/code&gt; migrates the values in the database. If you ship &lt;code&gt;system.performance.yml&lt;/code&gt; in a recipe or distribution with &lt;code&gt;gzip: true&lt;/code&gt;, update it to &lt;code&gt;compress: true&lt;/code&gt; before targeting Drupal 12.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 23, 2020&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (5 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;prudloff (Insite)&lt;/li&gt;
+&lt;li&gt;webflo (UEBERBIT GmbH)&lt;/li&gt;
+&lt;li&gt;yogeshmpawar (Portage CyberTech)&lt;/li&gt;
+&lt;li&gt;jnoordsij&lt;/li&gt;
+&lt;li&gt;ravi.shankar (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design evolved significantly over the thread. The original patch added separate &lt;code&gt;system.performance.css.brotli&lt;/code&gt; and &lt;code&gt;system.performance.js.brotli&lt;/code&gt; boolean keys alongside &lt;code&gt;gzip&lt;/code&gt;. &lt;code&gt;andypost&lt;/code&gt; pointed out in comment &lt;a href="https://www.drupal.org/node/15102385"&gt;#15102385&lt;/a&gt; that a single &lt;code&gt;compress&lt;/code&gt; key that enables every available algorithm would be cleaner and more future-proof. &lt;code&gt;catch&lt;/code&gt; reinforced this in comment &lt;a href="https://www.drupal.org/node/15102469"&gt;#15102469&lt;/a&gt;, noting that &lt;code&gt;.htaccess&lt;/code&gt; rules cannot be conditionally applied per-algorithm anyway, so a fine-grained config flag would be misleading. &lt;code&gt;prudloff&lt;/code&gt; agreed and updated the MR to use the single &lt;code&gt;compress&lt;/code&gt; key. Testing was blocked until &lt;code&gt;andypost&lt;/code&gt; filed &lt;a href="https://www.drupal.org/node/3512083"&gt;#3512083&lt;/a&gt; to add the brotli PHP extension to the CI Docker images, which unblocked the functional test &lt;code&gt;prudloff&lt;/code&gt; had written.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3578477: CKEditor 5 should respect &lt;textarea disabled&gt; dynamically</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578477.md</link>
+      <guid isPermaLink="false">019dd5e3-46dd-7516-86d0-989b07d8c63b</guid>
+      <pubDate>Tue, 28 Apr 2026 16:18:00 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +81/−10 · php +69/−7 · js +12/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4b4ace193b94eaebe64ff281c6e497324617ae4b"&gt;4b4ace1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3578477"&gt;#3578477&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;CKEditor 5 fields that are toggled enabled or disabled at runtime (for example via the Form API &lt;code&gt;#states&lt;/code&gt; system or the Conditional Fields module) now correctly enter and leave read-only mode as the &lt;code&gt;disabled&lt;/code&gt; attribute changes. Previously the read-only state was evaluated only once when the editor was initialized, so any subsequent enable/disable had no effect on the editor's editability.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The original fix in &lt;a href="https://www.drupal.org/node/3362386"&gt;#3362386&lt;/a&gt; added a one-time check at editor startup: if &lt;code&gt;element.hasAttribute('disabled')&lt;/code&gt; was true, &lt;code&gt;editor.enableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; was called and nothing more happened. This issue replaces that one-time check in &lt;code&gt;ckeditor5.js&lt;/code&gt; with a &lt;code&gt;MutationObserver&lt;/code&gt; that watches for any attribute mutation on the textarea element. On every mutation, a new &lt;code&gt;readOnlyIfDisabled()&lt;/code&gt; helper checks &lt;code&gt;element.disabled&lt;/code&gt; and calls either &lt;code&gt;editor.enableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; or &lt;code&gt;editor.disableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; accordingly. &lt;code&gt;readOnlyIfDisabled()&lt;/code&gt; is also called immediately after the observer is attached to cover the initial state. The test infrastructure in &lt;code&gt;CKEditor5ReadOnlyModeTest&lt;/code&gt; is refactored: field creation is extracted into reusable &lt;code&gt;createCkeditorField()&lt;/code&gt; and &lt;code&gt;createField()&lt;/code&gt; helpers, and three new test fields (&lt;code&gt;field_ckeditor5_disable&lt;/code&gt;, &lt;code&gt;field_ckeditor5_enable&lt;/code&gt;, &lt;code&gt;field_ckeditor5_toggle&lt;/code&gt;) are added. A new &lt;code&gt;testReadOnlyModeDynamic()&lt;/code&gt; functional JS test checks and unchecks the toggle and asserts that &lt;code&gt;contenteditable&lt;/code&gt; flips appropriately on both the &amp;quot;disable on toggle&amp;quot; and &amp;quot;enable on toggle&amp;quot; fields. The &lt;code&gt;ScriptBytes&lt;/code&gt; expectation in &lt;code&gt;AssetAggregationAcrossPagesTest&lt;/code&gt; is bumped from 3811015 to 3811582 to account for the slightly larger &lt;code&gt;ckeditor5.js&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 27, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;tgauges&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3561960: Combine the database queries in ::loadFromSharedTables() and ::loadFromDedicatedTables()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561960.md</link>
+      <guid isPermaLink="false">019dd5e6-5a9e-71d9-b1f1-0da7a1c2455b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 28 Apr 2026 14:45:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +137/−79 · php +137/−79&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/529ca79cc1dd26847f5c72e976d86d890f59072a"&gt;529ca79&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3561960"&gt;#3561960&lt;/a&gt; · 4 contributors · 30 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Entity loading in Drupal now uses one fewer database query per load operation. Previously, &lt;code&gt;SqlContentEntityStorage&lt;/code&gt; issued one query for the shared data/revision tables and a separate query for dedicated field tables. These two queries are now merged into one, reducing entity loading to at most two or three queries in all cases (down from potentially over a hundred before this and the two preceding issues). Performance tests show 3 to 7 fewer queries per request on various pages, with higher gains on uncached requests where multiple entity loads occur.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;SqlContentEntityStorage::loadFromDedicatedTables()&lt;/code&gt; gains a required third parameter &lt;code&gt;array &amp;amp;$translations&lt;/code&gt;; subclasses overriding this method must add it&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;SqlContentEntityStorage::loadFromSharedTables()&lt;/code&gt; deprecated in drupal:11.4.0, removed in drupal:12.0.0 with no replacement (see https://www.drupal.org/node/3586362)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change is in &lt;code&gt;SqlContentEntityStorage::mapFromStorageRecords()&lt;/code&gt;. The two sequential calls to &lt;code&gt;loadFromSharedTables()&lt;/code&gt; and &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; are replaced by a single call to &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt;, which now also handles the work that &lt;code&gt;loadFromSharedTables()&lt;/code&gt; previously performed.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; receives a new third parameter, &lt;code&gt;array &amp;amp;$translations&lt;/code&gt;, so it can track language variants as it processes rows. The method builds its base query from the data table or revision table (whichever is appropriate), now selecting all columns from that base table via &lt;code&gt;-&amp;gt;fields($base_table)&lt;/code&gt; rather than only the ID. Because the base table and dedicated field tables both have a &lt;code&gt;langcode&lt;/code&gt; column, the base table langcode is aliased as &lt;code&gt;{table_name}__langcode&lt;/code&gt; (stored in &lt;code&gt;$base_langcode_alias&lt;/code&gt;) to prevent it from being overwritten by dedicated table columns in the result set.&lt;/p&gt;
+&lt;p&gt;For entities that have both a &lt;code&gt;revisionDataTable&lt;/code&gt; and a &lt;code&gt;dataTable&lt;/code&gt;, the method now also detects fields that are not revisioned (data fields) and, when loading a revision, LEFT JOINs the data table to pick up those values in the same query.&lt;/p&gt;
+&lt;p&gt;Single cardinality dedicated fields continue to be LEFT JOINed onto this now-expanded base query. The previous validity filter on &lt;code&gt;$langcodes&lt;/code&gt; (a pre-fetched list of all language codes) is removed; instead, the langcode of each row is used directly from the aliased column.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;loadFromSharedTables()&lt;/code&gt; is deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt; with no replacement, per the change record at https://www.drupal.org/node/3586362.&lt;/p&gt;
+&lt;p&gt;This issue is the third in a series: &lt;a href="https://www.drupal.org/node/3551308"&gt;#3551308&lt;/a&gt; merged single cardinality dedicated fields into one query, &lt;a href="https://www.drupal.org/node/3564689"&gt;#3564689&lt;/a&gt; merged multiple cardinality fields into one query, and this issue eliminates the separate shared-table query entirely.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you have a class that overrides &lt;code&gt;loadFromSharedTables()&lt;/code&gt;, remove the override. The method is deprecated and its logic is now handled inside &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;If you have a class that overrides &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt;, add the new third parameter:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+protected function loadFromDedicatedTables(array &amp;amp;$values, $load_from_revision) {
+
+// After
+protected function loadFromDedicatedTables(array &amp;amp;$values, $load_from_revision, array &amp;amp;$translations) {
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your override calls &lt;code&gt;parent::loadFromDedicatedTables()&lt;/code&gt;, pass &lt;code&gt;$translations&lt;/code&gt; through:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;parent::loadFromDedicatedTables($values, $load_from_revision, $translations);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 8, 2025&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (4 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The langcode handling was the main difficulty catch called out explicitly: entities can have base, data, revision, and revision-data tables in various combinations, and the default-language/translation logic differs between shared and dedicated tables. Catch worked through several rounds of failures (MariaDB being the last to pass), noting that the result was not dramatically more complex but was hard to get right. alexpott raised a specific concern during review about the &lt;code&gt;base_langcode&lt;/code&gt; alias potentially clashing with a custom entity field named &lt;code&gt;base_langcode&lt;/code&gt;, and suggested a mitigation. Catch resolved that with what they described as &amp;quot;one alias rename&amp;quot; before the issue was committed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#2954834: Add poster image to HTML5 media videos</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2954834.md</link>
+      <guid isPermaLink="false">019dd5eb-4b19-77e7-b648-84f3be223909</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 28 Apr 2026 14:31:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +364/−0 · php +355 · yml +8 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c9798f85aa92f277e2a6909b1a67ab0f25702efe"&gt;c9798f8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2954834"&gt;#2954834&lt;/a&gt; · 36 contributors · 166 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 66&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Site owners can now configure a poster image for HTML5 video fields without any custom code or template overrides. By adding an image field to the entity type that holds the video and selecting it in the &amp;quot;Manage Display&amp;quot; settings for the video formatter, the image is rendered as the HTML5 &lt;code&gt;poster&lt;/code&gt; attribute on the &lt;code&gt;&amp;lt;video&amp;gt;&lt;/code&gt; element. An image style can optionally be applied to control dimensions. This works on any entity type that has both a video file field and an image field, not only media entities.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;poster&lt;/code&gt; and &lt;code&gt;poster_image_style&lt;/code&gt; &lt;code&gt;machine_name&lt;/code&gt; keys added to the &lt;code&gt;field.formatter.settings.file_video&lt;/code&gt; config schema.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;FileVideoFormatter&lt;/code&gt; adds &lt;code&gt;poster&lt;/code&gt; and &lt;code&gt;poster_image_style&lt;/code&gt; formatter settings with supporting &lt;code&gt;viewElements()&lt;/code&gt;, &lt;code&gt;calculateDependencies()&lt;/code&gt;, and &lt;code&gt;onDependencyRemoval()&lt;/code&gt; overrides; subclasses must account for the new constructor parameters.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;FileVideoFormatter&lt;/code&gt; class in &lt;code&gt;core/modules/file/src/Plugin/Field/FieldFormatter/FileVideoFormatter.php&lt;/code&gt; gains two new settings: &lt;code&gt;poster&lt;/code&gt; (the machine name of an image field on the host entity) and &lt;code&gt;poster_image_style&lt;/code&gt; (an image style ID, optional). The formatter is converted to use constructor injection, adding &lt;code&gt;AccountInterface&lt;/code&gt;, an &lt;code&gt;EntityStorageInterface&lt;/code&gt; for image styles, and &lt;code&gt;EntityFieldManagerInterface&lt;/code&gt; as constructor arguments alongside the existing parent arguments.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;settingsForm()&lt;/code&gt;, &lt;code&gt;EntityFieldManagerInterface::getFieldDefinitions()&lt;/code&gt; is called to enumerate image-type fields on the current entity bundle, which are offered as &lt;code&gt;poster&lt;/code&gt; candidates via a select element. A &lt;code&gt;poster_image_style&lt;/code&gt; select is conditionally shown (using &lt;code&gt;#states&lt;/code&gt;) only when a poster field is selected, and includes a &amp;quot;Configure Image Styles&amp;quot; link visible to users with the &lt;code&gt;administer image styles&lt;/code&gt; permission. The &lt;code&gt;settingsSummary()&lt;/code&gt; output is extended to include poster field and image style selections when set.&lt;/p&gt;
+&lt;p&gt;In the new &lt;code&gt;viewElements()&lt;/code&gt; override, when a poster field is configured and not empty, the code retrieves the first image file item from the host entity, applies a language-aware translation check (&lt;code&gt;TranslatableInterface::hasTranslation()&lt;/code&gt;), then either calls &lt;code&gt;ImageStyle::buildUrl()&lt;/code&gt; (if a style is configured) or &lt;code&gt;File::createFileUrl()&lt;/code&gt; (for the original). A &lt;code&gt;CacheableMetadata&lt;/code&gt; bubble is applied for both the image style config entity and the file entity, and the resolved URL is merged onto the video element's &lt;code&gt;#attributes&lt;/code&gt; object via &lt;code&gt;Attribute::merge()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;calculateDependencies()&lt;/code&gt; and &lt;code&gt;onDependencyRemoval()&lt;/code&gt; are implemented to track the chosen &lt;code&gt;poster_image_style&lt;/code&gt; as a config dependency and substitute a replacement style if the original is deleted.&lt;/p&gt;
+&lt;p&gt;Config schema at &lt;code&gt;field.formatter.settings.file_video&lt;/code&gt; gains two new &lt;code&gt;machine_name&lt;/code&gt; keys: &lt;code&gt;poster&lt;/code&gt; and &lt;code&gt;poster_image_style&lt;/code&gt;, both with &lt;code&gt;requiredKey: false&lt;/code&gt;. New functional tests in &lt;code&gt;FileVideoPosterFormatterTest&lt;/code&gt; cover both the no-image-style and image-style paths.&lt;/p&gt;
+&lt;p&gt;Transcript (&lt;code&gt;&amp;lt;track&amp;gt;&lt;/code&gt;) support was originally part of this issue but was split into a sibling issue to unblock the more widely needed poster feature. Note that a &lt;code&gt;settingsSummary()&lt;/code&gt; guard for a &lt;code&gt;transcript&lt;/code&gt; setting appears in the diff as a leftover; since no &lt;code&gt;transcript&lt;/code&gt; default or schema key exists, it is inert.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you subclass &lt;code&gt;FileVideoFormatter&lt;/code&gt;, update your constructor to accept and pass through the three new injected services:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function __construct(
+  $plugin_id,
+  $plugin_definition,
+  FieldDefinitionInterface $field_definition,
+  array $settings,
+  $label,
+  $view_mode,
+  array $third_party_settings,
+  AccountInterface $currentUser,
+  EntityStorageInterface $imageStyleStorage,
+  EntityFieldManagerInterface $entityFieldManager,
+) {
+  parent::__construct(...);
+}
+
+public static function create(ContainerInterface $container, ...) {
+  return new static(
+    ...,
+    $container-&amp;gt;get('current_user'),
+    $container-&amp;gt;get('entity_type.manager')-&amp;gt;getStorage('image_style'),
+    $container-&amp;gt;get('entity_field.manager'),
+  );
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Existing display configurations using the &lt;code&gt;file_video&lt;/code&gt; formatter will not have the &lt;code&gt;poster&lt;/code&gt; or &lt;code&gt;poster_image_style&lt;/code&gt; keys in their stored config. They default to empty strings at runtime, so existing video rendering is unaffected, but if you export configuration you may see these keys appear when the display is next saved.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 21, 2018&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (8 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;bailleux&lt;/li&gt;
+&lt;li&gt;seanb&lt;/li&gt;
+&lt;li&gt;joel_osc (OpenPlus)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;mistrae&lt;/li&gt;
+&lt;li&gt;sleitner&lt;/li&gt;
+&lt;li&gt;pbouchereau&lt;/li&gt;
+&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
+&lt;li&gt;grevil (DROWL.de)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;dhirendra.mishra (Valuebound)&lt;/li&gt;
+&lt;li&gt;bs pavan (Material)&lt;/li&gt;
+&lt;li&gt;martijn de wit (Ablerz)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue sat dormant for five years after the original feature request in 2018. &lt;code&gt;seanb&lt;/code&gt; made the key early design observation that the poster image field should live on the parent entity and be mapped in the formatter, making it work beyond media entities. &lt;code&gt;anybody&lt;/code&gt; broke the stalemate in May 2023 by converting the accumulated patch work into MR !4010, adding image style support, and getting the feature to a functional state. &lt;code&gt;catch&lt;/code&gt; then guided two important decisions: using &lt;code&gt;hook_entity_presave()&lt;/code&gt; and &lt;code&gt;hook_post_update_NAME()&lt;/code&gt; for the config upgrade path, and splitting the transcript feature out into a separate issue (&lt;a href="https://www.drupal.org/node/3372592"&gt;#3372592&lt;/a&gt;) so the simpler poster-only change was not blocked by unresolved &lt;code&gt;&amp;lt;track&amp;gt;&lt;/code&gt; semantics. &lt;code&gt;grevil&lt;/code&gt; created the final 11.x MR (!4046) after &lt;code&gt;anybody&lt;/code&gt;'s MR could not be rebased automatically.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3581434: Entity serialization issue in Layout Builder due to content moderation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581434.md</link>
+      <guid isPermaLink="false">019dd5db-cd29-74ba-8ad4-65a96680d110</guid>
+      <pubDate>Tue, 28 Apr 2026 13:17:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +115/−6 · php +115/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/117fee744a4ef46c452d49c814e6ae416bf59fdb"&gt;117fee7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581434"&gt;#3581434&lt;/a&gt; · 4 contributors · 19 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites using Layout Builder with content moderation and multiple translations could hit a fatal serialization error when editing node layouts. The error would surface in &lt;code&gt;PrepareLayout::onPrepareLayout()&lt;/code&gt; when Drupal tried to store the section storage to the layout temporary storage. This bug is fixed in 11.x and 11.3.x. No configuration or code changes are required for site owners.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is a broken reference in &lt;code&gt;ContentEntityBase::__clone()&lt;/code&gt;. When a translation is initialized via &lt;code&gt;initializeTranslation()&lt;/code&gt;, the &lt;code&gt;$originalEntity&lt;/code&gt; property is turned into a PHP reference shared between the entity and all its translations, keeping them in sync. This is the same pattern used for several other properties (&lt;code&gt;enforceIsNew&lt;/code&gt;, &lt;code&gt;newRevision&lt;/code&gt;, &lt;code&gt;fields&lt;/code&gt;, etc.). For all those other properties, &lt;code&gt;__clone()&lt;/code&gt; explicitly breaks the reference by reassigning a local copy. However, &lt;code&gt;$originalEntity&lt;/code&gt; was omitted from that list (the handling was removed during the original work in &lt;a href="https://www.drupal.org/node/2839195"&gt;#2839195&lt;/a&gt; without explanation).&lt;/p&gt;
+&lt;p&gt;When &lt;code&gt;ContentEntityStorageBase::createRevision()&lt;/code&gt; clones an entity (as triggered by &lt;code&gt;ContentModeration\EntityTypeInfo::entityPrepareForm()&lt;/code&gt;), the clone inherits the shared reference. When content moderation then calls &lt;code&gt;setOriginal()&lt;/code&gt; on the draft, the value propagates via the still-live reference to every other entity that shares it. Worse, because the entity being set as the original is itself one of the objects sharing the reference, &lt;code&gt;$this-&amp;gt;originalEntity&lt;/code&gt; ends up pointing to the entity itself, creating a circular self-reference that breaks PHP serialization.&lt;/p&gt;
+&lt;p&gt;The fix is a three-line addition to &lt;code&gt;ContentEntityBase::__clone()&lt;/code&gt; that follows the exact same pattern already in place for the other properties:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$originalEntity = $this-&amp;gt;originalEntity;
+$this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This breaks the shared reference so that post-clone changes to &lt;code&gt;$originalEntity&lt;/code&gt; on one object do not propagate to others. &lt;code&gt;ContentEntityCloneTest&lt;/code&gt; received a new dedicated &lt;code&gt;testEntityOriginal()&lt;/code&gt; method that covers the translation-sharing behavior, the clone-isolation requirement, and the merged-revision-original scenario where &lt;code&gt;createRevision()&lt;/code&gt; sets an original automatically. The existing skip of the &lt;code&gt;originalEntity&lt;/code&gt; property in &lt;code&gt;testEntityPropertiesModifications()&lt;/code&gt; was updated to point to this new test instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (1 month and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;matthijs (Dropsolid)&lt;/li&gt;
+&lt;li&gt;webflo (UEBERBIT GmbH)&lt;/li&gt;
+&lt;li&gt;tstoeckler (resc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;tstoeckler diagnosed the true root cause in depth after discussing the problem with webflo at DrupalDevDays Athens. webflo had already filed a first MR (&lt;a href="https://www.drupal.org/node/15475"&gt;#15475&lt;/a&gt;) targeting &lt;code&gt;ContentEntityStorageBase::createRevision()&lt;/code&gt;, but tstoeckler traced the bug further back to the missing &lt;code&gt;__clone()&lt;/code&gt; handling and opened MR &lt;a href="https://www.drupal.org/node/15554"&gt;#15554&lt;/a&gt; with the minimal, correct fix. tstoeckler also wrote a thorough test and noted an adjacent issue worth addressing separately, which was subsequently filed as &lt;a href="https://www.drupal.org/node/3586860"&gt;#3586860&lt;/a&gt;. webflo confirmed the fix resolved the problem on their production site.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3566351: Throwing AccessDeniedException without a route causes PHP errors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3566351.md</link>
+      <guid isPermaLink="false">019dd5e5-2b57-7375-934d-0401b4a3026d</guid>
+      <pubDate>Tue, 28 Apr 2026 13:05:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +41/−1 · php +41/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/051f43879481652f4249c520d0608a5f897afb41"&gt;051f438&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3566351"&gt;#3566351&lt;/a&gt; · 5 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When contrib modules or event subscribers throw an &lt;code&gt;AccessDeniedException&lt;/code&gt; before a route has been matched (for example in a &lt;code&gt;KernelEvents::REQUEST&lt;/code&gt; subscriber), Drupal would produce a fatal &amp;quot;Call to a member function hasRequirement() on null&amp;quot; error instead of a clean 403 response. The fix is now in Drupal 11.x and 11.3.x.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The crash occurred in &lt;code&gt;CsrfExceptionSubscriber::on403()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/EventSubscriber/CsrfExceptionSubscriber.php&lt;/code&gt;. The method retrieved the route via &lt;code&gt;RouteMatch::createFromRequest($request)-&amp;gt;getRouteObject()&lt;/code&gt;, which returns &lt;code&gt;null&lt;/code&gt; when no route has been matched, then immediately called &lt;code&gt;$route-&amp;gt;hasRequirement('_csrf_token')&lt;/code&gt; without a null check. The fix adds &lt;code&gt;is_null($route)&lt;/code&gt; as the first condition in the guard clause so the method returns early when there is no matched route. A new unit test &lt;code&gt;CsrfExceptionSubscriberTest::testOn403WithNullRouteDoesNothing()&lt;/code&gt; was added in &lt;code&gt;core/tests/Drupal/Tests/Core/EventSubscriber/CsrfExceptionSubscriberTest.php&lt;/code&gt; to cover this path. During the review, a concern was raised that the fix could create an infinite 403-redirect loop when the CSRF confirm form route itself triggers a 403; the null-route guard addresses the reported crash without touching the redirect logic.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 8, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (3 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;rgpublic&lt;/li&gt;
+&lt;li&gt;sourav_paul&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;sourav_paul caught a potential infinite redirect loop before the MR was filed: with a naive earlier patch, a 403 on a CSRF-protected route could redirect to &lt;code&gt;_csrf_confirm_form_route&lt;/code&gt;, which could trigger another 403, and so on until memory was exhausted. rgpublic proposed adding a &lt;code&gt;!$event-&amp;gt;isMainRequest()&lt;/code&gt; guard to break the cycle. The final MR, opened by sourav_paul, uses the simpler &lt;code&gt;is_null($route)&lt;/code&gt; guard that fixes the reported null-dereference crash without altering the redirect behaviour.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585498: Alter hook implementations in Kernel test classes are not executed</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585498.md</link>
+      <guid isPermaLink="false">019dd5d9-d091-7091-8b8c-dbe9201df464</guid>
+      <pubDate>Tue, 28 Apr 2026 12:36:48 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +73/−2 · php +73/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/849bda6a8e9a4dbc1e63cfee8639919a210c5d74"&gt;849bda6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585498"&gt;#3585498&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Alter hook implementations defined directly inside Kernel test classes were silently skipped whenever &lt;code&gt;ModuleHandler::alter()&lt;/code&gt; was called with multiple related hook types (for example &lt;code&gt;['form', 'form_my_form']&lt;/code&gt;). The bug affected only test code, not production sites. After this fix, Kernel test classes can reliably implement alter hooks alongside regular hooks without needing a separate test module.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Issue &lt;a href="https://www.drupal.org/node/3502432"&gt;#3502432&lt;/a&gt; introduced the ability to write hook implementations as methods on a &lt;code&gt;KernelTestBase&lt;/code&gt; subclass. Those implementations are registered under the pseudo-module key &lt;code&gt;'core'&lt;/code&gt;. When &lt;code&gt;ModuleHandler::alter()&lt;/code&gt; is invoked with more than one hook type, it calls &lt;code&gt;reOrderModulesForAlter()&lt;/code&gt; to produce a canonical ordering. That method computed &lt;code&gt;array_intersect(array_keys($this-&amp;gt;moduleList), $modules)&lt;/code&gt;, which filtered out any module name not in the installed module list. Because &lt;code&gt;'core'&lt;/code&gt; is never in &lt;code&gt;$this-&amp;gt;moduleList&lt;/code&gt;, every alter hook implemented on a Kernel test class was silently dropped from the combined listener list and never called.&lt;/p&gt;
+&lt;p&gt;The fix changes the expression to &lt;code&gt;array_intersect(array_keys($this-&amp;gt;moduleList + ['core' =&amp;gt; '']), $modules)&lt;/code&gt;. Adding &lt;code&gt;'core'&lt;/code&gt; as a trailing entry in the array union means it survives the intersect while still sorting last, matching the order that &lt;code&gt;KernelTestCompilerPass&lt;/code&gt; uses when registering test hook implementations. A new test class &lt;code&gt;KernelTestHooksTest&lt;/code&gt; (in &lt;code&gt;core/tests/Drupal/KernelTests/Core/Hook/&lt;/code&gt;) verifies that both regular and alter hook methods on a Kernel test class are executed correctly, including the multi-type alter case that previously failed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (10 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3584324: Make the chained fast backend self-heal when last_write_timestamp is missing</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584324.md</link>
+      <guid isPermaLink="false">019dd5da-cf04-7531-89ac-bc3324848be4</guid>
+      <pubDate>Tue, 28 Apr 2026 11:47:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +60/−0 · php +60&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c3a6c1a5285511dbe77da2ef1c96f5caef403405"&gt;c3a6c1a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584324"&gt;#3584324&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ChainedFastBackend&lt;/code&gt; cache class had a gap in its self-healing logic: if the &lt;code&gt;last_write_timestamp&lt;/code&gt; entry was absent from the persistent (consistent) backend, cache reads would fall through to the persistent backend and write items back to the fast backend, but those fast-backend entries could never be validated because no timestamp existed to compare against. The situation would persist silently until an actual cache miss triggered a genuine &lt;code&gt;set()&lt;/code&gt;, which finally established the timestamp. The fix writes a fresh timestamp immediately when the missing condition is detected, so the fast backend becomes usable right away.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;ChainedFastBackend::getMultiple()&lt;/code&gt;, after the existing call to &lt;code&gt;$this-&amp;gt;getLastWriteTimestamp()&lt;/code&gt;, a new guard &lt;code&gt;if ($last_write_timestamp === 0)&lt;/code&gt; calls &lt;code&gt;$this-&amp;gt;markAsOutdated()&lt;/code&gt;. &lt;code&gt;markAsOutdated()&lt;/code&gt; writes a current-time value to the persistent backend under the &lt;code&gt;last_write_timestamp&lt;/code&gt; key, which makes subsequent fast-backend writes valid immediately. The condition &lt;code&gt;=== 0&lt;/code&gt; is the correct test because &lt;code&gt;getLastWriteTimestamp()&lt;/code&gt; returns &lt;code&gt;0&lt;/code&gt; when no entry exists. Dries caught an early version of the patch that had the condition wrong, and catch corrected it. The missing-timestamp scenario can arise in at least two ways: (1) converting an existing cache bin to chained fast while leaving warm persistent-cache entries in place, so the persistent backend has data but no timestamp; (2) LRU eviction on a backend like Redis or Memcache that removes the timestamp key while retaining other cache items. A new unit test &lt;code&gt;testLastWriteTimestampMissing()&lt;/code&gt; in &lt;code&gt;ChainedFastBackendTest&lt;/code&gt; covers the scenario by mocking both backends, asserting that &lt;code&gt;set()&lt;/code&gt; is called once on the consistent backend (for the timestamp) and once on the fast backend (for the cache item). An existing test &lt;code&gt;testGetDoesNotHitConsistentBackend()&lt;/code&gt; also gained an assertion that &lt;code&gt;set()&lt;/code&gt; is never called on the consistent backend in the normal warm-cache path. Discovered while investigating &lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt; (Cache the container definition in APCu).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 12, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (16 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;dries&lt;/li&gt;
+&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Dries reviewed the patch and identified that the condition on the timestamp check was inverted, pointing out it should be &lt;code&gt;if ($last_write_timestamp === 0)&lt;/code&gt;. catch confirmed the mistake and fixed it, also adding an additional expectation to an existing test that would have caught the error. kristiaanvandeneynde raised a useful question about how often this situation can realistically arise; catch explained the two concrete scenarios (converting a bin to chained fast with warm data, and LRU eviction of the timestamp key) and noted the worst visible symptom is excess APCu writes rather than outright breakage.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#1797438: HTML5 validation is preventing form submit and not fully accessible</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1797438.md</link>
+      <guid isPermaLink="false">019dd5ec-f9ac-7223-9a1f-e934139f2458</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 28 Apr 2026 11:35:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +283/−179 · php +283/−179&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d5babbbe46ee69b78d2c388b3287c15ce79c06b7"&gt;d5babbb&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1797438"&gt;#1797438&lt;/a&gt; · 68 contributors · 303 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 142&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Since Drupal 8, forms have carried native HTML5 &lt;code&gt;required&lt;/code&gt; and constraint attributes that cause browsers to intercept form submissions client-side before Drupal's Form API (FAPI) ever runs. The result is generic, browser-localized error messages (&amp;quot;Please fill out this field.&amp;quot;) instead of Drupal's descriptive, accessible FAPI messages. Only the first invalid field surfaces an error, and screen readers handle this poorly. This change introduces a new &lt;code&gt;enable_html5_validation&lt;/code&gt; setting in &lt;code&gt;settings.php&lt;/code&gt; so site owners can disable browser-native HTML5 validation and rely on Drupal's server-side validation messages instead. In Drupal 11 the setting defaults to enabled, with a status report warning prompting admins to prepare. In Drupal 12 the default changes to disabled; in Drupal 13 the setting will be removed and HTML5 validation will always be off.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;enable_html5_validation&lt;/code&gt; setting in &lt;code&gt;settings.php&lt;/code&gt; controls whether browser-native HTML5 form validation is active; defaults to &lt;code&gt;TRUE&lt;/code&gt; in Drupal 11, &lt;code&gt;FALSE&lt;/code&gt; in Drupal 12, and will be removed in Drupal 13.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root problem is that the HTML5 &lt;code&gt;required&lt;/code&gt; attribute (and other constraint attributes like &lt;code&gt;type=&amp;quot;email&amp;quot;&lt;/code&gt;) causes browsers to block form submission before FAPI runs. Browser validation messages are inconsistent: they only report the first invalid field, use the browser's locale rather than Drupal's language, and are handled poorly by screen readers (screen reader testing confirmed JAWS reads only &amp;quot;Alert: Please fill out this field&amp;quot; regardless of field name, while VoiceOver on Safari reads nothing at all). The &lt;code&gt;#limit_validation_errors&lt;/code&gt; use case was also affected, though the existing &lt;code&gt;formnovalidate&lt;/code&gt; attribute on affected buttons already partially mitigated that.&lt;/p&gt;
+&lt;p&gt;The fix adds a &lt;code&gt;Settings::get('enable_html5_validation', TRUE)&lt;/code&gt; check inside &lt;code&gt;preprocessForm()&lt;/code&gt; in the form element preprocessor. When the setting is &lt;code&gt;FALSE&lt;/code&gt;, a &lt;code&gt;novalidate&lt;/code&gt; attribute is added to the rendered &lt;code&gt;&amp;lt;form&amp;gt;&lt;/code&gt; element, disabling all browser HTML5 validation globally. A documentation block and commented-out example (&lt;code&gt;# $settings['enable_html5_validation'] = TRUE;&lt;/code&gt;) are added to &lt;code&gt;default/settings.php&lt;/code&gt;. The &lt;code&gt;SystemManager::checkRequirements()&lt;/code&gt; method gains a new status-report check: when the setting is &lt;code&gt;NULL&lt;/code&gt; (not configured), it warns that Drupal 12 will default to &lt;code&gt;FALSE&lt;/code&gt; and advises testing; when the setting is &lt;code&gt;TRUE&lt;/code&gt;, it warns that the setting will be removed in Drupal 13. No warning is shown when the setting is &lt;code&gt;FALSE&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Three form validation tests (&lt;code&gt;testValidateLimitErrors&lt;/code&gt;, &lt;code&gt;testPatternValidation&lt;/code&gt;, &lt;code&gt;testCustomRequiredError&lt;/code&gt;) are moved from a non-JS functional test class to a new &lt;code&gt;FunctionalJavascript&lt;/code&gt; test class (&lt;code&gt;Drupal\Tests\system\FunctionalJavascript\Form\ValidationTest&lt;/code&gt;). The new class sets &lt;code&gt;enable_html5_validation&lt;/code&gt; to &lt;code&gt;FALSE&lt;/code&gt; in &lt;code&gt;setUp()&lt;/code&gt; via &lt;code&gt;writeSettings()&lt;/code&gt;, ensuring the tests run in a real browser environment with HTML5 validation disabled so FAPI messages are testable.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To disable HTML5 validation on all forms and use Drupal's FAPI validation messages, add the following to &lt;code&gt;settings.php&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$settings['enable_html5_validation'] = FALSE;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To explicitly keep the current behavior (HTML5 validation on) and suppress the status report warning in Drupal 11, set:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$settings['enable_html5_validation'] = TRUE;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note: setting &lt;code&gt;TRUE&lt;/code&gt; will display a different status report warning reminding you to prepare for removal in Drupal 13. The setting will be removed entirely in Drupal 13, at which point HTML5 validation will always be disabled.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2012&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (13 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Bojhan&lt;/li&gt;
+&lt;li&gt;xjm (Acquia)&lt;/li&gt;
+&lt;li&gt;nod_ (Smile)&lt;/li&gt;
+&lt;li&gt;mgifford (CivicActions)&lt;/li&gt;
+&lt;li&gt;webchick&lt;/li&gt;
+&lt;li&gt;sun&lt;/li&gt;
+&lt;li&gt;ParisLiakos&lt;/li&gt;
+&lt;li&gt;catch&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;jessebeach&lt;/li&gt;
+&lt;li&gt;cosmicdreams&lt;/li&gt;
+&lt;li&gt;vprocessor (Skilld)&lt;/li&gt;
+&lt;li&gt;skaught&lt;/li&gt;
+&lt;li&gt;idebr (ezCompany)&lt;/li&gt;
+&lt;li&gt;jefuri (Synetic)&lt;/li&gt;
+&lt;li&gt;dmsmidt (Synetic)&lt;/li&gt;
+&lt;li&gt;lauriii (Druid)&lt;/li&gt;
+&lt;li&gt;GrandmaGlassesRopeMan (Acquia)&lt;/li&gt;
+&lt;li&gt;andrewmacpherson (Annertech)&lt;/li&gt;
+&lt;li&gt;fenstrat (PreviousNext)&lt;/li&gt;
+&lt;li&gt;sja112 (Material)&lt;/li&gt;
+&lt;li&gt;ankiitsinghh&lt;/li&gt;
+&lt;li&gt;pameeela&lt;/li&gt;
+&lt;li&gt;tanubansal (Salsa Digital)&lt;/li&gt;
+&lt;li&gt;himanshu_jhaloya (Valuebound)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;Everett Zufelt&lt;/li&gt;
+&lt;li&gt;tim.plunkett&lt;/li&gt;
+&lt;li&gt;gaurav.kapoor (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;geek-merlin (MachbarMacher)&lt;/li&gt;
+&lt;li&gt;kieran.cott&lt;/li&gt;
+&lt;li&gt;suresh prabhu parkala (Specbee)&lt;/li&gt;
+&lt;li&gt;prudloff (Insite)&lt;/li&gt;
+&lt;li&gt;kentr&lt;/li&gt;
+&lt;li&gt;jcandan&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3580855: Entity recursive rendering protection is not compatible with Fibers</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580855.md</link>
+      <guid isPermaLink="false">019dd5e1-7b3c-733f-8ba8-8772b311a261</guid>
+      <pubDate>Tue, 28 Apr 2026 11:01:30 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +174/−0 · php +163 · yml +11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a2ee2493433fc19f687957ea42717cf4f2130723"&gt;a2ee249&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580855"&gt;#3580855&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When BigPipe renders blocks as placeholders, each block runs inside a PHP Fiber. A bug in the entity recursive-rendering protection introduced by &lt;a href="https://www.drupal.org/node/2940605"&gt;#2940605&lt;/a&gt; caused recursion keys to be shared across Fibers. If two blocks on the same page rendered the same entity, the second Fiber would see the first Fiber's recursion key, treat it as an infinite-loop guard, and suppress the entity's output entirely. The fix scopes recursion keys per Fiber so each block renders independently. Sites using BigPipe with multiple blocks that display the same entity (for example, menu blocks showing node data) were most likely to encounter missing content.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The entity recursive-rendering protection in &lt;code&gt;EntityViewBuilder::getRenderRecursionKey()&lt;/code&gt; builds a string key from the entity's class, object ID, and optionally its language. This key is stored in a static tracking array to prevent infinite recursion when an entity renders itself again mid-build. Because PHP Fibers are cooperative coroutines rather than true threads, multiple in-flight Fibers share the same static state. When BigPipe placeholder rendering suspends Fiber A mid-render (for example, while a formatted text field's filter placeholders are resolved) and starts Fiber B for a second block rendering the same entity, Fiber B finds Fiber A's recursion key already present and incorrectly treats it as recursion, returning an empty render array. The fix adds a Fiber-specific component to the key: when &lt;code&gt;\Fiber::getCurrent()&lt;/code&gt; is non-null, &lt;code&gt;spl_object_id($fiber)&lt;/code&gt; is appended to &lt;code&gt;$recursion_keys&lt;/code&gt;, making every Fiber's keys distinct. A new functional test &lt;code&gt;EntityConcurrentRenderTest&lt;/code&gt; verifies the scenario: two &lt;code&gt;entity_test_block&lt;/code&gt; blocks (which force &lt;code&gt;createPlaceholder(): true&lt;/code&gt;) both render the same entity that has a formatted text field; the filter placeholder creation is what causes each Fiber to suspend and allow interleaving. The bug was introduced by &lt;a href="https://www.drupal.org/node/2940605"&gt;#2940605&lt;/a&gt; and had not yet shipped in a stable release, so no backport to 11.3.x was required.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;taran2l (Lemberg Solutions)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;amateescu identified that the same bug was responsible for the random test failures tracked in &lt;a href="https://www.drupal.org/node/3583187"&gt;#3583187&lt;/a&gt; and then wrote the functional test for this fix. In their words, it was &amp;quot;quite tricky to determine all the conditions required to hit this problem&amp;quot;: the block must be placeholdered so it renders in a Fiber, and the entity must have a formatted text field so that filter placeholder creation causes the Fiber to suspend mid-render, allowing the second block's Fiber to start and collide on the shared recursion key.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3579922: Add missing type hint for $variables parameter in theme hooks</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579922.md</link>
+      <guid isPermaLink="false">019dd5e2-53d3-732b-ae0c-58d115480fb1</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 28 Apr 2026 10:48:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +34/−34 · php +34/−34&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/387533dfcef922180f1062adc365c0ec78212589"&gt;387533d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579922"&gt;#3579922&lt;/a&gt; · 6 contributors · 29 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Several hook implementation methods in the Olivero theme's &lt;code&gt;OliveroHooks&lt;/code&gt; class were missing explicit &lt;code&gt;array&lt;/code&gt; type declarations on their by-reference parameters. This is an internal code quality improvement with no user-facing effect, aligning Olivero with Drupal's move toward stricter typing in PHP. The scope was expanded during review to include all affected parameters in the class rather than fixing them one hook at a time.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; 27 method signatures in &lt;code&gt;OliveroHooks&lt;/code&gt; now declare &lt;code&gt;array&lt;/code&gt; on their by-reference parameters (e.g. &lt;code&gt;array &amp;amp;$variables&lt;/code&gt;); code that extends &lt;code&gt;OliveroHooks&lt;/code&gt; and overrides these methods must add matching type declarations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;core/themes/olivero/src/Hook/OliveroHooks.php&lt;/code&gt;, 27 hook implementation methods had their leading by-reference parameter declared without an explicit type, for example &lt;code&gt;&amp;amp;$variables&lt;/code&gt;, &lt;code&gt;&amp;amp;$form&lt;/code&gt;, &lt;code&gt;&amp;amp;$suggestions&lt;/code&gt;, and &lt;code&gt;&amp;amp;$info&lt;/code&gt;. The fix adds the &lt;code&gt;array&lt;/code&gt; type hint to each, producing signatures such as &lt;code&gt;array &amp;amp;$variables&lt;/code&gt;, &lt;code&gt;array &amp;amp;$form&lt;/code&gt;, &lt;code&gt;array &amp;amp;$suggestions&lt;/code&gt;, and &lt;code&gt;array &amp;amp;$info&lt;/code&gt;. Affected methods include all &lt;code&gt;preprocess_*&lt;/code&gt; implementations, both &lt;code&gt;form_alter&lt;/code&gt; and &lt;code&gt;form_node_preview_form_select_alter&lt;/code&gt;, &lt;code&gt;element_info_alter&lt;/code&gt;, &lt;code&gt;theme_suggestions_menu_alter&lt;/code&gt;, &lt;code&gt;theme_suggestions_block_alter&lt;/code&gt;, &lt;code&gt;theme_suggestions_user_alter&lt;/code&gt;, and &lt;code&gt;form_views_exposed_form_alter&lt;/code&gt;. The change was originally scoped to Olivero alone; a companion issue &lt;a href="https://www.drupal.org/node/3579925"&gt;#3579925&lt;/a&gt; (ClaroHooks.php) was closed as a duplicate once its changes were cherry-picked into this branch. The issue was blocked briefly on &lt;a href="https://www.drupal.org/node/3579903"&gt;#3579903&lt;/a&gt; (eliminating Olivero's legacy &lt;code&gt;.theme&lt;/code&gt; file), which needed to land first so the hook implementations existed only in the OOP &lt;code&gt;OliveroHooks&lt;/code&gt; class.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;sivaji_ganesh_jojodae&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3474070: Allow StarterKit forked themes with prefix</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3474070.md</link>
+      <guid isPermaLink="false">019dd5e7-c7e6-7063-834f-7f37f73533c4</guid>
+      <pubDate>Tue, 28 Apr 2026 10:44:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +147/−10 · php +147/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/95b8775117cacbabc2364db83a59c55dc0296665"&gt;95b8775&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3474070"&gt;#3474070&lt;/a&gt; · 7 contributors · 27 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;drupal generate-theme&lt;/code&gt; command would produce garbled file names and content when the starterkit theme's machine name was short enough to appear as a substring in its own derived naming variants. For example, generating a new theme named &lt;code&gt;galactus_ta&lt;/code&gt; from a starterkit named &lt;code&gt;galactus&lt;/code&gt; resulted in files named &lt;code&gt;galactusTaTa_ta.info.yml&lt;/code&gt; instead of &lt;code&gt;galactus_ta.info.yml&lt;/code&gt;, ultimately crashing with a PHP fatal error. This fix corrects the replacement logic so theme generation works correctly regardless of the starterkit's machine name length or complexity.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;GenerateTheme::execute()&lt;/code&gt;, which called PHP's &lt;code&gt;str_replace()&lt;/code&gt; with two parallel arrays built by &lt;code&gt;namePatterns()&lt;/code&gt;. That method produces eight variants per name (plain machine name, camelCase, PascalCase, and title case, for both machine name and label). PHP processes array-based &lt;code&gt;str_replace&lt;/code&gt; sequentially, so when the starterkit name was short and lowercase (e.g. &lt;code&gt;galactus&lt;/code&gt;), its camelCase variant was identical to the plain name. The first substitution correctly turned &lt;code&gt;galactus&lt;/code&gt; into &lt;code&gt;galactus_ta&lt;/code&gt;, but the very next pass then found &lt;code&gt;galactus&lt;/code&gt; again inside the already-substituted string and transformed it into &lt;code&gt;galactusTa_ta&lt;/code&gt;, corrupting every file name and piece of content in the generated theme.&lt;/p&gt;
+&lt;p&gt;The fix introduces a two-pass placeholder strategy in both the file-content loop and the file-rename loop. Pass 1 replaces every old pattern with a unique, collision-free sentinel string (&lt;code&gt;__MACHINE_NAME__&lt;/code&gt;, &lt;code&gt;__MACHINE_NAME_CAMEL__&lt;/code&gt;, etc.); Pass 2 replaces those sentinels with the new pattern values. Because no sentinel matches another old pattern, cascading substitutions cannot occur.&lt;/p&gt;
+&lt;p&gt;Alongside the two-pass change, the diff introduces explicit inline marker comments for starterkit template files: &lt;code&gt;#@starterkit:machine_name&lt;/code&gt;, &lt;code&gt;#@starterkit:label&lt;/code&gt;, &lt;code&gt;#@starterkit:machine_class_name&lt;/code&gt;, and &lt;code&gt;#@starterkit:label_class_name&lt;/code&gt;. A &lt;code&gt;preg_replace&lt;/code&gt; pass after the generic substitution finds these markers and replaces the line immediately following each one with the correct new value, providing an unambiguous escape hatch when short or identical-looking label fragments would still be ambiguous after the placeholder pass. Existing test fixtures are updated from the old &lt;code&gt;# machine_name&lt;/code&gt; comment style to the new &lt;code&gt;#@starterkit:&lt;/code&gt; format. A new test &lt;code&gt;testSimpleStarterkitTheme()&lt;/code&gt; in &lt;code&gt;GenerateThemeTest&lt;/code&gt; covers the short-name scenario end-to-end using a starterkit named &lt;code&gt;simple&lt;/code&gt;. The pattern collision was introduced in &lt;a href="https://www.drupal.org/node/3364885"&gt;#3364885&lt;/a&gt;, which added &lt;code&gt;namePatterns()&lt;/code&gt; and the array-based &lt;code&gt;str_replace&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 13, 2024&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (1 year and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;garphy (Evolving Web)&lt;/li&gt;
+&lt;li&gt;yannickoo (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;joelpittet filed the issue and did the detailed forensic work, breaking down exactly how each filename was being mutated through the sequential &lt;code&gt;str_replace&lt;/code&gt; array and posting the full before/after table in comments. garphy later contributed a patch to combine the two content-replacement passes into one call, avoiding an intermediate &lt;code&gt;file_put_contents&lt;/code&gt;. joelpittet eventually found the placeholder approach that made the tests pass after a lengthy period away from the problem, and smustgrave provided manual testing confirmation before the final RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585505: Refactor tests code via Rector</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585505.md</link>
       <guid isPermaLink="false">019dd4f1-15b2-7545-b219-52457a979704</guid>
@@ -415,809 +1035,6 @@ uasort($themes, static function ($a, $b) {
 &lt;li&gt;darchuletajr (Symmetri Technology)&lt;/li&gt;
 &lt;li&gt;jfauske (Ramsalt Lab)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3195427: Olivero does not support core's responsive tables API</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3195427.md</link>
-      <guid isPermaLink="false">019dc649-7bd1-741f-8bf7-4d94317be3e2</guid>
-      <pubDate>Fri, 24 Apr 2026 19:58:01 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +85/−0 · css +85&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/830165ddcb9ba78f4ea40e687457e43c75661ecc"&gt;830165d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3195427"&gt;#3195427&lt;/a&gt; · 9 contributors · 30 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Olivero theme was missing CSS rules for Drupal core's responsive tables API, which uses &lt;code&gt;priority-low&lt;/code&gt; and &lt;code&gt;priority-medium&lt;/code&gt; classes on table headers and cells to hide lower-priority columns on narrow viewports and surface a &amp;quot;Show all columns&amp;quot; toggle button. Because those rules were absent, the toggle button stayed hidden and all columns remained visible regardless of screen width. This fix adds the missing CSS to Olivero so responsive tables behave correctly: medium-priority columns are hidden below a medium breakpoint and low-priority columns below a large breakpoint, while a styled toggle button lets users reveal them. All columns are intentionally shown when printing.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drupal.tableresponsive&lt;/code&gt; JS library (in &lt;code&gt;core/misc/tableresponsive.js&lt;/code&gt;) detects responsive table support by checking whether &lt;code&gt;priority-medium&lt;/code&gt; or &lt;code&gt;priority-low&lt;/code&gt; cells are hidden via CSS. If the rules are not present in the active theme, the library never renders the toggle button and never hides any columns. Olivero's &lt;code&gt;table.pcss.css&lt;/code&gt; lacked these rules entirely, while Claro had them in its &lt;code&gt;css/components/tables.pcss.css&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix adds two blocks to Olivero's &lt;code&gt;core/themes/olivero/css/components/table.pcss.css&lt;/code&gt;: &lt;code&gt;th.priority-medium, td.priority-medium&lt;/code&gt; default to &lt;code&gt;display: none&lt;/code&gt; and are shown at the &lt;code&gt;--md&lt;/code&gt; custom media query, and &lt;code&gt;th.priority-low, td.priority-low&lt;/code&gt; default to &lt;code&gt;display: none&lt;/code&gt; and are shown at the &lt;code&gt;--lg&lt;/code&gt; custom media query. Both media queries carry the &lt;code&gt;screen&lt;/code&gt; keyword so that &lt;code&gt;display: none&lt;/code&gt; is not applied in print context, ensuring all columns appear when the page is printed.&lt;/p&gt;
-&lt;p&gt;A companion addition to &lt;code&gt;core/themes/olivero/css/components/button.pcss.css&lt;/code&gt; styles &lt;code&gt;button.link&lt;/code&gt; as a link-like element (transparent background, no border, &lt;code&gt;var(--color-text-primary-medium)&lt;/code&gt; color, hover and focus states) so the toggle button inserted by &lt;code&gt;tableresponsive.js&lt;/code&gt; matches the Olivero design instead of appearing as an unstyled browser button.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 29, 2021&lt;/li&gt;
-&lt;li&gt;Committed: April 24, 2026 (5 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;katannshaw (Lullabot)&lt;/li&gt;
-&lt;li&gt;mherchel (Lullabot)&lt;/li&gt;
-&lt;li&gt;andrewmacpherson&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;kentr&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;kentr identified the root cause (the missing CSS rules) and proposed the exact CSS block needed in a comment before opening MR !14502. mherchel reviewed the MR, requested stylistic consistency changes, and noted the deliberate use of the &lt;code&gt;screen&lt;/code&gt; keyword in the media queries so all columns remain visible when printing, a nuance that differs from Olivero's usual media query style.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3035340: Deprecate core/modules/views_ui/admin.inc</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035340.md</link>
-      <guid isPermaLink="false">019dc64b-62fe-73b7-a540-18d4480c4527</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 19:48:22 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +567/−238 · php +567/−238&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a2bcba1d161f9e98ed748c8246f0c267339ad8e1"&gt;a2bcba1&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3035340"&gt;#3035340&lt;/a&gt; · 9 contributors · 59 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Eight procedural helper functions in &lt;code&gt;core/modules/views_ui/admin.inc&lt;/code&gt; that power Views UI form building and AJAX behavior are deprecated in Drupal 11.4 and scheduled for removal in Drupal 13.0. Their logic has been moved into two new PHP traits in the &lt;code&gt;Drupal\views&lt;/code&gt; namespace. Contrib modules or custom code that calls any of these functions directly will receive deprecation warnings and should migrate to the equivalent trait methods.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Eight procedural functions in &lt;code&gt;core/modules/views_ui/admin.inc&lt;/code&gt; deprecated in drupal:11.4.0 and removed in drupal:13.0.0; replaced by methods on &lt;code&gt;\Drupal\views\ViewsFormAjaxHelperTrait&lt;/code&gt; and &lt;code&gt;\Drupal\views\ViewsFormHelperTrait&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new traits added to the &lt;code&gt;views&lt;/code&gt; module: &lt;code&gt;\Drupal\views\ViewsFormAjaxHelperTrait&lt;/code&gt; (AJAX form helpers) and &lt;code&gt;\Drupal\views\ViewsFormHelperTrait&lt;/code&gt; (general form helpers).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The eight functions in &lt;code&gt;admin.inc&lt;/code&gt; were procedural helpers tightly coupled to Views UI form classes. The refactoring moves them into two traits in &lt;code&gt;core/modules/views/src/&lt;/code&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ViewsFormAjaxHelperTrait&lt;/code&gt; carries the AJAX trigger infrastructure: &lt;code&gt;addAjaxTrigger()&lt;/code&gt;, and the static callbacks &lt;code&gt;addLimitedValidation()&lt;/code&gt;, &lt;code&gt;addAjaxWrapper()&lt;/code&gt;, &lt;code&gt;ajaxUpdateForm()&lt;/code&gt;, and &lt;code&gt;noJsSubmit()&lt;/code&gt;. A protected static &lt;code&gt;$ajaxTriggerButtons&lt;/code&gt; property replaces the former &lt;code&gt;drupal_static()&lt;/code&gt; calls for per-request deduplication state. Service access is via a protected &lt;code&gt;getElementInfo()&lt;/code&gt; getter that calls &lt;code&gt;\Drupal::service('plugin.manager.element_info')&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ViewsFormHelperTrait&lt;/code&gt; carries &lt;code&gt;standardDisplayDropdown()&lt;/code&gt;, &lt;code&gt;buildFormUrl()&lt;/code&gt;, and the static &lt;code&gt;formButtonWasClicked()&lt;/code&gt;. Service access is via a protected &lt;code&gt;getConfigFactory()&lt;/code&gt; getter calling &lt;code&gt;\Drupal::service('config.factory')&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Seven existing classes now use these traits: &lt;code&gt;DisplayPluginBase&lt;/code&gt;, &lt;code&gt;EntityField&lt;/code&gt;, &lt;code&gt;WizardPluginBase&lt;/code&gt;, &lt;code&gt;ViewsFormBase&lt;/code&gt;, &lt;code&gt;ViewAddForm&lt;/code&gt;, &lt;code&gt;ViewEditForm&lt;/code&gt;, and &lt;code&gt;ViewUI&lt;/code&gt;. All &lt;code&gt;\Drupal::moduleHandler()-&amp;gt;loadInclude('views_ui', 'inc', 'admin')&lt;/code&gt; calls were removed from those classes and from &lt;code&gt;TagTest&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The deprecated functions in &lt;code&gt;admin.inc&lt;/code&gt; now emit &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; and delegate through an internal helper &lt;code&gt;_views_ui_wrap_views_form_helper_traits()&lt;/code&gt;, which returns an anonymous class that uses both traits and exposes their protected methods as public wrappers to bridge the procedural-to-OOP gap without duplicating logic.&lt;/p&gt;
-&lt;p&gt;A service-based approach was explored and then reverted. The core problem was that &lt;code&gt;DisplayPluginBase&lt;/code&gt;, &lt;code&gt;EntityField&lt;/code&gt;, &lt;code&gt;WizardPluginBase&lt;/code&gt;, and &lt;code&gt;ViewsFormBase&lt;/code&gt; each have many subclasses, so injecting the new services would have cascaded constructor changes across a large surface area in core and contrib. Traits with &lt;code&gt;\Drupal::service()&lt;/code&gt; getters were chosen as the less disruptive path, accepting the &lt;code&gt;\Drupal::service()&lt;/code&gt; call inside a trait because a trait does not know where it will be consumed.&lt;/p&gt;
-&lt;p&gt;Some callback array entries that previously held string function names (e.g., &lt;code&gt;'views_ui_nojs_submit'&lt;/code&gt;) now reference static methods on the consuming class (e.g., &lt;code&gt;[static::class, 'noJsSubmit']&lt;/code&gt;), which was required because plugin forms cannot reference arbitrary function names as AJAX or submit callbacks.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Add the appropriate trait to your form class and call the equivalent method instead of the deprecated function.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (all deprecated in drupal:11.4.0, removed in drupal:13.0.0):
-views_ui_add_ajax_trigger($wrapping_element, $trigger_key, $refresh_parents);
-views_ui_add_limited_validation($element, $form_state);
-views_ui_add_ajax_wrapper($element, $form_state);
-views_ui_ajax_update_form($form, $form_state);
-views_ui_nojs_submit($form, $form_state);
-
-views_ui_standard_display_dropdown($form, $form_state, $section);
-views_ui_build_form_url($form_state);
-views_ui_form_button_was_clicked($element, $form_state);
-
-// After: add the trait to your class declaration and call the method.
-// For AJAX helpers:
-use \Drupal\views\ViewsFormAjaxHelperTrait;
-
-$this-&amp;gt;addAjaxTrigger($wrapping_element, $trigger_key, $refresh_parents);
-static::addLimitedValidation($element, $form_state); // static
-static::addAjaxWrapper($element, $form_state);       // static
-$this-&amp;gt;ajaxUpdateForm($form, $form_state);
-static::noJsSubmit($form, $form_state);              // static
-
-// For general form helpers:
-use \Drupal\views\ViewsFormHelperTrait;
-
-$this-&amp;gt;standardDisplayDropdown($form, $form_state, $section);
-$this-&amp;gt;buildFormUrl($form_state);
-static::formButtonWasClicked($element, $form_state); // static
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Callback arrays that previously referenced function name strings must be updated to reference static methods on the consuming class:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-'#submit' =&amp;gt; ['views_ui_nojs_submit'],
-'#process' =&amp;gt; ['views_ui_form_button_was_clicked', ...],
-
-// After:
-'#submit' =&amp;gt; [[static::class, 'noJsSubmit']],
-'#process' =&amp;gt; [[static::class, 'formButtonWasClicked'], ...],
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 24, 2019&lt;/li&gt;
-&lt;li&gt;Committed: April 24, 2026 (7 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;yogeshmpawar (QED42)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;shaktik (Material)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;There was a substantive design pivot during review. claudiu.cristea explored converting the helpers to proper services to achieve dependency injection purity, but after a discussion with berdir in the MR, reverted that approach. berdir (comment &lt;a href="https://www.drupal.org/node/16455333"&gt;#16455333&lt;/a&gt;) clarified that plugin forms have no way to access a plugin instance as a service, so some callbacks must remain static regardless. nicxvan (comment &lt;a href="https://www.drupal.org/node/16455346"&gt;#16455346&lt;/a&gt;) noted that DI in traits had no agreed standard in core, and that the service approach produced more problems than it solved. The final design settled on protected service getters inside the traits.&lt;/p&gt;
-&lt;p&gt;godotislate worked out the removal version in consultation with @xjm (comment &lt;a href="https://www.drupal.org/node/16564553"&gt;#16564553&lt;/a&gt;). The AJAX callback functions could arguably be removed in Drupal 12 since they are not documented public API, but consistency with the other deprecated functions in the same file and the proximity of the Drupal 12 release timeline led to setting Drupal 13.0 as the removal target for all eight functions.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3550054: Move FORM_SEPARATE_PAGE and FORM_BELOW constants in CommentItemInterface to new FormLocation enum</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3550054.md</link>
-      <guid isPermaLink="false">019dc49a-48a7-70e1-a400-99134c264cd7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 18:42:55 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +52/−24 · php +52/−24&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9a2fc401759d800dca0cb1ec9169a7b3d0a8068b"&gt;9a2fc40&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3550054"&gt;#3550054&lt;/a&gt; · 4 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two integer constants that controlled where the comment form appears on a page have been replaced with a proper PHP enum. The constants &lt;code&gt;CommentItemInterface::FORM_SEPARATE_PAGE&lt;/code&gt; and &lt;code&gt;CommentItemInterface::FORM_BELOW&lt;/code&gt; are now deprecated; the equivalent values live in the new &lt;code&gt;FormLocation&lt;/code&gt; enum. This is a purely internal refactor with no change to behavior or stored configuration data.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;CommentItemInterface::FORM_SEPARATE_PAGE&lt;/code&gt; and &lt;code&gt;CommentItemInterface::FORM_BELOW&lt;/code&gt; deprecated in drupal:11.4.0, removed in drupal:13.0.0; use &lt;code&gt;FormLocation::SeparatePage&lt;/code&gt; and &lt;code&gt;FormLocation::Below&lt;/code&gt; instead.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\comment\FormLocation&lt;/code&gt; backed int enum with cases &lt;code&gt;SeparatePage = 0&lt;/code&gt; and &lt;code&gt;Below = 1&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change introduces &lt;code&gt;Drupal\comment\FormLocation&lt;/code&gt;, a backed &lt;code&gt;int&lt;/code&gt; enum in &lt;code&gt;core/modules/comment/src/FormLocation.php&lt;/code&gt; with two cases: &lt;code&gt;SeparatePage = 0&lt;/code&gt; and &lt;code&gt;Below = 1&lt;/code&gt;, mirroring the integer values of the old constants. The constants &lt;code&gt;FORM_SEPARATE_PAGE&lt;/code&gt; and &lt;code&gt;FORM_BELOW&lt;/code&gt; in &lt;code&gt;CommentItemInterface&lt;/code&gt; are kept but marked deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt;, to be removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;, with a pointer to change record node 3550055.&lt;/p&gt;
-&lt;p&gt;All internal call sites were updated: &lt;code&gt;CommentLinkBuilder&lt;/code&gt; and &lt;code&gt;CommentManager&lt;/code&gt; now call &lt;code&gt;FormLocation::tryFrom((int) $field_definition-&amp;gt;getSetting('form_location'))&lt;/code&gt; to convert the stored integer setting to an enum case before comparing. &lt;code&gt;CommentFormatter&lt;/code&gt; similarly uses &lt;code&gt;FormLocation::tryFrom($comment_settings['form_location'])&lt;/code&gt;. The &lt;code&gt;CommentItem&lt;/code&gt; field type's &lt;code&gt;defaultFieldSettings()&lt;/code&gt; now stores &lt;code&gt;FormLocation::Below-&amp;gt;value&lt;/code&gt; instead of the bare integer. Unit and functional tests in &lt;code&gt;CommentLinkBuilderTest&lt;/code&gt;, &lt;code&gt;CommentTestTrait&lt;/code&gt;, and &lt;code&gt;CommentLinksAlterTest&lt;/code&gt; are updated to pass &lt;code&gt;FormLocation&lt;/code&gt; enum cases rather than raw integers.&lt;/p&gt;
-&lt;p&gt;This issue is part of the broader effort tracked by &lt;a href="https://www.drupal.org/node/3518993"&gt;#3518993&lt;/a&gt; to replace all comment-module integer constants with enums. The companion issue &lt;a href="https://www.drupal.org/node/3547353"&gt;#3547353&lt;/a&gt; previously converted the &lt;code&gt;HIDDEN&lt;/code&gt;, &lt;code&gt;CLOSED&lt;/code&gt;, and &lt;code&gt;OPEN&lt;/code&gt; status constants to the &lt;code&gt;CommentingStatus&lt;/code&gt; enum.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace any direct use of the deprecated constants with the corresponding &lt;code&gt;FormLocation&lt;/code&gt; enum case:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-
-$location = CommentItemInterface::FORM_BELOW;        // 1
-$location = CommentItemInterface::FORM_SEPARATE_PAGE; // 0
-
-// After
-use Drupal\comment\FormLocation;
-
-$location = FormLocation::Below;        // FormLocation enum case
-$location = FormLocation::SeparatePage; // FormLocation enum case
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;When storing the value in configuration or comparing against a raw integer retrieved from settings, use &lt;code&gt;-&amp;gt;value&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Storing / writing to settings
-'form_location' =&amp;gt; FormLocation::Below-&amp;gt;value,
-
-// Reading from settings and comparing
-$form_location = FormLocation::tryFrom((int) $field_definition-&amp;gt;getSetting('form_location'));
-if ($form_location === FormLocation::SeparatePage) { ... }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 3, 2025&lt;/li&gt;
-&lt;li&gt;Committed: April 24, 2026 (6 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3559874: The UUID data type should validate that its value is an actual UUID</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3559874.md</link>
-      <guid isPermaLink="false">019dc499-6882-77b9-a515-7eb5a9c41af6</guid>
-      <pubDate>Fri, 24 Apr 2026 18:28:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +34/−12 · php +28/−6 · yml +6/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/21d984ccf7a9e69e4e4caa7679f8088115796f7b"&gt;21d984c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3559874"&gt;#3559874&lt;/a&gt; · 10 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's &lt;code&gt;uuid&lt;/code&gt; entity field type previously applied no format validation to its stored value, meaning any arbitrary string could be saved in a UUID field without complaint. This fix adds the &lt;code&gt;Uuid&lt;/code&gt; constraint to the &lt;code&gt;UuidItem&lt;/code&gt; field type so that attempting to save a non-UUID value in a UUID field now produces a validation violation. Any site code or content that stores non-UUID strings in UUID fields will start seeing validation errors after this change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;UuidItem&lt;/code&gt; field type plugin (&lt;code&gt;core/lib/Drupal/Core/Field/Plugin/Field/FieldType/UuidItem.php&lt;/code&gt;) extends &lt;code&gt;StringItem&lt;/code&gt; and had only a max-length storage setting of 128 characters but no format constraint on the &lt;code&gt;value&lt;/code&gt; property. The fix adds a &lt;code&gt;ComplexData&lt;/code&gt; constraint wrapping a &lt;code&gt;Uuid&lt;/code&gt; constraint on the &lt;code&gt;value&lt;/code&gt; property directly in the &lt;code&gt;#[FieldType]&lt;/code&gt; attribute's &lt;code&gt;constraints&lt;/code&gt; array, consistent with how other field types such as &lt;code&gt;TimestampItem&lt;/code&gt; declare their constraints. An earlier revision of the MR placed the constraint in &lt;code&gt;propertyDefinitions()&lt;/code&gt;; after discussion (raised by idebr in comment #14, confirmed by longwave in comment #15), the cleaner approach of declaring it in the attribute was adopted. The config schema &lt;code&gt;uuid&lt;/code&gt; type already carried a &lt;code&gt;Uuid: {}&lt;/code&gt; constraint but nothing ever called &lt;code&gt;$config_entity-&amp;gt;getTypedData()-&amp;gt;validate()&lt;/code&gt;, so it had no practical effect. Several test fixtures that used constructed sequential UUIDs (such as &lt;code&gt;01234567-89ab-cdef-0123-456789abcdef&lt;/code&gt; and &lt;code&gt;fedcba98-7654-3210-fedc-ba9876543210&lt;/code&gt;) were replaced with properly random UUIDs so they continue to pass the new validation. The REST API validation test was updated to expect two violations when an invalid UUID string is submitted: the new &amp;quot;This is not a valid UUID.&amp;quot; message followed by the pre-existing &amp;quot;UUID: may not be longer than 128 characters.&amp;quot; message. A new &lt;code&gt;testInvalidUuid()&lt;/code&gt; test was added to &lt;code&gt;UuidItemTest&lt;/code&gt; to assert the violation message and property path (&lt;code&gt;uuid.0.value&lt;/code&gt;) directly.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you have custom code or content that stores non-UUID strings in any &lt;code&gt;uuid&lt;/code&gt; entity field, those entities will now fail validation. Update stored values to be valid UUID v4 strings. No API changes are required for code that uses UUID fields normally.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 25, 2025&lt;/li&gt;
-&lt;li&gt;Committed: April 24, 2026 (5 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;lendude (iO)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;angel_devoeted (Pixual)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;idebr (iO)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;lendude flagged in comment #7 that any existing entities abusing UUID fields to store arbitrary external IDs (a real-world pattern seen during content imports from outside Drupal) would break once this validation was enforced, and recommended a change record and avoiding a patch-release backport. phenaproxima followed up with a change record at https://www.drupal.org/node/3560109. idebr then raised the question of where the constraint should live (FieldType attribute vs &lt;code&gt;propertyDefinitions()&lt;/code&gt; vs &lt;code&gt;getConstraints()&lt;/code&gt;), longwave confirmed the FieldType attribute was cleanest, and idebr updated the MR accordingly.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2547493: Add support for unique / primary key constraints composed of multiple fields for Upsert queries</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2547493.md</link>
-      <guid isPermaLink="false">019dc64d-4b7f-77d0-a063-c469fb1f3d21</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 11:01:46 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +118/−19 · php +118/−19&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3ae3915e6fa06f78c6920f7a1bc6b278124315fc"&gt;3ae3915&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2547493"&gt;#2547493&lt;/a&gt; · 15 contributors · 58 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 22&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's &lt;code&gt;Upsert&lt;/code&gt; database query class now supports composite unique or primary key constraints, meaning tables whose uniqueness is defined by more than one column can now use upsert queries. Previously, the class was limited to single-field keys, which prevented it from being used across most of Drupal core. This unblocks replacing slower multi-statement &lt;code&gt;Merge&lt;/code&gt; queries with single-statement &lt;code&gt;Upsert&lt;/code&gt; queries in more places, reducing database round-trips. Site owners should see a modest performance improvement wherever core previously fell back to separate SELECT/INSERT/UPDATE sequences.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Upsert::$key&lt;/code&gt; property type changed from &lt;code&gt;string&lt;/code&gt; to &lt;code&gt;string[]&lt;/code&gt;; third-party drivers that access &lt;code&gt;$this-&amp;gt;key&lt;/code&gt; directly as a string must update to treat it as an array.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;Upsert::key()&lt;/code&gt; now accepts &lt;code&gt;string|array&lt;/code&gt;, enabling composite unique/primary key constraints in upsert queries across all three built-in database drivers (MySQL, PostgreSQL, SQLite).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;Upsert&lt;/code&gt; base class (&lt;code&gt;core/lib/Drupal/Core/Database/Query/Upsert.php&lt;/code&gt;) stored the key column as a bare &lt;code&gt;string $key&lt;/code&gt;. It is now stored as &lt;code&gt;string[] $key&lt;/code&gt;. The &lt;code&gt;key()&lt;/code&gt; method signature changed from an untyped &lt;code&gt;$field&lt;/code&gt; to &lt;code&gt;string|array $field&lt;/code&gt;, normalized internally with &lt;code&gt;(array) $field&lt;/code&gt;, so existing single-string callers remain unaffected.&lt;/p&gt;
-&lt;p&gt;All three built-in driver &lt;code&gt;__toString()&lt;/code&gt; implementations were updated in parallel. Each now calls &lt;code&gt;array_combine($insert_fields, $insert_fields)&lt;/code&gt; immediately after merging default and insert fields, making the array addressable by field name so that key columns can be removed with &lt;code&gt;unset($insert_fields[$key])&lt;/code&gt; inside a &lt;code&gt;foreach ($this-&amp;gt;key as $key)&lt;/code&gt; loop. The PostgreSQL and SQLite drivers build their &lt;code&gt;ON CONFLICT (...)&lt;/code&gt; clause by mapping each key column through &lt;code&gt;escapeField()&lt;/code&gt; and joining with commas. The MySQL driver similarly iterates the key array when excluding key columns from the &lt;code&gt;ON DUPLICATE KEY UPDATE&lt;/code&gt; set list.&lt;/p&gt;
-&lt;p&gt;The SQLite driver (&lt;code&gt;core/modules/sqlite/src/Driver/Database/sqlite/Upsert.php&lt;/code&gt;) also received a positional-index correctness fix: &lt;code&gt;$insert_values = array_values($insert_values)&lt;/code&gt; is prepended to the blob-field processing loop so that numeric offsets align with &lt;code&gt;$this-&amp;gt;insertFields&lt;/code&gt; when values are passed as associative arrays.&lt;/p&gt;
-&lt;p&gt;A new kernel test &lt;code&gt;testCompositeKeyUpsert()&lt;/code&gt; in &lt;code&gt;core/tests/Drupal/KernelTests/Core/Database/UpsertTest.php&lt;/code&gt; exercises insert, conditional update, and same-name-different-age scenarios against a &lt;code&gt;test_composite_primary&lt;/code&gt; table whose primary key spans &lt;code&gt;(name, age)&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Third-party database driver maintainers whose drivers override &lt;code&gt;Upsert::__toString()&lt;/code&gt; and access &lt;code&gt;$this-&amp;gt;key&lt;/code&gt; directly as a string must update to treat it as &lt;code&gt;string[]&lt;/code&gt;. A follow-up issue (&lt;a href="https://www.drupal.org/node/3549762"&gt;#3549762&lt;/a&gt;) tracks a potential future deprecation of &lt;code&gt;Merge&lt;/code&gt; queries in favour of &lt;code&gt;Upsert&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Callers that pass a single string to &lt;code&gt;Upsert::key()&lt;/code&gt; require no change:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Still works as before.
-$connection-&amp;gt;upsert('my_table')
-  -&amp;gt;key('id')
-  -&amp;gt;fields(['id', 'value'])
-  -&amp;gt;values([...])
-  -&amp;gt;execute();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To use composite keys, pass an array:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$connection-&amp;gt;upsert('my_table')
-  -&amp;gt;key(['col_a', 'col_b'])
-  -&amp;gt;fields(['col_a', 'col_b', 'value'])
-  -&amp;gt;values([...])
-  -&amp;gt;execute();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Third-party database drivers that override &lt;code&gt;Upsert::__toString()&lt;/code&gt; and access &lt;code&gt;$this-&amp;gt;key&lt;/code&gt; as a string must update to iterate it as an array. A typical update looks like:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-unset($insert_fields[$this-&amp;gt;key]);
-$query .= ' ON CONFLICT (' . $this-&amp;gt;connection-&amp;gt;escapeField($this-&amp;gt;key) . ') DO UPDATE SET ...';
-
-// After:
-foreach ($this-&amp;gt;key as $key) {
-    unset($insert_fields[$key]);
-}
-$keys = array_map(fn($k) =&amp;gt; $this-&amp;gt;connection-&amp;gt;escapeField($k), $this-&amp;gt;key);
-$query .= ' ON CONFLICT (' . implode(', ', $keys) . ') DO UPDATE SET ...';
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 7, 2015&lt;/li&gt;
-&lt;li&gt;Committed: April 24, 2026 (10 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was opened in 2015 but closed immediately because SQLite lacked real UPSERT support. After the minimum SQLite version was raised, amateescu reopened it in 2020; the patch then sat dormant for years. In 2025, two design discussions shaped the final commit. mondrake proposed overloading &lt;code&gt;key()&lt;/code&gt; to accept &lt;code&gt;string|array&lt;/code&gt; rather than adding a separate &lt;code&gt;keyColumns()&lt;/code&gt; method, arguing this keeps the API simpler for callers who already use single-field upserts; amateescu agreed and updated the MR accordingly. A parallel debate with &amp;quot;ghost of drupal past&amp;quot;, who argued that Upsert should be folded into Merge rather than kept as a separate API, was ultimately set aside by amateescu and mondrake, who chose to keep both classes and deferred any Merge evolution to a separate issue. longwave then extracted a minimal MR (MR!15248) focused strictly on the composite-key change, stripping out ancillary refactors, which was the version alexpott committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3577671: Modernize locale file handling</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577671.md</link>
-      <guid isPermaLink="false">019dc497-f768-775e-a43d-723e8afd7484</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 09:03:57 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +514/−199 · php +512/−199 · yml +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/db002cb1cc621dfacdcf330c7a2e6dd3f7f81a41"&gt;db002cb&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577671"&gt;#3577671&lt;/a&gt; · 5 contributors · 43 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Six procedural functions in the locale module that handled translation file operations have been replaced by a proper service and typed value objects. Site owners with custom code that calls any of the deprecated locale file functions will see deprecation notices starting in Drupal 11.4.0, and must update before Drupal 13.0.0. There is no user-facing behavior change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Six procedural locale file functions in &lt;code&gt;locale.bulk.inc&lt;/code&gt; and &lt;code&gt;locale.batch.inc&lt;/code&gt; deprecated in favor of &lt;code&gt;LocaleFileManager&lt;/code&gt; service and &lt;code&gt;LocaleFile&lt;/code&gt; value object, removed in drupal:13.0.0.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;LocaleFileManager&lt;/code&gt; service, &lt;code&gt;LocaleFile&lt;/code&gt; typed value object, &lt;code&gt;RemoteFileInfo&lt;/code&gt; value object, and &lt;code&gt;RemoteFileStatus&lt;/code&gt; backed enum added under &lt;code&gt;Drupal\locale\File\&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The locale module historically passed translation file metadata around as loosely-typed &lt;code&gt;stdClass&lt;/code&gt; objects and exposed file operations as bare procedural functions in &lt;code&gt;locale.bulk.inc&lt;/code&gt; and &lt;code&gt;locale.batch.inc&lt;/code&gt;. This change introduces four new classes under &lt;code&gt;Drupal\locale\File\&lt;/code&gt; and deprecates the six procedural functions.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;New classes:&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;LocaleFile&lt;/code&gt; — a typed &lt;code&gt;final class&lt;/code&gt; value object replacing ad-hoc &lt;code&gt;stdClass&lt;/code&gt; instances. Its constructor takes &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;uri&lt;/code&gt;, &lt;code&gt;hash&lt;/code&gt;, &lt;code&gt;timestamp&lt;/code&gt;, &lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;project&lt;/code&gt;, and &lt;code&gt;version&lt;/code&gt;. The static factory &lt;code&gt;LocaleFile::createFromPath($filename, $filepath, $langcodeOverride)&lt;/code&gt; performs the regex-based filename parsing (previously embedded in &lt;code&gt;locale_translate_file_attach_properties()&lt;/code&gt;) to extract project name, version, and language code from filenames matching &lt;code&gt;{project}-{version}.{langcode}.po&lt;/code&gt; or &lt;code&gt;{project}.{langcode}.po&lt;/code&gt;. The regex was explicitly moved to &lt;code&gt;createFromPath()&lt;/code&gt; rather than the constructor, following a review observation from alexpott that running it on every construction was unnecessary and caused test failures.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;LocaleFileManager&lt;/code&gt; — a new injectable service (registered in &lt;code&gt;locale.services.yml&lt;/code&gt; as &lt;code&gt;Drupal\locale\File\LocaleFileManager&lt;/code&gt;). It takes &lt;code&gt;LocaleProjectStorageInterface&lt;/code&gt;, &lt;code&gt;FileSystemInterface&lt;/code&gt;, &lt;code&gt;ClientFactory&lt;/code&gt;, &lt;code&gt;ClientInterface&lt;/code&gt;, &lt;code&gt;LoggerChannelFactoryInterface&lt;/code&gt;, and &lt;code&gt;MessengerInterface&lt;/code&gt; as constructor dependencies and exposes: &lt;code&gt;getInterfaceTranslationFiles()&lt;/code&gt;, &lt;code&gt;deleteTranslationFiles()&lt;/code&gt;, &lt;code&gt;checkRemoteFileStatus()&lt;/code&gt;, and &lt;code&gt;downloadTranslationSource()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;RemoteFileInfo&lt;/code&gt; — a value object returned by &lt;code&gt;checkRemoteFileStatus()&lt;/code&gt; carrying a &lt;code&gt;RemoteFileStatus $status&lt;/code&gt;, nullable &lt;code&gt;int $lastModified&lt;/code&gt;, and nullable &lt;code&gt;string $location&lt;/code&gt; (set when a redirect occurred).&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;RemoteFileStatus&lt;/code&gt; — a backed &lt;code&gt;int&lt;/code&gt; enum with cases &lt;code&gt;Success = 1&lt;/code&gt;, &lt;code&gt;Error = 0&lt;/code&gt;, &lt;code&gt;Missing = 404&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;Deprecated functions&lt;/strong&gt; (all deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt;, removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;, change record &lt;code&gt;https://www.drupal.org/node/3577675&lt;/code&gt;):&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;locale_translate_get_interface_translation_files()&lt;/code&gt; → &lt;code&gt;LocaleFileManager::getInterfaceTranslationFiles()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;locale_translate_file_create()&lt;/code&gt; → &lt;code&gt;new LocaleFile()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;locale_translate_file_attach_properties()&lt;/code&gt; → &lt;code&gt;LocaleFile::createFromPath()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;locale_translate_delete_translation_files()&lt;/code&gt; → &lt;code&gt;LocaleFileManager::deleteTranslationFiles()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;locale_translation_http_check()&lt;/code&gt; → &lt;code&gt;LocaleFileManager::checkRemoteFileStatus()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;locale_translation_download_source()&lt;/code&gt; → &lt;code&gt;LocaleFileManager::downloadTranslationSource()&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;All six deprecated functions are updated to thin &lt;code&gt;@trigger_error&lt;/code&gt; wrappers that delegate to the new service or class. Internal callers in &lt;code&gt;install.core.inc&lt;/code&gt;, &lt;code&gt;locale.module&lt;/code&gt;, &lt;code&gt;LocaleSource&lt;/code&gt;, &lt;code&gt;LocaleEventSubscriber&lt;/code&gt;, and &lt;code&gt;TranslationStatusForm&lt;/code&gt; are updated to call the service or &lt;code&gt;LocaleFile&lt;/code&gt; directly.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace calls to the deprecated procedural functions with the new service and value objects:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$files = locale_translate_get_interface_translation_files($projects, $langcodes);
-
-// After:
-use Drupal\locale\File\LocaleFileManager;
-$files = \Drupal::service(LocaleFileManager::class)-&amp;gt;getInterfaceTranslationFiles($projects, $langcodes);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$file = locale_translate_file_create($filepath);
-
-// After:
-use Drupal\locale\File\LocaleFile;
-use Drupal\locale\LocaleSource;
-$hash = hash_file(LocaleSource::LOCAL_FILE_HASH_ALGO, $filepath);
-$file = new LocaleFile(basename($filepath), $filepath, $hash, filemtime($filepath));
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$file = locale_translate_file_attach_properties($file, $options);
-
-// After:
-use Drupal\locale\File\LocaleFile;
-$file = LocaleFile::createFromPath($filename, $uri, $options['langcode'] ?? NULL);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-locale_translate_delete_translation_files($projects, $langcodes);
-
-// After:
-use Drupal\locale\File\LocaleFileManager;
-\Drupal::service(LocaleFileManager::class)-&amp;gt;deleteTranslationFiles($projects, $langcodes);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$result = locale_translation_http_check($uri);
-
-// After:
-use Drupal\locale\File\LocaleFileManager;
-use Drupal\locale\File\RemoteFileStatus;
-$remoteFileInfo = \Drupal::service(LocaleFileManager::class)-&amp;gt;checkRemoteFileStatus($uri);
-// $remoteFileInfo-&amp;gt;status is a RemoteFileStatus enum: Success, Error, or Missing
-// $remoteFileInfo-&amp;gt;lastModified and $remoteFileInfo-&amp;gt;location replace the old array keys
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$file = locale_translation_download_source($source_file, 'translations://');
-
-// After:
-use Drupal\locale\File\LocaleFile;
-use Drupal\locale\File\LocaleFileManager;
-use Drupal\locale\LocaleSource;
-$hash = hash_file(LocaleSource::LOCAL_FILE_HASH_ALGO, $source_file-&amp;gt;uri);
-$locale_file = new LocaleFile($source_file-&amp;gt;filename, $source_file-&amp;gt;uri, $hash);
-$file = \Drupal::service(LocaleFileManager::class)-&amp;gt;downloadTranslationSource($locale_file, 'translations://');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that reads &lt;code&gt;$file-&amp;gt;info['version']&lt;/code&gt; from a file object returned by these functions must be updated to read &lt;code&gt;$file-&amp;gt;version&lt;/code&gt; directly (a public property on &lt;code&gt;LocaleFile&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 7, 2026&lt;/li&gt;
-&lt;li&gt;First commit: April 10, 2026 (1 month later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 24, 2026 (13 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir provided an early architectural review proposing the value-object approach and a scoping suggestion to keep the change manageable by using public properties. alexpott caught a critical structural issue: the filename-parsing regex had been moved into the &lt;code&gt;LocaleFile&lt;/code&gt; constructor, causing it to run far more often than it did previously (only two call sites before the refactor, many more after). This introduced a test failure. nicxvan responded by moving the regex to the &lt;code&gt;createFromPath()&lt;/code&gt; static factory and using plain &lt;code&gt;new LocaleFile()&lt;/code&gt; construction everywhere else.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3366561: Support preloading of fonts in the libraries API</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3366561.md</link>
-      <guid isPermaLink="false">019dc49c-8be8-761d-9b1b-ec7b12b5f63a</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 08:41:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +159/−95 · php +138/−78 · yml +21/−2 · twig +0/−15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/26b96079674858f745829cdc1caebb195ab6b455"&gt;26b9607&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3366561"&gt;#3366561&lt;/a&gt; · 11 contributors · 60 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 51&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's libraries API now supports a first-class &lt;code&gt;fonts&lt;/code&gt; key in &lt;code&gt;.libraries.yml&lt;/code&gt; files, allowing themes and modules to declare font preloading directly alongside their CSS and JS. When &lt;code&gt;preload: true&lt;/code&gt; is set on a font entry, Drupal automatically emits a &lt;code&gt;&amp;lt;link rel=&amp;quot;preload&amp;quot; as=&amp;quot;font&amp;quot;&amp;gt;&lt;/code&gt; tag in the HTML head. This replaces ad-hoc workarounds such as Olivero's hand-crafted Twig template and Navigation module's manual &lt;code&gt;html_head_link&lt;/code&gt; attachment. Umami also gains font preloading for the first time. The practical effect is that browsers can begin fetching font files earlier, reducing the rendering delay caused by fonts that previously only started loading after CSS was downloaded and parsed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;HtmlResponseAttachmentsProcessor&lt;/code&gt; and &lt;code&gt;BigPipeResponseAttachmentsProcessor&lt;/code&gt; constructors require a new &lt;code&gt;FileUrlGeneratorInterface&lt;/code&gt; argument; omitting it is deprecated in drupal:11.4.0 and will be required in drupal:12.0.0.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;AssetResolverInterface::getFontAssets()&lt;/code&gt; method and &lt;code&gt;fonts:&lt;/code&gt; key in &lt;code&gt;.libraries.yml&lt;/code&gt; for declaring font preloading.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The problem was that font preloading had no structured place in the libraries system, forcing themes like Olivero to maintain a separate &lt;code&gt;preload.twig&lt;/code&gt; template (with hardcoded paths) included from &lt;code&gt;html.html.twig&lt;/code&gt;, and Navigation to manually build &lt;code&gt;html_head_link&lt;/code&gt; arrays in PHP.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;fonts&lt;/code&gt; as a recognized top-level key alongside &lt;code&gt;js&lt;/code&gt; and &lt;code&gt;css&lt;/code&gt; in &lt;code&gt;LibraryDiscoveryParser::buildByExtension()&lt;/code&gt;. The parser now defaults each library to &lt;code&gt;'fonts' =&amp;gt; []&lt;/code&gt; and iterates over &lt;code&gt;['js', 'css', 'fonts']&lt;/code&gt; uniformly. Each font entry supports a &lt;code&gt;preload: true&lt;/code&gt; flag.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;getFontAssets(AttachedAssetsInterface $assets, ?LanguageInterface $language = NULL): array&lt;/code&gt; method is added to &lt;code&gt;AssetResolverInterface&lt;/code&gt; and implemented in &lt;code&gt;AssetResolver&lt;/code&gt;. It follows the same caching pattern as &lt;code&gt;getCssAssets()&lt;/code&gt; and &lt;code&gt;getJsAssets()&lt;/code&gt;, keying the persistent cache entry (&lt;code&gt;library_info&lt;/code&gt; tag) on active theme, language, and the resolved library list via a &lt;code&gt;fonts:&lt;/code&gt; prefix. Because the font library list is a subset of all attached libraries and typically changes less often than the full CSS set, the cache hit rate is higher.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;HtmlResponseAttachmentsProcessor::processAttachments()&lt;/code&gt; calls &lt;code&gt;getFontAssets()&lt;/code&gt; and, for each font with &lt;code&gt;preload: true&lt;/code&gt;, pushes a &lt;code&gt;&amp;lt;link rel=&amp;quot;preload&amp;quot; as=&amp;quot;font&amp;quot; type=&amp;quot;font/&amp;lt;ext&amp;gt;&amp;quot; crossorigin=&amp;quot;anonymous&amp;quot;&amp;gt;&lt;/code&gt; entry onto &lt;code&gt;$attached['html_head_link']&lt;/code&gt;. URL generation uses &lt;code&gt;FileUrlGeneratorInterface::generate()&lt;/code&gt; so that paths resolve correctly on non-root pages. &lt;code&gt;FileUrlGeneratorInterface&lt;/code&gt; is injected as a new constructor argument on both &lt;code&gt;HtmlResponseAttachmentsProcessor&lt;/code&gt; and &lt;code&gt;BigPipeResponseAttachmentsProcessor&lt;/code&gt;; omitting it is deprecated in drupal:11.4.0.&lt;/p&gt;
-&lt;p&gt;Concrete conversions in the diff: Olivero's &lt;code&gt;preload.twig&lt;/code&gt; template and its &lt;code&gt;{% include %}&lt;/code&gt; line in &lt;code&gt;html.html.twig&lt;/code&gt; are deleted; four font paths move to a &lt;code&gt;fonts:&lt;/code&gt; block in &lt;code&gt;olivero.libraries.yml&lt;/code&gt;. Navigation removes the manual &lt;code&gt;html_head_link&lt;/code&gt; build from &lt;code&gt;NavigationBlock::doBuildNavigation()&lt;/code&gt; and declares &lt;code&gt;inter-var.woff2&lt;/code&gt; in &lt;code&gt;internal.navigation&lt;/code&gt; library. Umami adds three Source Sans Pro and one Scope One font to the &lt;code&gt;global&lt;/code&gt; library.&lt;/p&gt;
-&lt;p&gt;Early-hints (103 responses) support is left for the follow-up issue &lt;a href="https://www.drupal.org/node/3570909"&gt;#3570909&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any code that constructs &lt;code&gt;HtmlResponseAttachmentsProcessor&lt;/code&gt; or &lt;code&gt;BigPipeResponseAttachmentsProcessor&lt;/code&gt; directly (outside of the service container) must add &lt;code&gt;FileUrlGeneratorInterface&lt;/code&gt; as the last constructor argument. The service definitions in &lt;code&gt;core.services.yml&lt;/code&gt; and &lt;code&gt;big_pipe.services.yml&lt;/code&gt; are already updated.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated since drupal:11.4.0):
-new HtmlResponseAttachmentsProcessor(
-  $assetResolver, $configFactory, $cssRenderer, $jsRenderer,
-  $requestStack, $renderer, $moduleHandler, $languageManager
-);
-
-// After (required from drupal:12.0.0):
-new HtmlResponseAttachmentsProcessor(
-  $assetResolver, $configFactory, $cssRenderer, $jsRenderer,
-  $requestStack, $renderer, $moduleHandler, $languageManager,
-  $fileUrlGenerator   // \Drupal\Core\File\FileUrlGeneratorInterface
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To declare font preloading in a theme or module library, add a &lt;code&gt;fonts:&lt;/code&gt; block to the relevant &lt;code&gt;.libraries.yml&lt;/code&gt; entry:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;my-library:
-  version: VERSION
-  css:
-    base:
-      css/fonts.css: {}
-  fonts:
-    fonts/my-font-regular.woff2:
-      preload: true
-    fonts/my-font-bold.woff2:
-      preload: true
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The path is relative to the extension root, matching the URL that appears in the CSS &lt;code&gt;@font-face&lt;/code&gt; declaration. External URLs are also accepted as keys.&lt;/p&gt;
-&lt;p&gt;Themes that previously preloaded fonts via a hand-maintained Twig template or a &lt;code&gt;hook_preprocess_page()&lt;/code&gt; &lt;code&gt;html_head_link&lt;/code&gt; attachment can remove that code and use the &lt;code&gt;fonts:&lt;/code&gt; key instead.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 13, 2023&lt;/li&gt;
-&lt;li&gt;Committed: April 23, 2026 (2 years and 6 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;vbouchet (Acquia)&lt;/li&gt;
-&lt;li&gt;rikki_iki (PreviousNext)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;finnsky&lt;/li&gt;
-&lt;li&gt;grimreaper&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The API shape was debated across several comments. rikki_iki (comment #5) proposed using separate named top-level entries (&lt;code&gt;preload:&lt;/code&gt;, &lt;code&gt;preconnect:&lt;/code&gt;) rather than a generic &lt;code&gt;links:&lt;/code&gt; block to reduce misuse risk, and catch agreed, eventually settling on a &lt;code&gt;fonts:&lt;/code&gt; key with a &lt;code&gt;preload: true&lt;/code&gt; flag per entry. berdir raised a practical concern about cache-busting: because the preload URL and the CSS &lt;code&gt;@font-face&lt;/code&gt; URL must match exactly, and Drupal does not append a version string to font URLs, keeping them in sync is the author's responsibility. grimreaper provided code review that led to at least one test improvement catch had initially declined, and flagged the question of Single Directory Components; that was deferred to follow-up issue &lt;a href="https://www.drupal.org/node/3586470"&gt;#3586470&lt;/a&gt;. finnsky made the first external commit, fixing PHPCS issues and adding Navigation support, which surfaced the path-resolution bug that led catch to introduce &lt;code&gt;FileUrlGeneratorInterface&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3536964: run-tests.sh - segregate command line parsing and use Symfony Console classes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536964.md</link>
-      <guid isPermaLink="false">019d8967-dfa7-7599-9197-f9f5c16068d5</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 24 Apr 2026 07:34:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +298/−0 · php +294 · yml +4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/45c803476fd63c566cc636bb82b755d4d2a55c94"&gt;45c8034&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3536964"&gt;#3536964&lt;/a&gt; · 6 contributors · 65 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;run-tests.sh&lt;/code&gt; test runner script now uses Symfony Console's argument-parsing infrastructure instead of a hand-rolled parsing function. A new &lt;code&gt;Configuration&lt;/code&gt; class centralizes all command-line option handling, improving readability and moving the script closer to becoming a proper Symfony Console application command. For CI operators the most visible changes are: a substantially improved &lt;code&gt;--help&lt;/code&gt; output (automatically generated from the option definitions), the &lt;code&gt;--sqlite ':memory:'&lt;/code&gt; option now working (the old restriction is gone since &lt;a href="https://www.drupal.org/node/3515347"&gt;#3515347&lt;/a&gt; eliminated sub-process spawning), and the &lt;code&gt;--php&lt;/code&gt; option being deprecated and silently ignored. PHP binary detection now uses &lt;code&gt;PhpExecutableFinder&lt;/code&gt; from &lt;code&gt;symfony/process&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;--php&lt;/code&gt; option in &lt;code&gt;run-tests.sh&lt;/code&gt; is now deprecated and silently ignored; PHP binary detection is handled automatically via &lt;code&gt;PhpExecutableFinder&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;All changes are in &lt;code&gt;core/scripts/run-tests.sh&lt;/code&gt; and the new &lt;code&gt;core/tests/Drupal/TestTools/TestRunner/Configuration.php&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Previously, &lt;code&gt;run-tests.sh&lt;/code&gt; contained &lt;code&gt;simpletest_script_parse_args()&lt;/code&gt;, a hand-written function that iterated &lt;code&gt;$_SERVER['argv']&lt;/code&gt;, maintained a flat &lt;code&gt;$args&lt;/code&gt; array of defaults, and shared it as a global throughout the script. Every function accessed &lt;code&gt;global $args&lt;/code&gt; and then individual keys.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;Configuration&lt;/code&gt; final singleton class lives in the &lt;code&gt;Drupal\TestTools\TestRunner&lt;/code&gt; namespace. All options and their defaults are declared once in &lt;code&gt;Configuration::commandLineDefinition()&lt;/code&gt; using Symfony Console's &lt;code&gt;InputDefinition&lt;/code&gt;, &lt;code&gt;InputOption&lt;/code&gt;, and &lt;code&gt;InputArgument&lt;/code&gt; objects. The static factory &lt;code&gt;Configuration::createFromCommandLine()&lt;/code&gt; wraps the raw &lt;code&gt;argv&lt;/code&gt; in &lt;code&gt;ArgvInput&lt;/code&gt;, validates &lt;code&gt;--concurrency&lt;/code&gt;, splits the comma-separated &lt;code&gt;tests&lt;/code&gt; and &lt;code&gt;types&lt;/code&gt; values into arrays, and stores the result in the singleton. Access throughout the script is via &lt;code&gt;Config::get('option-name')&lt;/code&gt;, &lt;code&gt;Config::set('option-name', $value)&lt;/code&gt;, and &lt;code&gt;Config::getTests()&lt;/code&gt;. Functions that previously accepted &lt;code&gt;array $args&lt;/code&gt; as a parameter (&lt;code&gt;dump_tests_sequence()&lt;/code&gt;, &lt;code&gt;dump_bin_tests_sequence()&lt;/code&gt;) now call &lt;code&gt;Config::get()&lt;/code&gt; directly and drop the parameter.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;simpletest_script_init()&lt;/code&gt; is simplified: autoloader setup is moved to the top of the script (the &lt;code&gt;ClassLoader&lt;/code&gt; instance is passed in as a parameter), and the entire block that guessed the PHP binary from the &lt;code&gt;$_&lt;/code&gt; and &lt;code&gt;SUDO_COMMAND&lt;/code&gt; environment variables is removed. The startup banner now calls &lt;code&gt;(new PhpExecutableFinder())-&amp;gt;find()&lt;/code&gt; inline. The &lt;code&gt;--php&lt;/code&gt; option remains accepted so existing scripts do not break, but its value is never read and it is documented as deprecated.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;simpletest_script_setup_test_run_results_storage()&lt;/code&gt; loses its &lt;code&gt;$new&lt;/code&gt; boolean parameter; the caller always creates storage now.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;simpletest_script_help()&lt;/code&gt; drops the full hand-written option listing and instead calls &lt;code&gt;DescriptorHelper::describe()&lt;/code&gt; against the &lt;code&gt;InputDefinition&lt;/code&gt;, automatically producing consistent formatted help. Its signature changes to accept &lt;code&gt;InputDefinition $input_definition&lt;/code&gt;, &lt;code&gt;string $script_basename&lt;/code&gt;, and &lt;code&gt;ConsoleOutput $console_output&lt;/code&gt; instead of reading globals.&lt;/p&gt;
-&lt;p&gt;A companion change in &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; sets &lt;code&gt;CI_NODE_INDEX: 1&lt;/code&gt; and &lt;code&gt;CI_NODE_TOTAL: 1&lt;/code&gt; explicitly for the Build job, since those values are now required by the &lt;code&gt;--ci-parallel-node-total&lt;/code&gt; and &lt;code&gt;--ci-parallel-node-index&lt;/code&gt; option defaults.&lt;/p&gt;
-&lt;p&gt;Help text is also updated: the &lt;code&gt;:memory:&lt;/code&gt; restriction on &lt;code&gt;--sqlite&lt;/code&gt; is removed (resolved by &lt;a href="https://www.drupal.org/node/3515347"&gt;#3515347&lt;/a&gt;), and references to &lt;code&gt;@group annotations&lt;/code&gt; are replaced with &lt;code&gt;#[Group()] attributes&lt;/code&gt; (see &lt;a href="https://www.drupal.org/node/3556580"&gt;#3556580&lt;/a&gt;). The issue was explicitly blocked on &lt;a href="https://www.drupal.org/node/3515347"&gt;#3515347&lt;/a&gt; landing first, because that change removed the internal &lt;code&gt;--test-id&lt;/code&gt; and &lt;code&gt;--execute-test&lt;/code&gt; options and simplified the arguments this MR had to cover.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your CI scripts pass &lt;code&gt;--php&lt;/code&gt; to &lt;code&gt;run-tests.sh&lt;/code&gt;, that argument is now a no-op and can safely be removed:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# Before
-php ./core/scripts/run-tests.sh --php &amp;quot;$(which php)&amp;quot; --url http://example.com/ --all
-
-# After
-php ./core/scripts/run-tests.sh --url http://example.com/ --all
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your CI job uses &lt;code&gt;--ci-parallel-node-total&lt;/code&gt; or &lt;code&gt;--ci-parallel-node-index&lt;/code&gt; without supplying the corresponding &lt;code&gt;CI_NODE_INDEX&lt;/code&gt; / &lt;code&gt;CI_NODE_TOTAL&lt;/code&gt; environment variables, set them explicitly (or pass the values directly on the command line) to avoid an argument-without-value error.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 19, 2025&lt;/li&gt;
-&lt;li&gt;First commit: April 13, 2026 (8 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 24, 2026 (10 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;jonathan1055&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was blocked for several months waiting on &lt;a href="https://www.drupal.org/node/3515347"&gt;#3515347&lt;/a&gt;. Once that landed, jonathan1055 unblocked it and tested the MR in a real contrib CI pipeline using the Scheduler project's test suite, sharing pipeline links and comparing logs with the non-patched version. This surfaced a concrete bug: the startup banner was printing &lt;code&gt;/usr/bin/sudo&lt;/code&gt; as the PHP binary path instead of the actual PHP executable. mondrake traced the root cause to the old environment-variable-sniffing logic and replaced it with &lt;code&gt;PhpExecutableFinder::find()&lt;/code&gt; from &lt;code&gt;symfony/process&lt;/code&gt;. jonathan1055 then retested and confirmed the fix. He also manually tested &lt;code&gt;--list&lt;/code&gt;, &lt;code&gt;--list-files&lt;/code&gt;, &lt;code&gt;--help&lt;/code&gt;, and &lt;code&gt;--class&lt;/code&gt;, which prompted clarifications in the help text around fully-qualified class names and escaped backslashes on the command line.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3581109: Move HelpSearch to Search sub-module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581109.md</link>
-      <guid isPermaLink="false">019dbf7e-1913-71c5-b530-614b06d48162</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Thu, 23 Apr 2026 20:44:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 19 files, +233/−308 · php +223/−304 · yml +10/−4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/bc0673ecec60eba357d6bda5ac40adc262957999"&gt;bc0673e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581109"&gt;#3581109&lt;/a&gt; · 6 contributors · 34 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A new &lt;code&gt;search_help&lt;/code&gt; core sub-module now owns the Help search plugin and its related database table. Previously, the &lt;code&gt;help&lt;/code&gt; module contained a search plugin that depended on the optional &lt;code&gt;search&lt;/code&gt; module, creating an unwanted hard coupling. Sites that rely on searching help topics must install the new &lt;code&gt;search_help&lt;/code&gt; module to retain that functionality. For most sites the help module itself is unchanged.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; No schema change at runtime; the &lt;code&gt;help_search_items&lt;/code&gt; table definition moves from &lt;code&gt;help_schema()&lt;/code&gt; to &lt;code&gt;search_help_schema()&lt;/code&gt;, so the table only exists when &lt;code&gt;search_help&lt;/code&gt; is installed.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;HelpSearch&lt;/code&gt; renamed to &lt;code&gt;SearchHelpSearch&lt;/code&gt; and moved to &lt;code&gt;Drupal\search_help\Plugin\Search&lt;/code&gt;; &lt;code&gt;HelpSectionManager::setSearchManager()&lt;/code&gt; and the &lt;code&gt;clearCachedDefinitions()&lt;/code&gt; override are removed.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;search_help&lt;/code&gt; core module provides the &lt;code&gt;help_search&lt;/code&gt; search plugin and the &lt;code&gt;help_search_items&lt;/code&gt; table schema, previously owned by the &lt;code&gt;help&lt;/code&gt; module.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;HelpSearch&lt;/code&gt; search plugin, the &lt;code&gt;help_search_items&lt;/code&gt; database table schema, and the hook implementations that kept the search index in sync were all bundled inside the &lt;code&gt;help&lt;/code&gt; module despite depending on the optional &lt;code&gt;search&lt;/code&gt; module. This change extracts them into a dedicated &lt;code&gt;search_help&lt;/code&gt; sub-module that declares explicit dependencies on &lt;code&gt;drupal:help&lt;/code&gt; and &lt;code&gt;search:search&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The plugin class is renamed from &lt;code&gt;HelpSearch&lt;/code&gt; to &lt;code&gt;SearchHelpSearch&lt;/code&gt; and moved from &lt;code&gt;Drupal\help\Plugin\Search&lt;/code&gt; to &lt;code&gt;Drupal\search_help\Plugin\Search&lt;/code&gt;. The &lt;code&gt;help_schema()&lt;/code&gt; hook (defining the &lt;code&gt;help_search_items&lt;/code&gt; table) is removed from &lt;code&gt;help.install&lt;/code&gt; and replaced by &lt;code&gt;search_help_schema()&lt;/code&gt; in the new module's install file.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;HelpSectionManager::setSearchManager()&lt;/code&gt; and the &lt;code&gt;clearCachedDefinitions()&lt;/code&gt; override (which called &lt;code&gt;markForReindex()&lt;/code&gt; when the search plugin existed) are both removed. The &lt;code&gt;plugin.manager.help_section&lt;/code&gt; service definition no longer injects the search manager via a &lt;code&gt;calls&lt;/code&gt; directive. The index-rebuild trigger is instead handled by a new &lt;code&gt;hook_rebuild&lt;/code&gt; implementation in &lt;code&gt;SearchHelpHooks&lt;/code&gt;, which uses constructor injection with &lt;code&gt;#[Autowire]&lt;/code&gt; for &lt;code&gt;SearchPluginManager&lt;/code&gt; and &lt;code&gt;CachedDiscoveryClearerInterface&lt;/code&gt; rather than &lt;code&gt;\Drupal::service()&lt;/code&gt; calls. The hook implementations for &lt;code&gt;modules_installed&lt;/code&gt;, &lt;code&gt;modules_uninstalled&lt;/code&gt;, &lt;code&gt;themes_installed&lt;/code&gt;, and &lt;code&gt;themes_uninstalled&lt;/code&gt; that updated &lt;code&gt;updateTopicList()&lt;/code&gt; and &lt;code&gt;updateIndexState()&lt;/code&gt; are also moved from the help module's hooks class into this new &lt;code&gt;SearchHelpHooks&lt;/code&gt; class. Several methods in the plugin class (&lt;code&gt;getType()&lt;/code&gt;, &lt;code&gt;execute()&lt;/code&gt;, &lt;code&gt;updateIndex()&lt;/code&gt;, &lt;code&gt;indexClear()&lt;/code&gt;, &lt;code&gt;updateTopicList()&lt;/code&gt;, &lt;code&gt;updateIndexState()&lt;/code&gt;, &lt;code&gt;markForReindex()&lt;/code&gt;, &lt;code&gt;indexStatus()&lt;/code&gt;, &lt;code&gt;removeItemsFromIndex()&lt;/code&gt;) gain explicit return type declarations, removing the corresponding PHPStan baseline suppressions. The constructor is modernized to use promoted properties.&lt;/p&gt;
-&lt;p&gt;The commit was initially landed, reverted due to apparent CI slowness, then re-landed after the slowness was traced to a separate race-condition issue (&lt;a href="https://www.drupal.org/node/3496257"&gt;#3496257&lt;/a&gt;) unrelated to this change.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you have the Help search plugin enabled (visible at &lt;code&gt;/admin/config/search/pages&lt;/code&gt;), install the new &lt;code&gt;search_help&lt;/code&gt; module to retain that functionality:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;drush en search_help
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your custom code references the old class or namespace, update it:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-use Drupal\help\Plugin\Search\HelpSearch;
-
-// After
-use Drupal\search_help\Plugin\Search\SearchHelpSearch;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your code calls &lt;code&gt;HelpSectionManager::setSearchManager()&lt;/code&gt;, remove those calls. The method no longer exists.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 22, 2026 (29 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3443428: Whitespace in Views exposed filters returns incorrect results</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3443428.md</link>
-      <guid isPermaLink="false">019dc49b-2bc9-746c-93ff-223596dd9ac9</guid>
-      <pubDate>Thu, 23 Apr 2026 14:31:37 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +24/−0 · php +24&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4bf4ca80023a17d5c72c249e7e7db48766c3f7e3"&gt;4bf4ca8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3443428"&gt;#3443428&lt;/a&gt; · 5 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a user typed a search term with leading or trailing spaces into a Views exposed text filter (for example &amp;quot;foo &amp;quot; instead of &amp;quot;foo&amp;quot;), the view returned no results. The fix trims whitespace from the filter value before it reaches the database query, so those searches now return the expected results. The change was committed to both &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was in &lt;code&gt;core/modules/views/src/Plugin/views/filter/FilterString.php&lt;/code&gt;. When an exposed input was accepted, the raw string value (including any surrounding whitespace) was passed directly to the query, causing an exact-match failure against stored values that have no whitespace.&lt;/p&gt;
-&lt;p&gt;The fix adds an &lt;code&gt;acceptExposedInput()&lt;/code&gt; override to &lt;code&gt;FilterString&lt;/code&gt;. After delegating to the parent method, if the parent accepted the input and &lt;code&gt;$this-&amp;gt;value&lt;/code&gt; is a string, it calls &lt;code&gt;trim($this-&amp;gt;value)&lt;/code&gt; in place before returning. This ensures the sanitized value is used in &lt;code&gt;query()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A test case was added to &lt;code&gt;FilterStringTest::testFilterStringGroupedExposedEqual()&lt;/code&gt; confirming that setting the exposed input to &lt;code&gt;' Ringo '&lt;/code&gt; (with surrounding spaces) returns the row for &lt;code&gt;'Ringo'&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;When committing, xjm explicitly evaluated backport safety: the behavior change (returning results that previously returned none) was considered minor-only acceptable, but the new method override in &lt;code&gt;FilterString&lt;/code&gt; could conflict with contrib or custom subclasses that already override &lt;code&gt;acceptExposedInput()&lt;/code&gt;. She committed to both &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt; anyway, characterizing it as a slightly disruptive bugfix.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 25, 2024&lt;/li&gt;
-&lt;li&gt;Committed: April 23, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gaurav_manerkar (EPAM)&lt;/li&gt;
-&lt;li&gt;joewhitsitt&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;xjm manually reproduced the bug step by step before committing, documented her test procedure in a comment, ran the test-only CI job to verify the new assertion caught the regression, and then explicitly reasoned through patch-safety before deciding to backport to &lt;code&gt;11.x&lt;/code&gt; alongside &lt;code&gt;main&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583795: Change the new CLI entry point to “dr”</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583795.md</link>
-      <guid isPermaLink="false">019dbc06-9f16-76d8-9dcb-933f1cd7bad7</guid>
-      <pubDate>Thu, 23 Apr 2026 06:53:01 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3583795"&gt;#3583795&lt;/a&gt; · 9 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The new built-in Drupal CLI tool, being developed in &lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt;, was originally named &lt;code&gt;drupal&lt;/code&gt; (invoked as &lt;code&gt;vendor/bin/drupal&lt;/code&gt;). This issue reached consensus to rename the official command to &lt;code&gt;dr&lt;/code&gt; before the CLI becomes widely adopted. The shorter name avoids overloading the project name, reduces cognitive overhead, requires no aliasing, and follows the pattern established by two-character CLIs like &lt;code&gt;wp&lt;/code&gt;, &lt;code&gt;gh&lt;/code&gt;, &lt;code&gt;ng&lt;/code&gt;, and &lt;code&gt;az&lt;/code&gt;. The rename was applied in the merge request for &lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt;, with the old &lt;code&gt;drupal&lt;/code&gt; entry point kept as a deprecated wrapper pointing to &lt;code&gt;dr&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The CLI entry point lives in &lt;code&gt;core/scripts/&lt;/code&gt; and is declared as a Composer &lt;code&gt;bin&lt;/code&gt;, so it is copied into &lt;code&gt;vendor/bin/&lt;/code&gt; under the same filename. Because Composer provides no mechanism to alias or rename binned scripts, the rename requires renaming &lt;code&gt;core/scripts/drupal&lt;/code&gt; to &lt;code&gt;core/scripts/dr&lt;/code&gt; and providing a separate &lt;code&gt;core/scripts/drupal&lt;/code&gt; shim that emits a deprecation notice and delegates to &lt;code&gt;dr&lt;/code&gt; via &lt;code&gt;return include __DIR__ . '/dr'&lt;/code&gt;. The deprecation window proposed in the thread is &lt;code&gt;drupal:11.4.0&lt;/code&gt; removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;. The actual file changes are tracked in the parent issue &lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt;; this issue served purely as the naming decision record. A minor trade-off noted in the thread is that Drupal.org issue search requires at least three characters, so &lt;code&gt;dr&lt;/code&gt; cannot be searched directly, though that limitation is expected to disappear as core issues migrate to GitLab.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 9, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;xmacinfo (xMac info)&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;rymo&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;jwilson3 (Bluespark)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;jwilson3 wrote the comment (&lt;a href="https://www.drupal.org/node/16558533"&gt;#16558533&lt;/a&gt;) that turned the thread: a detailed comparison of two-character CLI tools (&lt;code&gt;wp&lt;/code&gt;, &lt;code&gt;gh&lt;/code&gt;, &lt;code&gt;ng&lt;/code&gt;, &lt;code&gt;az&lt;/code&gt;, &lt;code&gt;go&lt;/code&gt;) versus longer-named alternatives, arguing that &lt;code&gt;dr&lt;/code&gt; is unique in &lt;code&gt;vendor/bin/&lt;/code&gt; namespace (no competitors starting with &lt;code&gt;d&lt;/code&gt;), easy to type one-handed, and signals intentional CLI maturity rather than a convenience alias. Issue author xmacinfo immediately endorsed it and invited jwilson3 to update the issue summary, which jwilson3 did, reframing the whole proposal around &lt;code&gt;dr&lt;/code&gt;. mradcliffe then worked out the concrete implementation approach: a deprecated &lt;code&gt;core/scripts/drupal&lt;/code&gt; wrapper calling &lt;code&gt;return include __DIR__ . '/dr'&lt;/code&gt;, a pattern confirmed by longwave's suggestion in comment &lt;a href="https://www.drupal.org/node/16559208"&gt;#16559208&lt;/a&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2473041: Restructure node access grant behavior into the node access handler</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2473041.md</link>
-      <guid isPermaLink="false">019db983-7f52-747f-82b0-398943cb71ad</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 23 Apr 2026 03:01:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +92/−12 · php +88/−11 · yml +4/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/26f41796c61326123a97caafdf5bde547ad9b030"&gt;26f4179&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2473041"&gt;#2473041&lt;/a&gt; · 8 contributors · 64 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The procedural &lt;code&gt;node_access_grants()&lt;/code&gt; function, a holdover from Drupal 7 kept in &lt;code&gt;node.module&lt;/code&gt;, has been moved into a new injectable service &lt;code&gt;NodeGrantsHelper&lt;/code&gt;. The function itself is now deprecated and will be removed in Drupal 13. This is an internal refactoring with no change in behavior for site owners, but module authors who call &lt;code&gt;node_access_grants()&lt;/code&gt; directly need to update their code.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;NodeGrantDatabaseStorage&lt;/code&gt; and &lt;code&gt;NodeAccessGrantsCacheContext&lt;/code&gt; each gain a new optional &lt;code&gt;?NodeGrantsHelper $nodeGrantsHelper&lt;/code&gt; constructor argument, deprecated without it in 11.4.0 and required in 12.0.0&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;node_access_grants()&lt;/code&gt; procedural function deprecated in drupal:11.4.0 and removed in drupal:13.0.0; use &lt;code&gt;\Drupal::service('Drupal\node\NodeGrantsHelper')-&amp;gt;nodeAccessGrants()&lt;/code&gt; instead&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;NodeGrantsHelper&lt;/code&gt; service (&lt;code&gt;Drupal\node\NodeGrantsHelper&lt;/code&gt;) with &lt;code&gt;nodeAccessGrants(string $operation, AccountInterface $account): array&lt;/code&gt; method&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The core problem was that &lt;code&gt;node_access_grants()&lt;/code&gt; — which invokes &lt;code&gt;hook_node_grants&lt;/code&gt; and &lt;code&gt;hook_node_grants_alter&lt;/code&gt; and returns the merged grants array — was a procedural function in &lt;code&gt;node.module&lt;/code&gt; with no OOP equivalent. Moving it to &lt;code&gt;NodeAccessControlHandler&lt;/code&gt; was the original plan, but that would have introduced a circular dependency: &lt;code&gt;NodeGrantDatabaseStorage&lt;/code&gt; (which calls &lt;code&gt;node_access_grants()&lt;/code&gt; three times internally) is itself a dependency of &lt;code&gt;NodeAccessControlHandler&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The resolution was to introduce a dedicated &lt;code&gt;NodeGrantsHelper&lt;/code&gt; class (&lt;code&gt;core/modules/node/src/NodeGrantsHelper.php&lt;/code&gt;) with a single public method &lt;code&gt;nodeAccessGrants(string $operation, AccountInterface $account): array&lt;/code&gt;. This class takes &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; as its only constructor dependency and contains the exact logic previously in &lt;code&gt;node_access_grants()&lt;/code&gt;. It is registered as the service &lt;code&gt;Drupal\node\NodeGrantsHelper&lt;/code&gt; in &lt;code&gt;node.services.yml&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;With the new service available, all internal callers were updated:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;NodeGrantDatabaseStorage&lt;/code&gt; gains a new &lt;code&gt;?NodeGrantsHelper $nodeGrantsHelper&lt;/code&gt; constructor parameter (deprecated without it in 11.4.0, required in 12.0.0), replacing three direct calls to &lt;code&gt;node_access_grants()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;NodeAccessGrantsCacheContext&lt;/code&gt; gains the same new optional constructor parameter under the same deprecation schedule, replacing one call in &lt;code&gt;checkNodeGrants()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;The Views &lt;code&gt;NodeStatus&lt;/code&gt; filter's &lt;code&gt;query()&lt;/code&gt; method uses &lt;code&gt;\Drupal::service(NodeGrantsHelper::class)-&amp;gt;nodeAccessGrants()&lt;/code&gt; as a static call since it cannot easily be injected there.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;node_access_grants()&lt;/code&gt; itself is deprecated in drupal:11.4.0, removed in drupal:13.0.0, and now simply delegates to the new service.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;The related issue &lt;a href="https://www.drupal.org/node/3566536"&gt;#3566536&lt;/a&gt; was a prior prerequisite that was resolved before this one could proceed.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your code calls &lt;code&gt;node_access_grants()&lt;/code&gt; directly, replace it with the new service method:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-$grants = node_access_grants($operation, $account);
-
-// After
-$grants = \Drupal::service(\Drupal\node\NodeGrantsHelper::class)-&amp;gt;nodeAccessGrants($operation, $account);
-
-// Or with proper injection
-public function __construct(
-  protected readonly \Drupal\node\NodeGrantsHelper $nodeGrantsHelper,
-) {}
-
-$grants = $this-&amp;gt;nodeGrantsHelper-&amp;gt;nodeAccessGrants($operation, $account);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your code constructs &lt;code&gt;NodeGrantDatabaseStorage&lt;/code&gt; or &lt;code&gt;NodeAccessGrantsCacheContext&lt;/code&gt; directly, pass the new &lt;code&gt;NodeGrantsHelper&lt;/code&gt; service as the final constructor argument to avoid a deprecation warning:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// NodeGrantDatabaseStorage — pass NodeGrantsHelper as the 5th argument
-// NodeAccessGrantsCacheContext — pass NodeGrantsHelper as the 3rd argument
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 17, 2015&lt;/li&gt;
-&lt;li&gt;Committed: April 22, 2026 (11 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;xjm (xjm)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;joey-santiago&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;steven jones (ComputerMinds)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;steven jones picked this issue back up after a decade of dormancy, noting that &lt;code&gt;node_access_grants()&lt;/code&gt; was called in only five places in core and the work seemed straightforward. He quickly discovered the circular dependency problem and proposed the third-service solution in comment &lt;a href="https://www.drupal.org/node/16463437"&gt;#16463437&lt;/a&gt;, reasoning that &lt;code&gt;NodeGrantsHelper&lt;/code&gt; could eventually serve as the seam for replacing hook-based grants with a plugin-based system. acbramley argued (comment &lt;a href="https://www.drupal.org/node/16463496"&gt;#16463496&lt;/a&gt;) for keeping the scope minimal — just extracting the function into a service without rearchitecting anything — rather than reviving the broader restructuring from the 2015 issue summary. nicxvan guided the naming and service definition conventions, and godotislate landed the final reviews and commits to both &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt;, also bumping the removal target from Drupal 12 to Drupal 13 because &lt;code&gt;node_access_grants()&lt;/code&gt; is a public function used by contrib (comment &lt;a href="https://www.drupal.org/node/16557916"&gt;#16557916&lt;/a&gt;).&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

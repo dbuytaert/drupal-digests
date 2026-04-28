@@ -1,6 +1,6 @@
 *Updated April 28, 2026*
 
-**TL;DR:** [512 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [525 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,19 +8,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_383 summaries · 77 new this week_
+_395 summaries · 88 new this week_
 
-- [#3585505: Refactor tests code via Rector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585505.md)
-- [#3580545: Make empty route lookup cacheable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580545.md)
-- [#3574727: Deprecate remaining language.module code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574727.md)
+- [#3184242: Support brotli compression of assets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3184242.md)
+- [#3578477: CKEditor 5 should respect <textarea disabled> dynamically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578477.md)
+- [#3561960: Combine the database queries in ::loadFromSharedTables() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561960.md)
 
 ### Drupal Canvas
 
-_53 summaries · 13 new this week_
+_54 summaries · 14 new this week_
 
+- [#3573776: Canvas needs a way for server to send notifications and trigger actions in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573776.md)
 - [#3586959: Validate image prop example URLs in Code Component metadata files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586959.md)
 - [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
-- [#3586342: Symmetrically translatable component trees, STEP 1: introduce...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586342.md)
 
 ### Drupal AI
 
@@ -41,7 +41,7 @@ _11 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_165 rules · 137 new this week_
+_166 rules · 132 new this week_
 
+- [Add array type hint to by-reference parameters in #[Hook]-decorated methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-array-type-hint-to-by-reference-parameters-in-hook-3579922.php)
 - [Replace deprecated language module procedural functions with OOP equivalents](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-language-module-procedural-functions-3574727.php)
 - [Rename HelpSearch to SearchHelpSearch in search_help sub-module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-helpsearch-to-searchhelpsearch-in-search-help-sub-3581109.php)
-- [Add $settings argument to new HtaccessWriter() calls (deprecated in...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-settings-argument-to-new-htaccesswriter-calls-360057.php)
 
 
 ## RSS feeds
