@@ -8,7 +8,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_383 summaries · 83 new this week_
+_383 summaries · 77 new this week_
 
 - [#3585505: Refactor tests code via Rector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585505.md)
 - [#3580545: Make empty route lookup cacheable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580545.md)
@@ -53,7 +53,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_165 rules · 144 new this week_
+_165 rules · 137 new this week_
 
 - [Replace deprecated language module procedural functions with OOP equivalents](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-language-module-procedural-functions-3574727.php)
 - [Rename HelpSearch to SearchHelpSearch in search_help sub-module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-helpsearch-to-searchhelpsearch-in-search-help-sub-3581109.php)
