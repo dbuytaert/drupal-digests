@@ -5,6 +5,71 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2907780: Add a field purger service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2907780.md</link>
+      <guid isPermaLink="false">019dd86d-bb20-70eb-9cf3-47290d176c54</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 29 Apr 2026 08:37:26 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +329/−175 · php +311/−161 · yml +18/−14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/867318c3996bb19ac8a4aa8389c7bc74d01bf6a5"&gt;867318c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2907780"&gt;#2907780&lt;/a&gt; · 20 contributors · 89 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 36&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The procedural field-purging functions in the Field module are deprecated in Drupal 11.2 and replaced by a new &lt;code&gt;entity_field.purger&lt;/code&gt; service living in core's Entity Field API. The &lt;code&gt;purge_batch_size&lt;/code&gt; setting is also moved from the &lt;code&gt;field.settings&lt;/code&gt; configuration object to &lt;code&gt;system.entity_field_settings&lt;/code&gt;, with an automatic database update to migrate existing values. Cron-triggered purging moves from the Field module to the System module. For most site owners the change is transparent: the update hook handles the config migration and purging continues to run on cron as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;system_update_11103()&lt;/code&gt; migrates &lt;code&gt;purge_batch_size&lt;/code&gt; from &lt;code&gt;field.settings&lt;/code&gt; to &lt;code&gt;system.entity_field_settings&lt;/code&gt; and deletes the old config object.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;field.settings&lt;/code&gt; config object removed; &lt;code&gt;purge_batch_size&lt;/code&gt; moved to &lt;code&gt;system.entity_field_settings&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;field_purge_batch()&lt;/code&gt;, &lt;code&gt;field_purge_field()&lt;/code&gt;, and &lt;code&gt;field_purge_field_storage()&lt;/code&gt; deprecated in drupal:11.2.0 and removed in drupal:12.0.0; use &lt;code&gt;FieldPurger::purgeBatch()&lt;/code&gt;, &lt;code&gt;purgeFieldDefinition()&lt;/code&gt;, and &lt;code&gt;purgeFieldStorageDefinition()&lt;/code&gt; respectively.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;entity_field.purger&lt;/code&gt; service (&lt;code&gt;FieldPurger&lt;/code&gt; implementing &lt;code&gt;FieldPurgerInterface&lt;/code&gt;) for purging deleted field data, registered in core.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Field purging logic had always lived in the Field module's &lt;code&gt;field_purge.inc&lt;/code&gt; as three standalone procedural functions (&lt;code&gt;field_purge_batch()&lt;/code&gt;, &lt;code&gt;field_purge_field()&lt;/code&gt;, &lt;code&gt;field_purge_field_storage()&lt;/code&gt;), making it inaccessible to other parts of the Entity Field API that need to purge base fields and bundle fields outside the configurable-field system. The fix introduces &lt;code&gt;core/lib/Drupal/Core/Field/FieldPurger.php&lt;/code&gt;, implementing the new &lt;code&gt;FieldPurgerInterface&lt;/code&gt;, and registers it as the &lt;code&gt;entity_field.purger&lt;/code&gt; service (with &lt;code&gt;Drupal\Core\Field\FieldPurgerInterface&lt;/code&gt; as an alias in &lt;code&gt;core.services.yml&lt;/code&gt;). &lt;code&gt;FieldPurger&lt;/code&gt; is injected with &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt;, &lt;code&gt;DeletedFieldsRepositoryInterface&lt;/code&gt;, &lt;code&gt;ModuleHandlerInterface&lt;/code&gt;, and &lt;code&gt;LoggerChannelFactoryInterface&lt;/code&gt;. The three procedural functions in &lt;code&gt;field_purge.inc&lt;/code&gt; are reduced to thin wrappers that emit an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; trigger and forward to the service; they are deprecated in &lt;code&gt;drupal:11.2.0&lt;/code&gt; and scheduled for removal in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. &lt;code&gt;FieldPurger::purgeFieldDefinition()&lt;/code&gt; and &lt;code&gt;FieldPurger::purgeFieldStorageDefinition()&lt;/code&gt; are marked &lt;code&gt;protected&lt;/code&gt; so subclasses can override the per-item logic while the public &lt;code&gt;purgeBatch()&lt;/code&gt; remains the intended entry point. The Field module's &lt;code&gt;#[Hook('cron')]&lt;/code&gt; implementation that called &lt;code&gt;field_purge_batch()&lt;/code&gt; was removed entirely; equivalent logic was added to the System module's &lt;code&gt;SystemHooks::cron()&lt;/code&gt;, reading the batch size from the new &lt;code&gt;system.entity_field_settings&lt;/code&gt; config key. The &lt;code&gt;field.settings&lt;/code&gt; config object is removed from Field module config; &lt;code&gt;system_update_11103()&lt;/code&gt; copies &lt;code&gt;purge_batch_size&lt;/code&gt; to &lt;code&gt;system.entity_field_settings&lt;/code&gt; and deletes the old object. &lt;code&gt;ConfigImporterFieldPurger&lt;/code&gt; was updated to read &lt;code&gt;purge_batch_size&lt;/code&gt; from &lt;code&gt;system.entity_field_settings&lt;/code&gt;. &lt;code&gt;FieldConfigDeleteForm&lt;/code&gt; in &lt;code&gt;field_ui&lt;/code&gt; was updated to inject &lt;code&gt;FieldPurgerInterface&lt;/code&gt; via the service container instead of calling the procedural function. Tests throughout core were updated to use &lt;code&gt;\Drupal::service('entity_field.purger')&lt;/code&gt; directly. A follow-up issue (&lt;a href="https://www.drupal.org/node/3587460"&gt;#3587460&lt;/a&gt;) tracks fully removing the now-empty &lt;code&gt;field.settings&lt;/code&gt; config object in Drupal 13. The migration pattern for config-to-settings follows the approach established in &lt;a href="https://www.drupal.org/node/3571593"&gt;#3571593&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in drupal:11.2.0, removed in drupal:12.0.0):
+field_purge_batch($batch_size);
+field_purge_field($field);
+field_purge_field_storage($field_storage);
+
+// After — use the service directly or inject FieldPurgerInterface:
+\Drupal::service('entity_field.purger')-&amp;gt;purgeBatch($batch_size);
+\Drupal::service('entity_field.purger')-&amp;gt;purgeFieldDefinition($field);
+\Drupal::service('entity_field.purger')-&amp;gt;purgeFieldStorageDefinition($field_storage);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your code reads &lt;code&gt;field.settings:purge_batch_size&lt;/code&gt; from configuration, update it to read &lt;code&gt;system.entity_field_settings:purge_batch_size&lt;/code&gt;. The &lt;code&gt;system_update_11103()&lt;/code&gt; update hook migrates the value automatically for existing sites.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 9, 2017&lt;/li&gt;
+&lt;li&gt;Committed: April 29, 2026 (8 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;plach (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;anmolgoyal74 (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;nicxvan&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue was opened in 2017 by amateescu, who wrote an initial &amp;quot;field purgatory&amp;quot; class and spent years keeping it unblocked on prerequisite issues. After bouncing through every major release branch without landing, catch's 2024 comment that the patch needed updating for OOP hooks prompted anmolgoyal74 to re-roll it at DrupalCon Singapore 2024. amateescu then returned, renamed the service to &amp;quot;field purger,&amp;quot; and brought the patch fully up to current core standards, including writing the change record. nicxvan took the final leg: rebasing on main, converting the config migration to follow the pattern from &lt;a href="https://www.drupal.org/node/3571593"&gt;#3571593&lt;/a&gt;, addressing nits from claudiu.cristea, larowlan, and alexpott, and seeing it through to commit by alexpott.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3587415: Avoid querying for last installed schema definitions twice</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587415.md</link>
       <guid isPermaLink="false">019dd6a5-1dcb-73d5-ad69-02bad0ed0f92</guid>
@@ -708,6 +773,50 @@ $this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
 </description>
     </item>
     <item>
+      <title>#3485233: Add phpstan-baseline Composer script to root composer.json</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485233.md</link>
+      <guid isPermaLink="false">019dd86b-e803-74b8-aa64-786202f05719</guid>
+      <pubDate>Tue, 28 Apr 2026 09:44:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +3/−1 · json +3/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fd70826e021b7471e5bba76735c5b29dc0ba16f5"&gt;fd70826&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3485233"&gt;#3485233&lt;/a&gt; · 11 contributors · 24 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's root &lt;code&gt;composer.json&lt;/code&gt; now includes two convenience scripts for running PHPStan. Contributors can run &lt;code&gt;composer phpstan&lt;/code&gt; to analyse files and &lt;code&gt;composer phpstan-baseline&lt;/code&gt; to regenerate &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt;, instead of having to look up or remember the full command strings each time.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds two entries to the &lt;code&gt;scripts&lt;/code&gt; section of the root &lt;code&gt;composer.json&lt;/code&gt;. The &lt;code&gt;phpstan&lt;/code&gt; script runs &lt;code&gt;phpstan analyze --memory-limit=-1 --configuration=core/phpstan.neon.dist --&lt;/code&gt;, accepting additional file arguments after the &lt;code&gt;--&lt;/code&gt; separator. The &lt;code&gt;phpstan-baseline&lt;/code&gt; script adds &lt;code&gt;--generate-baseline=core/.phpstan-baseline.php&lt;/code&gt; to regenerate the baseline file. The &lt;code&gt;--memory-limit=-1&lt;/code&gt; flag was added after mstrelan noted it was required on their setup. The scripts mirror the manual commands documented at drupal.org/docs/develop/development-tools/phpstan/phpstan-in-drupal-core and follow the existing pattern of &lt;code&gt;phpcs&lt;/code&gt; and &lt;code&gt;phpcbf&lt;/code&gt; scripts already present in &lt;code&gt;composer.json&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2024&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026 (1 year and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;mstrelan asked whether the &lt;code&gt;--memory-limit=-1&lt;/code&gt; flag should be included, longwave updated the MR to add it. dcam tested all the new scripts locally and confirmed they matched the behaviour documented in the PHPStan core docs before marking RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3580545: Make empty route lookup cacheable</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580545.md</link>
       <guid isPermaLink="false">019dd34c-caa6-766e-83ee-70688fe824d4</guid>
@@ -956,86 +1065,6 @@ uasort($themes, static function ($a, $b) {
 &lt;li&gt;Opened: February 3, 2026&lt;/li&gt;
 &lt;li&gt;Committed: April 27, 2026 (2 months and 2 commits later)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3526560: Mark Umami as hidden in preparation of moving to contrib and/or a testing profile</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3526560.md</link>
-      <guid isPermaLink="false">019dd34e-ce12-763e-a33a-e4988095de21</guid>
-      <pubDate>Mon, 27 Apr 2026 19:33:38 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−0 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/03eb694eee7c7aa7ee51214ac88300e7bf90e10f"&gt;03eb694&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3526560"&gt;#3526560&lt;/a&gt; · 8 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Umami Food Magazine demo profile is now hidden from Drupal's installer profile selection screen. It remains in core so that the many existing tests that depend on it continue to work, but site builders will no longer encounter it when setting up a new site. This is a preparatory step toward moving Umami to a contributed site template, as Drupal CMS and its site templates have superseded it as the recommended demo experience.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The entire change is a single line added to &lt;code&gt;profiles/demo_umami/demo_umami.info.yml&lt;/code&gt;: &lt;code&gt;hidden: true&lt;/code&gt;. Setting this key in a profile's info file causes Drupal's installer to skip the profile during the profile-selection step, while still allowing the profile to be installed programmatically (as tests do). The issue is explicitly framed as an interim step before the larger work tracked in &lt;a href="https://www.drupal.org/node/3523324"&gt;#3523324&lt;/a&gt;, which proposes deprecating and removing Umami from core entirely in favour of a contributed site template. As catch noted in the thread, combined with &lt;a href="https://www.drupal.org/node/3159848"&gt;#3159848&lt;/a&gt; (merging minimal and standard profiles into a recipe), this change means core can be installed from the UI without presenting any profile selection at all.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 26, 2025&lt;/li&gt;
-&lt;li&gt;Committed: April 27, 2026 (11 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3512962: Add validation to field.storage.*.* indexes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3512962.md</link>
-      <guid isPermaLink="false">019dd0a1-a04d-76e5-9c21-6d81cdae17b0</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 27 Apr 2026 17:48:21 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3512962"&gt;#3512962&lt;/a&gt; · 8 contributors · 42 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Field storage index definitions in &lt;code&gt;field.storage.*.*&lt;/code&gt; configuration previously used &lt;code&gt;type: ignore&lt;/code&gt; in the config schema, meaning their structure was never validated. This change adds a &lt;code&gt;FieldStorageIndexes&lt;/code&gt; config schema constraint that validates the shape of the &lt;code&gt;indexes&lt;/code&gt; array: each entry must have a non-empty string key (the index name), and each column definition within that entry must be either a non-empty string (a bare column name) or a two-element array of &lt;code&gt;[column_name, positive_integer_length]&lt;/code&gt;. This matches the format required by the Database Schema API and enforced at the database level. Existing valid field storage configs are unaffected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;FieldStorageIndexes&lt;/code&gt; config schema constraint validates the structure of &lt;code&gt;field.storage.*.*&lt;/code&gt; index definitions against the Database Schema API's expected array shape.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;indexes&lt;/code&gt; key in &lt;code&gt;field.storage.*.*&lt;/code&gt; (in &lt;code&gt;field.schema.yml&lt;/code&gt;) had its inner sequence typed as &lt;code&gt;type: ignore&lt;/code&gt;, providing zero structural validation. The fix adds a &lt;code&gt;FieldStorageIndexes: ~&lt;/code&gt; constraint declaration directly on the outer &lt;code&gt;indexes&lt;/code&gt; sequence.&lt;/p&gt;
-&lt;p&gt;Two new classes are added under &lt;code&gt;Drupal\field\Plugin\Validation\Constraint&lt;/code&gt;. &lt;code&gt;FieldStorageIndexesConstraint&lt;/code&gt; extends &lt;code&gt;SymfonyConstraint&lt;/code&gt; and is tagged with &lt;code&gt;#[Constraint(id: 'FieldStorageIndexes', type: ['sequence'])]&lt;/code&gt;. Its validator &lt;code&gt;FieldStorageIndexesConstraintValidator&lt;/code&gt; enforces:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;NULL or empty array passes (the field is optional).&lt;/li&gt;
-&lt;li&gt;The value must be an array; non-arrays trigger &lt;code&gt;$constraint-&amp;gt;message&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;Each key must be a non-empty string (index name); otherwise &lt;code&gt;invalidIndexNameMessage&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;Each value must be a PHP list array (column definitions); otherwise &lt;code&gt;invalidIndexMessage&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;Each column definition is valid if it is a non-empty string, or a two-element list &lt;code&gt;[column_name, length]&lt;/code&gt; where &lt;code&gt;column_name&lt;/code&gt; is a non-empty string and &lt;code&gt;length&lt;/code&gt; is a positive integer; other shapes trigger &lt;code&gt;invalidColumnMessage&lt;/code&gt; or &lt;code&gt;invalidColumnLengthMessage&lt;/code&gt;.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;This shape exactly mirrors what &lt;code&gt;Schema::addIndex()&lt;/code&gt; documents and what &lt;code&gt;mysql\Driver\Database\mysql\Schema::createKeySql()&lt;/code&gt; implements: each column is either a bare name string or a &lt;code&gt;(name, length)&lt;/code&gt; tuple. The &lt;code&gt;(string, int)&lt;/code&gt; tuple cannot be expressed declaratively in config schema type definitions alone, which is why a custom constraint is required rather than a purely schema-driven approach (confirmed by longwave in the commit comment).&lt;/p&gt;
-&lt;p&gt;A kernel test &lt;code&gt;FieldStorageIndexesValidationTest&lt;/code&gt; (in &lt;code&gt;Drupal\Tests\field\Kernel\Config&lt;/code&gt;) covers a wide matrix of valid and invalid inputs. Index name and column name content are intentionally not validated against actual database column lists, as that was considered out of scope. The &lt;code&gt;MappingCollectionConstraint&lt;/code&gt; introduced in &lt;a href="https://www.drupal.org/node/3535734"&gt;#3535734&lt;/a&gt; was considered but a more focused custom constraint was chosen for simplicity.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 14, 2025&lt;/li&gt;
-&lt;li&gt;Committed: April 27, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue stalled for months as bbrala, borisson_, and smustgrave repeatedly debated whether the indexes format was too flexible to validate meaningfully. The turning point came when nod_ resurfaced the thread with an updated search of &lt;code&gt;-&amp;gt;setIndexes(&lt;/code&gt; usage across contrib, prompting a fresh read. godotislate then dug into &lt;code&gt;Schema::addIndex()&lt;/code&gt; and &lt;code&gt;mysql\Schema::createKeySql()&lt;/code&gt; to precisely define the valid column definition format, establishing that each column is either a bare string or a two-element &lt;code&gt;[name, length]&lt;/code&gt; array with a positive integer length. That specificity gave bbrala the clear target needed to implement a focused custom constraint rather than chasing a fully generic solution. borisson_ requested one additional strictness adjustment before approving, and godotislate confirmed the result looked correct.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
