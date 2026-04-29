@@ -7,4 +7,4 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php';
 
 return RectorConfig::configure()
-    ->withRules([NavigationMessageThemeToSDCRector::class]);
+    ->withRules([NavigationMessageThemeToComponentRector::class]);
