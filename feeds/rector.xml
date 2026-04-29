@@ -5,6 +5,182 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace navigation__message theme hook with navigation:message SDC component</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd945-aef4-763d-8ef5-08089a1ba4c3.md</link>
+      <guid isPermaLink="false">019dd945-aef4-763d-8ef5-08089a1ba4c3</guid>
+      <category>deprecation</category>
+      <pubDate>Wed, 29 Apr 2026 12:45:15 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3502993"&gt;#3502993&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The &lt;code&gt;navigation__message&lt;/code&gt; theme hook was removed from Drupal's Navigation module and replaced by the &lt;code&gt;navigation:message&lt;/code&gt; Single Directory Component. This rule rewrites render arrays using &lt;code&gt;#theme =&amp;gt; 'navigation__message'&lt;/code&gt; to the equivalent &lt;code&gt;#type =&amp;gt; 'component'&lt;/code&gt; / &lt;code&gt;#component =&amp;gt; 'navigation:message'&lt;/code&gt; structure, including unwrapping &lt;code&gt;['#markup' =&amp;gt; $expr]&lt;/code&gt; content values to &lt;code&gt;(string) $expr&lt;/code&gt; plain-string props.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element = [
+    '#theme' =&amp;gt; 'navigation__message',
+    '#content' =&amp;gt; ['#markup' =&amp;gt; $text],
+    '#url' =&amp;gt; $url,
+    '#type' =&amp;gt; 'warning',
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element = [
+    '#type' =&amp;gt; 'component',
+    '#component' =&amp;gt; 'navigation:message',
+    '#props' =&amp;gt; [
+        'type' =&amp;gt; 'warning',
+        'url' =&amp;gt; $url,
+        'content' =&amp;gt; (string) $text,
+    ],
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\Cast\String_ as CastString_;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Converts render arrays using the removed navigation__message theme hook
+ * to the navigation:message SDC component introduced in Drupal 11.x.
+ */
+final class NavigationMessageThemeToSDCRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace #theme =&amp;gt; navigation__message render arrays with the navigation:message SDC component',
+            [
+                new CodeSample(
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+$element = [
+    '#theme' =&amp;gt; 'navigation__message',
+    '#content' =&amp;gt; ['#markup' =&amp;gt; $text],
+    '#url' =&amp;gt; $url,
+    '#type' =&amp;gt; 'warning',
+];
+CODE,
+                    &amp;lt;&amp;lt;&amp;lt;'CODE'
+$element = [
+    '#type' =&amp;gt; 'component',
+    '#component' =&amp;gt; 'navigation:message',
+    '#props' =&amp;gt; [
+        'type' =&amp;gt; 'warning',
+        'url' =&amp;gt; $url,
+        'content' =&amp;gt; (string) $text,
+    ],
+];
+CODE
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Array_::class];
+    }
+
+    /** @param Array_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        $themeFound = false;
+        $contentItem = null;
+        $urlItem = null;
+        $typeItem = null;
+
+        foreach ($node-&amp;gt;items as $item) {
+            if (!$item instanceof ArrayItem || !$item-&amp;gt;key instanceof String_) {
+                continue;
+            }
+            $key = $item-&amp;gt;key-&amp;gt;value;
+
+            if ($key === '#theme') {
+                if ($item-&amp;gt;value instanceof String_ &amp;amp;&amp;amp; $item-&amp;gt;value-&amp;gt;value === 'navigation__message') {
+                    $themeFound = true;
+                }
+            } elseif ($key === '#content') {
+                $contentItem = $item;
+            } elseif ($key === '#url') {
+                $urlItem = $item;
+            } elseif ($key === '#type') {
+                $typeItem = $item;
+            }
+        }
+
+        if (!$themeFound) {
+            return null;
+        }
+
+        // Build #props array items.
+        $propsItems = [];
+
+        // type prop (message type: status/warning/error).
+        if ($typeItem !== null) {
+            $propsItems[] = new ArrayItem($typeItem-&amp;gt;value, new String_('type'));
+        }
+
+        // url prop.
+        if ($urlItem !== null) {
+            $propsItems[] = new ArrayItem($urlItem-&amp;gt;value, new String_('url'));
+        }
+
+        // content prop: unwrap ['#markup' =&amp;gt; $expr] render arrays to (string) $expr.
+        if ($contentItem !== null) {
+            $contentValue = $contentItem-&amp;gt;value;
+            if ($contentValue instanceof Array_) {
+                $markupValue = $this-&amp;gt;extractMarkupValue($contentValue);
+                if ($markupValue !== null) {
+                    $contentValue = new CastString_($markupValue);
+                }
+            }
+            $propsItems[] = new ArrayItem($contentValue, new String_('content'));
+        }
+
+        // Replace the array items with the SDC component structure.
+        $node-&amp;gt;items = [
+            new ArrayItem(new String_('component'), new String_('#type')),
+            new ArrayItem(new String_('navigation:message'), new String_('#component')),
+            new ArrayItem(new Array_($propsItems), new String_('#props')),
+        ];
+
+        return $node;
+    }
+
+    /**
+     * Extracts the value of '#markup' from a render array, if present.
+     */
+    private function extractMarkupValue(Array_ $array): ?Node\Expr
+    {
+        foreach ($array-&amp;gt;items as $item) {
+            if (!$item instanceof ArrayItem || !$item-&amp;gt;key instanceof String_) {
+                continue;
+            }
+            if ($item-&amp;gt;key-&amp;gt;value === '#markup') {
+                return $item-&amp;gt;value;
+            }
+        }
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([NavigationMessageThemeToSDCRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated field_purge_batch() with FieldPurger service</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd870-dc90-709b-acfb-bd0b06dfd8e8.md</link>
       <guid isPermaLink="false">019dd870-dc90-709b-acfb-bd0b06dfd8e8</guid>
@@ -81,7 +257,7 @@ return RectorConfig::configure()-&amp;gt;withRules([FieldPurgeBatchRector::class
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd6b9-7a36-725a-a45a-2f090d12eb04.md</link>
       <guid isPermaLink="false">019dd6b9-7a36-725a-a45a-2f090d12eb04</guid>
       <category>deprecation</category>
-      <pubDate>Wed, 29 Apr 2026 00:52:52 +0000</pubDate>
+      <pubDate>Wed, 29 Apr 2026 12:46:40 +0000</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3184242"&gt;#3184242&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
@@ -2138,138 +2314,6 @@ final class ViewsUiAdminDeprecatedFunctionsRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([ViewsUiAdminDeprecatedFunctionsRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated node_access_view_all_nodes() with checkAllGrants()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcc6c-ff5e-70f5-b024-88ffa5970c07.md</link>
-      <guid isPermaLink="false">019dcc6c-ff5e-70f5-b024-88ffa5970c07</guid>
-      <category>deprecation</category>
-      <pubDate>Mon, 27 Apr 2026 00:53:08 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3038908"&gt;#3038908&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces the deprecated procedural function &lt;code&gt;node_access_view_all_nodes()&lt;/code&gt; with &lt;code&gt;\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants()&lt;/code&gt;, which was introduced in Drupal 11.3.0. Also rewrites &lt;code&gt;drupal_static_reset('node_access_view_all_nodes')&lt;/code&gt; to the new memory-cache service call &lt;code&gt;\Drupal::service('node.view_all_nodes_memory_cache')-&amp;gt;deleteAll()&lt;/code&gt;. Both forms are removed in Drupal 12.0.0.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;node_access_view_all_nodes();
-node_access_view_all_nodes($account);
-drupal_static_reset('node_access_view_all_nodes');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants(\Drupal::currentUser());
-\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants($account);
-\Drupal::service('node.view_all_nodes_memory_cache')-&amp;gt;deleteAll();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Replaces deprecated node_access_view_all_nodes() calls and the matching
- * drupal_static_reset('node_access_view_all_nodes') calls with the OO API
- * introduced in Drupal 11.3.0.
- */
-final class NodeAccessViewAllNodesRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            &amp;quot;Replace deprecated node_access_view_all_nodes() with \\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants()&amp;quot;,
-            [
-                new CodeSample(
-                    'node_access_view_all_nodes();',
-                    &amp;quot;\\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants(\\Drupal::currentUser());&amp;quot;
-                ),
-                new CodeSample(
-                    &amp;quot;drupal_static_reset('node_access_view_all_nodes');&amp;quot;,
-                    &amp;quot;\\Drupal::service('node.view_all_nodes_memory_cache')-&amp;gt;deleteAll();&amp;quot;
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if ($this-&amp;gt;isName($node, 'node_access_view_all_nodes')) {
-            return $this-&amp;gt;refactorNodeAccessViewAllNodes($node);
-        }
-
-        if ($this-&amp;gt;isName($node, 'drupal_static_reset')) {
-            return $this-&amp;gt;refactorDrupalStaticReset($node);
-        }
-
-        return null;
-    }
-
-    private function refactorNodeAccessViewAllNodes(FuncCall $node): MethodCall
-    {
-        // Build: \Drupal::entityTypeManager()
-        $entityTypeManager = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall('Drupal', 'entityTypeManager');
-
-        // Build: -&amp;gt;getAccessControlHandler('node')
-        $getHandler = $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall(
-            $entityTypeManager,
-            'getAccessControlHandler',
-            [new String_('node')]
-        );
-
-        // Determine account argument: use passed arg or fall back to \Drupal::currentUser()
-        if (!empty($node-&amp;gt;args) &amp;amp;&amp;amp; $node-&amp;gt;args[0] instanceof Arg) {
-            $accountArg = $node-&amp;gt;args[0]-&amp;gt;value;
-        } else {
-            $accountArg = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall('Drupal', 'currentUser');
-        }
-
-        // Build: -&amp;gt;checkAllGrants($account)
-        return $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($getHandler, 'checkAllGrants', [$accountArg]);
-    }
-
-    private function refactorDrupalStaticReset(FuncCall $node): ?MethodCall
-    {
-        if (empty($node-&amp;gt;args) || !$node-&amp;gt;args[0] instanceof Arg) {
-            return null;
-        }
-
-        $firstArg = $node-&amp;gt;args[0]-&amp;gt;value;
-        if (!$firstArg instanceof String_ || $firstArg-&amp;gt;value !== 'node_access_view_all_nodes') {
-            return null;
-        }
-
-        // Build: \Drupal::service('node.view_all_nodes_memory_cache')
-        $service = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
-            'Drupal',
-            'service',
-            [new String_('node.view_all_nodes_memory_cache')]
-        );
-
-        // Build: -&amp;gt;deleteAll()
-        return $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($service, 'deleteAll');
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([NodeAccessViewAllNodesRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

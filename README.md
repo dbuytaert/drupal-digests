@@ -1,6 +1,6 @@
 *Updated April 29, 2026*
 
-**TL;DR:** [528 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [534 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,19 +8,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_398 summaries · 80 new this week_
+_403 summaries · 84 new this week_
 
-- [#2907780: Add a field purger service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2907780.md)
-- [#3587415: Avoid querying for last installed schema definitions twice](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587415.md)
-- [#3184242: Support brotli compression of assets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3184242.md)
+- [#3502993: Convert Navigation messages component to SDC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md)
+- [#3586616: Remove search from olivero_test module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586616.md)
+- [#3578444: Date filter doesn't apply default offset values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578444.md)
 
 ### Drupal Canvas
 
-_54 summaries · 14 new this week_
+_55 summaries · 15 new this week_
 
+- [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
 - [#3573776: Canvas needs a way for server to send notifications and trigger actions in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573776.md)
 - [#3586959: Validate image prop example URLs in Code Component metadata files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586959.md)
-- [#3574994: Resizable right sidebar for Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574994.md)
 
 ### Drupal AI
 
@@ -41,7 +41,7 @@ _11 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_170 rules · 126 new this week_
+_171 rules · 122 new this week_
 
+- [Replace navigation__message theme hook with navigation:message SDC component](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php)
 - [Replace deprecated field_purge_batch() with FieldPurger service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-field-purge-batch-with-fieldpurger-2907780.php)
 - [Replace deprecated system.performance css.gzip/js.gzip config keys with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-system-performance-css-gzip-js-gzip-3184242.php)
-- [Replace PHPUnit TestCase::getName() with name() for PHPUnit 10 compatibility](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-phpunit-testcase-getname-with-name-for-phpunit-10-3217904.php)
 
 
 ## RSS feeds
