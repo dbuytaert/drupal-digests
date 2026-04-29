@@ -5,6 +5,51 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3581110: Add Multi-Value List Text/Integer Prop Support (UI)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md</link>
+      <guid isPermaLink="false">019ddaec-a062-76c1-9104-946ea83528a5</guid>
+      <pubDate>Wed, 29 Apr 2026 15:54:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 22 files, +1688/−9 · js +1026/−4 · php +367/−5 · css +152 · yml +78 · twig +64 · json +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/296cea50a568d1489fa86903723004a4d533c2fc"&gt;296cea5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581110"&gt;#3581110&lt;/a&gt; · 8 contributors · 29 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas editor now renders &lt;code&gt;list_string&lt;/code&gt; and &lt;code&gt;list_integer&lt;/code&gt; fields with a rich multi-select UI: a React Select control showing selected values as removable chips, a searchable dropdown of allowed values, and automatic enforcement of the field's cardinality setting. This feature is active unconditionally for those field types, without requiring the &lt;code&gt;canvas_dev_mode&lt;/code&gt; module.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;On the PHP side, &lt;code&gt;ReduxIntegratedFieldWidgetsHooks&lt;/code&gt; previously gated all multi-value UI handling behind a &lt;code&gt;canvas_dev_mode&lt;/code&gt; module check. The change adds an &lt;code&gt;OR&lt;/code&gt; branch: if the field storage type is &lt;code&gt;list_string&lt;/code&gt; or &lt;code&gt;list_integer&lt;/code&gt;, the multi-value path runs regardless. Inside that path, &lt;code&gt;markMultivalueFormElements&lt;/code&gt; is extended to recognize &lt;code&gt;select&lt;/code&gt; elements (in addition to &lt;code&gt;textfield&lt;/code&gt;, &lt;code&gt;number&lt;/code&gt;, &lt;code&gt;url&lt;/code&gt;, etc.) and stamps them with &lt;code&gt;#is_multivalue_form = TRUE&lt;/code&gt;, &lt;code&gt;data-field-label&lt;/code&gt;, and a new &lt;code&gt;data-cardinality&lt;/code&gt; attribute carrying the raw cardinality integer (–1 for unlimited).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;canvas_stark_theme_suggestions_select_alter&lt;/code&gt; detects &lt;code&gt;#is_multivalue_form&lt;/code&gt; and pushes &lt;code&gt;select__multivalue_form&lt;/code&gt; as a theme suggestion, causing Canvas Stark to render the select through a new Twig template (&lt;code&gt;select--multivalue-form.html.twig&lt;/code&gt;). That template emits a &lt;code&gt;&amp;lt;drupal-canvas-select--multivalue-form&amp;gt;&lt;/code&gt; custom element, which the frontend component registry maps to the new &lt;code&gt;DrupalSelectMultivalueForm&lt;/code&gt; React component.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DrupalSelectMultivalueForm&lt;/code&gt; wraps a hidden native &lt;code&gt;&amp;lt;select multiple&amp;gt;&lt;/code&gt; (managed by the existing &lt;code&gt;InputBehaviors&lt;/code&gt; HOC for Redux tracking) alongside a &lt;code&gt;react-select&lt;/code&gt; multi-select control. When the user picks or removes options, the component updates native select state and fires a synthetic &lt;code&gt;change&lt;/code&gt; event so &lt;code&gt;InputBehaviors&lt;/code&gt; picks it up. Cardinality enforcement is handled in &lt;code&gt;isOptionDisabled&lt;/code&gt;: once the number of local selections reaches the &lt;code&gt;data-cardinality&lt;/code&gt; value, any unselected option is disabled; &lt;code&gt;–1&lt;/code&gt; means unlimited.&lt;/p&gt;
+&lt;p&gt;Two JavaScript fixes accompany the feature. First, &lt;code&gt;InputBehaviorsEntityForm&lt;/code&gt; now detects &lt;code&gt;&amp;lt;select multiple&amp;gt;&lt;/code&gt; elements and collects all &lt;code&gt;selectedOptions&lt;/code&gt; rather than reading &lt;code&gt;.value&lt;/code&gt; (which only returns the last-clicked item). Second, both &lt;code&gt;InputBehaviorsEntityForm&lt;/code&gt; and &lt;code&gt;PageDataFormRenderer&lt;/code&gt; convert array-valued multi-select entries (keyed as &lt;code&gt;field_name[]&lt;/code&gt;) into indexed keys (&lt;code&gt;field_name[0]&lt;/code&gt;, &lt;code&gt;field_name[1]&lt;/code&gt;, ...) before writing to the Redux store or dispatching &lt;code&gt;setPageData&lt;/code&gt;, preventing a PHP &lt;code&gt;Array to string conversion&lt;/code&gt; error in &lt;code&gt;ClientDataToEntityConverter::setEntityFields&lt;/code&gt;. Empty-array serialization is also fixed in &lt;code&gt;formStateToObject&lt;/code&gt;: when the array is empty an empty-string sentinel is appended, and the deserializer normalizes both &lt;code&gt;''&lt;/code&gt; and &lt;code&gt;['']&lt;/code&gt; back to &lt;code&gt;[]&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PropShapeRepository&lt;/code&gt; test coverage is extended with &lt;code&gt;list_string&lt;/code&gt; and &lt;code&gt;list_integer&lt;/code&gt; prop shapes (both unlimited and &lt;code&gt;maxItems&lt;/code&gt;-bounded), each mapping to &lt;code&gt;options_select&lt;/code&gt; widget and &lt;code&gt;canvas_load_allowed_values_for_component_prop&lt;/code&gt; storage settings. Cypress entity-form-field-type tests and Playwright multi-value tests cover add, remove, clear-all, cardinality-limit enforcement, and persistence across page reload. This builds on the same multi-value UI pattern introduced for plain text fields in &lt;a href="https://www.drupal.org/node/3573096"&gt;#3573096&lt;/a&gt; and integer/number fields in &lt;a href="https://www.drupal.org/node/3576003"&gt;#3576003&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 29, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kunal.sachdev (Acquia)&lt;/li&gt;
+&lt;li&gt;utkarsh_33 (Acquia)&lt;/li&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;li&gt;narendrar (Acquia)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, utkarsh_33 identified two overflow issues: the selected-chips container expanding vertically without bound, and the dropdown menu not being scrollable in both directions. kunal.sachdev addressed the dropdown scrollability in a follow-up commit; the vertical expansion of the chips container was left as a follow-up pending design input. bnjmnm requested that &lt;code&gt;entity-form-field-types-test.cy.js&lt;/code&gt; be expanded to cover the new widgets before the patch could be marked RTBC, which was completed before merge.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3572553: Save Multi-Value Prop Configuration for Code Components</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md</link>
       <guid isPermaLink="false">019dd94c-1c3e-74c8-bdc4-601397f72417</guid>
@@ -845,63 +890,6 @@ const pageItems = data?.items ?? [];
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Wim Leers initially suggested either server-side changes or a focus mode similar to &lt;a href="https://www.drupal.org/node/3497648"&gt;#3497648&lt;/a&gt;. Jesse Baker outlined a longer-term vision for an isolated editor frame similar to no-code component editing, but acknowledged focus mode might be a good compromise. Lauriii implemented the simpler approach of just hiding the regions, explaining this was an intentional product decision to ship the core value efficiently rather than implementing more advanced inline editing capabilities. After Wim raised concerns about preview accuracy being broken, they clarified via direct message that the implementation does preserve page-level markup and CSS. Follow-up &lt;a href="https://www.drupal.org/node/3582608"&gt;#3582608&lt;/a&gt; was created to address potential preview accuracy improvements.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575874: Include Pages in the CLI push/pull commands</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575874.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94adae6469ba</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 31 Mar 2026 19:24:29 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +1903/−37 · js +1851/−30 · md +31/−7 · php +9 · json +6 · yml +6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/96a8b98b9442702f330e5ef169dd06f8074ef0dc"&gt;96a8b98&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575874"&gt;#3575874&lt;/a&gt; · 3 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The CLI tool's &lt;code&gt;pull&lt;/code&gt; and &lt;code&gt;push&lt;/code&gt; commands can now transfer Canvas Pages in addition to components and global CSS. Pages are opt-in via the &lt;code&gt;--include-pages&lt;/code&gt; flag or &lt;code&gt;CANVAS_INCLUDE_PAGES&lt;/code&gt; environment variable. Pages are stored locally as JSON files containing a component tree. The CLI converts between the local format and Canvas's API format, including resolving component versions that may have changed after pushing components.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;CANVAS_INCLUDE_PAGES&lt;/code&gt; environment variable (accepts true/false, 1/0, yes/no)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New OAuth scopes &lt;code&gt;canvas:page:create&lt;/code&gt;, &lt;code&gt;canvas:page:read&lt;/code&gt;, and &lt;code&gt;canvas:page:edit&lt;/code&gt; required when pages are enabled&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;--include-pages&lt;/code&gt; option for &lt;code&gt;pull&lt;/code&gt; and &lt;code&gt;push&lt;/code&gt; commands to include Canvas pages&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Canvas pages require &lt;code&gt;component_version&lt;/code&gt; for each component in their tree, but the json-render library doesn't track versions and versions can change after pushing components. The CLI now fetches active component versions from &lt;code&gt;/canvas/api/v0/config/component&lt;/code&gt; after pushing components and before pushing pages. This required adding the &lt;code&gt;Component&lt;/code&gt; entity type (in addition to &lt;code&gt;JavaScriptComponent&lt;/code&gt;) to the OAuth-protected config entities in &lt;code&gt;CanvasOauthAuthenticationProvider&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Pages are stored locally in an &amp;quot;authored spec&amp;quot; format with a &lt;code&gt;slots&lt;/code&gt; object for better editing ergonomics, rather than the API's flat array with &lt;code&gt;parent_uuid&lt;/code&gt; and &lt;code&gt;slot&lt;/code&gt; properties. The &lt;code&gt;pageToAuthoredSpec()&lt;/code&gt; and &lt;code&gt;authoredSpecToComponentTree()&lt;/code&gt; functions handle conversion between formats.&lt;/p&gt;
-&lt;p&gt;When pulling pages, the CLI matches local files by UUID and updates existing files. When pushing, pages without a UUID or with a UUID not found remotely are created as new pages. The server-assigned UUID is written back to the local file after creation. Pages containing non-JS components (like SDC components) are skipped during pull with a validation error.&lt;/p&gt;
-&lt;p&gt;The feature defaults to disabled to avoid requiring additional OAuth scopes for users who don't need page management.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To enable page push/pull, configure your OAuth consumer to include the page scopes and use the &lt;code&gt;--include-pages&lt;/code&gt; flag:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;npx canvas pull --include-pages
-npx canvas push --include-pages
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Or set the environment variable:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;CANVAS_INCLUDE_PAGES=true npx canvas pull
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Update your OAuth consumer scopes in the Drupal admin UI to include &lt;code&gt;canvas:page:create&lt;/code&gt;, &lt;code&gt;canvas:page:read&lt;/code&gt;, and &lt;code&gt;canvas:page:edit&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 26, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 31, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
