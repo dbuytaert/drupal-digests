@@ -1,6 +1,6 @@
-*Updated April 28, 2026*
+*Updated April 29, 2026*
 
-**TL;DR:** [525 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [526 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,11 +8,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_395 summaries · 88 new this week_
+_396 summaries · 87 new this week_
 
+- [#3587415: Avoid querying for last installed schema definitions twice](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587415.md)
 - [#3184242: Support brotli compression of assets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3184242.md)
 - [#3578477: CKEditor 5 should respect <textarea disabled> dynamically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578477.md)
-- [#3561960: Combine the database queries in ::loadFromSharedTables() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561960.md)
 
 ### Drupal Canvas
 
@@ -41,7 +41,7 @@ _11 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -53,11 +53,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_166 rules · 132 new this week_
+_169 rules · 131 new this week_
 
-- [Add array type hint to by-reference parameters in #[Hook]-decorated methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-array-type-hint-to-by-reference-parameters-in-hook-3579922.php)
-- [Replace deprecated language module procedural functions with OOP equivalents](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-language-module-procedural-functions-3574727.php)
-- [Rename HelpSearch to SearchHelpSearch in search_help sub-module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-helpsearch-to-searchhelpsearch-in-search-help-sub-3581109.php)
+- [Replace deprecated system.performance css.gzip/js.gzip config keys with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-system-performance-css-gzip-js-gzip-3184242.php)
+- [Replace PHPUnit TestCase::getName() with name() for PHPUnit 10 compatibility](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-phpunit-testcase-getname-with-name-for-phpunit-10-3217904.php)
+- [Add attribute class to DefaultPluginManager constructor calls using only...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-attribute-class-to-defaultpluginmanager-constructor-3265945.php)
 
 
 ## RSS feeds

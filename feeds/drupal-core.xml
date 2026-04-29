@@ -5,6 +5,44 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3587415: Avoid querying for last installed schema definitions twice</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587415.md</link>
+      <guid isPermaLink="false">019dd6a5-1dcb-73d5-ad69-02bad0ed0f92</guid>
+      <pubDate>Tue, 28 Apr 2026 23:45:59 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +29/−11 · php +29/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/afdb3e6927e3cf80fe5eb80612d7372bf1b78262"&gt;afdb3e6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587415"&gt;#3587415&lt;/a&gt; · 3 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On a completely cold cache, Drupal was querying the key/value store for all entity last-installed schema definitions and then immediately querying it again to fetch the field storage definitions for each entity type individually. This double-work is now eliminated. The fix reduces database queries and cache operations on every cold-cache page load, with performance tests showing roughly 9 fewer queries and 9 fewer cache gets and sets per request on the Umami demo profile.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The problem was in &lt;code&gt;EntityLastInstalledSchemaRepository::getLastInstalledDefinitions()&lt;/code&gt;. When the method had to load all entity type definitions from the key/value store (a cache miss), it already had the raw &lt;code&gt;$all_definitions&lt;/code&gt; array in hand, which contains both entity type definitions and per-entity-type field storage definitions keyed as &lt;code&gt;{entity_type}.field_storage_definitions&lt;/code&gt;. However, it was discarding the field storage data and only caching the entity type definitions. A subsequent call to get field storage definitions for any entity type would then trigger another key/value lookup.&lt;/p&gt;
+&lt;p&gt;The fix replaces the single &lt;code&gt;$this-&amp;gt;cacheBackend-&amp;gt;set('entity_type_definitions.installed', ...)&lt;/code&gt; call with a &lt;code&gt;$this-&amp;gt;cacheBackend-&amp;gt;setMultiple($items)&lt;/code&gt; call that writes both the entity type definitions cache entry (&lt;code&gt;entity_type_definitions.installed&lt;/code&gt;) and a &lt;code&gt;{entity_type}.field_storage_definitions.installed&lt;/code&gt; cache entry for every entity type in one shot. It also populates the in-process static cache &lt;code&gt;$this-&amp;gt;entityFieldStorageDefinitions[$key]&lt;/code&gt; for each entity type at the same time.&lt;/p&gt;
+&lt;p&gt;This is a follow-up in the same area as &lt;a href="https://www.drupal.org/node/3131585"&gt;#3131585&lt;/a&gt;, which had previously addressed a performance regression from using last-installed entity definitions. The improvement is neutral for &amp;quot;cool cache&amp;quot; requests (individual field storage definitions are still cached separately so not everything is loaded when only some are needed) but reduces both key/value queries and cache set operations on the first completely cold request.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 28, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3184242: Support brotli compression of assets</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3184242.md</link>
       <guid isPermaLink="false">019dd5e9-8c63-7053-8b3f-ca5ae5f70e1e</guid>
@@ -998,43 +1036,6 @@ uasort($themes, static function ($a, $b) {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue stalled for months as bbrala, borisson_, and smustgrave repeatedly debated whether the indexes format was too flexible to validate meaningfully. The turning point came when nod_ resurfaced the thread with an updated search of &lt;code&gt;-&amp;gt;setIndexes(&lt;/code&gt; usage across contrib, prompting a fresh read. godotislate then dug into &lt;code&gt;Schema::addIndex()&lt;/code&gt; and &lt;code&gt;mysql\Schema::createKeySql()&lt;/code&gt; to precisely define the valid column definition format, establishing that each column is either a bare string or a two-element &lt;code&gt;[name, length]&lt;/code&gt; array with a positive integer length. That specificity gave bbrala the clear target needed to implement a focused custom constraint rather than chasing a fully generic solution. borisson_ requested one additional strictness adjustment before approving, and godotislate confirmed the result looked correct.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3393274: The theme must be passed as a query argument</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3393274.md</link>
-      <guid isPermaLink="false">019dc8e5-36b8-7495-bc40-8d5a7f9919b5</guid>
-      <pubDate>Sun, 26 Apr 2026 07:54:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal support request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3393274"&gt;#3393274&lt;/a&gt; · 23 contributors · 52 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 57&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;After upgrading to Drupal 10.1.x, site owners began seeing frequent log entries reading &amp;quot;The theme must be passed as a query argument&amp;quot; from &lt;code&gt;AssetControllerBase::deliver()&lt;/code&gt;. The errors appear as HTTP 400 responses against aggregated CSS/JS file URLs. Investigation across many sites and environments confirmed this is expected behavior: the errors are produced when clients request aggregated asset URLs that lack the required query parameters, which happens due to stale pages held in reverse-proxy caches (Cloudflare, Varnish), browsers with old tabs open from pre-10.1 visits, bots such as GPTBot crawling old URLs, or certain contrib modules (LiteSpeed Cache, Simple Menu Icons, bandwidth optimization modules) generating or interfering with asset URLs. The issue was closed without a code change. A separately resolved issue (&lt;a href="https://www.drupal.org/node/3377310"&gt;#3377310&lt;/a&gt;) had already fixed the related problem of these correct 400 responses being incorrectly logged through the PHP error channel.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Drupal 10.1.x redesigned asset aggregation so that aggregated CSS/JS files can be regenerated on demand via a controller. &lt;code&gt;AssetControllerBase::deliver()&lt;/code&gt; requires &lt;code&gt;theme&lt;/code&gt;, &lt;code&gt;delta&lt;/code&gt;, &lt;code&gt;language&lt;/code&gt;, and &lt;code&gt;include&lt;/code&gt; query parameters to know which aggregate to rebuild. When a request arrives for a path under &lt;code&gt;sites/default/files/css/&lt;/code&gt; or &lt;code&gt;sites/default/files/js/&lt;/code&gt; but those parameters are absent or malformed (e.g. double-encoded &lt;code&gt;&amp;amp;amp;amp;&lt;/code&gt; instead of &lt;code&gt;&amp;amp;&lt;/code&gt;), the controller throws a &lt;code&gt;BadRequestHttpException&lt;/code&gt; because it has no way to determine what aggregate to generate. This is intentional: without the parameters the URL is structurally unresolvable. Before 10.1.x, Drupal 9's &lt;code&gt;AssetResolver::getCssAssets()&lt;/code&gt; derived the active theme directly from &lt;code&gt;ThemeManager::getActiveTheme()&lt;/code&gt; without needing URL-encoded context, so old D9-era asset URLs naturally lack these parameters. Common real-world sources of these requests include: clients loading pages cached by Varnish or Cloudflare from before the upgrade, browsers pre-fetching assets from cached page state, AI crawlers (GPTBot) following stale links, and contrib modules that store or rewrite asset URLs. Catch confirmed in the thread that a 301 redirect workaround is not feasible because the parameters are the only source of information needed to construct the redirect target. The issue was ultimately closed as &amp;quot;works as designed&amp;quot;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 11, 2023&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;cilefen&lt;/li&gt;
-&lt;li&gt;cellear&lt;/li&gt;
-&lt;li&gt;calebtr&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;darchuletajr (Symmetri Technology)&lt;/li&gt;
-&lt;li&gt;jfauske (Ramsalt Lab)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

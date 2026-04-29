@@ -5,6 +5,373 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace deprecated system.performance css.gzip/js.gzip config keys with css.compress/js.compress</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd6b9-7a36-725a-a45a-2f090d12eb04.md</link>
+      <guid isPermaLink="false">019dd6b9-7a36-725a-a45a-2f090d12eb04</guid>
+      <category>deprecation</category>
+      <pubDate>Wed, 29 Apr 2026 00:52:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3184242"&gt;#3184242&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal 11.4.0, the &lt;code&gt;system.performance&lt;/code&gt; config keys &lt;code&gt;css.gzip&lt;/code&gt; and &lt;code&gt;js.gzip&lt;/code&gt; were deprecated in favour of &lt;code&gt;css.compress&lt;/code&gt; and &lt;code&gt;js.compress&lt;/code&gt;, and will be removed in Drupal 12.0.0. This rule rewrites &lt;code&gt;-&amp;gt;get('css.gzip')&lt;/code&gt;, &lt;code&gt;-&amp;gt;get('js.gzip')&lt;/code&gt;, &lt;code&gt;-&amp;gt;set('css.gzip', ...)&lt;/code&gt;, and &lt;code&gt;-&amp;gt;set('js.gzip', ...)&lt;/code&gt; calls on &lt;code&gt;system.performance&lt;/code&gt; config objects to use the new key names.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::config('system.performance')-&amp;gt;get('css.gzip');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::config('system.performance')-&amp;gt;get('css.compress');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated system.performance css.gzip/js.gzip config keys.
+ *
+ * The config keys system.performance.css.gzip and system.performance.js.gzip
+ * were deprecated in Drupal 11.4.0 and will be removed in 12.0.0.
+ * Use css.compress and js.compress instead.
+ *
+ * @see https://www.drupal.org/node/3526344
+ */
+final class SystemPerformanceGzipToCompressRector extends AbstractRector
+{
+    /**
+     * Config-related method names that accept a config name as their first arg.
+     */
+    private const CONFIG_ACCESSOR_METHODS = ['config', 'get', 'getEditable'];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated system.performance css.gzip/js.gzip config keys with css.compress/js.compress (deprecated in Drupal 11.4.0, removed in 12.0.0)',
+            [
+                new CodeSample(
+                    &amp;quot;\Drupal::config('system.performance')-&amp;gt;get('css.gzip');&amp;quot;,
+                    &amp;quot;\Drupal::config('system.performance')-&amp;gt;get('css.compress');&amp;quot;
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /** @param MethodCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Only match get() and set() calls.
+        if (!$this-&amp;gt;isNames($node-&amp;gt;name, ['get', 'set'])) {
+            return null;
+        }
+
+        if (empty($node-&amp;gt;args)) {
+            return null;
+        }
+
+        $firstArg = $node-&amp;gt;args[0];
+        if (!$firstArg instanceof Arg) {
+            return null;
+        }
+
+        $keyExpr = $firstArg-&amp;gt;value;
+        if (!$keyExpr instanceof String_) {
+            return null;
+        }
+
+        $key = $keyExpr-&amp;gt;value;
+        if ($key !== 'css.gzip' &amp;amp;&amp;amp; $key !== 'js.gzip') {
+            return null;
+        }
+
+        // Require that the receiver chain contains a system.performance config call.
+        if (!$this-&amp;gt;isSystemPerformanceConfigReceiver($node-&amp;gt;var)) {
+            return null;
+        }
+
+        $newKey = ($key === 'css.gzip') ? 'css.compress' : 'js.compress';
+        $node-&amp;gt;args[0] = new Arg(new String_($newKey));
+
+        return $node;
+    }
+
+    /**
+     * Checks whether the expression is (or chains from) a system.performance config object.
+     *
+     * Matches patterns like:
+     *   \Drupal::config('system.performance')
+     *   $this-&amp;gt;config('system.performance')
+     *   \Drupal::configFactory()-&amp;gt;get('system.performance')
+     *   \Drupal::configFactory()-&amp;gt;getEditable('system.performance')
+     */
+    private function isSystemPerformanceConfigReceiver(Node $receiver): bool
+    {
+        $current = $receiver;
+
+        while ($current instanceof MethodCall) {
+            if ($this-&amp;gt;isNames($current-&amp;gt;name, self::CONFIG_ACCESSOR_METHODS)) {
+                if (!empty($current-&amp;gt;args) &amp;amp;&amp;amp; $current-&amp;gt;args[0] instanceof Arg) {
+                    $arg = $current-&amp;gt;args[0]-&amp;gt;value;
+                    if ($arg instanceof String_ &amp;amp;&amp;amp; $arg-&amp;gt;value === 'system.performance') {
+                        return true;
+                    }
+                }
+            }
+            $current = $current-&amp;gt;var;
+        }
+
+        // Also handle \Drupal::config('system.performance') (static call at the root).
+        if ($current instanceof StaticCall) {
+            if ($this-&amp;gt;isName($current-&amp;gt;name, 'config') &amp;amp;&amp;amp; !empty($current-&amp;gt;args)) {
+                $arg = $current-&amp;gt;args[0];
+                if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;value instanceof String_) {
+                    return $arg-&amp;gt;value-&amp;gt;value === 'system.performance';
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([SystemPerformanceGzipToCompressRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace PHPUnit TestCase::getName() with name() for PHPUnit 10 compatibility</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd6b2-bec5-7142-8813-4a3519c0d277.md</link>
+      <guid isPermaLink="false">019dd6b2-bec5-7142-8813-4a3519c0d277</guid>
+      <category>deprecation</category>
+      <pubDate>Wed, 29 Apr 2026 00:45:31 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3217904"&gt;#3217904&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In PHPUnit 10 the &lt;code&gt;TestCase::getName()&lt;/code&gt; method was renamed to &lt;code&gt;name()&lt;/code&gt;. This rule replaces &lt;code&gt;$this-&amp;gt;getName()&lt;/code&gt; and &lt;code&gt;$this-&amp;gt;getName(false)&lt;/code&gt; calls inside PHPUnit &lt;code&gt;TestCase&lt;/code&gt; subclasses with &lt;code&gt;$this-&amp;gt;name()&lt;/code&gt;, enabling contrib and custom modules to be compatible with both Drupal 10 (PHPUnit 9) and Drupal 11 (PHPUnit 10).&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;getName()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;name()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated PHPUnit 9 TestCase::getName() with name() for PHPUnit 10.
+ */
+final class GetNameToNameRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated TestCase::getName() with TestCase::name() for PHPUnit 10 compatibility',
+            [
+                new CodeSample(
+                    '$this-&amp;gt;getName()',
+                    '$this-&amp;gt;name()'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [MethodCall::class];
+    }
+
+    /** @param MethodCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Must be a call on $this.
+        if (!$node-&amp;gt;var instanceof \PhpParser\Node\Expr\Variable) {
+            return null;
+        }
+        if ($this-&amp;gt;getName($node-&amp;gt;var) !== 'this') {
+            return null;
+        }
+
+        // Must be getName().
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'getName')) {
+            return null;
+        }
+
+        // Must be inside a PHPUnit TestCase subclass.
+        if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('PHPUnit\\Framework\\TestCase'))) {
+            return null;
+        }
+
+        // Accepts 0 args or a single `false` arg (getName(false) = name without data set).
+        $args = $node-&amp;gt;args;
+        if (count($args) === 0) {
+            // OK, replace with name().
+        } elseif (count($args) === 1) {
+            $arg = $args[0];
+            if (!$arg instanceof \PhpParser\Node\Arg) {
+                return null;
+            }
+            // Only handle getName(false) / getName(FALSE).
+            if (!$arg-&amp;gt;value instanceof \PhpParser\Node\Expr\ConstFetch) {
+                return null;
+            }
+            $constName = $this-&amp;gt;getName($arg-&amp;gt;value-&amp;gt;name);
+            if (strtolower($constName) !== 'false') {
+                return null;
+            }
+        } else {
+            return null;
+        }
+
+        // Replace with $this-&amp;gt;name().
+        $node-&amp;gt;name = new \PhpParser\Node\Identifier('name');
+        $node-&amp;gt;args = [];
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([GetNameToNameRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Add attribute class to DefaultPluginManager constructor calls using only annotations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd6ae-585a-729d-8ca4-fab646794d2b.md</link>
+      <guid isPermaLink="false">019dd6ae-585a-729d-8ca4-fab646794d2b</guid>
+      <category>deprecation</category>
+      <pubDate>Wed, 29 Apr 2026 00:40:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3265945"&gt;#3265945&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Plugin manager subclasses that call &lt;code&gt;parent::__construct()&lt;/code&gt; with only a Drupal annotation class at argument index 4 (no attribute class) trigger a deprecation introduced in &lt;code&gt;drupal:11.2.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. This rule inserts the corresponding PHP attribute class (derived by replacing &lt;code&gt;\Annotation\&lt;/code&gt; with &lt;code&gt;\Attribute\&lt;/code&gt; in the namespace string) at position 4 and shifts the annotation class to position 5 for backward-compatible discovery.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;parent::__construct('Plugin/Foo', $namespaces, $module_handler, FooInterface::class, 'Drupal\mymodule\Annotation\Foo');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;parent::__construct('Plugin/Foo', $namespaces, $module_handler, FooInterface::class, 'Drupal\mymodule\Attribute\Foo', 'Drupal\mymodule\Annotation\Foo');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Rector rule: add attribute class argument to DefaultPluginManager::__construct().
+ *
+ * Plugin manager subclasses that call parent::__construct() with only an
+ * annotation class at argument index 4 (and no attribute class) trigger a
+ * deprecation in drupal:11.2.0, removed in drupal:12.0.0. This rule inserts
+ * the corresponding attribute class (derived by replacing \Annotation\ with
+ * \Attribute\ in the namespace) as argument 4, and shifts the annotation class
+ * to argument 5 for backward-compatible discovery.
+ */
+final class AddPluginManagerAttributeClassRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add a PHP attribute class argument to DefaultPluginManager::__construct() calls that only pass a Drupal annotation class, fixing the drupal:11.2.0 deprecation removed in drupal:12.0.0.',
+            [
+                new CodeSample(
+                    &amp;quot;parent::__construct('Plugin/Foo', \$namespaces, \$module_handler, FooInterface::class, 'Drupal\\mymodule\\Annotation\\Foo');&amp;quot;,
+                    &amp;quot;parent::__construct('Plugin/Foo', \$namespaces, \$module_handler, FooInterface::class, 'Drupal\\mymodule\\Attribute\\Foo', 'Drupal\\mymodule\\Annotation\\Foo');&amp;quot;
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [StaticCall::class];
+    }
+
+    /** @param StaticCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        // Only target parent::__construct() calls.
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'parent')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, '__construct')) {
+            return null;
+        }
+
+        // Must have exactly 5 positional args (no attribute class yet).
+        if (count($node-&amp;gt;args) !== 5) {
+            return null;
+        }
+
+        // Arg[4] must be a plain string literal containing \Annotation\.
+        $arg4 = $node-&amp;gt;args[4]-&amp;gt;value;
+        if (!$arg4 instanceof String_) {
+            return null;
+        }
+
+        $annotationClass = $arg4-&amp;gt;value;
+        // Normalise any leading backslash before testing.
+        $normalised = ltrim($annotationClass, '\\');
+        if (strpos($normalised, '\\Annotation\\') === false) {
+            return null;
+        }
+
+        // Derive the attribute class: swap \Annotation\ for \Attribute\.
+        $attributeClass = str_replace('\\Annotation\\', '\\Attribute\\', $normalised);
+
+        // Build the new attribute-class argument and splice it in at position 4,
+        // pushing the existing annotation-class argument to position 5.
+        $attributeArg = new \PhpParser\Node\Arg(new String_($attributeClass));
+        array_splice($node-&amp;gt;args, 4, 0, [$attributeArg]);
+
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddPluginManagerAttributeClassRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Add array type hint to by-reference parameters in #[Hook]-decorated methods</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dd5f5-872b-7761-b66c-91ac763bfbaa.md</link>
       <guid isPermaLink="false">019dd5f5-872b-7761-b66c-91ac763bfbaa</guid>
@@ -1917,258 +2284,6 @@ views_ui_contextual_links_suppress_pop();',
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([RemoveViewsUiContextualLinksSuppressRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated views_entity_field_label() with EntityFieldManager::getFieldLabels()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcc62-c3eb-7323-bfd8-4576e152c830.md</link>
-      <guid isPermaLink="false">019dcc62-c3eb-7323-bfd8-4576e152c830</guid>
-      <category>deprecation</category>
-      <pubDate>Mon, 27 Apr 2026 00:41:57 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3069442"&gt;#3069442&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;views_entity_field_label()&lt;/code&gt; function (deprecated in Drupal 11.2, removed in 12.0) with the equivalent &lt;code&gt;\Drupal::service('entity_field.manager')-&amp;gt;getFieldLabels()&lt;/code&gt;. The new method lives on &lt;code&gt;EntityFieldManagerInterface&lt;/code&gt; and is accessible both as a service call and via dependency injection, making it usable outside of Views contexts.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;[$label, $all_labels] = views_entity_field_label($entity_type_id, $field_name);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;[$label, $all_labels] = \Drupal::service('entity_field.manager')-&amp;gt;getFieldLabels($entity_type_id, $field_name);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Replaces the deprecated views_entity_field_label() with
- * \Drupal::service('entity_field.manager')-&amp;gt;getFieldLabels().
- */
-final class ViewsEntityFieldLabelRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            &amp;quot;Replace deprecated views_entity_field_label() with \\Drupal::service('entity_field.manager')-&amp;gt;getFieldLabels()&amp;quot;,
-            [
-                new CodeSample(
-                    '[$label, $all_labels] = views_entity_field_label($entity_type_id, $field_name);',
-                    &amp;quot;[$label, $all_labels] = \\Drupal::service('entity_field.manager')-&amp;gt;getFieldLabels(\$entity_type_id, \$field_name);&amp;quot;
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /**
-     * @param FuncCall $node
-     */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node, 'views_entity_field_label')) {
-            return null;
-        }
-
-        // Build \Drupal::service('entity_field.manager')
-        $serviceCall = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
-            'Drupal',
-            'service',
-            [$this-&amp;gt;nodeFactory-&amp;gt;createArg(new String_('entity_field.manager'))]
-        );
-
-        // Build -&amp;gt;getFieldLabels($entity_type, $field_name)
-        return $this-&amp;gt;nodeFactory-&amp;gt;createMethodCall($serviceCall, 'getFieldLabels', $node-&amp;gt;args);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ViewsEntityFieldLabelRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Pass EntityTypeManagerInterface to NodePermissions constructor</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcc60-7c5c-76e3-b6c6-437e63855817.md</link>
-      <guid isPermaLink="false">019dcc60-7c5c-76e3-b6c6-437e63855817</guid>
-      <category>deprecation</category>
-      <pubDate>Mon, 27 Apr 2026 00:39:28 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3092001"&gt;#3092001&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites &lt;code&gt;new NodePermissions()&lt;/code&gt; (no arguments) to &lt;code&gt;new NodePermissions(\Drupal::entityTypeManager())&lt;/code&gt;. In drupal:11.2.0, &lt;code&gt;NodePermissions&lt;/code&gt; gained a constructor that accepts &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt;; calling it without the argument triggers a deprecation. The argument becomes mandatory in drupal:12.0.0. See https://www.drupal.org/node/3515921.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\node\NodePermissions()
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\node\NodePermissions(\Drupal::entityTypeManager())
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\New_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Rewrites `new NodePermissions()` to pass the entity type manager argument.
- *
- * In drupal:11.2.0, NodePermissions gained a constructor that requires
- * EntityTypeManagerInterface. Calling it without the argument triggers a
- * deprecation; drupal:12.0.0 will make the argument mandatory.
- */
-final class PassEntityTypeManagerToNodePermissionsRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Pass EntityTypeManagerInterface to NodePermissions constructor (deprecated in drupal:11.2.0, required in drupal:12.0.0)',
-            [
-                new CodeSample(
-                    'new \\Drupal\\node\\NodePermissions()',
-                    'new \\Drupal\\node\\NodePermissions(\\Drupal::entityTypeManager())'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node-&amp;gt;class instanceof \PhpParser\Node\Name) {
-            return null;
-        }
-
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\node\\NodePermissions')) {
-            return null;
-        }
-
-        // Only rewrite when called with no arguments (the deprecated form).
-        if ($node-&amp;gt;args !== []) {
-            return null;
-        }
-
-        // Build \Drupal::entityTypeManager() static call.
-        $entityTypeManagerCall = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
-            'Drupal',
-            'entityTypeManager'
-        );
-
-        $node-&amp;gt;args = [$this-&amp;gt;nodeFactory-&amp;gt;createArg($entityTypeManagerCall)];
-
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([PassEntityTypeManagerToNodePermissionsRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated LinkWidget::validateTitleElement() calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019dcb7b-7e4e-75db-ac18-9cd4e205d69e.md</link>
-      <guid isPermaLink="false">019dcb7b-7e4e-75db-ac18-9cd4e205d69e</guid>
-      <category>deprecation</category>
-      <pubDate>Sun, 26 Apr 2026 20:29:21 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3093118"&gt;#3093118&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tags:&lt;/strong&gt; deprecation&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes direct calls to &lt;code&gt;LinkWidget::validateTitleElement()&lt;/code&gt;, deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. The link-title-required validation is now handled at the field level by &lt;code&gt;LinkTitleRequiredConstraint&lt;/code&gt; on the &lt;code&gt;LinkItem&lt;/code&gt; field type, so explicit form-level calls to this method are no longer needed.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;LinkWidget::validateTitleElement($element, $form_state, $form);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Removed: validation is now handled by LinkTitleRequiredConstraint on LinkItem.
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Stmt\Expression;
-use PhpParser\NodeVisitor;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class RemoveLinkWidgetValidateTitleElementRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove calls to deprecated LinkWidget::validateTitleElement(), deprecated in drupal:11.4.0. The title-required validation is now handled by the LinkTitleRequiredConstraint on the LinkItem field type.',
-            [
-                new CodeSample(
-                    'LinkWidget::validateTitleElement($element, $form_state, $form);',
-                    '// Removed: validation is now handled by LinkTitleRequiredConstraint.'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Expression::class];
-    }
-
-    /** @param Expression $node */
-    public function refactor(Node $node): Node|int|null
-    {
-        if (!$node-&amp;gt;expr instanceof StaticCall) {
-            return null;
-        }
-
-        $staticCall = $node-&amp;gt;expr;
-
-        if (!$this-&amp;gt;isName($staticCall-&amp;gt;name, 'validateTitleElement')) {
-            return null;
-        }
-
-        if (!$this-&amp;gt;isName($staticCall-&amp;gt;class, 'Drupal\\link\\Plugin\\Field\\FieldWidget\\LinkWidget')) {
-            return null;
-        }
-
-        return NodeVisitor::REMOVE_NODE;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveLinkWidgetValidateTitleElementRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
