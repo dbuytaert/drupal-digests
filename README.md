@@ -1,6 +1,6 @@
 *Updated April 29, 2026*
 
-**TL;DR:** [534 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [535 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -8,11 +8,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_403 summaries · 84 new this week_
+_404 summaries · 83 new this week_
 
+- [#3586606: Improve performance of HelpTopicsSyntaxTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md)
 - [#3502993: Convert Navigation messages component to SDC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md)
 - [#3586616: Remove search from olivero_test module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586616.md)
-- [#3578444: Date filter doesn't apply default offset values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578444.md)
 
 ### Drupal Canvas
 
@@ -24,7 +24,7 @@ _55 summaries · 15 new this week_
 
 ### Drupal AI
 
-_65 summaries · 6 new this week_
+_65 summaries · 5 new this week_
 
 - [#3585786: Add universal pre-load and post-load hooks to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3585786.md)
 - [#3581363: Add drupal:mdx-fill event support to MDX editor for external content injection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3581363.md)
@@ -53,7 +53,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_171 rules · 121 new this week_
+_171 rules · 120 new this week_
 
 - [Replace navigation__message theme hook with navigation:message SDC component](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php)
 - [Replace deprecated field_purge_batch() with FieldPurger service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-field-purge-batch-with-fieldpurger-2907780.php)

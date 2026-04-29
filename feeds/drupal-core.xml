@@ -5,6 +5,46 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3586606: Improve performance of HelpTopicsSyntaxTest</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md</link>
+      <guid isPermaLink="false">019dda17-c869-75bc-b8bb-69f07b54876a</guid>
+      <pubDate>Wed, 29 Apr 2026 14:07:12 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +178/−272 · php +178/−260 · yml +0/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/815e244eff0332ecdb8e79caa4ed2ea2f0f323a8"&gt;815e244&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586606"&gt;#3586606&lt;/a&gt; · 5 contributors · 28 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;HelpTopicsSyntaxTest&lt;/code&gt; was taking over 19 minutes to run in CI because it was a full functional (browser) test that repeatedly read and wrote &lt;code&gt;State&lt;/code&gt; storage through a helper Twig extension. The test has been converted to a kernel test and the &lt;code&gt;#slow&lt;/code&gt; group tag removed; it now completes in roughly 9 to 12 seconds.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The test previously extended &lt;code&gt;BrowserTestBase&lt;/code&gt; and depended on a dedicated test support module, &lt;code&gt;help_topics_twig_tester&lt;/code&gt;, which provided &lt;code&gt;HelpTestTwigExtension&lt;/code&gt; and &lt;code&gt;HelpTestTwigNodeVisitor&lt;/code&gt;. The node visitor tracked rendering state (which processing mode to apply, current chunk counts) by reading and writing &lt;code&gt;\Drupal::state()&lt;/code&gt; on every Twig node traversal. That pattern meant dozens of database round-trips per topic render, and the problem was amplified further by the pending changes in &lt;a href="https://www.drupal.org/node/3496257"&gt;#3496257&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The fix moves the test to &lt;code&gt;KernelTestBase&lt;/code&gt; and implements &lt;code&gt;NodeVisitorInterface&lt;/code&gt; directly on &lt;code&gt;HelpTopicsSyntaxTest&lt;/code&gt; itself. State is now tracked in plain PHP properties: &lt;code&gt;$this-&amp;gt;manner&lt;/code&gt;, &lt;code&gt;$this-&amp;gt;maxChunk&lt;/code&gt;, and &lt;code&gt;$this-&amp;gt;returnChunk&lt;/code&gt;. The Twig extension is registered inline via an anonymous class inside &lt;code&gt;register(ContainerBuilder $container)&lt;/code&gt;, injecting &lt;code&gt;$this&lt;/code&gt; as the node visitor. The entire &lt;code&gt;help_topics_twig_tester&lt;/code&gt; module is deleted. The &lt;code&gt;drupalGet()&lt;/code&gt; page-load calls inside &lt;code&gt;verifyTopic()&lt;/code&gt; are also removed, since &lt;code&gt;HelpTopicTest::verifyHelp()&lt;/code&gt; already provides a smoke test of the controller. A stale PHPStan &lt;code&gt;$ignoreErrors&lt;/code&gt; entry for &lt;code&gt;HelpTestTwigNodeVisitor::setStateValue()&lt;/code&gt; is also cleaned up. The simplification during merge also collapsed the separate &lt;code&gt;chunk_count&lt;/code&gt; and &lt;code&gt;max_chunk&lt;/code&gt; tracking into a single &lt;code&gt;$this-&amp;gt;maxChunk&lt;/code&gt; counter incremented inline in &lt;code&gt;leaveNode()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 29, 2026 (5 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave opened a parallel MR (!15577) with the observation that the &lt;code&gt;drupalGet()&lt;/code&gt; calls were unnecessary overhead given that &lt;code&gt;HelpTopicTest::verifyHelp()&lt;/code&gt; already smoke-tests the controller, and that dropping them would make the diff easier to read. godotislate agreed, and the two MRs were merged into one. longwave went further during the merge, refactoring the chunk tracking variables and noting that &lt;code&gt;max_chunk&lt;/code&gt; and &lt;code&gt;chunk_count&lt;/code&gt; were redundant, collapsing them into a single counter.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3502993: Convert Navigation messages component to SDC</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md</link>
       <guid isPermaLink="false">019dd94e-421a-72fd-9c9e-53b85234bcef</guid>
@@ -956,51 +996,6 @@ $this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;joelpittet filed the issue and did the detailed forensic work, breaking down exactly how each filename was being mutated through the sequential &lt;code&gt;str_replace&lt;/code&gt; array and posting the full before/after table in comments. garphy later contributed a patch to combine the two content-replacement passes into one call, avoiding an intermediate &lt;code&gt;file_put_contents&lt;/code&gt;. joelpittet eventually found the placeholder approach that made the tests pass after a lengthy period away from the problem, and smustgrave provided manual testing confirmation before the final RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585505: Refactor tests code via Rector</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585505.md</link>
-      <guid isPermaLink="false">019dd4f1-15b2-7545-b219-52457a979704</guid>
-      <pubDate>Tue, 28 Apr 2026 10:09:07 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 100 files, +194/−187 · php +194/−187&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/95df9e913050bf05749bbde70a7f6463ef48183a"&gt;95df9e9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585505"&gt;#3585505&lt;/a&gt; · 4 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is a purely internal cleanup of Drupal core's test code with no user-facing effect. It uses the Rector static analysis tool to automatically add PHP type declarations across all test classes in core and core modules, improving code clarity and helping static analysis tools catch bugs earlier.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change applies Rector's &lt;code&gt;typeDeclarations&lt;/code&gt; prepared set to every test class under &lt;code&gt;core/tests&lt;/code&gt; and &lt;code&gt;core/modules/**/tests/src&lt;/code&gt;, covering unit, kernel, functional, and functional-JavaScript tests. The &lt;code&gt;TypedPropertyFromCreateMockAssignRector&lt;/code&gt; rule was explicitly excluded from the run because it requires manual adjustment beyond what automation can safely handle.&lt;/p&gt;
-&lt;p&gt;The mechanical changes fall into four repeating patterns visible throughout the diff:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Return type declarations added to data-provider methods (the vast majority): untyped &lt;code&gt;public static function providerFoo()&lt;/code&gt; becomes &lt;code&gt;public static function providerFoo(): array&lt;/code&gt;, or &lt;code&gt;: \Iterator&lt;/code&gt; where a generator is returned.&lt;/li&gt;
-&lt;li&gt;Parameter type declarations added to &lt;code&gt;#[DataProvider]&lt;/code&gt;-driven test methods: previously untyped parameters like &lt;code&gt;$expected&lt;/code&gt;, &lt;code&gt;$route&lt;/code&gt;, &lt;code&gt;$method&lt;/code&gt;, &lt;code&gt;$state&lt;/code&gt;, etc. are given concrete scalar or class types (e.g. &lt;code&gt;string&lt;/code&gt;, &lt;code&gt;bool&lt;/code&gt;, &lt;code&gt;int&lt;/code&gt;, &lt;code&gt;array&lt;/code&gt;).&lt;/li&gt;
-&lt;li&gt;Return and parameter types added to anonymous closures and arrow functions used inline, e.g. &lt;code&gt;function ($v)&lt;/code&gt; becoming &lt;code&gt;function (ConstraintViolationInterface $v): string&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;Return types added to helper and trait methods in test classes, e.g. &lt;code&gt;: void&lt;/code&gt;, &lt;code&gt;: bool&lt;/code&gt;, &lt;code&gt;: string|false&lt;/code&gt;, &lt;code&gt;: mixed&lt;/code&gt;, &lt;code&gt;: BigPipeResponseAttachmentsProcessor&lt;/code&gt;.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;As a side effect, Rector also alphabetically reordered some &lt;code&gt;use&lt;/code&gt; import statements and added a few missing &lt;code&gt;use&lt;/code&gt; declarations (e.g. &lt;code&gt;NodeElement&lt;/code&gt; in a CKEditor5 test, &lt;code&gt;ConstraintViolationInterface&lt;/code&gt; in the CKEditor5 unit test). The PHPStan baseline was regenerated after the run to reflect the new type information.&lt;/p&gt;
-&lt;p&gt;The follow-up issue &lt;a href="https://www.drupal.org/node/3587327"&gt;#3587327&lt;/a&gt; was filed to run the same process again once new code has been added.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 28, 2026 (10 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
