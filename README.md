@@ -1,10 +1,18 @@
 *Updated April 30, 2026*
 
-**TL;DR:** [536 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [537 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_405 summaries · 74 new this week_
+
+- [#3582169: Cleanup cspell ignores in Admin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582169.md)
+- [#3586606: Improve performance of HelpTopicsSyntaxTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md)
+- [#3502993: Convert Navigation messages component to SDC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md)
 
 ### Drupal Canvas
 
@@ -13,14 +21,6 @@ _56 summaries · 16 new this week_
 - [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 - [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
 - [#3573776: Canvas needs a way for server to send notifications and trigger actions in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573776.md)
-
-### Drupal Core
-
-_404 summaries · 75 new this week_
-
-- [#3586606: Improve performance of HelpTopicsSyntaxTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md)
-- [#3502993: Convert Navigation messages component to SDC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md)
-- [#3586616: Remove search from olivero_test module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586616.md)
 
 ### Drupal AI
 
@@ -53,7 +53,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_171 rules · 109 new this week_
+_171 rules · 108 new this week_
 
 - [Replace navigation__message theme hook with navigation:message SDC component](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php)
 - [Replace deprecated field_purge_batch() with FieldPurger service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-field-purge-batch-with-fieldpurger-2907780.php)
