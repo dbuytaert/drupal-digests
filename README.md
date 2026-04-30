@@ -16,7 +16,7 @@ _56 summaries · 16 new this week_
 
 ### Drupal Core
 
-_404 summaries · 76 new this week_
+_404 summaries · 75 new this week_
 
 - [#3586606: Improve performance of HelpTopicsSyntaxTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md)
 - [#3502993: Convert Navigation messages component to SDC](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3502993.md)
@@ -53,7 +53,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_171 rules · 112 new this week_
+_171 rules · 109 new this week_
 
 - [Replace navigation__message theme hook with navigation:message SDC component](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php)
 - [Replace deprecated field_purge_batch() with FieldPurger service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-field-purge-batch-with-fieldpurger-2907780.php)
