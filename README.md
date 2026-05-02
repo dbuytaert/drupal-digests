@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_406 summaries · 46 new this week_
+_406 summaries · 43 new this week_
 
 - [#3530640: Disable the user.login.http route by default and move to REST](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md)
 - [#3533299: Deprecate node access rebuild functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3533299.md)
@@ -14,7 +14,7 @@ _406 summaries · 46 new this week_
 
 ### Drupal Canvas
 
-_56 summaries · 7 new this week_
+_56 summaries · 5 new this week_
 
 - [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 - [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
