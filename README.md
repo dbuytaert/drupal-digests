@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_406 summaries · 65 new this week_
+_406 summaries · 49 new this week_
 
 - [#3530640: Disable the user.login.http route by default and move to REST](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md)
 - [#3533299: Deprecate node access rebuild functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3533299.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 94 new this week_
+_179 rules · 90 new this week_
 
 - [Replace deprecated UserAuthenticationController with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php)
 - [Replace deprecated node_access_rebuild() and node_access_needs_rebuild() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-rebuild-and-node-access-3533299.php)
