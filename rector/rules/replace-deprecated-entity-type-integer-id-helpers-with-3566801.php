@@ -44,6 +44,7 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Expr\BinaryOp\Identical;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Rector\Config\RectorConfig;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -67,6 +68,12 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  */
 final class UseEntityTypeHasIntegerIdRector extends AbstractRector
 {
+    private const TARGET_PARENTS = [
+        'Drupal\\Core\\Entity\\Routing\\DefaultHtmlRouteProvider',
+        'Drupal\\comment\\CommentTypeForm',
+        'Drupal\\layout_builder\\Plugin\\SectionStorage\\OverridesSectionStorage',
+    ];
+
     private const SIMPLE_METHOD_NAMES = [
         'entityTypeSupportsComments',
     ];
@@ -123,6 +130,10 @@ final class UseEntityTypeHasIntegerIdRector extends AbstractRector
             return null;
         }
 
+        if (!$this->isInTargetParent($methodCall->var)) {
+            return null;
+        }
+
         if ($string->value !== 'integer') {
             return null;
         }
@@ -137,6 +148,10 @@ final class UseEntityTypeHasIntegerIdRector extends AbstractRector
     private function refactorMethodCall(MethodCall $node): ?Node
     {
         if (!($node->var instanceof Variable) || $node->var->name !== 'this') {
+            return null;
+        }
+
+        if (!$this->isInTargetParent($node->var)) {
             return null;
         }
 
@@ -178,5 +193,15 @@ final class UseEntityTypeHasIntegerIdRector extends AbstractRector
             return false;
         }
         return $this->getName($node->name) === 'getEntityTypeIdKeyType';
+    }
+
+    private function isInTargetParent(Node $node): bool
+    {
+        foreach (self::TARGET_PARENTS as $parent) {
+            if ($this->isObjectType($node, new ObjectType($parent))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

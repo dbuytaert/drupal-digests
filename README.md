@@ -1,4 +1,4 @@
-**TL;DR:** [538 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [539 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_406 summaries · 33 new this week_
+_407 summaries · 34 new this week_
 
+- [#3191278: Use plugin id to make help section headers HTML IDs ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3191278.md)
 - [#3530640: Disable the user.login.http route by default and move to REST](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md)
 - [#3533299: Deprecate node access rebuild functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3533299.md)
-- [#3586606: Improve performance of HelpTopicsSyntaxTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586606.md)
 
 ### Drupal Canvas
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 70 new this week_
+_179 rules · 69 new this week_
 
 - [Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php)
 - [Replace deprecated UserAuthenticationController with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php)
