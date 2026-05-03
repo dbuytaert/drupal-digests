@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 72 new this week_
+_179 rules · 71 new this week_
 
 - [Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php)
 - [Replace deprecated UserAuthenticationController with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php)
