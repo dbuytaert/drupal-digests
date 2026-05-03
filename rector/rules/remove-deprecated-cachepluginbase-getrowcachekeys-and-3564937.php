@@ -42,6 +42,7 @@ use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Identifier;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -136,6 +137,9 @@ CODE_AFTER
         if (!$call->name instanceof Identifier) {
             return false;
         }
-        return in_array($call->name->toString(), self::DEPRECATED_METHODS, true);
+        if (!in_array($call->name->toString(), self::DEPRECATED_METHODS, true)) {
+            return false;
+        }
+        return $this->isObjectType($call->var, new ObjectType('Drupal\\views\\Plugin\\views\\cache\\CachePluginBase'));
     }
 }

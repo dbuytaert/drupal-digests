@@ -36,6 +36,7 @@ use PhpParser\Node;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -90,6 +91,16 @@ CODE_SAMPLE
      */
     public function refactor(Node $node): ?Node
     {
+        // Only refactor classes that extend HandlerBase, including transitive
+        // subclasses (FilterPluginBase, ArgumentPluginBase, etc.) via PHPStan's
+        // type resolution.
+        if ($node->extends === null) {
+            return null;
+        }
+        if (!$this->isObjectType($node->extends, new ObjectType('Drupal\\views\\Plugin\\views\\HandlerBase'))) {
+            return null;
+        }
+
         // Do not remove from HandlerBase itself — the deprecation trigger stays.
         // Use the short class name (Identifier), not the FQCN from getName().
         if ($node->name instanceof Identifier && $node->name->toString() === 'HandlerBase') {

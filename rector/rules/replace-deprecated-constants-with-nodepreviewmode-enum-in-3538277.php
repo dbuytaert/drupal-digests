@@ -36,6 +36,7 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Scalar\LNumber;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -91,6 +92,10 @@ final class NodeSetPreviewModeRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         if (!$this->isName($node->name, 'setPreviewMode')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\node\NodeTypeInterface'))) {
             return null;
         }
 

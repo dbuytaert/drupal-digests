@@ -36,6 +36,7 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\Foreach_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -82,6 +83,10 @@ final class LoadAllIncludesRector extends AbstractRector
         }
 
         $caller = $methodCall->var;
+
+        if (!$this->isObjectType($caller, new ObjectType('Drupal\Core\Extension\ModuleHandlerInterface'))) {
+            return null;
+        }
 
         // Build: $caller->getModuleList()
         $getModuleListCall = new MethodCall(clone $caller, 'getModuleList');

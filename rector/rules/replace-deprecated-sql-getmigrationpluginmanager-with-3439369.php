@@ -85,9 +85,10 @@ final class MigrateSqlGetMigrationPluginManagerRector extends AbstractRector
             return null;
         }
 
-        // Skip Migration::getMigrationPluginManager() which is NOT deprecated.
-        // Only the Sql (id_map) version was deprecated and removed in 11.0.0.
-        if ($this->isObjectType($node->var, new ObjectType('Drupal\migrate\Plugin\Migration'))) {
+        // Only target the Sql id_map class where the method was deprecated and
+        // removed in 11.0.0. Migration::getMigrationPluginManager() is unrelated
+        // and its callers must not be rewritten.
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\migrate\Plugin\migrate\id_map\Sql'))) {
             return null;
         }
 

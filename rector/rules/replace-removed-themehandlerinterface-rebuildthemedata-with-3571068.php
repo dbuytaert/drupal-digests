@@ -32,6 +32,7 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Rector\Config\RectorConfig;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -76,6 +77,10 @@ final class ReplaceRebuildThemeDataRector extends AbstractRector
         }
 
         if (!$this->isName($node->name, 'rebuildThemeData')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\Core\Extension\ThemeHandlerInterface'))) {
             return null;
         }
 

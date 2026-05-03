@@ -33,6 +33,7 @@ use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\Variable;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Rector\Config\RectorConfig;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -96,6 +97,7 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
         if ($node instanceof PropertyFetch) {
             if ($this->isName($node->name, 'original')
                 && !$this->isThisVar($node->var)
+                && $this->isObjectType($node->var, new ObjectType('Drupal\Core\Entity\EntityInterface'))
             ) {
                 return new MethodCall($node->var, 'getOriginal');
             }
@@ -110,6 +112,7 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
             && $node->var instanceof MethodCall
             && $this->isName($node->var->name, 'getOriginal')
             && empty($node->var->args)
+            && $this->isObjectType($node->var->var, new ObjectType('Drupal\Core\Entity\EntityInterface'))
         ) {
             return new MethodCall(
                 $node->var->var,

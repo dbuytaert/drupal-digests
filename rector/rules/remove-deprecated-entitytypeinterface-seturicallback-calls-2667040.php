@@ -28,6 +28,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\NodeVisitor;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -72,6 +73,7 @@ final class RemoveSetUriCallbackRector extends AbstractRector
             if (
                 $node->expr instanceof MethodCall
                 && $this->isName($node->expr->name, 'setUriCallback')
+                && $this->isObjectType($node->expr->var, new ObjectType('Drupal\Core\Entity\EntityTypeInterface'))
             ) {
                 return NodeVisitor::REMOVE_NODE;
             }
@@ -84,6 +86,7 @@ final class RemoveSetUriCallbackRector extends AbstractRector
             if (
                 $node->var instanceof MethodCall
                 && $this->isName($node->var->name, 'setUriCallback')
+                && $this->isObjectType($node->var->var, new ObjectType('Drupal\Core\Entity\EntityTypeInterface'))
             ) {
                 $node->var = $node->var->var;
                 return $node;

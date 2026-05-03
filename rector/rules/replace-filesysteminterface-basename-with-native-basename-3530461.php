@@ -64,6 +64,10 @@ final class FileSystemBasenameToNativeRector extends AbstractRector
     /** @param MethodCall $node */
     public function refactor(Node $node): ?Node
     {
+        if (!$node instanceof MethodCall) {
+            return null;
+        }
+
         // Only handle calls named 'basename'.
         if (!$this->isName($node->name, 'basename')) {
             return null;
