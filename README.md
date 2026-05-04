@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_407 summaries · 34 new this week_
+_407 summaries · 33 new this week_
 
 - [#3191278: Use plugin id to make help section headers HTML IDs ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3191278.md)
 - [#3530640: Disable the user.login.http route by default and move to REST](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 65 new this week_
+_179 rules · 61 new this week_
 
 - [Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php)
 - [Replace deprecated UserAuthenticationController with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php)
