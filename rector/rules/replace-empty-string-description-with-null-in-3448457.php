@@ -90,10 +90,7 @@ final class EntityFormModeEmptyDescriptionToNullRector extends AbstractRector
             return null;
         }
 
-        $className = $this->getName($node->class);
-        if ($className !== 'Drupal\\Core\\Entity\\Entity\\EntityFormMode'
-            && $className !== 'EntityFormMode'
-        ) {
+        if (!$this->isName($node->class, 'Drupal\\Core\\Entity\\Entity\\EntityFormMode')) {
             return null;
         }
 

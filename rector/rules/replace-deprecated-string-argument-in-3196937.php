@@ -32,6 +32,7 @@ use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -76,6 +77,10 @@ final class BlockContentTestBaseStringToArrayRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         if (!$this->isName($node->name, 'createBlockContentType')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\Tests\block_content\Traits\BlockContentCreationTrait'))) {
             return null;
         }
 

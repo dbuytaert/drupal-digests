@@ -33,6 +33,7 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -69,6 +70,10 @@ final class CommentPreviewModeRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         if (!$this->isName($node->name, 'setCommentPreview')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\node\NodeTypeInterface'))) {
             return null;
         }
 

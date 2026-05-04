@@ -33,6 +33,7 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Rector\Config\RectorConfig;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -92,6 +93,10 @@ final class ReplaceLocaleTranslationPathConfigRector extends AbstractRector
 
         // Outer call must be ->get('translation.path')
         if (!$this->isName($node->name, 'get')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\Core\Config\ImmutableConfig'))) {
             return null;
         }
 

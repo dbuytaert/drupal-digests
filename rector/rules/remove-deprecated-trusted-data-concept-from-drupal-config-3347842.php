@@ -36,6 +36,7 @@ declare(strict_types=1);
 use PhpParser\Node;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -82,6 +83,7 @@ final class RemoveTrustedDataConceptRector extends AbstractRector
             $this->isName($node->name, 'save')
             && count($node->args) === 1
             && $node->args[0] instanceof \PhpParser\Node\Arg
+            && $this->isObjectType($node->var, new ObjectType('Drupal\Core\Config\Config'))
         ) {
             $argValue = $node->args[0]->value;
             if (
@@ -96,7 +98,8 @@ final class RemoveTrustedDataConceptRector extends AbstractRector
         // Pattern 2: ->trustData() — remove from a method chain.
         // $entity->trustData()->save() becomes $entity->save() because
         // trustData() returns $this; replacing it with its receiver is safe.
-        if ($this->isName($node->name, 'trustData') && count($node->args) === 0) {
+        if ($this->isName($node->name, 'trustData') && count($node->args) === 0
+            && $this->isObjectType($node->var, new ObjectType('Drupal\Core\Config\Config'))) {
             return $node->var;
         }
 

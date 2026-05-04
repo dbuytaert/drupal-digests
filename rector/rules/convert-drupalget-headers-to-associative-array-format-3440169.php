@@ -34,6 +34,7 @@ use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -71,6 +72,10 @@ final class DrupalGetHeadersAssocArrayRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         if (!$this->isName($node->name, 'drupalGet')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\Tests\UiHelperTrait'))) {
             return null;
         }
 

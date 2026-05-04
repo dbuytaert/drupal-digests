@@ -37,6 +37,7 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -90,6 +91,10 @@ CODE
     public function refactor(Node $node): ?Node
     {
         if ($this->getName($node->name) !== 'assertMetrics') {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\Tests\system\Functional\Performance\PerformanceTestBase'))) {
             return null;
         }
 

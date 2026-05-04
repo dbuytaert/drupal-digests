@@ -30,6 +30,7 @@ use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -77,6 +78,10 @@ final class MovePointerToMouseOverRector extends AbstractRector
             return null;
         }
         if (!$this->isName($node->name, 'movePointerTo')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\FunctionalJavascriptTests\WebDriverTestBase'))) {
             return null;
         }
         if (count($node->args) !== 1) {

@@ -1,4 +1,4 @@
-**TL;DR:** [541 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [541 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -22,7 +22,7 @@ _66 summaries · 1 new this week_
 
 ### Drupal Canvas
 
-_56 summaries · 5 new this week_
+_56 summaries · 4 new this week_
 
 - [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 - [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 57 new this week_
+_181 rules · 59 new this week_
 
+- [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
+- [Replace deprecated node_access_grants() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-grants-with-nodegrantshelper-2473041.php)
 - [Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php)
-- [Replace deprecated UserAuthenticationController with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php)
-- [Replace deprecated node_access_rebuild() and node_access_needs_rebuild() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-rebuild-and-node-access-3533299.php)
 
 
 ## RSS feeds

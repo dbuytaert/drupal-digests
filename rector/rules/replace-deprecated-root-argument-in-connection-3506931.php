@@ -30,6 +30,7 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Name;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -67,6 +68,16 @@ final class RemoveRootFromCreateConnectionOptionsFromUrlRector extends AbstractR
     {
         if (!$this->isName($node->name, 'createConnectionOptionsFromUrl')) {
             return null;
+        }
+
+        if ($node instanceof MethodCall) {
+            if (!$this->isObjectType($node->var, new ObjectType('Drupal\Core\Database\Connection'))) {
+                return null;
+            }
+        } elseif ($node instanceof StaticCall) {
+            if (!$this->isName($node->class, 'Drupal\Core\Database\Connection')) {
+                return null;
+            }
         }
 
         // Must have at least two arguments.

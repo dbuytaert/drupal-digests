@@ -29,6 +29,7 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -63,6 +64,10 @@ final class ViewsBlockItemsPerPageNoneToNullRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         if (!$this->isName($node->name, 'setConfigurationValue')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Drupal\views\Plugin\Block\ViewsBlockBase'))) {
             return null;
         }
 

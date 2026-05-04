@@ -33,6 +33,7 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -73,6 +74,10 @@ CODE
     {
         // Match: ->addMethodCall('addCachedDiscovery', [...])
         if (!$this->isName($node->name, 'addMethodCall')) {
+            return null;
+        }
+
+        if (!$this->isObjectType($node->var, new ObjectType('Symfony\Component\DependencyInjection\Definition'))) {
             return null;
         }
 
