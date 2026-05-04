@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_408 summaries · 34 new this week_
+_408 summaries · 33 new this week_
 
 - [#3585708: Preload fonts in admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585708.md)
 - [#3191278: Use plugin id to make help section headers HTML IDs ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3191278.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 59 new this week_
+_181 rules · 58 new this week_
 
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
 - [Replace deprecated node_access_grants() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-grants-with-nodegrantshelper-2473041.php)
