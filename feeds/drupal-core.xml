@@ -5,6 +5,67 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3125013: Refactor update.fetch.inc into a MailHandler</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3125013.md</link>
+      <guid isPermaLink="false">019df9d4-216c-7291-9a70-d67d796e2ef0</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 05 May 2026 17:04:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +190/−95 · php +189/−95 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/df228407f199cdfb08d549e07a3947d26647d7c3"&gt;df22840&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3125013"&gt;#3125013&lt;/a&gt; · 10 contributors · 51 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;update.fetch.inc&lt;/code&gt; file, the last remnant of the module's old procedural architecture, has been removed along with the &lt;code&gt;_update_cron_notify()&lt;/code&gt; function it contained. Any code that was including &lt;code&gt;update.fetch.inc&lt;/code&gt; or calling &lt;code&gt;_update_cron_notify()&lt;/code&gt; directly will now fail. Neither was ever a public API (the function carried an underscore prefix to signal internal status), but some contrib modules were found to include the file anyway. The cron email notification path is now fully service-based.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;update.fetch.inc&lt;/code&gt; and &lt;code&gt;_update_cron_notify()&lt;/code&gt; are removed; new &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; service added with &lt;code&gt;sendUpdateNotifications()&lt;/code&gt; method.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;_update_cron_notify()&lt;/code&gt; function's logic is split across two new locations. The notification-triggering logic (checking update requirement severity and deciding whether to send) moves into &lt;code&gt;UpdateCronHooks::notify()&lt;/code&gt;, a protected method. The email assembly and dispatch loop moves into the new &lt;code&gt;Drupal\update\MailHandler::sendUpdateNotifications()&lt;/code&gt; method.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;hook_cron()&lt;/code&gt; is extracted from &lt;code&gt;UpdateHooks&lt;/code&gt; into a dedicated &lt;code&gt;Drupal\update\Hook\UpdateCronHooks&lt;/code&gt; class. The old implementation used &lt;code&gt;\Drupal::&lt;/code&gt; static calls and &lt;code&gt;\Drupal::moduleHandler()-&amp;gt;loadInclude('update', 'inc', 'update.fetch')&lt;/code&gt; before invoking &lt;code&gt;_update_cron_notify()&lt;/code&gt;. The new class injects &lt;code&gt;ConfigFactoryInterface&lt;/code&gt;, &lt;code&gt;ModuleHandlerInterface&lt;/code&gt;, &lt;code&gt;StateInterface&lt;/code&gt;, and &lt;code&gt;TimeInterface&lt;/code&gt; normally, while &lt;code&gt;MailHandler&lt;/code&gt;, &lt;code&gt;UpdateManagerInterface&lt;/code&gt;, and &lt;code&gt;UpdateProcessorInterface&lt;/code&gt; are injected as lazy closures via &lt;code&gt;#[AutowireServiceClosure]&lt;/code&gt;. This avoids instantiating those heavier services on every cron run when they are not needed.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;MailHandler&lt;/code&gt; is registered as the service &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; in &lt;code&gt;update.services.yml&lt;/code&gt; and is marked &lt;code&gt;@internal&lt;/code&gt;. It carries no interface so that subclasses can override only the services they actually need (using &lt;code&gt;#[Required]&lt;/code&gt; setter injection), matching the pattern adopted in &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt; for &lt;code&gt;_user_mail_notify()&lt;/code&gt;. This design is intended to support the ongoing symfony mailer migration, where an experimental module could swap the service class to use the new mail API.&lt;/p&gt;
+&lt;p&gt;There is also a minor behavioral correction: the old code set &lt;code&gt;update.last_email_notification&lt;/code&gt; inside the per-recipient loop after each successful individual send. The new code sets it once in &lt;code&gt;cron()&lt;/code&gt; after &lt;code&gt;notify()&lt;/code&gt; returns &lt;code&gt;TRUE&lt;/code&gt;, meaning the timestamp is recorded only after the full notification pass completes.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If any custom or contrib code includes &lt;code&gt;update.fetch.inc&lt;/code&gt; or calls &lt;code&gt;_update_cron_notify()&lt;/code&gt; directly, remove those calls. To trigger update notifications programmatically, use the &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; service:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Old (broken after this change):
+\Drupal::moduleHandler()-&amp;gt;loadInclude('update', 'inc', 'update.fetch');
+_update_cron_notify();
+
+// New (internal API, use with caution):
+$mailHandler = \Drupal::service(\Drupal\update\MailHandler::class);
+$mailHandler-&amp;gt;sendUpdateNotifications($recipients, $items);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note that &lt;code&gt;MailHandler&lt;/code&gt; is marked &lt;code&gt;@internal&lt;/code&gt; and its signature may change without notice.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 5, 2020&lt;/li&gt;
+&lt;li&gt;Committed: May 5, 2026 (6 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, smustgrave raised whether &lt;code&gt;_update_cron_notify()&lt;/code&gt; needed a formal deprecation before removal. dww argued against it on the grounds that underscore-prefixed functions are explicitly non-API and callers are &amp;quot;doing it wrong.&amp;quot; berdir provided a broader view: underscore-prefix functions have been deprecated before when heavily used in contrib (citing &lt;code&gt;_field_multiple_value_form_sort_helper()&lt;/code&gt;), but a search confirmed &lt;code&gt;_update_cron_notify()&lt;/code&gt; had effectively zero real usage outside core. nicxvan found a few contrib modules including the file but not using the function, and after consulting alexpott's position from an earlier locale issue (that an immediate white screen is a better signal than a deprecation), concluded no deprecation was needed. The interface question was also resolved by following the approach from &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt;: no interface, with &lt;code&gt;#[Required]&lt;/code&gt; setter injection left available for subclasses.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3574506: Sorting by Views result counter causes ORDER BY unknown</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574506.md</link>
       <guid isPermaLink="false">019df8fe-c57c-736a-b4f2-e592a4d39ac0</guid>
@@ -1044,52 +1105,6 @@ public static function create(ContainerInterface $container, ...) {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue sat dormant for five years after the original feature request in 2018. &lt;code&gt;seanb&lt;/code&gt; made the key early design observation that the poster image field should live on the parent entity and be mapped in the formatter, making it work beyond media entities. &lt;code&gt;anybody&lt;/code&gt; broke the stalemate in May 2023 by converting the accumulated patch work into MR !4010, adding image style support, and getting the feature to a functional state. &lt;code&gt;catch&lt;/code&gt; then guided two important decisions: using &lt;code&gt;hook_entity_presave()&lt;/code&gt; and &lt;code&gt;hook_post_update_NAME()&lt;/code&gt; for the config upgrade path, and splitting the transcript feature out into a separate issue (&lt;a href="https://www.drupal.org/node/3372592"&gt;#3372592&lt;/a&gt;) so the simpler poster-only change was not blocked by unresolved &lt;code&gt;&amp;lt;track&amp;gt;&lt;/code&gt; semantics. &lt;code&gt;grevil&lt;/code&gt; created the final 11.x MR (!4046) after &lt;code&gt;anybody&lt;/code&gt;'s MR could not be rebased automatically.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3581434: Entity serialization issue in Layout Builder due to content moderation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581434.md</link>
-      <guid isPermaLink="false">019dd5db-cd29-74ba-8ad4-65a96680d110</guid>
-      <pubDate>Tue, 28 Apr 2026 13:17:04 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +115/−6 · php +115/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/117fee744a4ef46c452d49c814e6ae416bf59fdb"&gt;117fee7&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581434"&gt;#3581434&lt;/a&gt; · 4 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites using Layout Builder with content moderation and multiple translations could hit a fatal serialization error when editing node layouts. The error would surface in &lt;code&gt;PrepareLayout::onPrepareLayout()&lt;/code&gt; when Drupal tried to store the section storage to the layout temporary storage. This bug is fixed in 11.x and 11.3.x. No configuration or code changes are required for site owners.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause is a broken reference in &lt;code&gt;ContentEntityBase::__clone()&lt;/code&gt;. When a translation is initialized via &lt;code&gt;initializeTranslation()&lt;/code&gt;, the &lt;code&gt;$originalEntity&lt;/code&gt; property is turned into a PHP reference shared between the entity and all its translations, keeping them in sync. This is the same pattern used for several other properties (&lt;code&gt;enforceIsNew&lt;/code&gt;, &lt;code&gt;newRevision&lt;/code&gt;, &lt;code&gt;fields&lt;/code&gt;, etc.). For all those other properties, &lt;code&gt;__clone()&lt;/code&gt; explicitly breaks the reference by reassigning a local copy. However, &lt;code&gt;$originalEntity&lt;/code&gt; was omitted from that list (the handling was removed during the original work in &lt;a href="https://www.drupal.org/node/2839195"&gt;#2839195&lt;/a&gt; without explanation).&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;ContentEntityStorageBase::createRevision()&lt;/code&gt; clones an entity (as triggered by &lt;code&gt;ContentModeration\EntityTypeInfo::entityPrepareForm()&lt;/code&gt;), the clone inherits the shared reference. When content moderation then calls &lt;code&gt;setOriginal()&lt;/code&gt; on the draft, the value propagates via the still-live reference to every other entity that shares it. Worse, because the entity being set as the original is itself one of the objects sharing the reference, &lt;code&gt;$this-&amp;gt;originalEntity&lt;/code&gt; ends up pointing to the entity itself, creating a circular self-reference that breaks PHP serialization.&lt;/p&gt;
-&lt;p&gt;The fix is a three-line addition to &lt;code&gt;ContentEntityBase::__clone()&lt;/code&gt; that follows the exact same pattern already in place for the other properties:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$originalEntity = $this-&amp;gt;originalEntity;
-$this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;This breaks the shared reference so that post-clone changes to &lt;code&gt;$originalEntity&lt;/code&gt; on one object do not propagate to others. &lt;code&gt;ContentEntityCloneTest&lt;/code&gt; received a new dedicated &lt;code&gt;testEntityOriginal()&lt;/code&gt; method that covers the translation-sharing behavior, the clone-isolation requirement, and the merged-revision-original scenario where &lt;code&gt;createRevision()&lt;/code&gt; sets an original automatically. The existing skip of the &lt;code&gt;originalEntity&lt;/code&gt; property in &lt;code&gt;testEntityPropertiesModifications()&lt;/code&gt; was updated to point to this new test instead.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 25, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 28, 2026 (1 month and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;matthijs (Dropsolid)&lt;/li&gt;
-&lt;li&gt;webflo (UEBERBIT GmbH)&lt;/li&gt;
-&lt;li&gt;tstoeckler (resc.)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;tstoeckler diagnosed the true root cause in depth after discussing the problem with webflo at DrupalDevDays Athens. webflo had already filed a first MR (&lt;a href="https://www.drupal.org/node/15475"&gt;#15475&lt;/a&gt;) targeting &lt;code&gt;ContentEntityStorageBase::createRevision()&lt;/code&gt;, but tstoeckler traced the bug further back to the missing &lt;code&gt;__clone()&lt;/code&gt; handling and opened MR &lt;a href="https://www.drupal.org/node/15554"&gt;#15554&lt;/a&gt; with the minimal, correct fix. tstoeckler also wrote a thorough test and noted an adjacent issue worth addressing separately, which was subsequently filed as &lt;a href="https://www.drupal.org/node/3586860"&gt;#3586860&lt;/a&gt;. webflo confirmed the fix resolved the problem on their production site.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
