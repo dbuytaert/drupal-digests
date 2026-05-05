@@ -5,6 +5,87 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3569096: Remove BC layer $options argument from Constraint plugin constructors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569096.md</link>
+      <guid isPermaLink="false">019df814-7d02-7625-a04e-7b04cc81aa17</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 05 May 2026 11:00:07 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 79 files, +310/−587 · php +310/−587&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8447a07e0ee8e7feb0ae3d3da584176c88878175"&gt;8447a07&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569096"&gt;#3569096&lt;/a&gt; · 4 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In preparation for Symfony 8 compatibility in Drupal 12, the legacy &lt;code&gt;$options&lt;/code&gt; backward-compatibility argument has been removed from the constructors of all built-in Drupal constraint plugin classes. At the same time, the &lt;code&gt;getDefaultOption()&lt;/code&gt; and &lt;code&gt;getRequiredOptions()&lt;/code&gt; methods, deprecated in Symfony 7.4 and removed in Symfony 8, have been deleted from every Drupal constraint class that previously overrode them. This change is internal to the validation subsystem and has no user-facing effect, but it does break any custom module that either subclasses a built-in constraint or instantiates one using the old positional-array &lt;code&gt;$options&lt;/code&gt; calling convention.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;mixed $options = NULL&lt;/code&gt; first constructor parameter is removed from all built-in Drupal constraint classes; &lt;code&gt;getDefaultOption()&lt;/code&gt; and &lt;code&gt;getRequiredOptions()&lt;/code&gt; overrides are also removed, mirroring their removal in Symfony 8.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Symfony's &lt;code&gt;Constraint&lt;/code&gt; base class historically accepted a catch-all &lt;code&gt;mixed $options&lt;/code&gt; first argument that let callers pass constraint properties as a positional array. Symfony deprecated this pattern in 7.4 and removes it entirely in Symfony 8. Each affected Drupal constraint class previously forwarded that argument to &lt;code&gt;parent::__construct($options, $groups, $payload)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The change removes &lt;code&gt;mixed $options = NULL&lt;/code&gt; from the constructor of every Drupal-defined constraint class (roughly 50 classes spanning &lt;code&gt;core/&lt;/code&gt;, &lt;code&gt;ckeditor5/&lt;/code&gt;, &lt;code&gt;file/&lt;/code&gt;, &lt;code&gt;link/&lt;/code&gt;, &lt;code&gt;media/&lt;/code&gt;, &lt;code&gt;user/&lt;/code&gt;, and several test modules). &lt;code&gt;parent::__construct()&lt;/code&gt; calls are updated to use named arguments: &lt;code&gt;parent::__construct(groups: $groups, payload: $payload)&lt;/code&gt;. Properties that were previously declared as class-level &lt;code&gt;public $foo = default&lt;/code&gt; and then assigned conditionally in the constructor body (the &lt;code&gt;$this-&amp;gt;foo = $foo ?? $this-&amp;gt;foo&lt;/code&gt; pattern) are collapsed into constructor property promotion. Where a property was previously &amp;quot;required&amp;quot; only through &lt;code&gt;getRequiredOptions()&lt;/code&gt; but had a nullable default, the constructor parameter becomes genuinely required with no default (e.g., &lt;code&gt;BundleConstraint::$bundle&lt;/code&gt;, &lt;code&gt;EntityHasFieldConstraint::$field_name&lt;/code&gt;, &lt;code&gt;ImmutablePropertiesConstraint::$properties&lt;/code&gt;, &lt;code&gt;ValidKeysConstraint::$allowedKeys&lt;/code&gt;, &lt;code&gt;StringEqualsConcatenatedValuesConstraint::$separator&lt;/code&gt; and &lt;code&gt;$values&lt;/code&gt;, and others).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ComplexDataConstraint&lt;/code&gt; required special handling because it previously relied on the &lt;code&gt;$options&lt;/code&gt; array to accept a bare array of properties without a &lt;code&gt;properties&lt;/code&gt; key. That implicit-key logic is replaced with an explicit check: if &lt;code&gt;$properties&lt;/code&gt; is &lt;code&gt;NULL&lt;/code&gt; but variadic &lt;code&gt;$otherProperties&lt;/code&gt; are present, those become the properties; otherwise an &lt;code&gt;\InvalidArgumentException&lt;/code&gt; is thrown. &lt;code&gt;MenuLinkDepthConstraint&lt;/code&gt;, which extended Symfony's &lt;code&gt;RangeConstraint&lt;/code&gt; and forwarded arguments via &lt;code&gt;...$args&lt;/code&gt;, is rewritten to explicitly enumerate all parent constructor parameters. &lt;code&gt;EmailConstraint&lt;/code&gt; and &lt;code&gt;RangeConstraint&lt;/code&gt; (Drupal subclasses of Symfony built-ins) pass &lt;code&gt;NULL&lt;/code&gt; explicitly as the first argument rather than forwarding a Drupal-level &lt;code&gt;$options&lt;/code&gt; param.&lt;/p&gt;
+&lt;p&gt;The companion issue &lt;a href="https://www.drupal.org/node/3569092"&gt;#3569092&lt;/a&gt; covers the related removal of &lt;code&gt;HasNamedArguments&lt;/code&gt; and the &lt;code&gt;ConstraintManager::create()&lt;/code&gt; / &lt;code&gt;addConstraint()&lt;/code&gt; signature updates.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom constraint plugins that subclass any of the affected classes, or that follow the same pattern, must be updated:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Remove the &lt;code&gt;$options&lt;/code&gt; parameter&lt;/strong&gt; from your constructor:&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+public function __construct(
+    mixed $options = NULL,
+    public string $myOption = 'default',
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+) {
+    parent::__construct($options, $groups, $payload);
+    $this-&amp;gt;myOption = $myOption ?? $this-&amp;gt;myOption;
+}
+
+// After
+public function __construct(
+    public string $myOption = 'default',
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+) {
+    parent::__construct(groups: $groups, payload: $payload);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ol start="2"&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Remove &lt;code&gt;getDefaultOption()&lt;/code&gt; and &lt;code&gt;getRequiredOptions()&lt;/code&gt; overrides&lt;/strong&gt; — these methods no longer exist on the Symfony 8 &lt;code&gt;Constraint&lt;/code&gt; base class and must be deleted from any subclass.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Update call sites&lt;/strong&gt; that passed constraint options as a positional array (the old Symfony style):&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before — passing options array as first argument
+new MyConstraint(['myOption' =&amp;gt; 'value']);
+
+// After — pass named arguments directly
+new MyConstraint(myOption: 'value');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 5, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3581569: Remove user_cookie_save() and user_cookie_delete()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581569.md</link>
       <guid isPermaLink="false">019df57d-f788-7449-aa35-6f51e3db3047</guid>
@@ -1005,44 +1086,6 @@ $this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;sourav_paul caught a potential infinite redirect loop before the MR was filed: with a naive earlier patch, a 403 on a CSRF-protected route could redirect to &lt;code&gt;_csrf_confirm_form_route&lt;/code&gt;, which could trigger another 403, and so on until memory was exhausted. rgpublic proposed adding a &lt;code&gt;!$event-&amp;gt;isMainRequest()&lt;/code&gt; guard to break the cycle. The final MR, opened by sourav_paul, uses the simpler &lt;code&gt;is_null($route)&lt;/code&gt; guard that fixes the reported null-dereference crash without altering the redirect behaviour.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585498: Alter hook implementations in Kernel test classes are not executed</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585498.md</link>
-      <guid isPermaLink="false">019dd5d9-d091-7091-8b8c-dbe9201df464</guid>
-      <pubDate>Tue, 28 Apr 2026 12:36:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +73/−2 · php +73/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/849bda6a8e9a4dbc1e63cfee8639919a210c5d74"&gt;849bda6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585498"&gt;#3585498&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Alter hook implementations defined directly inside Kernel test classes were silently skipped whenever &lt;code&gt;ModuleHandler::alter()&lt;/code&gt; was called with multiple related hook types (for example &lt;code&gt;['form', 'form_my_form']&lt;/code&gt;). The bug affected only test code, not production sites. After this fix, Kernel test classes can reliably implement alter hooks alongside regular hooks without needing a separate test module.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Issue &lt;a href="https://www.drupal.org/node/3502432"&gt;#3502432&lt;/a&gt; introduced the ability to write hook implementations as methods on a &lt;code&gt;KernelTestBase&lt;/code&gt; subclass. Those implementations are registered under the pseudo-module key &lt;code&gt;'core'&lt;/code&gt;. When &lt;code&gt;ModuleHandler::alter()&lt;/code&gt; is invoked with more than one hook type, it calls &lt;code&gt;reOrderModulesForAlter()&lt;/code&gt; to produce a canonical ordering. That method computed &lt;code&gt;array_intersect(array_keys($this-&amp;gt;moduleList), $modules)&lt;/code&gt;, which filtered out any module name not in the installed module list. Because &lt;code&gt;'core'&lt;/code&gt; is never in &lt;code&gt;$this-&amp;gt;moduleList&lt;/code&gt;, every alter hook implemented on a Kernel test class was silently dropped from the combined listener list and never called.&lt;/p&gt;
-&lt;p&gt;The fix changes the expression to &lt;code&gt;array_intersect(array_keys($this-&amp;gt;moduleList + ['core' =&amp;gt; '']), $modules)&lt;/code&gt;. Adding &lt;code&gt;'core'&lt;/code&gt; as a trailing entry in the array union means it survives the intersect while still sorting last, matching the order that &lt;code&gt;KernelTestCompilerPass&lt;/code&gt; uses when registering test hook implementations. A new test class &lt;code&gt;KernelTestHooksTest&lt;/code&gt; (in &lt;code&gt;core/tests/Drupal/KernelTests/Core/Hook/&lt;/code&gt;) verifies that both regular and alter hook methods on a Kernel test class are executed correctly, including the multi-type alter case that previously failed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 28, 2026 (10 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

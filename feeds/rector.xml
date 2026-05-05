@@ -5,6 +5,206 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Remove $options BC-layer parameter from Symfony Constraint constructors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019df81c-1ce3-75a1-a6f8-a42754475eb1.md</link>
+      <guid isPermaLink="false">019df81c-1ce3-75a1-a6f8-a42754475eb1</guid>
+      <pubDate>Tue, 05 May 2026 12:28:05 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569096"&gt;#3569096&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Removes the &lt;code&gt;mixed $options = NULL&lt;/code&gt; BC-layer first parameter from constructors of &lt;code&gt;Symfony\Component\Validator\Constraint&lt;/code&gt; subclasses, and updates the &lt;code&gt;parent::__construct($options, $groups, $payload)&lt;/code&gt; call to use Symfony 8-compatible named arguments &lt;code&gt;parent::__construct(groups: $groups, payload: $payload)&lt;/code&gt;. Symfony 8 drops the legacy array-options constructor, so Drupal 12 removes this pattern from all core Constraint classes; contrib classes with the same pattern must follow.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Symfony\Component\Validator\Constraint;
+
+class MyConstraint extends Constraint {
+    public function __construct(
+        mixed $options = NULL,
+        public string $message = 'Value is invalid.',
+        ?array $groups = NULL,
+        mixed $payload = NULL,
+    ) {
+        parent::__construct($options, $groups, $payload);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Symfony\Component\Validator\Constraint;
+
+class MyConstraint extends Constraint {
+    public function __construct(
+        public string $message = 'Value is invalid.',
+        ?array $groups = NULL,
+        mixed $payload = NULL,
+    ) {
+        parent::__construct(groups: $groups, payload: $payload);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only transforms the common 3-argument &lt;code&gt;parent::__construct($options, $groups, $payload)&lt;/code&gt; pattern; cases where the parent constructor takes additional positional arguments (e.g. subclasses of Symfony's concrete &lt;code&gt;Email&lt;/code&gt; or &lt;code&gt;Range&lt;/code&gt; constraints) are left unchanged. Requires &lt;code&gt;symfony/validator&lt;/code&gt; to be in PHPStan's autoload path so the &lt;code&gt;Constraint&lt;/code&gt; hierarchy can be resolved.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use PhpParser\Node\Stmt\Class_;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class RemoveOptionsArgFromConstraintConstructorRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove the legacy $options BC-layer parameter from Symfony Constraint subclass constructors and update the parent::__construct() call to use named arguments.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Symfony\Component\Validator\Constraint;
+
+class MyConstraint extends Constraint {
+    public function __construct(
+        mixed $options = NULL,
+        public string $message = 'Value is invalid.',
+        ?array $groups = NULL,
+        mixed $payload = NULL,
+    ) {
+        parent::__construct($options, $groups, $payload);
+    }
+}
+CODE_SAMPLE,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Symfony\Component\Validator\Constraint;
+
+class MyConstraint extends Constraint {
+    public function __construct(
+        public string $message = 'Value is invalid.',
+        ?array $groups = NULL,
+        mixed $payload = NULL,
+    ) {
+        parent::__construct(groups: $groups, payload: $payload);
+    }
+}
+CODE_SAMPLE,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof Class_) {
+            return null;
+        }
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+        if (!$this-&amp;gt;isObjectType($node-&amp;gt;extends, new ObjectType('Symfony\Component\Validator\Constraint'))) {
+            return null;
+        }
+
+        $constructMethod = $node-&amp;gt;getMethod('__construct');
+        if ($constructMethod === null) {
+            return null;
+        }
+        if (count($constructMethod-&amp;gt;params) === 0) {
+            return null;
+        }
+
+        // First parameter must be named $options with a NULL default
+        $firstParam = $constructMethod-&amp;gt;params[0];
+        if (!$this-&amp;gt;isName($firstParam-&amp;gt;var, 'options')) {
+            return null;
+        }
+        if ($firstParam-&amp;gt;default === null) {
+            return null;
+        }
+        if (!$firstParam-&amp;gt;default instanceof ConstFetch) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($firstParam-&amp;gt;default-&amp;gt;name, 'null')) {
+            return null;
+        }
+        // The parameter must not already be a promoted property (it's the BC options, not an option property)
+        if ($firstParam-&amp;gt;flags !== 0) {
+            return null;
+        }
+
+        // Remove the $options parameter from the constructor
+        array_shift($constructMethod-&amp;gt;params);
+
+        // Update the parent::__construct() call inside the method body
+        $this-&amp;gt;traverseNodesWithCallable($constructMethod-&amp;gt;stmts ?? [], function (Node $innerNode): ?Node {
+            if (!$innerNode instanceof StaticCall) {
+                return null;
+            }
+            if (!$innerNode-&amp;gt;class instanceof Name) {
+                return null;
+            }
+            if ($innerNode-&amp;gt;class-&amp;gt;toString() !== 'parent') {
+                return null;
+            }
+            if (!$this-&amp;gt;isName($innerNode-&amp;gt;name, '__construct')) {
+                return null;
+            }
+            if (count($innerNode-&amp;gt;args) &amp;lt; 1) {
+                return null;
+            }
+            $firstArg = $innerNode-&amp;gt;args[0];
+            if (!$firstArg instanceof Arg) {
+                return null;
+            }
+            // Skip already-named first argument
+            if ($firstArg-&amp;gt;name !== null) {
+                return null;
+            }
+            if (!$firstArg-&amp;gt;value instanceof Variable) {
+                return null;
+            }
+            if (!$this-&amp;gt;isName($firstArg-&amp;gt;value, 'options')) {
+                return null;
+            }
+            // Remove the $options arg; convert the remaining two positional args to named args
+            $remaining = array_slice($innerNode-&amp;gt;args, 1);
+            if (count($remaining) === 2
+                &amp;amp;&amp;amp; $remaining[0] instanceof Arg
+                &amp;amp;&amp;amp; $remaining[0]-&amp;gt;name === null
+                &amp;amp;&amp;amp; $remaining[1] instanceof Arg
+                &amp;amp;&amp;amp; $remaining[1]-&amp;gt;name === null
+            ) {
+                $remaining[0]-&amp;gt;name = new Identifier('groups');
+                $remaining[1]-&amp;gt;name = new Identifier('payload');
+            }
+            $innerNode-&amp;gt;args = $remaining;
+            return $innerNode;
+        });
+
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveOptionsArgFromConstraintConstructorRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace integer #access values with booleans in render arrays</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019df2f0-fcbe-77b8-815c-866695ec2ebc.md</link>
       <guid isPermaLink="false">019df2f0-fcbe-77b8-815c-866695ec2ebc</guid>
@@ -1404,106 +1604,6 @@ return RectorConfig::configure()
             'TRANSLATION_DEFAULT_SERVER_PATTERN'
         ),
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated ModuleHandlerInterface::writeCache() and getHookInfo() calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019de11d-d3c5-734b-831a-3bec91c77a36.md</link>
-      <guid isPermaLink="false">019de11d-d3c5-734b-831a-3bec91c77a36</guid>
-      <pubDate>Fri, 01 May 2026 01:18:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.1.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes calls to &lt;code&gt;ModuleHandlerInterface::writeCache()&lt;/code&gt; (deprecated in drupal:11.1.0, does nothing) and replaces calls to &lt;code&gt;ModuleHandlerInterface::getHookInfo()&lt;/code&gt; (deprecated in drupal:11.1.0, now always returns &lt;code&gt;[]&lt;/code&gt;) with an empty array literal. Both methods are removed in drupal:12.0.0 per the OOP hooks initiative (issue &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;moduleHandler-&amp;gt;writeCache();
-$info = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$info = [];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;writeCache()&lt;/code&gt; is only removed when called as a standalone expression statement; calls whose return value is used (unusual since the method is &lt;code&gt;void&lt;/code&gt;) are left untouched. &lt;code&gt;getHookInfo()&lt;/code&gt; used as a standalone statement (discarding the return value) is replaced with a bare &lt;code&gt;[]&lt;/code&gt; expression statement rather than being removed entirely.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Stmt\Expression;
-use PhpParser\NodeVisitor;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Removes deprecated ModuleHandlerInterface::writeCache() calls and replaces
- * getHookInfo() calls with an empty array.
- */
-final class RemoveModuleHandlerDeprecatedMethodsRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove calls to deprecated ModuleHandlerInterface::writeCache() and replace ModuleHandlerInterface::getHookInfo() with []',
-            [
-                new CodeSample(
-                    '$this-&amp;gt;moduleHandler-&amp;gt;writeCache();',
-                    '',
-                ),
-                new CodeSample(
-                    '$info = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();',
-                    '$info = [];',
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Expression::class, MethodCall::class];
-    }
-
-    /** @param Expression|MethodCall $node */
-    public function refactor(Node $node): Node|int|null
-    {
-        $moduleHandlerType = new ObjectType('Drupal\\Core\\Extension\\ModuleHandlerInterface');
-
-        // Remove standalone writeCache() calls.
-        if ($node instanceof Expression &amp;amp;&amp;amp; $node-&amp;gt;expr instanceof MethodCall) {
-            $call = $node-&amp;gt;expr;
-            if (
-                $this-&amp;gt;isName($call-&amp;gt;name, 'writeCache')
-                &amp;amp;&amp;amp; $this-&amp;gt;isObjectType($call-&amp;gt;var, $moduleHandlerType)
-            ) {
-                return NodeVisitor::REMOVE_NODE;
-            }
-        }
-
-        // Replace getHookInfo() calls with [].
-        if (
-            $node instanceof MethodCall
-            &amp;amp;&amp;amp; $this-&amp;gt;isName($node-&amp;gt;name, 'getHookInfo')
-            &amp;amp;&amp;amp; $this-&amp;gt;isObjectType($node-&amp;gt;var, $moduleHandlerType)
-        ) {
-            return new Array_();
-        }
-
-        return null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveModuleHandlerDeprecatedMethodsRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
