@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_409 summaries · 31 new this week_
+_409 summaries · 30 new this week_
 
 - [#3581569: Remove user_cookie_save() and user_cookie_delete()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581569.md)
 - [#3585708: Preload fonts in admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585708.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 54 new this week_
+_181 rules · 53 new this week_
 
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
 - [Replace deprecated node_access_grants() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-grants-with-nodegrantshelper-2473041.php)
