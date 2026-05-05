@@ -1,4 +1,4 @@
-**TL;DR:** [543 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [544 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_410 summaries · 28 new this week_
+_411 summaries · 29 new this week_
 
+- [#3574506: Sorting by Views result counter causes ORDER BY unknown](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574506.md)
 - [#3569096: Remove BC layer $options argument from Constraint plugin constructors](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569096.md)
 - [#3581569: Remove user_cookie_save() and user_cookie_delete()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581569.md)
-- [#3585708: Preload fonts in admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585708.md)
 
 ### Drupal AI
 
