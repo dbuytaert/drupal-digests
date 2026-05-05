@@ -5,6 +5,70 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3581569: Remove user_cookie_save() and user_cookie_delete()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581569.md</link>
+      <guid isPermaLink="false">019df57d-f788-7449-aa35-6f51e3db3047</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 04 May 2026 20:40:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +25/−2 · php +25/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/57bf4fed4911da4aa017f54fce0e702d590bf79d"&gt;57bf4fe&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581569"&gt;#3581569&lt;/a&gt; · 5 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The two procedural cookie helpers &lt;code&gt;user_cookie_save()&lt;/code&gt; and &lt;code&gt;user_cookie_delete()&lt;/code&gt; are deprecated as of Drupal 11.4 and will be removed in Drupal 13.0. There is no direct replacement: callers should set or clear cookies directly on the Symfony &lt;code&gt;Response&lt;/code&gt; object. The single core call site in &lt;code&gt;SystemController::compactPage()&lt;/code&gt; has already been updated.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;user_cookie_save()&lt;/code&gt; and &lt;code&gt;user_cookie_delete()&lt;/code&gt; deprecated in 11.4, removed in 13.0; set or clear cookies directly on the Symfony &lt;code&gt;Response&lt;/code&gt; object instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Both functions live in &lt;code&gt;user.module&lt;/code&gt;. &lt;code&gt;user_cookie_save()&lt;/code&gt; was used once in core, in &lt;code&gt;SystemController::compactPage()&lt;/code&gt; to toggle the admin compact-mode cookie. &lt;code&gt;user_cookie_delete()&lt;/code&gt; had no core callers at all. Both now emit &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; via &lt;code&gt;@trigger_error()&lt;/code&gt; and carry standard deprecation docblocks pointing to the change record at &lt;code&gt;https://www.drupal.org/node/3581570&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The core call site in &lt;code&gt;SystemController::compactPage()&lt;/code&gt; was rewritten to construct a Symfony &lt;code&gt;Cookie&lt;/code&gt; object directly (setting a one-year expiry via &lt;code&gt;$this-&amp;gt;time-&amp;gt;getRequestTime() + 31536000&lt;/code&gt; when &lt;code&gt;$mode === 'on'&lt;/code&gt;, or calling &lt;code&gt;$response-&amp;gt;headers-&amp;gt;clearCookie()&lt;/code&gt; otherwise). To support this, &lt;code&gt;SystemController&lt;/code&gt; gains a new autowired constructor parameter &lt;code&gt;readonly protected TimeInterface $time&lt;/code&gt;, with the corresponding &lt;code&gt;use&lt;/code&gt; imports for &lt;code&gt;TimeInterface&lt;/code&gt; and &lt;code&gt;Cookie&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace &lt;code&gt;user_cookie_save()&lt;/code&gt; by attaching a &lt;code&gt;Cookie&lt;/code&gt; to the response headers:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+user_cookie_save(['my_setting' =&amp;gt; $value]);
+
+// After (inside a controller that has access to the response)
+use Symfony\Component\HttpFoundation\Cookie;
+
+$response-&amp;gt;headers-&amp;gt;setCookie(
+  new Cookie('Drupal.visitor.my_setting', $value, \Drupal::time()-&amp;gt;getRequestTime() + 31536000)
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;user_cookie_delete()&lt;/code&gt; by clearing the cookie on the response headers:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+user_cookie_delete('my_setting');
+
+// After
+$response-&amp;gt;headers-&amp;gt;clearCookie('Drupal.visitor.my_setting');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 26, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 13, 2026 (18 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: May 4, 2026 (21 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Reviewer dcam noted during the initial MR review that the change record demonstrated replacing &lt;code&gt;user_cookie_delete()&lt;/code&gt; only implicitly, and pointed to several contrib uses of the function, suggesting the committer consider adding an explicit delete example to the change record before merging.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585708: Preload fonts in admin theme</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585708.md</link>
       <guid isPermaLink="false">019df233-bd7b-72a8-a8d9-1f6be0d83fd1</guid>
@@ -979,47 +1043,6 @@ $this-&amp;gt;originalEntity = &amp;amp;$originalEntity;
 &lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
 &lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3584324: Make the chained fast backend self-heal when last_write_timestamp is missing</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584324.md</link>
-      <guid isPermaLink="false">019dd5da-cf04-7531-89ac-bc3324848be4</guid>
-      <pubDate>Tue, 28 Apr 2026 11:47:43 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +60/−0 · php +60&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c3a6c1a5285511dbe77da2ef1c96f5caef403405"&gt;c3a6c1a&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584324"&gt;#3584324&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ChainedFastBackend&lt;/code&gt; cache class had a gap in its self-healing logic: if the &lt;code&gt;last_write_timestamp&lt;/code&gt; entry was absent from the persistent (consistent) backend, cache reads would fall through to the persistent backend and write items back to the fast backend, but those fast-backend entries could never be validated because no timestamp existed to compare against. The situation would persist silently until an actual cache miss triggered a genuine &lt;code&gt;set()&lt;/code&gt;, which finally established the timestamp. The fix writes a fresh timestamp immediately when the missing condition is detected, so the fast backend becomes usable right away.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;ChainedFastBackend::getMultiple()&lt;/code&gt;, after the existing call to &lt;code&gt;$this-&amp;gt;getLastWriteTimestamp()&lt;/code&gt;, a new guard &lt;code&gt;if ($last_write_timestamp === 0)&lt;/code&gt; calls &lt;code&gt;$this-&amp;gt;markAsOutdated()&lt;/code&gt;. &lt;code&gt;markAsOutdated()&lt;/code&gt; writes a current-time value to the persistent backend under the &lt;code&gt;last_write_timestamp&lt;/code&gt; key, which makes subsequent fast-backend writes valid immediately. The condition &lt;code&gt;=== 0&lt;/code&gt; is the correct test because &lt;code&gt;getLastWriteTimestamp()&lt;/code&gt; returns &lt;code&gt;0&lt;/code&gt; when no entry exists. Dries caught an early version of the patch that had the condition wrong, and catch corrected it. The missing-timestamp scenario can arise in at least two ways: (1) converting an existing cache bin to chained fast while leaving warm persistent-cache entries in place, so the persistent backend has data but no timestamp; (2) LRU eviction on a backend like Redis or Memcache that removes the timestamp key while retaining other cache items. A new unit test &lt;code&gt;testLastWriteTimestampMissing()&lt;/code&gt; in &lt;code&gt;ChainedFastBackendTest&lt;/code&gt; covers the scenario by mocking both backends, asserting that &lt;code&gt;set()&lt;/code&gt; is called once on the consistent backend (for the timestamp) and once on the fast backend (for the cache item). An existing test &lt;code&gt;testGetDoesNotHitConsistentBackend()&lt;/code&gt; also gained an assertion that &lt;code&gt;set()&lt;/code&gt; is never called on the consistent backend in the normal warm-cache path. Discovered while investigating &lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt; (Cache the container definition in APCu).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 12, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 28, 2026 (16 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dries&lt;/li&gt;
-&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Dries reviewed the patch and identified that the condition on the timestamp check was inverted, pointing out it should be &lt;code&gt;if ($last_write_timestamp === 0)&lt;/code&gt;. catch confirmed the mistake and fixed it, also adding an additional expectation to an existing test that would have caught the error. kristiaanvandeneynde raised a useful question about how often this situation can realistically arise; catch explained the two concrete scenarios (converting a bin to chained fast with warm data, and LRU eviction of the timestamp key) and noted the worst visible symptom is excess APCu writes rather than outright breakage.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

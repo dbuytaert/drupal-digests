@@ -1,4 +1,4 @@
-**TL;DR:** [541 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [542 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_408 summaries · 33 new this week_
+_409 summaries · 33 new this week_
 
+- [#3581569: Remove user_cookie_save() and user_cookie_delete()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581569.md)
 - [#3585708: Preload fonts in admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585708.md)
 - [#3191278: Use plugin id to make help section headers HTML IDs ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3191278.md)
-- [#3530640: Disable the user.login.http route by default and move to REST](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md)
 
 ### Drupal AI
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 58 new this week_
+_181 rules · 57 new this week_
 
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
 - [Replace deprecated node_access_grants() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-grants-with-nodegrantshelper-2473041.php)
