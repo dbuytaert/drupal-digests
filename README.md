@@ -1,4 +1,4 @@
-**TL;DR:** [550 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [549 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_416 summaries · 13 new this week_
+_415 summaries · 11 new this week_
 
 - [#3579661: Call to a member function getPath() on null in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579661.md)
 - [#3570634: Remove fallback classloader and related code in AttributeClassDiscovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570634.md)

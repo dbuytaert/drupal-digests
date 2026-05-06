@@ -50,7 +50,6 @@
       <title>#3570634: Remove fallback classloader and related code in AttributeClassDiscovery</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570634.md</link>
       <guid isPermaLink="false">019dfd50-f7b7-77fc-b233-e773024f841b</guid>
-      <category>Module maintainers</category>
       <category>Site owners</category>
       <pubDate>Wed, 06 May 2026 07:46:26 +0000</pubDate>
       <description>&lt;ul&gt;
@@ -64,24 +63,23 @@
 &lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The fallback classloader that worked around PHP's inability to catch fatal errors from missing traits has been removed from the plugin discovery system. This simplifies &lt;code&gt;AttributeClassDiscovery&lt;/code&gt; significantly. The change is possible because PHP 8.5 converts missing-trait loading into a catchable &lt;code&gt;\Error&lt;/code&gt; instead of an unrecoverable fatal error. Plugins that use traits from uninstalled optional modules are now always skipped during discovery rather than sometimes being surfaced through a stub-trait aliasing workaround.&lt;/p&gt;
+&lt;p&gt;The temporary workaround that let plugin attribute discovery handle missing traits without a fatal error has been removed from &lt;code&gt;AttributeClassDiscovery&lt;/code&gt;. The workaround was introduced in &lt;a href="https://www.drupal.org/node/3502913"&gt;#3502913&lt;/a&gt; to paper over a PHP limitation where loading a class that uses a non-existent trait caused an unrecoverable fatal error. PHP 8.5 fixes this by making the same situation throw a catchable &lt;code&gt;\Error&lt;/code&gt;, so the workaround is no longer needed. The practical effect for most sites is nothing: plugins whose classes depend on uninstalled modules continue to be silently skipped during discovery, just through simpler code.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Drupal main now relies on PHP 8.5 behavior where missing-trait loading throws a catchable \Error rather than a fatal error, enabling removal of the classloader workaround.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; and &lt;code&gt;StubTrait&lt;/code&gt; in &lt;code&gt;Drupal\Component\Discovery&lt;/code&gt; have been deleted; &lt;code&gt;AttributeClassDiscovery::$skipClasses&lt;/code&gt; static property has been removed.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Relies on PHP 8.5 behavior where loading a class with a missing trait throws a catchable &lt;code&gt;\Error&lt;/code&gt;; this removal is only safe because Drupal &lt;code&gt;main&lt;/code&gt; now targets PHP 8.5.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The original workaround, added in &lt;a href="https://www.drupal.org/node/3502913"&gt;#3502913&lt;/a&gt;, registered a custom &lt;code&gt;spl_autoload&lt;/code&gt; handler (&lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt;) during each call to &lt;code&gt;getDefinitions()&lt;/code&gt;. When PHP tried to load a class whose trait was missing, the handler fired last, recorded the missing trait, and aliased it to a &lt;code&gt;StubTrait&lt;/code&gt; so that reflection could proceed without a fatal error. &lt;code&gt;AttributeClassDiscovery&lt;/code&gt; then tracked these affected classes in a static &lt;code&gt;$skipClasses&lt;/code&gt; array and rechecked them on subsequent discovery passes, skipping them if the missing trait's two-level namespace was still absent from the registered plugin namespaces. Classes with missing traits were also excluded from the file cache.&lt;/p&gt;
-&lt;p&gt;With PHP 8.5 making missing-trait loading throw a catchable &lt;code&gt;\Error&lt;/code&gt; (see https://github.com/php/php-src/issues/17959), all of that machinery is unnecessary. The diff removes &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; and &lt;code&gt;StubTrait&lt;/code&gt; entirely, drops the &lt;code&gt;spl_autoload_register&lt;/code&gt; / &lt;code&gt;spl_autoload_unregister&lt;/code&gt; calls, removes the &lt;code&gt;$skipClasses&lt;/code&gt; static property and all its associated re-check logic, and simplifies the error handling to a bare &lt;code&gt;catch (\Error) { continue; }&lt;/code&gt;. File cache writes are now unconditional for successfully parsed plugins.&lt;/p&gt;
-&lt;p&gt;One behavioral difference is visible in the tests: previously, when the namespace of a missing trait was added to the registered plugin namespaces between discovery passes, the plugin would be re-discovered (because the stub alias had been set up). Now that no stub aliasing occurs, PHP 8.5 throws an &lt;code&gt;\Error&lt;/code&gt; on &lt;code&gt;class_exists()&lt;/code&gt; for any class using a non-existent trait, and that plugin is always skipped until the module providing the trait is actually installed.&lt;/p&gt;
+&lt;p&gt;The removed workaround registered &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; as an &lt;code&gt;spl_autoload&lt;/code&gt; handler during every &lt;code&gt;getDefinitions()&lt;/code&gt; call. When PHP tried to load a class with a missing trait, this handler fired last, recorded the missing trait in &lt;code&gt;$missingTraits&lt;/code&gt;, and aliased it to &lt;code&gt;StubTrait&lt;/code&gt; so reflection could proceed. &lt;code&gt;AttributeClassDiscovery&lt;/code&gt; tracked affected classes in a static &lt;code&gt;$skipClasses&lt;/code&gt; array and re-checked them on subsequent discovery passes, comparing the missing trait's two-level namespace against registered plugin namespaces to decide whether to allow or skip the class. Plugins with missing traits were also excluded from the file cache so they would be re-scanned on every request.&lt;/p&gt;
+&lt;p&gt;With PHP 8.5, &lt;code&gt;class_exists()&lt;/code&gt; on a class that uses a non-existent trait throws a catchable &lt;code&gt;\Error&lt;/code&gt;. The diff deletes &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; and &lt;code&gt;StubTrait&lt;/code&gt; entirely, removes the &lt;code&gt;spl_autoload_register&lt;/code&gt; / &lt;code&gt;spl_autoload_unregister&lt;/code&gt; calls, drops the &lt;code&gt;$skipClasses&lt;/code&gt; static property and all associated re-check logic, and reduces the error-handling block inside &lt;code&gt;getDefinitions()&lt;/code&gt; to a bare &lt;code&gt;catch (\Error) { continue; }&lt;/code&gt;. File cache writes for successfully resolved plugins are now unconditional.&lt;/p&gt;
+&lt;p&gt;The one visible behavioral difference, captured in the updated &lt;code&gt;AttributeClassDiscoveryCachedTest::testGetDefinitionsMissingTrait()&lt;/code&gt;, is that if discovery runs twice in a single request and the missing trait's module is installed between the two passes, the plugin is no longer re-discovered in the second pass. Previously the stub-alias meant PHP would not throw again, so the class appeared valid. Now PHP 8.5 throws an &lt;code&gt;\Error&lt;/code&gt; on every &lt;code&gt;class_exists()&lt;/code&gt; call for that class until the next full discovery cycle. The thread also considered restoring a &lt;code&gt;preg_match('/(Class|Interface|Trait) .* not found$/', $e-&amp;gt;getMessage())&lt;/code&gt; guard to prevent silently swallowing unexpected &lt;code&gt;\Error&lt;/code&gt; exceptions, but contributors decided against it as fragile given how unlikely such exceptions are in practice; the tracking issue &lt;a href="https://www.drupal.org/node/3520811"&gt;#3520811&lt;/a&gt; is expected to be closed as won't-do.&lt;/p&gt;
 &lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Both removed classes are &lt;code&gt;@internal&lt;/code&gt; and were never part of Drupal's public API. If you referenced them directly (e.g. in tests), remove those references:&lt;/p&gt;
+&lt;p&gt;Both removed classes were &lt;code&gt;@internal&lt;/code&gt; and not part of Drupal's public API. If you referenced them despite that marker, remove those references:&lt;/p&gt;
 &lt;pre&gt;&lt;code class="language-php"&gt;// Remove these imports and any usage:
 use Drupal\Component\Discovery\MissingClassDetectionClassLoader;
-// StubTrait was also removed from Drupal\Component\Discovery\StubTrait
+use Drupal\Component\Discovery\StubTrait;
 &lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No changes are needed for standard plugin definitions or plugin discovery consumers. The only behavioral change is that a plugin whose class uses a trait from an uninstalled module is now always skipped during discovery rather than conditionally surfaced via stub aliasing.&lt;/p&gt;
+&lt;p&gt;If your code installs a module and then calls &lt;code&gt;getDefinitions()&lt;/code&gt; again in the same request expecting to find a previously-missing-trait plugin, that plugin will no longer appear until the next request's discovery cycle. Move such code to a fresh request or clear the plugin cache after module installation.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -89,7 +87,7 @@ use Drupal\Component\Discovery\MissingClassDetectionClassLoader;
 &lt;li&gt;Committed: May 6, 2026 (3 months later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch, who wrote the original &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; workaround in &lt;a href="https://www.drupal.org/node/3502913"&gt;#3502913&lt;/a&gt;, noted in comment &lt;a href="https://www.drupal.org/node/16577237"&gt;#16577237&lt;/a&gt;: &amp;quot;I think I'm allowed to call this a horrible hack given I introduced it in the first place, good to see the back of it.&amp;quot; The thread also surfaced a live design question: godotislate pointed out in comment &lt;a href="https://www.drupal.org/node/16451771"&gt;#16451771&lt;/a&gt; that removing the classloader without restoring a regex guard on the &lt;code&gt;\Error&lt;/code&gt; message meant any unexpected &lt;code&gt;\Error&lt;/code&gt; from &lt;code&gt;class_exists()&lt;/code&gt; would be silently swallowed. catch and godotislate discussed whether &lt;code&gt;preg_match('/(Class|Interface|Trait) .* not found$/', $e-&amp;gt;getMessage())&lt;/code&gt; should be added back; they ultimately decided against it, reasoning that such errors are extremely unlikely in practice and that matching on exception message strings is brittle.&lt;/p&gt;
+&lt;p&gt;catch, who wrote the original &lt;code&gt;MissingClassDetectionClassLoader&lt;/code&gt; workaround in &lt;a href="https://www.drupal.org/node/3502913"&gt;#3502913&lt;/a&gt;, remarked: &amp;quot;Was pleased with myself when I got this working in the original issue, but even more pleased to get rid of it as soon as humanly possible,&amp;quot; and at merge time called it &amp;quot;a horrible hack.&amp;quot; godotislate raised a substantive concern: removing the classloader without restoring the earlier &lt;code&gt;preg_match&lt;/code&gt; guard means any unexpected &lt;code&gt;\Error&lt;/code&gt; from &lt;code&gt;class_exists()&lt;/code&gt; would be silently swallowed. catch and godotislate weighed this against the brittleness of matching on exception message strings and concluded the risk was acceptable, pointing to &lt;a href="https://www.drupal.org/node/3520811"&gt;#3520811&lt;/a&gt; as the place to track that question.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -133,67 +131,6 @@ use Drupal\Component\Discovery\MissingClassDetectionClassLoader;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;When the issue was filed, longwave immediately flagged that CKEditor 5 v48 had dropped DLL support, making the upgrade impossible until &lt;a href="https://www.drupal.org/node/3527914"&gt;#3527914&lt;/a&gt; (the UMD installation-method switch) landed, and noted that Drupal 11 would deliberately stay on the v47 LTS line. Once that prerequisite merged, longwave opened the MR. During review godotislate observed that the jsdoc generation script was silently producing empty output against v48's changed package layout; longwave identified that v48 ships TypeScript &lt;code&gt;.d.ts&lt;/code&gt; files instead of JS source files, updated the glob and regex accordingly, and closed the separate tracking issue &lt;a href="https://www.drupal.org/node/3551053"&gt;#3551053&lt;/a&gt; as no longer needed. After an initial RTBC, a merge conflict caused the asset-byte test to fail; godotislate rebased, updated the byte thresholds, and moved the issue back to RTBC for final commit.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3125013: Refactor update.fetch.inc into a MailHandler</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3125013.md</link>
-      <guid isPermaLink="false">019df9d4-216c-7291-9a70-d67d796e2ef0</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 05 May 2026 17:04:17 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +190/−95 · php +189/−95 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/df228407f199cdfb08d549e07a3947d26647d7c3"&gt;df22840&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3125013"&gt;#3125013&lt;/a&gt; · 10 contributors · 51 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;update.fetch.inc&lt;/code&gt; file, the last remnant of the module's old procedural architecture, has been removed along with the &lt;code&gt;_update_cron_notify()&lt;/code&gt; function it contained. Any code that was including &lt;code&gt;update.fetch.inc&lt;/code&gt; or calling &lt;code&gt;_update_cron_notify()&lt;/code&gt; directly will now fail. Neither was ever a public API (the function carried an underscore prefix to signal internal status), but some contrib modules were found to include the file anyway. The cron email notification path is now fully service-based.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;update.fetch.inc&lt;/code&gt; and &lt;code&gt;_update_cron_notify()&lt;/code&gt; are removed; new &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; service added with &lt;code&gt;sendUpdateNotifications()&lt;/code&gt; method.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;_update_cron_notify()&lt;/code&gt; function's logic is split across two new locations. The notification-triggering logic (checking update requirement severity and deciding whether to send) moves into &lt;code&gt;UpdateCronHooks::notify()&lt;/code&gt;, a protected method. The email assembly and dispatch loop moves into the new &lt;code&gt;Drupal\update\MailHandler::sendUpdateNotifications()&lt;/code&gt; method.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;hook_cron()&lt;/code&gt; is extracted from &lt;code&gt;UpdateHooks&lt;/code&gt; into a dedicated &lt;code&gt;Drupal\update\Hook\UpdateCronHooks&lt;/code&gt; class. The old implementation used &lt;code&gt;\Drupal::&lt;/code&gt; static calls and &lt;code&gt;\Drupal::moduleHandler()-&amp;gt;loadInclude('update', 'inc', 'update.fetch')&lt;/code&gt; before invoking &lt;code&gt;_update_cron_notify()&lt;/code&gt;. The new class injects &lt;code&gt;ConfigFactoryInterface&lt;/code&gt;, &lt;code&gt;ModuleHandlerInterface&lt;/code&gt;, &lt;code&gt;StateInterface&lt;/code&gt;, and &lt;code&gt;TimeInterface&lt;/code&gt; normally, while &lt;code&gt;MailHandler&lt;/code&gt;, &lt;code&gt;UpdateManagerInterface&lt;/code&gt;, and &lt;code&gt;UpdateProcessorInterface&lt;/code&gt; are injected as lazy closures via &lt;code&gt;#[AutowireServiceClosure]&lt;/code&gt;. This avoids instantiating those heavier services on every cron run when they are not needed.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;MailHandler&lt;/code&gt; is registered as the service &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; in &lt;code&gt;update.services.yml&lt;/code&gt; and is marked &lt;code&gt;@internal&lt;/code&gt;. It carries no interface so that subclasses can override only the services they actually need (using &lt;code&gt;#[Required]&lt;/code&gt; setter injection), matching the pattern adopted in &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt; for &lt;code&gt;_user_mail_notify()&lt;/code&gt;. This design is intended to support the ongoing symfony mailer migration, where an experimental module could swap the service class to use the new mail API.&lt;/p&gt;
-&lt;p&gt;There is also a minor behavioral correction: the old code set &lt;code&gt;update.last_email_notification&lt;/code&gt; inside the per-recipient loop after each successful individual send. The new code sets it once in &lt;code&gt;cron()&lt;/code&gt; after &lt;code&gt;notify()&lt;/code&gt; returns &lt;code&gt;TRUE&lt;/code&gt;, meaning the timestamp is recorded only after the full notification pass completes.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If any custom or contrib code includes &lt;code&gt;update.fetch.inc&lt;/code&gt; or calls &lt;code&gt;_update_cron_notify()&lt;/code&gt; directly, remove those calls. To trigger update notifications programmatically, use the &lt;code&gt;Drupal\update\MailHandler&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Old (broken after this change):
-\Drupal::moduleHandler()-&amp;gt;loadInclude('update', 'inc', 'update.fetch');
-_update_cron_notify();
-
-// New (internal API, use with caution):
-$mailHandler = \Drupal::service(\Drupal\update\MailHandler::class);
-$mailHandler-&amp;gt;sendUpdateNotifications($recipients, $items);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Note that &lt;code&gt;MailHandler&lt;/code&gt; is marked &lt;code&gt;@internal&lt;/code&gt; and its signature may change without notice.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 5, 2020&lt;/li&gt;
-&lt;li&gt;Committed: May 5, 2026 (6 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, smustgrave raised whether &lt;code&gt;_update_cron_notify()&lt;/code&gt; needed a formal deprecation before removal. dww argued against it on the grounds that underscore-prefixed functions are explicitly non-API and callers are &amp;quot;doing it wrong.&amp;quot; berdir provided a broader view: underscore-prefix functions have been deprecated before when heavily used in contrib (citing &lt;code&gt;_field_multiple_value_form_sort_helper()&lt;/code&gt;), but a search confirmed &lt;code&gt;_update_cron_notify()&lt;/code&gt; had effectively zero real usage outside core. nicxvan found a few contrib modules including the file but not using the function, and after consulting alexpott's position from an earlier locale issue (that an immediate white screen is a better signal than a deprecation), concluded no deprecation was needed. The interface question was also resolved by following the approach from &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt;: no interface, with &lt;code&gt;#[Required]&lt;/code&gt; setter injection left available for subclasses.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -1051,6 +988,42 @@ field_purge_field_storage($field_storage);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The design evolved significantly over the thread. The original patch added separate &lt;code&gt;system.performance.css.brotli&lt;/code&gt; and &lt;code&gt;system.performance.js.brotli&lt;/code&gt; boolean keys alongside &lt;code&gt;gzip&lt;/code&gt;. &lt;code&gt;andypost&lt;/code&gt; pointed out in comment &lt;a href="https://www.drupal.org/node/15102385"&gt;#15102385&lt;/a&gt; that a single &lt;code&gt;compress&lt;/code&gt; key that enables every available algorithm would be cleaner and more future-proof. &lt;code&gt;catch&lt;/code&gt; reinforced this in comment &lt;a href="https://www.drupal.org/node/15102469"&gt;#15102469&lt;/a&gt;, noting that &lt;code&gt;.htaccess&lt;/code&gt; rules cannot be conditionally applied per-algorithm anyway, so a fine-grained config flag would be misleading. &lt;code&gt;prudloff&lt;/code&gt; agreed and updated the MR to use the single &lt;code&gt;compress&lt;/code&gt; key. Testing was blocked until &lt;code&gt;andypost&lt;/code&gt; filed &lt;a href="https://www.drupal.org/node/3512083"&gt;#3512083&lt;/a&gt; to add the brotli PHP extension to the CI Docker images, which unblocked the functional test &lt;code&gt;prudloff&lt;/code&gt; had written.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3578477: CKEditor 5 should respect &lt;textarea disabled&gt; dynamically</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578477.md</link>
+      <guid isPermaLink="false">019dd5e3-46dd-7516-86d0-989b07d8c63b</guid>
+      <pubDate>Tue, 28 Apr 2026 16:18:00 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +81/−10 · php +69/−7 · js +12/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4b4ace193b94eaebe64ff281c6e497324617ae4b"&gt;4b4ace1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3578477"&gt;#3578477&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;CKEditor 5 fields that are toggled enabled or disabled at runtime (for example via the Form API &lt;code&gt;#states&lt;/code&gt; system or the Conditional Fields module) now correctly enter and leave read-only mode as the &lt;code&gt;disabled&lt;/code&gt; attribute changes. Previously the read-only state was evaluated only once when the editor was initialized, so any subsequent enable/disable had no effect on the editor's editability.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The original fix in &lt;a href="https://www.drupal.org/node/3362386"&gt;#3362386&lt;/a&gt; added a one-time check at editor startup: if &lt;code&gt;element.hasAttribute('disabled')&lt;/code&gt; was true, &lt;code&gt;editor.enableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; was called and nothing more happened. This issue replaces that one-time check in &lt;code&gt;ckeditor5.js&lt;/code&gt; with a &lt;code&gt;MutationObserver&lt;/code&gt; that watches for any attribute mutation on the textarea element. On every mutation, a new &lt;code&gt;readOnlyIfDisabled()&lt;/code&gt; helper checks &lt;code&gt;element.disabled&lt;/code&gt; and calls either &lt;code&gt;editor.enableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; or &lt;code&gt;editor.disableReadOnlyMode('ckeditor5_disabled')&lt;/code&gt; accordingly. &lt;code&gt;readOnlyIfDisabled()&lt;/code&gt; is also called immediately after the observer is attached to cover the initial state. The test infrastructure in &lt;code&gt;CKEditor5ReadOnlyModeTest&lt;/code&gt; is refactored: field creation is extracted into reusable &lt;code&gt;createCkeditorField()&lt;/code&gt; and &lt;code&gt;createField()&lt;/code&gt; helpers, and three new test fields (&lt;code&gt;field_ckeditor5_disable&lt;/code&gt;, &lt;code&gt;field_ckeditor5_enable&lt;/code&gt;, &lt;code&gt;field_ckeditor5_toggle&lt;/code&gt;) are added. A new &lt;code&gt;testReadOnlyModeDynamic()&lt;/code&gt; functional JS test checks and unchecks the toggle and asserts that &lt;code&gt;contenteditable&lt;/code&gt; flips appropriately on both the &amp;quot;disable on toggle&amp;quot; and &amp;quot;enable on toggle&amp;quot; fields. The &lt;code&gt;ScriptBytes&lt;/code&gt; expectation in &lt;code&gt;AssetAggregationAcrossPagesTest&lt;/code&gt; is bumped from 3811015 to 3811582 to account for the slightly larger &lt;code&gt;ckeditor5.js&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: April 27, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;tgauges&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
