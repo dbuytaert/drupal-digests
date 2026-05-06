@@ -1,4 +1,4 @@
-**TL;DR:** [545 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [546 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_412 summaries · 30 new this week_
+_413 summaries · 18 new this week_
 
 - [#3125013: Refactor update.fetch.inc into a MailHandler](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3125013.md)
 - [#3574506: Sorting by Views result counter causes ORDER BY unknown](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574506.md)
@@ -22,7 +22,7 @@ _66 summaries · 1 new this week_
 
 ### Drupal Canvas
 
-_56 summaries · 3 new this week_
+_56 summaries · 2 new this week_
 
 - [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 - [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
