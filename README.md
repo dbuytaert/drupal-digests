@@ -1,8 +1,16 @@
-**TL;DR:** [547 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [550 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_416 summaries · 19 new this week_
+
+- [#3579661: Call to a member function getPath() on null in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579661.md)
+- [#3570634: Remove fallback classloader and related code in AttributeClassDiscovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570634.md)
+- [#3587182: Update CKEditor 5 to 48.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587182.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _67 summaries · 2 new this week_
 - [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
 - [#3575412: Create an Automator for Document Loader](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575412.md)
 - [#3585786: Add universal pre-load and post-load hooks to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3585786.md)
-
-### Drupal Core
-
-_413 summaries · 18 new this week_
-
-- [#3125013: Refactor update.fetch.inc into a MailHandler](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3125013.md)
-- [#3574506: Sorting by Views result counter causes ORDER BY unknown](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574506.md)
-- [#3569096: Remove BC layer $options argument from Constraint plugin constructors](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569096.md)
 
 ### Drupal Canvas
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_182 rules · 52 new this week_
+_182 rules · 51 new this week_
 
 - [Remove $options BC-layer parameter from Symfony Constraint constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php)
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
