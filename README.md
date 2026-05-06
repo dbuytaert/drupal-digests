@@ -22,7 +22,7 @@ _67 summaries · 2 new this week_
 
 ### Drupal Canvas
 
-_56 summaries · 1 new this week_
+_56 summaries · 0 new this week_
 
 - [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 - [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
