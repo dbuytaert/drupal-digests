@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 42 new this week_
+_181 rules · 40 new this week_
 
 - [Remove $options BC-layer parameter from Symfony Constraint constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php)
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
