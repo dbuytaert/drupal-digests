@@ -1,4 +1,4 @@
-**TL;DR:** [549 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [549 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [182 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_182 rules · 49 new this week_
+_181 rules · 48 new this week_
 
 - [Remove $options BC-layer parameter from Symfony Constraint constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php)
 - [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
