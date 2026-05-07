@@ -5,6 +5,138 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace hide() and show() with inline #printed assignments</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0433-c471-7503-8a91-f0c34bcdf001.md</link>
+      <guid isPermaLink="false">019e0433-c471-7503-8a91-f0c34bcdf001</guid>
+      <pubDate>Thu, 07 May 2026 20:49:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2258355"&gt;#2258355&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated global &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; functions by inlining the equivalent &lt;code&gt;#printed&lt;/code&gt; property assignment. &lt;code&gt;hide($element)&lt;/code&gt; becomes &lt;code&gt;$element['#printed'] = TRUE&lt;/code&gt; and &lt;code&gt;show($element)&lt;/code&gt; becomes &lt;code&gt;$element['#printed'] = FALSE&lt;/code&gt;. Both functions were deprecated in drupal:11.4.0 and will be removed in drupal:13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;hide($element);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element['#printed'] = TRUE;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;When &lt;code&gt;hide()&lt;/code&gt; or &lt;code&gt;show()&lt;/code&gt; return values are used in expression context (e.g., &lt;code&gt;$x = hide($element)&lt;/code&gt;), the rule still rewrites to an assignment expression, which evaluates to the boolean rather than the element array. This edge case is rare in practice. For form elements, the deprecation recommends &lt;code&gt;$element['#access'] = FALSE/TRUE&lt;/code&gt; instead; the rule always emits &lt;code&gt;#printed&lt;/code&gt; and cannot distinguish form elements from render elements at static analysis time.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class HideShowToInlinePrintedRector extends AbstractRector
+{
+    // Maps deprecated function name to the #printed boolean value it sets.
+    private const FUNCTION_MAP = [
+        'hide' =&amp;gt; true,
+        'show' =&amp;gt; false,
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated hide() and show() global functions with inline #printed property assignments.',
+            [new CodeSample(
+                'hide($element);',
+                '$element[\'#printed\'] = TRUE;',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !array_key_exists($functionName, self::FUNCTION_MAP)) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 1) {
+            return null;
+        }
+        $arg = $node-&amp;gt;args[0];
+        if (!$arg instanceof Arg) {
+            return null;
+        }
+        $printedBool = self::FUNCTION_MAP[$functionName];
+        $dimFetch = new ArrayDimFetch($arg-&amp;gt;value, new String_('#printed'));
+        $boolNode = $printedBool ? $this-&amp;gt;nodeFactory-&amp;gt;createTrue() : $this-&amp;gt;nodeFactory-&amp;gt;createFalse();
+        return new Assign($dimFetch, $boolNode);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([HideShowToInlinePrintedRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace TestRequirementsTrait with DrupalTestCaseTrait</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e042e-aa2f-7436-b17f-a5d9407a6d1a.md</link>
+      <guid isPermaLink="false">019e042e-aa2f-7436-b17f-a5d9407a6d1a</guid>
+      <pubDate>Thu, 07 May 2026 20:43:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3573954"&gt;#3573954&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 12.0.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces the deprecated &lt;code&gt;\Drupal\Tests\TestRequirementsTrait&lt;/code&gt; with the new &lt;code&gt;\Drupal\Tests\DrupalTestCaseTrait&lt;/code&gt; in class body trait-use statements. &lt;code&gt;TestRequirementsTrait&lt;/code&gt; was deprecated in Drupal 12.0.0 when its functionality was consolidated into &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt;. Contrib and custom test classes that include the old trait directly need this update to avoid deprecation warnings.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Tests\TestRequirementsTrait;
+
+class ExampleTest extends BrowserTestBase {
+  use TestRequirementsTrait;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class ExampleTest extends BrowserTestBase {
+  use \Drupal\Tests\DrupalTestCaseTrait;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The old &lt;code&gt;use Drupal\Tests\TestRequirementsTrait;&lt;/code&gt; namespace import is left in place as an unused import. Run &lt;code&gt;RemoveUnusedImportsRector&lt;/code&gt; afterwards to clean it up. If the class already inherits &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; from a base class (e.g., &lt;code&gt;BrowserTestBase&lt;/code&gt; or &lt;code&gt;KernelTestBase&lt;/code&gt;), the added trait use is redundant but harmless. The deprecated &lt;code&gt;setUpAppRoot()&lt;/code&gt; calls and &lt;code&gt;TestRequirementsTrait::getDrupalRoot()&lt;/code&gt; calls are not handled by this rule.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\Tests\\TestRequirementsTrait' =&amp;gt; 'Drupal\\Tests\\DrupalTestCaseTrait',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Remove $options BC-layer parameter from Symfony Constraint constructors</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019df81c-1ce3-75a1-a6f8-a42754475eb1.md</link>
       <guid isPermaLink="false">019df81c-1ce3-75a1-a6f8-a42754475eb1</guid>
@@ -1472,144 +1604,6 @@ return RectorConfig::configure()
         new RenameProperty('Drupal\Core\Database\StatementPrefetchIterator', 'defaultFetchMode', 'fetchMode'),
         new RenameProperty('Drupal\Core\Database\StatementWrapperIterator', 'defaultFetchMode', 'fetchMode'),
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN with \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019de122-0925-766c-8954-afbd13ce6fb5.md</link>
-      <guid isPermaLink="false">019de122-0925-766c-8954-afbd13ce6fb5</guid>
-      <pubDate>Fri, 01 May 2026 01:23:17 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3477277"&gt;#3477277&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.2.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces the deprecated global constant &lt;code&gt;LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt; with the class constant &lt;code&gt;\Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN&lt;/code&gt;. The constant was moved to the &lt;code&gt;Drupal&lt;/code&gt; class in drupal:11.2.0 and the old global constant is removed in drupal:12.0.0. Using the class constant avoids a dependency on the locale module being available.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$pattern = \Drupal::TRANSLATION_DEFAULT_SERVER_PATTERN;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Transform\Rector\ConstFetch\ConstFetchToClassConstFetchRector;
-use Rector\Transform\ValueObject\ConstFetchToClassConstFetch;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(ConstFetchToClassConstFetchRector::class, [
-        new ConstFetchToClassConstFetch(
-            'LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN',
-            'Drupal',
-            'TRANSLATION_DEFAULT_SERVER_PATTERN'
-        ),
-    ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated ModuleHandlerInterface::writeCache() and getHookInfo() calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019de11d-d3c5-734b-831a-3bec91c77a36.md</link>
-      <guid isPermaLink="false">019de11d-d3c5-734b-831a-3bec91c77a36</guid>
-      <pubDate>Fri, 01 May 2026 01:18:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.1.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes calls to &lt;code&gt;ModuleHandlerInterface::writeCache()&lt;/code&gt; (deprecated in drupal:11.1.0, does nothing) and replaces calls to &lt;code&gt;ModuleHandlerInterface::getHookInfo()&lt;/code&gt; (deprecated in drupal:11.1.0, now always returns &lt;code&gt;[]&lt;/code&gt;) with an empty array literal. Both methods are removed in drupal:12.0.0 per the OOP hooks initiative (issue &lt;a href="https://www.drupal.org/node/3442009"&gt;#3442009&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;moduleHandler-&amp;gt;writeCache();
-$info = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$info = [];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;writeCache()&lt;/code&gt; is only removed when called as a standalone expression statement; calls whose return value is used (unusual since the method is &lt;code&gt;void&lt;/code&gt;) are left untouched. &lt;code&gt;getHookInfo()&lt;/code&gt; used as a standalone statement (discarding the return value) is replaced with a bare &lt;code&gt;[]&lt;/code&gt; expression statement rather than being removed entirely.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Stmt\Expression;
-use PhpParser\NodeVisitor;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Removes deprecated ModuleHandlerInterface::writeCache() calls and replaces
- * getHookInfo() calls with an empty array.
- */
-final class RemoveModuleHandlerDeprecatedMethodsRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove calls to deprecated ModuleHandlerInterface::writeCache() and replace ModuleHandlerInterface::getHookInfo() with []',
-            [
-                new CodeSample(
-                    '$this-&amp;gt;moduleHandler-&amp;gt;writeCache();',
-                    '',
-                ),
-                new CodeSample(
-                    '$info = $this-&amp;gt;moduleHandler-&amp;gt;getHookInfo();',
-                    '$info = [];',
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Expression::class, MethodCall::class];
-    }
-
-    /** @param Expression|MethodCall $node */
-    public function refactor(Node $node): Node|int|null
-    {
-        $moduleHandlerType = new ObjectType('Drupal\\Core\\Extension\\ModuleHandlerInterface');
-
-        // Remove standalone writeCache() calls.
-        if ($node instanceof Expression &amp;amp;&amp;amp; $node-&amp;gt;expr instanceof MethodCall) {
-            $call = $node-&amp;gt;expr;
-            if (
-                $this-&amp;gt;isName($call-&amp;gt;name, 'writeCache')
-                &amp;amp;&amp;amp; $this-&amp;gt;isObjectType($call-&amp;gt;var, $moduleHandlerType)
-            ) {
-                return NodeVisitor::REMOVE_NODE;
-            }
-        }
-
-        // Replace getHookInfo() calls with [].
-        if (
-            $node instanceof MethodCall
-            &amp;amp;&amp;amp; $this-&amp;gt;isName($node-&amp;gt;name, 'getHookInfo')
-            &amp;amp;&amp;amp; $this-&amp;gt;isObjectType($node-&amp;gt;var, $moduleHandlerType)
-        ) {
-            return new Array_();
-        }
-
-        return null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveModuleHandlerDeprecatedMethodsRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

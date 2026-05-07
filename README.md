@@ -1,4 +1,4 @@
-**TL;DR:** [549 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [552 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_415 summaries · 11 new this week_
+_418 summaries · 14 new this week_
 
-- [#3579661: Call to a member function getPath() on null in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579661.md)
-- [#3570634: Remove fallback classloader and related code in AttributeClassDiscovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570634.md)
-- [#3587182: Update CKEditor 5 to 48.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587182.md)
+- [#2258355: Deprecate hide() and show()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2258355.md)
+- [#3573954: Move common code across Drupal base test suite classes to DrupalTestCaseTrait ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573954.md)
+- [#3066751: Add resolvable_uri property to LinkItem for APIs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3066751.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 40 new this week_
+_183 rules · 33 new this week_
 
+- [Replace hide() and show() with inline #printed assignments](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-hide-and-show-with-inline-printed-assignments-2258355.php)
+- [Replace TestRequirementsTrait with DrupalTestCaseTrait](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-testrequirementstrait-with-drupaltestcasetrait-3573954.php)
 - [Remove $options BC-layer parameter from Symfony Constraint constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php)
-- [Replace integer #access values with booleans in render arrays](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php)
-- [Replace deprecated node_access_grants() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-access-grants-with-nodegrantshelper-2473041.php)
 
 
 ## RSS feeds
