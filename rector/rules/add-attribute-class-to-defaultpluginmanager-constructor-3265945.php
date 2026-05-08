@@ -29,7 +29,8 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Scalar\String_;
 use Rector\NodeTypeResolver\Node\AttributeKey;
-use PHPStan\Type\ObjectType;
+use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -75,11 +76,15 @@ final class AddPluginManagerAttributeClassRector extends AbstractRector
         }
 
         // The enclosing class must extend DefaultPluginManager.
-        $class = $node->getAttribute(AttributeKey::CLASS_NODE);
-        if (!$class instanceof \PhpParser\Node\Stmt\Class_) {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+        if (!$scope instanceof Scope) {
             return null;
         }
-        if (!$this->isObjectType($class, new ObjectType('Drupal\Core\Plugin\DefaultPluginManager'))) {
+        $classReflection = $scope->getClassReflection();
+        if (!$classReflection instanceof ClassReflection) {
+            return null;
+        }
+        if (!in_array('Drupal\Core\Plugin\DefaultPluginManager', $classReflection->getParentClassesNames(), true)) {
             return null;
         }
         if (!$this->isName($node->name, '__construct')) {
