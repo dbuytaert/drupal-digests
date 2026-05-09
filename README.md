@@ -1,4 +1,4 @@
-**TL;DR:** [560 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [562 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_425 summaries · 20 new this week_
+_427 summaries · 22 new this week_
 
+- [#2486267: Attributes of a block content are applied to block itself](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2486267.md)
+- [#3463868: Two #config_targets error when used on a text_format form element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3463868.md)
 - [#3579189: Fix return types and baselined errors of core/tests/ Kernel code - round 5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579189.md)
-- [#3573879: Mark layout_builder_expose_all_field_blocks obsolete, uninstall it and remove...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573879.md)
-- [#2954725: AccountInterface::getLastAccessedTime() implementors return incorrect data type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2954725.md)
 
 ### Drupal AI
 

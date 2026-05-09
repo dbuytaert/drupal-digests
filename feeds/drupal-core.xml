@@ -5,6 +5,142 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2486267: Attributes of a block content are applied to block itself</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2486267.md</link>
+      <guid isPermaLink="false">019e0be0-f1ba-712d-b441-5dc7cc6695f4</guid>
+      <category>Module maintainers</category>
+      <category>Front-end developers</category>
+      <pubDate>Sat, 09 May 2026 08:22:40 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +81/−6 · php +81/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/701ea27c22333031354604f502b4095c7a9fd9b0"&gt;701ea27&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2486267"&gt;#2486267&lt;/a&gt; · 17 contributors · 70 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 25&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A long-standing bug in block rendering caused the &lt;code&gt;#attributes&lt;/code&gt; from a block plugin's content render array to be incorrectly merged into the outer block wrapper element. For example, a form rendered inside a block would have its &lt;code&gt;data-drupal-selector&lt;/code&gt; attribute, CSS classes, and other attributes moved from the &lt;code&gt;&amp;lt;form&amp;gt;&lt;/code&gt; tag to the surrounding block &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;, breaking CSS, JavaScript selectors, AJAX behavior, and in some cases causing white-screen errors. The fix corrects &lt;code&gt;BlockViewBuilder&lt;/code&gt; so that only &lt;code&gt;#wrapper_attributes&lt;/code&gt; (a separate, explicitly intended key) from the content render array are promoted to the block wrapper. Regular &lt;code&gt;#attributes&lt;/code&gt; now stay with the content element where they belong. A backward-compatibility preprocess hook is added to the Stable9 theme so that sites using it as a base theme are not immediately broken.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Block content &lt;code&gt;#attributes&lt;/code&gt; no longer bubble up to the block wrapper &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;; use &lt;code&gt;#wrapper_attributes&lt;/code&gt; in &lt;code&gt;build()&lt;/code&gt; to intentionally target the wrapper. Themes not based on Stable9 may need to update CSS/JS selectors.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;BlockViewBuilder::preRender()&lt;/code&gt; now reads &lt;code&gt;#wrapper_attributes&lt;/code&gt; (not &lt;code&gt;#attributes&lt;/code&gt;) from the content render array to populate the block wrapper; block plugins targeting the outer wrapper must switch to &lt;code&gt;#wrapper_attributes&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The problem originated in &lt;a href="https://www.drupal.org/node/2171269"&gt;#2171269&lt;/a&gt;, which added logic to &lt;code&gt;BlockViewBuilder::preRender()&lt;/code&gt; that moved both &lt;code&gt;#attributes&lt;/code&gt; and &lt;code&gt;#contextual_links&lt;/code&gt; from the block plugin's &lt;code&gt;$content&lt;/code&gt; render array into the top-level &lt;code&gt;$build&lt;/code&gt; array. While that was correct for &lt;code&gt;#contextual_links&lt;/code&gt;, applying it to &lt;code&gt;#attributes&lt;/code&gt; was too broad: any attribute a plugin set for its own content element (a &lt;code&gt;&amp;lt;form&amp;gt;&lt;/code&gt;, a list, etc.) was silently hijacked by the block wrapper.&lt;/p&gt;
+&lt;p&gt;The fix in &lt;code&gt;BlockViewBuilder::preRender()&lt;/code&gt; splits the two properties: &lt;code&gt;#contextual_links&lt;/code&gt; still bubbles as before, but &lt;code&gt;#attributes&lt;/code&gt; is no longer touched. Instead, a new convention is established: if a block plugin's &lt;code&gt;build()&lt;/code&gt; array contains &lt;code&gt;#wrapper_attributes&lt;/code&gt;, those are merged into &lt;code&gt;$build['#attributes']&lt;/code&gt; (the outer wrapper). This mirrors the existing &lt;code&gt;#wrapper_attributes&lt;/code&gt; convention used elsewhere in Drupal's render system.&lt;/p&gt;
+&lt;p&gt;For backward compatibility, a &lt;code&gt;hook_preprocess_block()&lt;/code&gt; implementation is added to &lt;code&gt;Stable9Hooks&lt;/code&gt; in the &lt;code&gt;stable9&lt;/code&gt; theme. It copies any &lt;code&gt;#attributes&lt;/code&gt; found in &lt;code&gt;$variables['content']&lt;/code&gt; into &lt;code&gt;$variables['attributes']&lt;/code&gt; (the wrapper) and then unsets the content key, replicating the old behavior for themes that extend Stable9. The &lt;code&gt;TestHtmlBlock&lt;/code&gt; test plugin and its accompanying functional test (&lt;code&gt;BlockHtmlTest&lt;/code&gt;) are updated to use &lt;code&gt;wrapper_attributes&lt;/code&gt; through the key-value store, aligning the test fixture with the new convention.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Block plugins that previously relied on &lt;code&gt;#attributes&lt;/code&gt; in their &lt;code&gt;build()&lt;/code&gt; render array to style or identify the &lt;strong&gt;block wrapper&lt;/strong&gt; element must switch to &lt;code&gt;#wrapper_attributes&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (broken): #attributes on the content was incorrectly merged
+// into the block wrapper, not the content element.
+public function build(): array {
+  return [
+    '#theme' =&amp;gt; 'item_list',
+    '#items' =&amp;gt; $items,
+    '#attributes' =&amp;gt; ['class' =&amp;gt; ['my-list']],
+  ];
+}
+
+// After: use #wrapper_attributes to intentionally target the block wrapper.
+public function build(): array {
+  return [
+    '#theme' =&amp;gt; 'item_list',
+    '#items' =&amp;gt; $items,
+    '#attributes' =&amp;gt; ['class' =&amp;gt; ['my-list']],   // stays on the rendered element
+    '#wrapper_attributes' =&amp;gt; ['class' =&amp;gt; ['my-block-wrapper-class']],
+  ];
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Custom or contrib themes that do &lt;strong&gt;not&lt;/strong&gt; extend Stable9 and that have CSS or JavaScript selectors depending on content &lt;code&gt;#attributes&lt;/code&gt; appearing on the block wrapper &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt; will need to audit those selectors. The Stable9 backward-compatibility hook is only active for themes using Stable9 as a base theme.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 10, 2015&lt;/li&gt;
+&lt;li&gt;Committed: May 9, 2026 (11 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;joelpittet&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;martygraphie&lt;/li&gt;
+&lt;li&gt;taran2l (Lemberg Solutions)&lt;/li&gt;
+&lt;li&gt;johnjw59 (Fuse Interactive)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;dcam (USDA-ARS)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;dcam reopened the stalled issue by verifying the bug still existed in Drupal 11, identified that the earlier MR 1402 had silently lost the core &lt;code&gt;#attributes&lt;/code&gt; to &lt;code&gt;#wrapper_attributes&lt;/code&gt; switch (making it do nothing useful), hid the old branch, and restarted cleanly for the 11.x branch. dcam also provided a concrete screenshot and a white-screen crash scenario to demonstrate that the bug had real production consequences. After alexpott noted that a BC layer for Stable9 was needed before committing, dcam added &lt;code&gt;Stable9Hooks::preprocessBlock()&lt;/code&gt; and a unit test for it. nod_ gave frontend framework manager sign-off, after which catch committed the fix.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3463868: Two #config_targets error when used on a text_format form element</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3463868.md</link>
+      <guid isPermaLink="false">019e0bdf-98f6-70d7-88d9-3fdec97e6abd</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 09 May 2026 08:15:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +65/−3 · php +62/−3 · yml +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/712188eb0dae2e7eb69df38ddc4898261e2e88e7"&gt;712188e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3463868"&gt;#3463868&lt;/a&gt; · 11 contributors · 50 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 19&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Configuration forms that use the &lt;code&gt;#config_target&lt;/code&gt; property on a &lt;code&gt;text_format&lt;/code&gt; (rich text) field threw a &lt;code&gt;LogicException&lt;/code&gt; on submission: &amp;quot;Two #config_targets both target...&amp;quot; The bug made it impossible to wire a &lt;code&gt;text_format&lt;/code&gt; element directly to configuration using the standard &lt;code&gt;ConfigFormBase&lt;/code&gt; mechanism. After this fix the combination works, and the form also correctly re-displays the saved value on subsequent page loads.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; ConfigTarget with a fromConfig callback is now the supported pattern for wiring text_format elements to config in ConfigFormBase forms&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;text_format&lt;/code&gt; form element's &lt;code&gt;TextFormat::processFormat()&lt;/code&gt; builds child elements (&lt;code&gt;value&lt;/code&gt; textarea and &lt;code&gt;format&lt;/code&gt; selector) by copying most properties from the parent element. &lt;code&gt;#config_target&lt;/code&gt; was being copied along with everything else, so &lt;code&gt;ConfigFormBase::doStoreConfigMap()&lt;/code&gt; encountered the parent element and the &lt;code&gt;value&lt;/code&gt; child both claiming the same config key and threw a &lt;code&gt;LogicException&lt;/code&gt;. The fix adds &lt;code&gt;#config_target&lt;/code&gt; to the &lt;code&gt;$keys_not_to_copy&lt;/code&gt; list inside &lt;code&gt;TextFormat::processFormat()&lt;/code&gt;. Because &lt;code&gt;text_format&lt;/code&gt; stores a compound value (&lt;code&gt;value&lt;/code&gt; and &lt;code&gt;format&lt;/code&gt; sub-keys), using &lt;code&gt;#config_target&lt;/code&gt; on such an element requires a &lt;code&gt;ConfigTarget&lt;/code&gt; instance with a &lt;code&gt;fromConfig&lt;/code&gt; callback that extracts only the text portion for the textarea's &lt;code&gt;#default_value&lt;/code&gt;, while &lt;code&gt;#format&lt;/code&gt; must be set manually from config. The test fixture in &lt;code&gt;form_test&lt;/code&gt; demonstrates the intended pattern. A second change in &lt;code&gt;ConfigFormBase::storeConfigKeyToFormElementMap()&lt;/code&gt; collects cache tags from all editable configs referenced by the map and applies them to the form render array via &lt;code&gt;CacheableMetadata&lt;/code&gt;, ensuring the form cache is invalidated when the underlying configuration changes. This latter change also caused expected cache tag adjustments in several existing browser tests.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To use &lt;code&gt;#config_target&lt;/code&gt; on a &lt;code&gt;text_format&lt;/code&gt; element, supply a &lt;code&gt;ConfigTarget&lt;/code&gt; object with a &lt;code&gt;fromConfig&lt;/code&gt; callback and set &lt;code&gt;#format&lt;/code&gt; manually:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$form['field'] = [
+  '#type' =&amp;gt; 'text_format',
+  '#title' =&amp;gt; $this-&amp;gt;t('My field'),
+  '#format' =&amp;gt; $this-&amp;gt;config('mymodule.settings')-&amp;gt;get('field.format'),
+  '#config_target' =&amp;gt; new ConfigTarget(
+    'mymodule.settings',
+    'field',
+    fromConfig: fn (?array $value = NULL): string =&amp;gt; $value['value'] ?? '',
+  ),
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;format&lt;/code&gt; sub-key is saved automatically by the normal form submission path; no extra handling is needed for it.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 25, 2024&lt;/li&gt;
+&lt;li&gt;Committed: May 9, 2026 (1 year and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;matthieuscarset&lt;/li&gt;
+&lt;li&gt;vinmayiswamy (Material)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;idebr (iO)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue went through two distinct approaches before landing. The first MR (9014, by VinmayiSwamy) added a &lt;code&gt;text_format&lt;/code&gt;-specific special case directly inside &lt;code&gt;ConfigFormBase::doStoreConfigMap()&lt;/code&gt;. catch redirected the effort, noting that hardcoding a specific element type in the config system was the wrong layer and that the exception exists for a reason: if the usage is valid, the system should accommodate it generically. idebr opened MR 10182 with a different strategy, placing &lt;code&gt;#config_target&lt;/code&gt; in &lt;code&gt;TextFormat::processFormat()&lt;/code&gt;'s &lt;code&gt;$keys_not_to_copy&lt;/code&gt; list instead. alexpott then discovered that the fix did not correctly restore the saved value to the textarea on subsequent page loads, pushed a failing test to demonstrate it, and then committed a follow-up that resolved both the default-value display and the cache invalidation problem (idebr had spotted that the form lacked a cache dependency on the config being edited). The final commit combines all three findings.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3579189: Fix return types and baselined errors of core/tests/ Kernel code - round 5</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579189.md</link>
       <guid isPermaLink="false">019e0b24-a6c6-767a-8a6a-6f203fffd5e3</guid>
@@ -959,131 +1095,6 @@ $response-&amp;gt;headers-&amp;gt;clearCookie('Drupal.visitor.my_setting');
 &lt;li&gt;mukeysh&lt;/li&gt;
 &lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3191278: Use plugin id to make help section headers HTML IDs </title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3191278.md</link>
-      <guid isPermaLink="false">019dedcb-1ef9-76a0-a9df-b7b177c0e4fc</guid>
-      <category>Front-end developers</category>
-      <pubDate>Sun, 03 May 2026 12:16:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +16/−8 · php +8/−4 · twig +8/−4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/06c1f1b1aa4f5b6ed5db1712fa33abf4be00293a"&gt;06c1f1b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3191278"&gt;#3191278&lt;/a&gt; · 8 contributors · 41 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The section headings on the &lt;code&gt;/admin/help&lt;/code&gt; page now carry HTML &lt;code&gt;id&lt;/code&gt; attributes derived from each help section's plugin ID. This means sections can be linked to directly using URL fragments, for example &lt;code&gt;/admin/help#help-topics&lt;/code&gt; or &lt;code&gt;/admin/help#hook-help&lt;/code&gt;. The &amp;quot;See the Help page&amp;quot; link shown at the top of individual help-topic pages was also updated to anchor directly to the &lt;code&gt;#help-topics&lt;/code&gt; section.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The &lt;code&gt;help_section&lt;/code&gt; theme hook gains a &lt;code&gt;plugin_id&lt;/code&gt; variable; &lt;code&gt;help-section.html.twig&lt;/code&gt; (and its overrides in Claro, Stable9, and Umami) now render &lt;code&gt;&amp;lt;h2 id=&amp;quot;{{ plugin_id|clean_id }}&amp;quot;&amp;gt;&lt;/code&gt; instead of a bare &lt;code&gt;&amp;lt;h2&amp;gt;&lt;/code&gt;. Custom theme overrides of this template should add the &lt;code&gt;id&lt;/code&gt; attribute accordingly.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;HelpController::helpMain()&lt;/code&gt;, the plugin ID is now passed to the &lt;code&gt;help_section&lt;/code&gt; render array as &lt;code&gt;#plugin_id&lt;/code&gt;. The &lt;code&gt;help_section&lt;/code&gt; theme hook definition (declared in the same controller's &lt;code&gt;theme()&lt;/code&gt; method) gains &lt;code&gt;plugin_id&lt;/code&gt; as a new variable defaulting to &lt;code&gt;NULL&lt;/code&gt;. The &lt;code&gt;help-section.html.twig&lt;/code&gt; template was updated in four locations: the canonical template in the Help module, Claro, Stable9, and the Umami installation profile. Each now renders &lt;code&gt;&amp;lt;h2 id=&amp;quot;{{ plugin_id|clean_id }}&amp;quot;&amp;gt;&lt;/code&gt; instead of a bare &lt;code&gt;&amp;lt;h2&amp;gt;&lt;/code&gt;. The &lt;code&gt;clean_id&lt;/code&gt; Twig filter converts underscores to hyphens and strips characters that are invalid in HTML &lt;code&gt;id&lt;/code&gt; values, so &lt;code&gt;hook_help&lt;/code&gt; becomes &lt;code&gt;hook-help&lt;/code&gt; and &lt;code&gt;help_topics&lt;/code&gt; becomes &lt;code&gt;help-topics&lt;/code&gt;. The &lt;code&gt;help.help_topic&lt;/code&gt; route handler's back-link was updated to call &lt;code&gt;-&amp;gt;setOption('fragment', 'help-topics')&lt;/code&gt; on the URL so it lands on the correct anchor. Test assertions in &lt;code&gt;HelpTest&lt;/code&gt; were updated to expect the new &lt;code&gt;id&lt;/code&gt; attributes on the &lt;code&gt;&amp;lt;h2&amp;gt;&lt;/code&gt; elements.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your custom theme overrides &lt;code&gt;help-section.html.twig&lt;/code&gt;, update the &lt;code&gt;&amp;lt;h2&amp;gt;&lt;/code&gt; element to include the new &lt;code&gt;id&lt;/code&gt; attribute:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-twig"&gt;{# Before #}
-&amp;lt;h2&amp;gt;{{ title }}&amp;lt;/h2&amp;gt;
-
-{# After #}
-&amp;lt;h2 id=&amp;quot;{{ plugin_id|clean_id }}&amp;quot;&amp;gt;{{ title }}&amp;lt;/h2&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The &lt;code&gt;plugin_id&lt;/code&gt; variable is now available in all &lt;code&gt;help_section&lt;/code&gt; template contexts.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 6, 2021&lt;/li&gt;
-&lt;li&gt;Committed: May 3, 2026 (5 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;amber himes matz (Drupalize.Me)&lt;/li&gt;
-&lt;li&gt;tobiasb (Gesellschaft zur Entwicklung von Dingen)&lt;/li&gt;
-&lt;li&gt;rkoller&lt;/li&gt;
-&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
-&lt;li&gt;simohell (Druid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;andypost opened the issue in early 2021 with a working-in-progress patch but the approach needed refinement. Years later, amber himes matz proposed the concrete design: filter the plugin ID through &lt;code&gt;clean_id&lt;/code&gt; for consistency with the hyphenated HTML ID convention already used elsewhere in the admin UI, and expose &lt;code&gt;plugin_id&lt;/code&gt; through a preprocess step rather than calling plugin methods directly in the template. amber himes matz then created the MR, adapting andypost's original patch to the current codebase (where hooks had since moved out of &lt;code&gt;.module&lt;/code&gt; files). andypost reviewed and asked that &lt;code&gt;plugin_id&lt;/code&gt; be passed as a plain template variable rather than surfacing the plugin object, and tobiasb implemented that revision. amber himes matz then fixed additional failing test assertions before the MR was committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3530640: Disable the user.login.http route by default and move to REST</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3530640.md</link>
-      <guid isPermaLink="false">019de17b-37de-7602-9d8f-15a83274d036</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Thu, 30 Apr 2026 19:34:58 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +486/−4 · php +432/−4 · yml +54&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c0e71efe93091b64c8e4a4b25d2d40bd03eacaa6"&gt;c0e71ef&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3530640"&gt;#3530640&lt;/a&gt; · 12 contributors · 62 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Starting in Drupal 11.4, the HTTP REST authentication endpoints (login, logout, login status, and password reset) require the &lt;code&gt;rest&lt;/code&gt; module to be enabled. Previously these routes were part of the &lt;code&gt;user&lt;/code&gt; module and always active, which meant third-party modules adding login protection (such as OTP or two-factor authentication) often secured the form login but left the REST endpoint unguarded. The URL paths (&lt;code&gt;/user/login?_format=json&lt;/code&gt;, &lt;code&gt;/user/logout&lt;/code&gt;, &lt;code&gt;/user/login_status&lt;/code&gt;, &lt;code&gt;/user/password&lt;/code&gt;) are unchanged, so API clients do not need to update their requests. Any Drupal code that generates URLs using the old route names (&lt;code&gt;user.login.http&lt;/code&gt;, &lt;code&gt;user.logout.http&lt;/code&gt;, &lt;code&gt;user.login_status.http&lt;/code&gt;, &lt;code&gt;user.pass.http&lt;/code&gt;) needs to be updated to the new names in the &lt;code&gt;rest&lt;/code&gt; module.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; REST login endpoints are now disabled by default on sites without the &lt;code&gt;rest&lt;/code&gt; module enabled, reducing exposure when third-party login-protection modules do not cover the REST route.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; The &lt;code&gt;rest&lt;/code&gt; module must be enabled for HTTP REST authentication endpoints to function without deprecation warnings; previously only the &lt;code&gt;user&lt;/code&gt; module was required.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Routes &lt;code&gt;user.login.http&lt;/code&gt;, &lt;code&gt;user.logout.http&lt;/code&gt;, &lt;code&gt;user.login_status.http&lt;/code&gt;, &lt;code&gt;user.pass.http&lt;/code&gt; deprecated in 11.4.0 and removed in 12.0.0; use &lt;code&gt;rest.login&lt;/code&gt;, &lt;code&gt;rest.logout&lt;/code&gt;, &lt;code&gt;rest.login_status&lt;/code&gt;, &lt;code&gt;rest.pass&lt;/code&gt; respectively.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;UserAuthenticationController&lt;/code&gt; deprecated in 11.4.0, removed in 12.0.0; use &lt;code&gt;RestAuthenticationController&lt;/code&gt; in the &lt;code&gt;rest&lt;/code&gt; module instead.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The four HTTP authentication routes previously defined in &lt;code&gt;user.routing.yml&lt;/code&gt; are deprecated in 11.4.0 and will be removed in 12.0.0. Equivalent routes with new names (&lt;code&gt;rest.login&lt;/code&gt;, &lt;code&gt;rest.logout&lt;/code&gt;, &lt;code&gt;rest.login_status&lt;/code&gt;, &lt;code&gt;rest.pass&lt;/code&gt;) are added to a new &lt;code&gt;rest.routing.yml&lt;/code&gt; section with identical paths, so the HTTP URLs remain stable.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;RestAuthenticationController&lt;/code&gt; in &lt;code&gt;Drupal\rest\Controller&lt;/code&gt; holds all the authentication logic (login, logout, loginStatus, resetPassword), copied from the now-deprecated &lt;code&gt;UserAuthenticationController&lt;/code&gt;. The old &lt;code&gt;UserAuthenticationController&lt;/code&gt; fires a runtime &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; from its constructor. The old routes in &lt;code&gt;user.routing.yml&lt;/code&gt; carry &lt;code&gt;deprecated&lt;/code&gt; keys pointing to the change record at &lt;code&gt;https://www.drupal.org/node/3552724&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The path-preservation mechanism is a &lt;code&gt;DeprecatedUserRoutesSubscriber&lt;/code&gt; event subscriber (registered as an autowired service in &lt;code&gt;rest.services.yml&lt;/code&gt;) that listens on &lt;code&gt;RoutingEvents::ALTER&lt;/code&gt;. When the &lt;code&gt;rest&lt;/code&gt; module is installed, it replaces the &lt;code&gt;_controller&lt;/code&gt; default on the four user module routes with &lt;code&gt;RestAuthenticationController&lt;/code&gt;, so those routes no longer trigger the deprecation. If the &lt;code&gt;rest&lt;/code&gt; module is not installed, the user routes remain active but instantiate the deprecated controller. The &lt;code&gt;rest&lt;/code&gt; module also registers the four new route names with the existing format-negotiation event subscriber so &lt;code&gt;_format=json&lt;/code&gt; continues to work on all of them. On the 11.x backport, &lt;code&gt;RestAuthenticationController&lt;/code&gt; additionally handles the still-supported &lt;code&gt;UserAuthInterface&lt;/code&gt; alongside &lt;code&gt;UserAuthenticationInterface&lt;/code&gt; (which deprecates the former), matching the dual-path already present in &lt;code&gt;UserAuthenticationController&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Enable the &lt;code&gt;rest&lt;/code&gt; module if you use the REST login endpoints:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-sh"&gt;drush en rest
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Update any Drupal code that generates URLs to these routes:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in 11.4, removed in 12.0)
-Url::fromRoute('user.login.http', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('user.logout.http', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('user.login_status.http', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('user.pass.http', ['_format' =&amp;gt; 'json']);
-
-// After
-Url::fromRoute('rest.login', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('rest.logout', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('rest.login_status', ['_format' =&amp;gt; 'json']);
-Url::fromRoute('rest.pass', ['_format' =&amp;gt; 'json']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The URL paths (&lt;code&gt;/user/login&lt;/code&gt;, &lt;code&gt;/user/logout&lt;/code&gt;, etc.) are unchanged. No changes to external HTTP clients are required as long as the &lt;code&gt;rest&lt;/code&gt; module is enabled.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 17, 2025&lt;/li&gt;
-&lt;li&gt;First commit: April 27, 2026 (10 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 30, 2026 (3 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;prudloff (Insite)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;longwave drove the key design decision that resolved a significant disagreement in the thread. The initial MR used different paths for the new &lt;code&gt;rest&lt;/code&gt; module routes, which would have forced all API clients to update their URLs. After pushback, longwave implemented the path-preservation approach (option #19 in the thread): keeping the old &lt;code&gt;user.routing.yml&lt;/code&gt; routes at the same paths but using &lt;code&gt;DeprecatedUserRoutesSubscriber&lt;/code&gt; to swap in the non-deprecated controller when &lt;code&gt;rest&lt;/code&gt; is installed. longwave also handled the 11.x backport and caught a non-trivial compatibility issue: the backported &lt;code&gt;RestAuthenticationController&lt;/code&gt; needed to support both &lt;code&gt;UserAuthInterface&lt;/code&gt; and &lt;code&gt;UserAuthenticationInterface&lt;/code&gt; because Drupal 11 still allows both, unlike &lt;code&gt;main&lt;/code&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
