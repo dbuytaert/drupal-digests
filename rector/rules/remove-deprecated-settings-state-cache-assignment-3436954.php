@@ -5,21 +5,19 @@ declare(strict_types=1);
  * Drupal Digests (https://github.com/dbuytaert/drupal-digests)
  * by Dries Buytaert (https://dri.es)
  *
- * Removes assignments to $settings['state_cache'] from settings.php
- * files. The setting was deprecated in Drupal 11.0.0 when state caching
- * was permanently enabled. Any value assigned to this key is now
- * ignored, so the line should simply be deleted.
+ * Removes the deprecated $settings['state_cache'] assignment from
+ * settings PHP files. This setting was deprecated in drupal:11.0.0
+ * because the state cache is now permanently enabled and the setting has
+ * no effect. Any assignment of this key should be removed from
+ * settings.php and related configuration files.
  *
  * Before:
  *   $settings['state_cache'] = TRUE;
  *
  * Caveats:
- *   Only removes the assignment statement. Any associated doc-block
- *   comment immediately preceding the statement is also removed by
- *   Rector's standard comment handling. Does not warn if
- *   $settings['state_cache'] is read (rather than assigned), since
- *   reads of a deprecated setting key are a no-op in Drupal 11 and
- *   require no action.
+ *   Only matches the exact variable name $settings with key state_cache
+ *   as a literal string. Assignments via computed keys or different
+ *   variable names are not removed.
  *
  * @see https://www.drupal.org/node/3436954
  * @deprecated drupal:11.0.0
@@ -42,11 +40,11 @@ final class RemoveStateCacheSettingRector extends AbstractRector
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            "Remove the deprecated \$settings['state_cache'] assignment from settings.php files.",
+            "Remove deprecated \$settings['state_cache'] assignment from settings files. The state_cache setting is deprecated in drupal:11.0.0 and the setting should be removed.",
             [new CodeSample(
                 "\$settings['state_cache'] = TRUE;",
                 '',
-            )],
+            )]
         );
     }
 
@@ -56,32 +54,29 @@ final class RemoveStateCacheSettingRector extends AbstractRector
         return [Expression::class];
     }
 
-    public function refactor(Node $node): mixed
+    /** @param Expression $node */
+    public function refactor(Node $node): int|null
     {
-        if (!$node->expr instanceof Assign) {
+        if (!$node instanceof Expression) {
             return null;
         }
-
-        $assign = $node->expr;
-
-        if (!$assign->var instanceof ArrayDimFetch) {
+        $expr = $node->expr;
+        if (!$expr instanceof Assign) {
             return null;
         }
-
-        $arrayDimFetch = $assign->var;
-
-        if (!$this->isName($arrayDimFetch->var, 'settings')) {
+        $var = $expr->var;
+        if (!$var instanceof ArrayDimFetch) {
             return null;
         }
-
-        if (!$arrayDimFetch->dim instanceof String_) {
+        if (!$this->isName($var->var, 'settings')) {
             return null;
         }
-
-        if ($arrayDimFetch->dim->value !== 'state_cache') {
+        if (!$var->dim instanceof String_) {
             return null;
         }
-
+        if ($var->dim->value !== 'state_cache') {
+            return null;
+        }
         return NodeVisitor::REMOVE_NODE;
     }
 }

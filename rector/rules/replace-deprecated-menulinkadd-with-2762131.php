@@ -6,12 +6,13 @@ declare(strict_types=1);
  * Drupal Digests (https://github.com/dbuytaert/drupal-digests)
  * by Dries Buytaert (https://dri.es)
  *
- * Replaces all references to the deprecated
- * \Drupal\menu_ui\Plugin\Menu\LocalAction\MenuLinkAdd with the new core
- * class \Drupal\Core\Menu\LocalActionWithDestination. MenuLinkAdd was
- * deprecated in drupal:11.2.0 and will be removed in drupal:12.0.0. This
- * affects extends, use imports, type hints, instanceof checks, and other
- * class references in contrib and custom modules.
+ * Replaces the deprecated
+ * Drupal\menu_ui\Plugin\Menu\LocalAction\MenuLinkAdd class with the new
+ * Drupal\Core\Menu\LocalActionWithDestination class introduced in Drupal
+ * 11.2. The old class was a menu_ui-specific helper; the replacement
+ * lives in Drupal core and is available to all modules. This rule
+ * updates class extensions, type hints, instanceof checks, and new
+ * expressions.
  *
  * Before:
  *   use Drupal\menu_ui\Plugin\Menu\LocalAction\MenuLinkAdd;
@@ -19,7 +20,9 @@ declare(strict_types=1);
  *   class MyLocalAction extends MenuLinkAdd {}
  *
  * After:
- *   class MyLocalAction extends \Drupal\Core\Menu\LocalActionWithDestination {}
+ *   use Drupal\Core\Menu\LocalActionWithDestination;
+ *   
+ *   class MyLocalAction extends LocalActionWithDestination {}
  *
  * @see https://www.drupal.org/node/2762131
  * @deprecated drupal:11.2.0

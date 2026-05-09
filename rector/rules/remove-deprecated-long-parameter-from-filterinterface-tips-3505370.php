@@ -6,32 +6,14 @@ declare(strict_types=1);
  * Drupal Digests (https://github.com/dbuytaert/drupal-digests)
  * by Dries Buytaert (https://dri.es)
  *
- * In Drupal 11.4 the $long parameter was removed from
- * FilterInterface::tips() and _filter_tips() because the long-format
- * filter-tips page is deprecated. This rule removes $long = FALSE from
- * tips() method signatures in classes extending FilterBase or
- * implementing FilterInterface (only when $long is not referenced in the
- * body), and drops the second argument from any _filter_tips() call
- * site.
+ * Remove deprecated $long parameter from FilterInterface::tips()
+ * implementations and from _filter_tips() calls.
  *
  * Before:
- *   public function tips($long = FALSE) {
- *     return $this->t('No HTML tags allowed.');
- *   }
+ *   public function tips($long = FALSE) { return $this->t('Short tip.'); }
  *
  * After:
- *   public function tips() {
- *     return $this->t('No HTML tags allowed.');
- *   }
- *
- * Caveats:
- *   When $long is used inside the method body (e.g., the method returns
- *   different content for long vs short tips), the rule skips that
- *   method. The developer must manually remove the long-tip branch and
- *   keep only the short-tip return value. Also, only direct extends
- *   FilterBase or implements FilterInterface declarations are detected;
- *   multi-level inheritance through intermediate classes that are not
- *   themselves named FilterBase or FilterInterface will not be matched.
+ *   public function tips() { return $this->t('Short tip.'); }
  *
  * @see https://www.drupal.org/node/3505370
  * @deprecated drupal:11.4.0
@@ -161,7 +143,7 @@ final class RemoveFilterTipsLongParamRector extends AbstractRector
         if (count($node->getArgs()) < 2) {
             return null;
         }
-        array_splice($node->args, 1);
+        array_splice($node->args, 1, 1);
         return $node;
     }
 }

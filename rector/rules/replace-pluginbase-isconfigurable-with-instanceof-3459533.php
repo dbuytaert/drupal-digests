@@ -5,12 +5,11 @@ declare(strict_types=1);
  * Drupal Digests (https://github.com/dbuytaert/drupal-digests)
  * by Dries Buytaert (https://dri.es)
  *
- * Replaces calls to the deprecated PluginBase::isConfigurable() method
- * with a direct instanceof
- * \Drupal\Component\Plugin\ConfigurableInterface check. The method was
- * deprecated in Drupal 11.1.0 and will be removed in 12.0.0; it was a
- * convenience wrapper around instanceof ConfigurableInterface that is
- * not part of any interface and therefore unsafe to mock in tests.
+ * Replaces calls to the deprecated PluginBase::isConfigurable() with an
+ * equivalent instanceof \Drupal\Component\Plugin\ConfigurableInterface
+ * expression. The method was deprecated in Drupal 11.1 and will be
+ * removed in 12.0; the instanceof check is semantically identical and
+ * works directly on any expression typed as PluginBase or a subclass.
  *
  * Before:
  *   $plugin->isConfigurable();
@@ -19,10 +18,11 @@ declare(strict_types=1);
  *   $plugin instanceof \Drupal\Component\Plugin\ConfigurableInterface;
  *
  * Caveats:
- *   Requires Drupal's autoloader to be available to Rector/PHPStan so
- *   that $this inside a PluginBase subclass is correctly resolved.
- *   Explicitly typed parameters and variables (PluginBase $plugin) are
- *   always transformed.
+ *   Only rewrites calls where the receiver is statically typed as
+ *   Drupal\Component\Plugin\PluginBase or a subclass. Calls on untyped
+ *   variables or variables typed only as an interface (e.g., a custom
+ *   plugin interface that does not extend PluginBase) are skipped;
+ *   those should be migrated manually.
  *
  * @see https://www.drupal.org/node/3459533
  * @deprecated drupal:11.1.0
@@ -45,10 +45,10 @@ final class ReplacePluginBaseIsConfigurableRector extends AbstractRector
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface check.',
+            'Replace deprecated PluginBase::isConfigurable() with instanceof ConfigurableInterface check.',
             [new CodeSample(
                 '$plugin->isConfigurable();',
-                '$plugin instanceof \\Drupal\\Component\\Plugin\\ConfigurableInterface;',
+                '$plugin instanceof \Drupal\Component\Plugin\ConfigurableInterface;',
             )],
         );
     }
@@ -62,9 +62,6 @@ final class ReplacePluginBaseIsConfigurableRector extends AbstractRector
     /** @param MethodCall $node */
     public function refactor(Node $node): ?Node
     {
-        if (!$node instanceof MethodCall) {
-            return null;
-        }
         if (!$this->isName($node->name, 'isConfigurable')) {
             return null;
         }

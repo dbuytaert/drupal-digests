@@ -24,6 +24,10 @@ declare(strict_types=1);
 
 
 use PhpParser\Node;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\NodeVisitor;
@@ -59,17 +63,32 @@ final class RemoveLinkWidgetValidateTitleElementRector extends AbstractRector
         if (!$node->expr instanceof StaticCall) {
             return null;
         }
-
         $staticCall = $node->expr;
-
         if (!$this->isName($staticCall->name, 'validateTitleElement')) {
             return null;
         }
-
         if (!$this->isName($staticCall->class, 'Drupal\\link\\Plugin\\Field\\FieldWidget\\LinkWidget')) {
             return null;
         }
-
+        // Refuse to remove the statement when any argument expression could
+        // have observable side effects. Without this guard the rule silently
+        // drops those side effects along with the deprecated call.
+        foreach ($staticCall->args as $arg) {
+            if (!$arg instanceof \PhpParser\Node\Arg) {
+                return null;
+            }
+            if ($this->hasSideEffect($arg->value)) {
+                return null;
+            }
+        }
         return NodeVisitor::REMOVE_NODE;
+    }
+
+    private function hasSideEffect(Expr $expr): bool
+    {
+        return $expr instanceof FuncCall
+            || $expr instanceof MethodCall
+            || $expr instanceof StaticCall
+            || $expr instanceof New_;
     }
 }

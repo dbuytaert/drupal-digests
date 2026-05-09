@@ -17,7 +17,7 @@ declare(strict_types=1);
  *
  * Before:
  *   // In a DefaultHtmlRouteProvider subclass
- *   if ($this->getEntityTypeIdKeyType($entity_type) === 'integer') { /* … */ }
+ *   if ($this->getEntityTypeIdKeyType($entity_type) === 'integer') { // ... }
  *   
  *   // In a CommentTypeForm subclass
  *   $result = $this->entityTypeSupportsComments($entity_type);
@@ -27,7 +27,7 @@ declare(strict_types=1);
  *
  * After:
  *   // All three patterns become:
- *   if ($entity_type->hasIntegerId()) { /* … */ }
+ *   if ($entity_type->hasIntegerId()) { // ... }
  *   
  *   $result = $entity_type->hasIntegerId();
  *   

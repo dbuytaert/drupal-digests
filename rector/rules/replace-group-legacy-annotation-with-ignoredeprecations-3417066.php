@@ -18,7 +18,6 @@ declare(strict_types=1);
  *    *
  *    * @covers ::foo
  *    * @group legacy
- *    */
  *   public function testLegacyBehavior(): void {}
  *
  * After:
@@ -26,7 +25,6 @@ declare(strict_types=1);
  *    * Tests deprecated behaviour.
  *    *
  *    * @covers ::foo
- *    */
  *   #[\PHPUnit\Framework\Attributes\IgnoreDeprecations]
  *   public function testLegacyBehavior(): void {}
  *

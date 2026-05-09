@@ -176,10 +176,15 @@ CODE,
      */
     private function constructorAlreadyHasTimeParam(ClassMethod $classMethod, int $position): bool
     {
-        if (!isset($classMethod->params[$position])) {
-            return false;
+        // Scan ALL params, not just at the expected position. A subclass may
+        // already declare a $time param at a different index; adding another
+        // at $position would collide and produce invalid PHP.
+        foreach ($classMethod->params as $param) {
+            if ($this->isName($param, 'time')) {
+                return true;
+            }
         }
-        return $this->isName($classMethod->params[$position], 'time');
+        return false;
     }
 
     /**

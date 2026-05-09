@@ -1,4 +1,4 @@
-**TL;DR:** [552 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [560 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_418 summaries · 14 new this week_
+_425 summaries · 20 new this week_
 
-- [#2258355: Deprecate hide() and show()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2258355.md)
-- [#3573954: Move common code across Drupal base test suite classes to DrupalTestCaseTrait ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573954.md)
-- [#3066751: Add resolvable_uri property to LinkItem for APIs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3066751.md)
+- [#3579189: Fix return types and baselined errors of core/tests/ Kernel code - round 5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579189.md)
+- [#3573879: Mark layout_builder_expose_all_field_blocks obsolete, uninstall it and remove...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3573879.md)
+- [#2954725: AccountInterface::getLastAccessedTime() implementors return incorrect data type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2954725.md)
 
 ### Drupal AI
 
-_67 summaries · 2 new this week_
+_68 summaries · 3 new this week_
 
+- [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
 - [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
 - [#3575412: Create an Automator for Document Loader](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575412.md)
-- [#3585786: Add universal pre-load and post-load hooks to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3585786.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_183 rules · 33 new this week_
+_162 rules · 21 new this week_
 
-- [Replace hide() and show() with inline #printed assignments](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-hide-and-show-with-inline-printed-assignments-2258355.php)
-- [Replace TestRequirementsTrait with DrupalTestCaseTrait](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-testrequirementstrait-with-drupaltestcasetrait-3573954.php)
-- [Remove $options BC-layer parameter from Symfony Constraint constructors](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php)
+- [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
+- [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
+- [Replace deprecated node_add_body_field() with createBodyField()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-add-body-field-with-createbodyfield-3489266.php)
 
 
 ## RSS feeds

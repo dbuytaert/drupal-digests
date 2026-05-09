@@ -5,6 +5,69 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
+      <title>#3577857: Allow Document Loader to define LLM inputs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md</link>
+      <guid isPermaLink="false">019e0b29-d116-7734-a5e3-d938d6994cb2</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 06 May 2026 15:17:25 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +2236/−7 · php +2215/−7 · md +11 · txt +7 · yml +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/document_loader/-/commit/4c5fa3a4f3a3fe7a17dde995ed0237198a8437ac"&gt;4c5fa3a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577857"&gt;#3577857&lt;/a&gt; · 3 contributors · 11 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Document loader plugins can now declare their own runtime options via a schema method, and those options are automatically surfaced in every integration point: the Document Loader Explorer form, the Field Widget Action plugin, the AI Automator, and the AI tool deriver. Site builders no longer need to create separate input classes or hardcode loader-specific settings. Options marked &lt;code&gt;hide_from_llm_by_default&lt;/code&gt; are pre-configured to be hidden from the LLM and locked to their schema defaults on the AI Agent configuration form.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;getLoaderOptionsSchema()&lt;/code&gt; method on &lt;code&gt;DocumentLoaderInterface&lt;/code&gt; / &lt;code&gt;DocumentLoaderBase&lt;/code&gt; allows loader plugins to declare typed runtime options that are automatically rendered in all integration UIs and AI tool schemas.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core addition is &lt;code&gt;getLoaderOptionsSchema()&lt;/code&gt; on &lt;code&gt;DocumentLoaderInterface&lt;/code&gt;, with a default empty-array implementation in &lt;code&gt;DocumentLoaderBase&lt;/code&gt;. Loader plugins override this to return an associative array of option definitions. Each definition carries &lt;code&gt;data_type&lt;/code&gt; (&lt;code&gt;string&lt;/code&gt;, &lt;code&gt;boolean&lt;/code&gt;, &lt;code&gt;integer&lt;/code&gt;, &lt;code&gt;list&lt;/code&gt;), &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;required&lt;/code&gt;, &lt;code&gt;default_value&lt;/code&gt;, optional &lt;code&gt;options&lt;/code&gt; (key→label map for select/checkboxes), &lt;code&gt;multiple&lt;/code&gt;, and the new &lt;code&gt;hide_from_llm_by_default&lt;/code&gt; flag.&lt;/p&gt;
+&lt;p&gt;To prevent key collisions when multiple loaders declare options with the same name, all options are namespaced as &lt;code&gt;{loader_plugin_id}__{option_key}&lt;/code&gt; wherever they cross plugin boundaries. &lt;code&gt;DocumentLoaderBase::extractOwnOptions()&lt;/code&gt; strips this prefix at runtime, routing only the current loader's options to it. Colons in derivative plugin IDs (e.g. &lt;code&gt;document_loader:file&lt;/code&gt;) are encoded as &lt;code&gt;_C_&lt;/code&gt; in form keys and tool schemas to avoid Drupal context definition parsing issues.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DocumentLoaderTypeFactory::createInput()&lt;/code&gt; gains an &lt;code&gt;$extra_options&lt;/code&gt; parameter; the factory merges these into the input's &lt;code&gt;options&lt;/code&gt; array after type-detection, keeping schema-declared fields separate from loader options. Each integration point (FWA's &lt;code&gt;DocumentLoaderAction&lt;/code&gt;, &lt;code&gt;DocumentLoaderAutomatorBase&lt;/code&gt;, &lt;code&gt;DocumentLoaderExplorerForm&lt;/code&gt;, &lt;code&gt;DocumentLoaderToolDeriver&lt;/code&gt;) calls &lt;code&gt;collectLoaderOptionsSchemas()&lt;/code&gt; or &lt;code&gt;getLoaderOptionsSchema()&lt;/code&gt; to build its form section and then extracts submitted values using the &lt;code&gt;dl__&lt;/code&gt; (automator/FWA) or direct-key (explorer) conventions. The new &lt;code&gt;DocumentLoaderToolHooks&lt;/code&gt; class implements &lt;code&gt;hook_form_alter&lt;/code&gt; to pre-select &amp;quot;Force value&amp;quot; and &amp;quot;Hide property&amp;quot; on the AI Agent, Modeler API Wrapper, and AI API Explorer forms for any property with &lt;code&gt;hide_from_llm_by_default&lt;/code&gt; set.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Loader plugins that want to expose runtime options implement the new method:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function getLoaderOptionsSchema(): array {
+  return [
+    'strategy' =&amp;gt; [
+      'data_type' =&amp;gt; 'string',
+      'label' =&amp;gt; new TranslatableMarkup('Strategy'),
+      'description' =&amp;gt; new TranslatableMarkup('Processing strategy.'),
+      'required' =&amp;gt; FALSE,
+      'default_value' =&amp;gt; 'auto',
+      'options' =&amp;gt; ['auto' =&amp;gt; 'Auto', 'fast' =&amp;gt; 'Fast', 'hi_res' =&amp;gt; 'Hi-Res'],
+      'hide_from_llm_by_default' =&amp;gt; FALSE,
+    ],
+  ];
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Inside your loader's &lt;code&gt;loadDocument()&lt;/code&gt; (or equivalent), call the new &lt;code&gt;extractOwnOptions()&lt;/code&gt; helper to retrieve only your loader's options from the input:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$opts = $this-&amp;gt;extractOwnOptions($input-&amp;gt;getOptions());
+$strategy = $opts['strategy'] ?? 'auto';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;No changes are needed if you do not need to declare loader-specific options.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 6, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3580850: Integrate with the MDX editor</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md</link>
       <guid isPermaLink="false">019dfbb1-2d21-706d-a76e-3373d705c83c</guid>
@@ -909,45 +972,6 @@ final class MyAutomatorSubscriber implements EventSubscriberInterface {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;marcus_johansson opened the issue and later reviewed the emerging implementation, flagging that changes to the &lt;code&gt;fromParameters&lt;/code&gt; signature would be a breaking-change concern after release and recommending that the loose parameter array be replaced with a strongly typed DTO to simplify validation and testing. kristen pol drove the planning thread across multiple sprints: she proposed tagging context items by category to enable smarter automatic selection, linked in the related architecture and scoping issues (&lt;a href="https://www.drupal.org/node/3559379"&gt;#3559379&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3564706"&gt;#3564706&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3568679"&gt;#3568679&lt;/a&gt;), and ultimately folded the resolution into &lt;a href="https://www.drupal.org/node/3574359"&gt;#3574359&lt;/a&gt; once the approach was agreed upon.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579414: Remove hardcoded tool parameter check and use plugin discovery</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579414.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e75dc06954</guid>
-      <pubDate>Tue, 17 Mar 2026 09:50:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +33/−25 · php +33/−25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_agents_test/-/commit/2ec94a8cabae4e01929ecce913e8b83435e8a884"&gt;2ec94a8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579414"&gt;#3579414&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Agents Test module now automatically discovers and displays all available parameter test plugins when creating agent tests. Previously, the interactive test form hardcoded a fixed list of parameter validation rules, meaning custom plugins couldn't be used even though the system supported them. This change makes the module properly extensible, allowing developers to create custom parameter validation plugins that immediately appear in the testing interface.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;InteractiveAgentTestForm&lt;/code&gt; class was building parameter test options using a hardcoded array of ten validation rules (empty, isset, not_set, equals, etc.), even though &lt;code&gt;AgentsParameterTest&lt;/code&gt; items were already implemented as plugins with a discovery system. This meant custom plugins existed but couldn't be selected in the UI.&lt;/p&gt;
-&lt;p&gt;The fix injects the &lt;code&gt;AgentsParameterTestPluginManager&lt;/code&gt; service into the form and replaces the hardcoded options array with a new &lt;code&gt;getParameterTestOptions()&lt;/code&gt; method. This method queries the plugin manager for all available definitions and builds the options list dynamically from their labels, preserving the 'empty' (No rules) option as the first entry.&lt;/p&gt;
-&lt;p&gt;The form states logic for showing/hiding the value field was also refactored. Instead of listing all checks that should show the field, it now uses an inverse approach, hiding the field only for 'empty', 'isset', and 'not_set'. This makes the visibility rules work automatically for new plugins without requiring code changes.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 16, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 17, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was opened and resolved within one day, with a straightforward implementation. The problem was clearly identified: the plugin system existed but wasn't being used for UI rendering. The solution followed established Drupal patterns of injecting the plugin manager and using discovery to populate form options, making this a textbook example of fixing a plugin system integration gap.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
