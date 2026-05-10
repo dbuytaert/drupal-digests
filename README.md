@@ -14,7 +14,7 @@ _427 summaries · 21 new this week_
 
 ### Drupal AI
 
-_68 summaries · 3 new this week_
+_68 summaries · 2 new this week_
 
 - [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
 - [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
