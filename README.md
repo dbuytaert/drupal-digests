@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_427 summaries · 22 new this week_
+_427 summaries · 21 new this week_
 
 - [#2486267: Attributes of a block content are applied to block itself](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2486267.md)
 - [#3463868: Two #config_targets error when used on a text_format form element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3463868.md)
