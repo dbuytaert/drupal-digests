@@ -241,6 +241,152 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace deprecated locale.compare.inc functions with service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e18c6-fd07-733e-a1cc-8389ed244484.md</link>
+      <guid isPermaLink="false">019e18c6-fd07-733e-a1cc-8389ed244484</guid>
+      <pubDate>Mon, 11 May 2026 20:42:34 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces four deprecated procedural functions from &lt;code&gt;locale.compare.inc&lt;/code&gt; with calls on the new &lt;code&gt;LocaleProjectRepository&lt;/code&gt; and &lt;code&gt;LocaleProjectChecker&lt;/code&gt; services introduced in Drupal 11.4. &lt;code&gt;locale_translation_flush_projects()&lt;/code&gt; and &lt;code&gt;locale_translation_build_projects()&lt;/code&gt; delegate to &lt;code&gt;LocaleProjectRepository&lt;/code&gt;, while &lt;code&gt;locale_translation_check_projects()&lt;/code&gt; and &lt;code&gt;locale_translation_check_projects_local()&lt;/code&gt; delegate to &lt;code&gt;LocaleProjectChecker&lt;/code&gt;. When called with no arguments, the rule expands the call to pass all projects explicitly.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;locale_translation_flush_projects();
+locale_translation_build_projects();
+locale_translation_check_projects();
+locale_translation_check_projects_local(['drupal'], ['de']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;deleteAll();
+\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;buildProjects();
+\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkProjects(array_keys(\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;getAll()));
+\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkLocalProjects(['drupal'], ['de']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The functions &lt;code&gt;locale_translation_project_list()&lt;/code&gt;, &lt;code&gt;_locale_translation_prepare_project_list()&lt;/code&gt;, and &lt;code&gt;locale_translation_default_translation_server()&lt;/code&gt; are also deprecated in this issue but have no replacement, so they are not handled by this rule.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * Replaces deprecated locale.compare.inc functions with service calls.
+ *
+ * locale_translation_flush_projects() -&amp;gt; LocaleProjectRepository::deleteAll()
+ * locale_translation_build_projects() -&amp;gt; LocaleProjectRepository::buildProjects()
+ * locale_translation_check_projects() -&amp;gt; LocaleProjectChecker::checkProjects()
+ * locale_translation_check_projects_local() -&amp;gt; LocaleProjectChecker::checkLocalProjects()
+ */
+final class LocaleCompareIncToServiceRector extends AbstractRector
+{
+    private const LOCALE_PROJECT_REPOSITORY = 'Drupal\\locale\\LocaleProjectRepository';
+    private const LOCALE_PROJECT_CHECKER = 'Drupal\\locale\\LocaleProjectChecker';
+
+    // Functions that map directly: name -&amp;gt; [serviceClass, method]
+    // (no special empty-projects handling needed)
+    private const DIRECT_MAP = [
+        'locale_translation_flush_projects' =&amp;gt; [self::LOCALE_PROJECT_REPOSITORY, 'deleteAll'],
+        'locale_translation_build_projects' =&amp;gt; [self::LOCALE_PROJECT_REPOSITORY, 'buildProjects'],
+    ];
+
+    // Functions that accept ($projects, $langcodes) and need empty-project expansion
+    private const PROJECT_CHECKER_MAP = [
+        'locale_translation_check_projects' =&amp;gt; [self::LOCALE_PROJECT_CHECKER, 'checkProjects'],
+        'locale_translation_check_projects_local' =&amp;gt; [self::LOCALE_PROJECT_CHECKER, 'checkLocalProjects'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.compare.inc functions with LocaleProjectRepository and LocaleProjectChecker service methods.',
+            [new CodeSample(
+                'locale_translation_flush_projects();
+locale_translation_build_projects();
+locale_translation_check_projects();
+locale_translation_check_projects_local([\'drupal\'], [\'de\']);',
+                '\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;deleteAll();
+\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;buildProjects();
+\\Drupal::service(\\Drupal\\locale\\LocaleProjectChecker::class)-&amp;gt;checkProjects(array_keys(\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;getAll()));
+\\Drupal::service(\\Drupal\\locale\\LocaleProjectChecker::class)-&amp;gt;checkLocalProjects([\'drupal\'], [\'de\']);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $name = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($name === null) {
+            return null;
+        }
+
+        // Simple no-args or pass-through rewrites.
+        if (isset(self::DIRECT_MAP[$name])) {
+            [$serviceClass, $method] = self::DIRECT_MAP[$name];
+            return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, $node-&amp;gt;args);
+        }
+
+        // Functions with ($projects, $langcodes) that need empty-projects expansion.
+        if (isset(self::PROJECT_CHECKER_MAP[$name])) {
+            [$serviceClass, $method] = self::PROJECT_CHECKER_MAP[$name];
+
+            if (count($node-&amp;gt;args) === 0) {
+                // When called with no arguments, the deprecated wrapper fetched all
+                // projects first. Mirror that by passing array_keys(getAll()).
+                $allProjects = new FuncCall(
+                    new FullyQualified('array_keys'),
+                    [new Arg(new MethodCall($this-&amp;gt;buildServiceCall(self::LOCALE_PROJECT_REPOSITORY), 'getAll', []))]
+                );
+                return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, [new Arg($allProjects)]);
+            }
+
+            // When called with explicit arguments, pass them through unchanged.
+            return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, $node-&amp;gt;args);
+        }
+
+        return null;
+    }
+
+    /**
+     * Builds a \Drupal::service(ClassName::class) static call expression.
+     */
+    private function buildServiceCall(string $serviceClass): StaticCall
+    {
+        $classConst = new ClassConstFetch(new FullyQualified($serviceClass), 'class');
+        return new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg($classConst)]);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([LocaleCompareIncToServiceRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated node_add_body_field() with createBodyField()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e09ac-f8c2-7253-96b2-c2a62454b4bb.md</link>
       <guid isPermaLink="false">019e09ac-f8c2-7253-96b2-c2a62454b4bb</guid>
@@ -1430,206 +1576,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameMethodRector::class, [
         new MethodCallRename('Drupal\Core\Cache\CacheBackendInterface', 'invalidateAll', 'deleteAll'),
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove $options BC-layer parameter from Symfony Constraint constructors</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019df81c-1ce3-75a1-a6f8-a42754475eb1.md</link>
-      <guid isPermaLink="false">019df81c-1ce3-75a1-a6f8-a42754475eb1</guid>
-      <pubDate>Tue, 05 May 2026 12:28:05 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569096"&gt;#3569096&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes the &lt;code&gt;mixed $options = NULL&lt;/code&gt; BC-layer first parameter from constructors of &lt;code&gt;Symfony\Component\Validator\Constraint&lt;/code&gt; subclasses, and updates the &lt;code&gt;parent::__construct($options, $groups, $payload)&lt;/code&gt; call to use Symfony 8-compatible named arguments &lt;code&gt;parent::__construct(groups: $groups, payload: $payload)&lt;/code&gt;. Symfony 8 drops the legacy array-options constructor, so Drupal 12 removes this pattern from all core Constraint classes; contrib classes with the same pattern must follow.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Symfony\Component\Validator\Constraint;
-
-class MyConstraint extends Constraint {
-    public function __construct(
-        mixed $options = NULL,
-        public string $message = 'Value is invalid.',
-        ?array $groups = NULL,
-        mixed $payload = NULL,
-    ) {
-        parent::__construct($options, $groups, $payload);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Symfony\Component\Validator\Constraint;
-
-class MyConstraint extends Constraint {
-    public function __construct(
-        public string $message = 'Value is invalid.',
-        ?array $groups = NULL,
-        mixed $payload = NULL,
-    ) {
-        parent::__construct(groups: $groups, payload: $payload);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only transforms the common 3-argument &lt;code&gt;parent::__construct($options, $groups, $payload)&lt;/code&gt; pattern; cases where the parent constructor takes additional positional arguments (e.g. subclasses of Symfony's concrete &lt;code&gt;Email&lt;/code&gt; or &lt;code&gt;Range&lt;/code&gt; constraints) are left unchanged. Requires &lt;code&gt;symfony/validator&lt;/code&gt; to be in PHPStan's autoload path so the &lt;code&gt;Constraint&lt;/code&gt; hierarchy can be resolved.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ConstFetch;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Expr\Variable;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name;
-use PhpParser\Node\Stmt\Class_;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class RemoveOptionsArgFromConstraintConstructorRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove the legacy $options BC-layer parameter from Symfony Constraint subclass constructors and update the parent::__construct() call to use named arguments.',
-            [new CodeSample(
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Symfony\Component\Validator\Constraint;
-
-class MyConstraint extends Constraint {
-    public function __construct(
-        mixed $options = NULL,
-        public string $message = 'Value is invalid.',
-        ?array $groups = NULL,
-        mixed $payload = NULL,
-    ) {
-        parent::__construct($options, $groups, $payload);
-    }
-}
-CODE_SAMPLE,
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Symfony\Component\Validator\Constraint;
-
-class MyConstraint extends Constraint {
-    public function __construct(
-        public string $message = 'Value is invalid.',
-        ?array $groups = NULL,
-        mixed $payload = NULL,
-    ) {
-        parent::__construct(groups: $groups, payload: $payload);
-    }
-}
-CODE_SAMPLE,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Class_::class];
-    }
-
-    /** @param Class_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof Class_) {
-            return null;
-        }
-        if ($node-&amp;gt;extends === null) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($node-&amp;gt;extends, new ObjectType('Symfony\Component\Validator\Constraint'))) {
-            return null;
-        }
-
-        $constructMethod = $node-&amp;gt;getMethod('__construct');
-        if ($constructMethod === null) {
-            return null;
-        }
-        if (count($constructMethod-&amp;gt;params) === 0) {
-            return null;
-        }
-
-        // First parameter must be named $options with a NULL default
-        $firstParam = $constructMethod-&amp;gt;params[0];
-        if (!$this-&amp;gt;isName($firstParam-&amp;gt;var, 'options')) {
-            return null;
-        }
-        if ($firstParam-&amp;gt;default === null) {
-            return null;
-        }
-        if (!$firstParam-&amp;gt;default instanceof ConstFetch) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($firstParam-&amp;gt;default-&amp;gt;name, 'null')) {
-            return null;
-        }
-        // The parameter must not already be a promoted property (it's the BC options, not an option property)
-        if ($firstParam-&amp;gt;flags !== 0) {
-            return null;
-        }
-
-        // Remove the $options parameter from the constructor
-        array_shift($constructMethod-&amp;gt;params);
-
-        // Update the parent::__construct() call inside the method body
-        $this-&amp;gt;traverseNodesWithCallable($constructMethod-&amp;gt;stmts ?? [], function (Node $innerNode): ?Node {
-            if (!$innerNode instanceof StaticCall) {
-                return null;
-            }
-            if (!$innerNode-&amp;gt;class instanceof Name) {
-                return null;
-            }
-            if ($innerNode-&amp;gt;class-&amp;gt;toString() !== 'parent') {
-                return null;
-            }
-            if (!$this-&amp;gt;isName($innerNode-&amp;gt;name, '__construct')) {
-                return null;
-            }
-            if (count($innerNode-&amp;gt;args) &amp;lt; 1) {
-                return null;
-            }
-            $firstArg = $innerNode-&amp;gt;args[0];
-            if (!$firstArg instanceof Arg) {
-                return null;
-            }
-            // Skip already-named first argument
-            if ($firstArg-&amp;gt;name !== null) {
-                return null;
-            }
-            if (!$firstArg-&amp;gt;value instanceof Variable) {
-                return null;
-            }
-            if (!$this-&amp;gt;isName($firstArg-&amp;gt;value, 'options')) {
-                return null;
-            }
-            // Remove the $options arg; convert the remaining two positional args to named args
-            $remaining = array_slice($innerNode-&amp;gt;args, 1);
-            if (count($remaining) === 2
-                &amp;amp;&amp;amp; $remaining[0] instanceof Arg
-                &amp;amp;&amp;amp; $remaining[0]-&amp;gt;name === null
-                &amp;amp;&amp;amp; $remaining[1] instanceof Arg
-                &amp;amp;&amp;amp; $remaining[1]-&amp;gt;name === null
-            ) {
-                $remaining[0]-&amp;gt;name = new Identifier('groups');
-                $remaining[1]-&amp;gt;name = new Identifier('payload');
-            }
-            $innerNode-&amp;gt;args = $remaining;
-            return $innerNode;
-        });
-
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveOptionsArgFromConstraintConstructorRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

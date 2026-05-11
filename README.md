@@ -1,4 +1,4 @@
-**TL;DR:** [565 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [566 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [163 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_430 summaries · 23 new this week_
+_431 summaries · 24 new this week_
 
+- [#3037031: Convert locale.compare.inc to a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037031.md)
 - [#3525392: Add constraint for ResponseStatus Condition status code so it can be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3525392.md)
 - [#3552922: Add symfony/runtime dependency to core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552922.md)
-- [#3313404: Use symfony/runtime for less bespoke bootstrap/compatibility with varied...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3313404.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [162 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [163 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_162 rules · 20 new this week_
+_163 rules · 21 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace deprecated node_add_body_field() with createBodyField()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-node-add-body-field-with-createbodyfield-3489266.php)
+- [Replace deprecated locale.compare.inc functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-compare-inc-functions-with-3037031.php)
 
 
 ## RSS feeds

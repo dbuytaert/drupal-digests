@@ -5,6 +5,98 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3037031: Convert locale.compare.inc to a service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037031.md</link>
+      <guid isPermaLink="false">019e18c0-96fa-7444-a68f-8799b168083f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 11 May 2026 17:13:25 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 28 files, +826/−328 · php +821/−328 · yml +5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1629df58588d36a91a9719e93d5ccf352cc8b25d"&gt;1629df5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; · 13 contributors · 102 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 17&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's locale module previously relied on a set of procedural functions in &lt;code&gt;locale.compare.inc&lt;/code&gt; and a &lt;code&gt;locale.project&lt;/code&gt; key-value storage service to track, build, and check the translation status of installed projects. These have been replaced by two new injectable services, &lt;code&gt;LocaleProjectRepository&lt;/code&gt; and &lt;code&gt;LocaleProjectChecker&lt;/code&gt;, and a typed &lt;code&gt;LocaleTranslatableProject&lt;/code&gt; value object. The old functions and the &lt;code&gt;locale.project&lt;/code&gt; service (&lt;code&gt;LocaleProjectStorageInterface&lt;/code&gt; / &lt;code&gt;LocaleProjectStorage&lt;/code&gt;) are now deprecated and will be removed in Drupal 13.0.0. Site behavior is unchanged; this affects developers who call locale translation project APIs directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; LocaleSource::buildSources() $projects parameter is now required (default [] removed); LocaleSource::sourceBuild() now requires a typed LocaleTranslatableProject argument; LocaleFetch and LocaleFileManager constructor dependencies changed from LocaleProjectStorageInterface to LocaleProjectRepository.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; locale_translation_flush_projects(), locale_translation_build_projects(), locale_translation_project_list(), _locale_translation_prepare_project_list(), locale_translation_default_translation_server(), locale_translation_check_projects(), locale_translation_check_projects_local(), LocaleProjectStorageInterface, and LocaleProjectStorage deprecated in drupal:11.4.0, removed in drupal:13.0.0; use LocaleProjectRepository and LocaleProjectChecker instead.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New LocaleProjectRepository service (replaces locale.project / LocaleProjectStorageInterface), new LocaleProjectChecker service, and new LocaleTranslatableProject value object added in locale module.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core problem was that all project-list logic lived in a single procedural include file (&lt;code&gt;locale.compare.inc&lt;/code&gt;) with a mix of storage, building, and status-checking concerns, making it hard to inject, test, or extend. The solution splits this into three new symbols in &lt;code&gt;core/modules/locale/src/&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;LocaleProjectRepository&lt;/code&gt; is a &lt;code&gt;readonly&lt;/code&gt; service that owns the &lt;code&gt;locale.project&lt;/code&gt; key-value store and an in-process &lt;code&gt;cache.memory&lt;/code&gt; cache (keyed &lt;code&gt;locale_get_projects&lt;/code&gt;). It provides &lt;code&gt;getAll()&lt;/code&gt;, &lt;code&gt;getMultiple()&lt;/code&gt;, &lt;code&gt;set()&lt;/code&gt;, &lt;code&gt;deleteMultiple()&lt;/code&gt;, &lt;code&gt;deleteAll()&lt;/code&gt;, and &lt;code&gt;buildProjects()&lt;/code&gt;. The latter replaces &lt;code&gt;locale_translation_build_projects()&lt;/code&gt;: it reads module and theme extension lists via &lt;code&gt;ModuleExtensionList&lt;/code&gt;/&lt;code&gt;ThemeExtensionList&lt;/code&gt;, normalises dev-version strings, fires &lt;code&gt;hook_locale_translation_projects_alter&lt;/code&gt;, and persists &lt;code&gt;LocaleTranslatableProject&lt;/code&gt; objects. Projects no longer in the extension list are marked disabled rather than deleted.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;LocaleProjectChecker&lt;/code&gt; wraps the two project-checking paths: &lt;code&gt;checkProjects()&lt;/code&gt; (replaces &lt;code&gt;locale_translation_check_projects()&lt;/code&gt;) dispatches to a batch if remote sources are enabled, otherwise calls &lt;code&gt;checkLocalProjects()&lt;/code&gt; (replaces &lt;code&gt;locale_translation_check_projects_local()&lt;/code&gt;), which uses &lt;code&gt;LocaleSource::sourceBuild()&lt;/code&gt; and saves the result via &lt;code&gt;locale_translation_status_save()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;LocaleTranslatableProject&lt;/code&gt; is a typed value object with named constructor parameters (&lt;code&gt;name&lt;/code&gt;, &lt;code&gt;type&lt;/code&gt;, &lt;code&gt;core&lt;/code&gt;, &lt;code&gt;version&lt;/code&gt;, &lt;code&gt;server_pattern&lt;/code&gt;, &lt;code&gt;info&lt;/code&gt;, &lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;weight&lt;/code&gt;, &lt;code&gt;status&lt;/code&gt;). It replaces the bare &lt;code&gt;stdClass&lt;/code&gt; objects that &lt;code&gt;locale.compare.inc&lt;/code&gt; previously cast arrays into. It carries &lt;code&gt;toArray()&lt;/code&gt; and &lt;code&gt;createFromArray()&lt;/code&gt; for round-tripping through the key-value store.&lt;/p&gt;
+&lt;p&gt;Three existing services (&lt;code&gt;LocaleSource&lt;/code&gt;, &lt;code&gt;LocaleFetch&lt;/code&gt;, &lt;code&gt;LocaleFileManager&lt;/code&gt;) previously injected &lt;code&gt;LocaleProjectStorageInterface&lt;/code&gt;; they now inject &lt;code&gt;LocaleProjectRepository&lt;/code&gt; directly. &lt;code&gt;LocaleSource::sourceBuild()&lt;/code&gt; now requires a typed &lt;code&gt;LocaleTranslatableProject $project&lt;/code&gt; instead of a bare &lt;code&gt;$project&lt;/code&gt; object, and &lt;code&gt;buildSources()&lt;/code&gt; now requires &lt;code&gt;array $projects&lt;/code&gt; (the default &lt;code&gt;= []&lt;/code&gt; was removed). &lt;code&gt;drupal_static_reset('locale_translation_project_list')&lt;/code&gt; now triggers a deprecation and is a no-op; &lt;code&gt;drupal_static_reset('locale_translation_get_projects')&lt;/code&gt; was updated to call &lt;code&gt;cache.memory-&amp;gt;delete('locale_get_projects')&lt;/code&gt; instead of the removed &lt;code&gt;locale.project-&amp;gt;resetCache()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace deprecated procedural functions and the &lt;code&gt;locale.project&lt;/code&gt; service as follows:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// locale_translation_flush_projects()
+\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;deleteAll();
+
+// locale_translation_build_projects()
+\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;buildProjects();
+
+// locale_translation_check_projects($projects, $langcodes)
+\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkProjects($projects, $langcodes);
+
+// locale_translation_check_projects_local($projects, $langcodes)
+\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkLocalProjects($projects, $langcodes);
+
+// \Drupal::service('locale.project')-&amp;gt;getProjects() / getAll()
+\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;getAll();
+
+// locale_translation_project_list()
+// _locale_translation_prepare_project_list()
+// locale_translation_default_translation_server()
+// No replacement provided; remove calls to these functions.
+
+// drupal_static_reset('locale_translation_project_list')
+// No replacement; remove the call.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you inject &lt;code&gt;LocaleProjectStorageInterface&lt;/code&gt; or &lt;code&gt;LocaleProjectStorage&lt;/code&gt; as a constructor dependency, replace the type hint and service reference with &lt;code&gt;LocaleProjectRepository&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+public function __construct(
+  protected readonly LocaleProjectStorageInterface $localeProjectStorage,
+) {}
+
+// After
+public function __construct(
+  protected readonly \Drupal\locale\LocaleProjectRepository $localeProjectRepository,
+) {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;LocaleSource::buildSources()&lt;/code&gt; no longer accepts an empty default for &lt;code&gt;$projects&lt;/code&gt;; callers that relied on &lt;code&gt;buildSources()&lt;/code&gt; with no arguments must now pass an explicit array of project names or use &lt;code&gt;LocaleProjectRepository::getAll()&lt;/code&gt; to obtain the full list first.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 2, 2019&lt;/li&gt;
+&lt;li&gt;Committed: May 11, 2026 (7 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kishor_kolekar (QED42)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
+&lt;li&gt;msuthars (QED42)&lt;/li&gt;
+&lt;li&gt;sutharsan (ronder)&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;nicxvan took over a six-year-old issue in May 2025 and started from scratch because no existing patch could be applied across the 13-file conflict surface. While driving the MR to green through a long series of functional test failures, nicxvan noted a confusing overlap between &lt;code&gt;LocaleTranslatableProject&lt;/code&gt; and the &lt;code&gt;$source&lt;/code&gt; objects used inside &lt;code&gt;LocaleSource&lt;/code&gt;, where a &lt;code&gt;type&lt;/code&gt; property was being silently overwritten between the two representations. berdir pushed a set of commits directly to the MR that restored &lt;code&gt;LocaleSource&lt;/code&gt;'s handling almost exactly to HEAD, deliberately keeping the two objects separate and deferring their unification to the existing follow-up &lt;a href="https://www.drupal.org/node/1842380"&gt;#1842380&lt;/a&gt;. berdir also filed &lt;a href="https://www.drupal.org/node/3589344"&gt;#3589344&lt;/a&gt; to address the enabled/disabled project status complexity that remained. claudiu.cristea, who originally opened the issue in 2019, returned for the final review round and helped shape the scope of the patch.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3525392: Add constraint for ResponseStatus Condition status code so it can be FullyValidatable</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3525392.md</link>
       <guid isPermaLink="false">019e171e-8a91-746d-a3a9-832d8dbe54b5</guid>
@@ -1052,50 +1144,6 @@ use Drupal\Component\Discovery\StubTrait;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;When the issue was filed, longwave immediately flagged that CKEditor 5 v48 had dropped DLL support, making the upgrade impossible until &lt;a href="https://www.drupal.org/node/3527914"&gt;#3527914&lt;/a&gt; (the UMD installation-method switch) landed, and noted that Drupal 11 would deliberately stay on the v47 LTS line. Once that prerequisite merged, longwave opened the MR. During review godotislate observed that the jsdoc generation script was silently producing empty output against v48's changed package layout; longwave identified that v48 ships TypeScript &lt;code&gt;.d.ts&lt;/code&gt; files instead of JS source files, updated the glob and regex accordingly, and closed the separate tracking issue &lt;a href="https://www.drupal.org/node/3551053"&gt;#3551053&lt;/a&gt; as no longer needed. After an initial RTBC, a merge conflict caused the asset-byte test to fail; godotislate rebased, updated the byte thresholds, and moved the issue back to RTBC for final commit.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574506: Sorting by Views result counter causes ORDER BY unknown</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574506.md</link>
-      <guid isPermaLink="false">019df8fe-c57c-736a-b4f2-e592a4d39ac0</guid>
-      <pubDate>Tue, 05 May 2026 14:41:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +8/−0 · php +8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1a1999ddb532980a376ddedbd215301e7e47c8a0"&gt;1a1999d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574506"&gt;#3574506&lt;/a&gt; · 6 contributors · 29 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;If you have a Views table display that includes the &amp;quot;Views result counter&amp;quot; (row number) field and that column was made click-sortable, clicking the column header produced a fatal database error: &lt;code&gt;ORDER BY &amp;quot;unknown&amp;quot;&lt;/code&gt;. The counter field has no underlying database column to sort on, so the generated SQL was invalid. This is now fixed. The counter field is explicitly marked as non-sortable, so the sort option no longer appears in the table header. A cache rebuild is triggered automatically on update. Note that existing view configuration that already has this column marked as sortable is not automatically corrected; a follow-up issue (&lt;a href="https://www.drupal.org/node/3588188"&gt;#3588188&lt;/a&gt;) tracks that cleanup.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause is that the &amp;quot;Views result counter&amp;quot; field is a computed pseudo-field with no real database column. When a column in a Views table has no &lt;code&gt;click sortable&lt;/code&gt; constraint set, Views falls back to the literal string &lt;code&gt;&amp;quot;unknown&amp;quot;&lt;/code&gt; as the ORDER BY value, which MySQL rejects as an invalid column reference.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;'click sortable' =&amp;gt; FALSE&lt;/code&gt; to the counter field's entry in the &lt;code&gt;viewsData()&lt;/code&gt; method of the Views counter field plugin. This single key prevents Views from offering or executing click-sort on this field.&lt;/p&gt;
-&lt;p&gt;Because Views caches its field data definitions, an empty &lt;code&gt;views_post_update_counter_field_not_sortable()&lt;/code&gt; hook is added to &lt;code&gt;views.post_update.php&lt;/code&gt;. The empty hook triggers a cache rebuild on &lt;code&gt;drush updb&lt;/code&gt; / update.php so that the corrected field definition is picked up by existing sites without requiring a manual cache clear. The post-update hook was required even for a patch release because alexpott noted the Views data cache must be invalidated for the fix to take effect on running installations.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 19, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 5, 2026 (2 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mike-michal&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;lendude (iO)&lt;/li&gt;
-&lt;li&gt;sivaji_ganesh_jojodae&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, lendude argued that cleaning up existing view configuration was unnecessary because the format settings &amp;quot;are a mess anyway&amp;quot; and the click-sort option would disappear from the UI even without a config fix. alexpott pushed back, clarifying that the view configuration is only repaired if an editor revisits the table settings and saves, and that a post-update hook (even an empty one) was needed to rebuild the Views data cache for the fix to land in a patch release. alexpott filed &lt;a href="https://www.drupal.org/node/3588188"&gt;#3588188&lt;/a&gt; to handle the deeper config correction in a minor release, then committed the fix.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
