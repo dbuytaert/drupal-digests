@@ -5,6 +5,43 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3308877: Add static cache for loadEntityByUuid function to store uuid-id pairs in memory</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3308877.md</link>
+      <guid isPermaLink="false">019e1b69-c4b6-777c-8880-326bbefee174</guid>
+      <pubDate>Tue, 12 May 2026 08:45:36 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +54/−40 · php +54/−40&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f56d20ef2dfc739be2a2a15acee5af8b82a31dda"&gt;f56d20e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3308877"&gt;#3308877&lt;/a&gt; · 8 contributors · 31 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Every call to &lt;code&gt;EntityRepository::loadEntityByUuid()&lt;/code&gt; previously issued a SQL query to look up the entity ID from the UUID before loading the entity by ID. On pages that look up the same entity by UUID multiple times, or that resolve many entity references (as JSON:API does), this produced a large number of redundant queries. A static in-memory cache now stores UUID-to-ID pairs so that only the first lookup for a given UUID requires a query. The cache is also primed whenever any entity is loaded by ID, so UUID lookups that follow a normal entity load are free. The JSON:API performance tests confirm the improvement: one scenario dropped from 25 queries to 17, another from 14 to 6.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EntityStorageBase&lt;/code&gt; gains a new &lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt; property (&lt;code&gt;entity.memory_cache:uuid:{entityTypeId}&lt;/code&gt;) that allows the UUID lookup cache to be invalidated independently from the main entity memory cache.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;loadByProperties()&lt;/code&gt; now intercepts calls where the only filter is a single UUID string. It checks a &lt;code&gt;uuid_lookup:{entityTypeId}:{uuid}&lt;/code&gt; entry in the memory cache before running the EntityQuery. Both positive results (an array of entity IDs) and empty results (no entity found) are stored, so repeated calls with the same UUID are served entirely from memory. &lt;code&gt;setStaticCache()&lt;/code&gt; also writes these &lt;code&gt;uuid_lookup&lt;/code&gt; entries whenever entities are stored by ID, priming the UUID cache as a side effect of ordinary entity loads.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;resetCache()&lt;/code&gt; invalidates the entire UUID lookup cache tag (&lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt;) whenever any entity ID's cache is cleared, because there is no way to reverse-map a given ID back to its UUID without an additional query. When resetting all caches both the entity and UUID tags are invalidated together.&lt;/p&gt;
+&lt;p&gt;A required adjustment was made to &lt;code&gt;LruMemoryCache::invalidateTags()&lt;/code&gt;: it now removes items from the cache immediately when their tags are invalidated, instead of marking them as invalid and keeping them in memory. This is necessary for the UUID lookup cache to work correctly, since empty-result entries must be evictable via tag invalidation when an entity is saved or deleted. The change also means &lt;code&gt;LruMemoryCache&lt;/code&gt; no longer returns tag-invalidated items when &lt;code&gt;$allow_invalid = TRUE&lt;/code&gt; is passed to &lt;code&gt;get()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;UninstallDefaultContentTest&lt;/code&gt; was updated to obtain fresh storage instances after module install and uninstall rather than calling &lt;code&gt;resetCache()&lt;/code&gt; on stale instances, which the more aggressive UUID cache invalidation exposed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 9, 2022&lt;/li&gt;
+&lt;li&gt;Committed: May 12, 2026 (3 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;larowlan opened the MR after profiling a JSON:API endpoint backed by a custom OpenSearch-based entity storage, where each lookup carried additional latency. In that environment, reducing UUID queries dropped a single collection page from 550 queries to 55. catch stepped in to fix test failures: the initial implementation cached empty results, which broke tests that checked for a non-existent UUID before creating an entity. catch's resolution introduced the separate &lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt; so the UUID lookup cache could be reset aggressively on any entity save, enabling safe caching of empty results. That fix in turn required modifying &lt;code&gt;LruMemoryCache::invalidateTags()&lt;/code&gt; to remove items outright rather than marking them invalid. catch also noted that priming the UUID cache from &lt;code&gt;setStaticCache()&lt;/code&gt; was a particularly nice touch, causing every UUID query for entities already loaded by ID to disappear entirely from the JSON:API performance test results.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585555: Bump PHPStan &amp; friends to latest release</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md</link>
       <guid isPermaLink="false">019e1999-1d7c-7419-893b-97328b0f6e23</guid>
@@ -1034,76 +1071,6 @@ if ($user-&amp;gt;getLastAccessedTime() === 0) { /* user never accessed */ }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;emma horrell reported direct user-testing evidence that drove the decision: participants using the &amp;quot;Create&amp;quot; menu expected only page and post types, found the &amp;quot;User&amp;quot; item confusing because it resembled a profile type, and expected media to be managed through the dedicated Media section of the sidebar, not through &amp;quot;Create.&amp;quot; This grounded the consensus that removing the hard-coded entries was the right call rather than a debatable preference.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2258355: Deprecate hide() and show()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2258355.md</link>
-      <guid isPermaLink="false">019e0429-e5bc-7529-b7d9-7ead5a78d5c0</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 07 May 2026 17:53:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +65/−30 · php +65/−30&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/afe536a7949b1b79ec15cb564cc8a79ea39d8ca0"&gt;afe536a&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2258355"&gt;#2258355&lt;/a&gt; · 25 contributors · 131 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 25&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The global procedural functions &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; defined in &lt;code&gt;core/includes/common.inc&lt;/code&gt; are deprecated as of Drupal 10.1.0 and will be removed in Drupal 11.0.0. Code that calls these functions will trigger a deprecation notice. The replacement is to set the render array property directly: use &lt;code&gt;$element['#printed'] = TRUE&lt;/code&gt; in place of &lt;code&gt;hide($element)&lt;/code&gt;, and &lt;code&gt;$element['#printed'] = FALSE&lt;/code&gt; in place of &lt;code&gt;show($element)&lt;/code&gt;. The one core usage of these functions, in the file field preprocess function, has been updated to use the direct property assignment. The conceptual documentation about how the &lt;code&gt;#printed&lt;/code&gt; flag controls rendering traversal has been moved from the individual function docblocks into &lt;code&gt;RendererInterface::render()&lt;/code&gt;, where it more accurately belongs.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Global &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; functions deprecated in drupal:10.1.0 and removed in drupal:11.0.0; replace with direct &lt;code&gt;$element['#printed'] = TRUE/FALSE&lt;/code&gt; assignments.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Both &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; in &lt;code&gt;core/includes/common.inc&lt;/code&gt; simply flip the &lt;code&gt;#printed&lt;/code&gt; boolean property on a render array element. The &lt;code&gt;#printed&lt;/code&gt; flag acts as a semaphore: when TRUE, the renderer skips that element and its children on subsequent render passes. Because the functions are nothing more than thin wrappers around a one-line property assignment, the deprecation has no replacement function; callers are directed to inline the assignment. The &lt;code&gt;@trigger_error()&lt;/code&gt; call in each function points to change record https://www.drupal.org/node/3261271.&lt;/p&gt;
-&lt;p&gt;The docblock explaining the &lt;code&gt;#printed&lt;/code&gt; caching and traversal semantics (the &amp;quot;first time render() is called&amp;quot; explanation) was stripped from the two deprecated functions and added to &lt;code&gt;RendererInterface::render()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Render/RendererInterface.php&lt;/code&gt;, since that is where the behavior is actually implemented.&lt;/p&gt;
-&lt;p&gt;The sole core callsite, &lt;code&gt;template_preprocess_file_widget_multiple()&lt;/code&gt; in &lt;code&gt;core/modules/file/file.field.inc&lt;/code&gt;, was updated to use &lt;code&gt;$widget[$sub_key]['#printed'] = TRUE&lt;/code&gt; and &lt;code&gt;$widget['display']['#printed'] = TRUE&lt;/code&gt; in place of &lt;code&gt;hide()&lt;/code&gt;, and &lt;code&gt;$operations_elements[$key]['#printed'] = FALSE&lt;/code&gt; in place of &lt;code&gt;show()&lt;/code&gt;. A new unit test class &lt;code&gt;ProceduralApiDeprecationTest&lt;/code&gt; in &lt;code&gt;core/tests/Drupal/Tests/Core/Render/Element/&lt;/code&gt; verifies both deprecation messages fire and that the functions still return the expected array shapes during the transition window.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace every call to the global &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; functions with a direct property assignment:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-hide($element['some_child']);
-show($element['some_child']);
-
-// After
-$element['some_child']['#printed'] = TRUE;
-$element['some_child']['#printed'] = FALSE;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Note: if you are hiding a form element to remove it from output, using &lt;code&gt;$element['#access'] = FALSE&lt;/code&gt; is often more appropriate, as it also prevents form submission of that element.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 5, 2014&lt;/li&gt;
-&lt;li&gt;Committed: May 7, 2026 (12 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcingy&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;Arnion (Skilld)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;MerryHamster (Skilld)&lt;/li&gt;
-&lt;li&gt;karishmaamin (Specbee)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;nnevill (DevBranch)&lt;/li&gt;
-&lt;li&gt;voleger (Drupal Ukraine Community)&lt;/li&gt;
-&lt;li&gt;nod_ (Acquia)&lt;/li&gt;
-&lt;li&gt;bhanu951&lt;/li&gt;
-&lt;li&gt;spokje&lt;/li&gt;
-&lt;li&gt;xjm&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;vladimiraus (Tomato Elephant Studio)&lt;/li&gt;
-&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;longwave raised a substantive design question late in the review: the original plan was to move &lt;code&gt;hide()&lt;/code&gt; and &lt;code&gt;show()&lt;/code&gt; to static methods on &lt;code&gt;\Drupal\Core\Render\Element&lt;/code&gt;, but longwave noted that with Twig and its &lt;code&gt;without()&lt;/code&gt; filter now covering the themer use case, and most contrib usage actually being form-element hiding that should use &lt;code&gt;#access&lt;/code&gt; instead, there was no strong reason to keep the methods as public API at all. andypost picked up the point, updated the MR to deprecate without replacement, and moved the &lt;code&gt;#printed&lt;/code&gt; traversal documentation to &lt;code&gt;RendererInterface::render()&lt;/code&gt;. The shift from &amp;quot;move to a class&amp;quot; to &amp;quot;deprecate with no replacement&amp;quot; emerged directly from this exchange.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

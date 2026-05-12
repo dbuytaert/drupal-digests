@@ -1,4 +1,4 @@
-**TL;DR:** [571 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [573 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_436 summaries · 28 new this week_
+_437 summaries · 29 new this week_
 
+- [#3308877: Add static cache for loadEntityByUuid function to store uuid-id pairs in memory](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3308877.md)
 - [#3585555: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md)
 - [#3559132: FileSystem::deleteRecursive() leaves files/directories when realpath() returns...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3559132.md)
-- [#3589047: Deprecate TestRequirementsTrait::getDrupalRoot()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589047.md)
 
 ### Drupal AI
 
-_68 summaries · 2 new this week_
+_69 summaries · 3 new this week_
 
+- [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 - [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
 - [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
-- [#3575412: Create an Automator for Document Loader](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575412.md)
 
 ### Drupal Canvas
 
