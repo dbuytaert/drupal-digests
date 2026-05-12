@@ -1,4 +1,4 @@
-**TL;DR:** [566 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [163 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [571 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_431 summaries · 24 new this week_
+_436 summaries · 28 new this week_
 
-- [#3037031: Convert locale.compare.inc to a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037031.md)
-- [#3525392: Add constraint for ResponseStatus Condition status code so it can be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3525392.md)
-- [#3552922: Add symfony/runtime dependency to core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552922.md)
+- [#3585555: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md)
+- [#3559132: FileSystem::deleteRecursive() leaves files/directories when realpath() returns...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3559132.md)
+- [#3589047: Deprecate TestRequirementsTrait::getDrupalRoot()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589047.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [163 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_163 rules · 21 new this week_
+_165 rules · 23 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace deprecated locale.compare.inc functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-compare-inc-functions-with-3037031.php)
+- [Add $fileUrlGenerator argument to ResponsiveImageFormatter constructor calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-fileurlgenerator-argument-to-responsiveimageformatter-3064751.php)
 
 
 ## RSS feeds
