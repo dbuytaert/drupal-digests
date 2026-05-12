@@ -5,6 +5,137 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md</link>
+      <guid isPermaLink="false">019e1d17-3f35-722d-ac68-8526e44be025</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 12 May 2026 14:12:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 37 files, +1044/−232 · php +993/−230 · neon +47 · json +2/−1 · yml +1/−1 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/f9a85910f6b63217bfdfa4bb66fb81af21467108"&gt;f9a8591&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3589128"&gt;#3589128&lt;/a&gt; · 2 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas module has adopted &lt;code&gt;shipmonk/dead-code-detector&lt;/code&gt; 1.1.1 as a PHPStan extension to automatically flag unused methods, properties, and classes during CI. Because Drupal's dynamic dispatch patterns produce many false positives, eleven custom usage providers were written to teach the detector about hooks, routing callbacks, DIC service calls, schema validation callbacks, and test framework conventions. Once false positives were eliminated, the analysis confirmed and removed approximately 200 lines of genuinely dead code: a whole exception class, several public methods, unused constructor parameters, and unreferenced test properties.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Several public symbols removed as confirmed dead code: &lt;code&gt;InvalidRequestBodyValue&lt;/code&gt; class, &lt;code&gt;JsonSchemaType::isIterable()&lt;/code&gt; and &lt;code&gt;::isTraversable()&lt;/code&gt;, &lt;code&gt;withDelta()&lt;/code&gt; on three prop expression classes, and three methods on &lt;code&gt;CanvasResourceLinkCollection&lt;/code&gt; (which is &lt;code&gt;@internal&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The dead-code detector is wired into &lt;code&gt;phpstan.neon&lt;/code&gt; by tagging eleven new provider classes with &lt;code&gt;shipmonk.deadCode.memberUsageProvider&lt;/code&gt;. All providers live in &lt;code&gt;phpstan_rules/Canvas/PHPStan/UsageProvider/&lt;/code&gt; and extend &lt;code&gt;ReflectionBasedMemberUsageProvider&lt;/code&gt;, returning &lt;code&gt;VirtualUsageData&lt;/code&gt; for symbols Drupal invokes through paths static analysis cannot follow.&lt;/p&gt;
+&lt;p&gt;The providers cover: &lt;code&gt;DrupalHookUsageProvider&lt;/code&gt; marks methods carrying &lt;code&gt;#[Hook]&lt;/code&gt; and their DIC-instantiated constructors; &lt;code&gt;DrupalRoutingUsageProvider&lt;/code&gt; parses all canvas &lt;code&gt;*.routing.yml&lt;/code&gt; files at analysis time to identify &lt;code&gt;_controller&lt;/code&gt; and &lt;code&gt;_title_callback&lt;/code&gt; classes, and marks &lt;code&gt;access()&lt;/code&gt; on classes under &lt;code&gt;Drupal\canvas\Access\&lt;/code&gt;; &lt;code&gt;DrupalServiceCallsUsageProvider&lt;/code&gt; parses &lt;code&gt;*.services.yml&lt;/code&gt; &lt;code&gt;calls:&lt;/code&gt; directives; &lt;code&gt;ConfigSchemaValidationUsageProvider&lt;/code&gt; parses &lt;code&gt;*.schema.yml&lt;/code&gt; &lt;code&gt;callback:&lt;/code&gt; entries; &lt;code&gt;DrupalTestUsageProvider&lt;/code&gt; handles LSB reads of test properties (&lt;code&gt;$modules&lt;/code&gt;, &lt;code&gt;$defaultTheme&lt;/code&gt;, &lt;code&gt;$configSchemaCheckerExclusions&lt;/code&gt;, etc.), abstract-base property writes, and polymorphic test method overrides; &lt;code&gt;CanvasApiContractUsageProvider&lt;/code&gt; suppresses false positives on all canvas interface and abstract-class methods and their implementations; &lt;code&gt;CanvasTraitUsageProvider&lt;/code&gt; works around a PHP 8.0+ change where &lt;code&gt;ReflectionMethod::getDeclaringClass()&lt;/code&gt; returns the using class instead of the trait, breaking ShipMonk's candidate matching; &lt;code&gt;DrupalDynamicPropertyUsageProvider&lt;/code&gt; covers &lt;code&gt;EntityBase&lt;/code&gt; and &lt;code&gt;Constraint&lt;/code&gt; subclass properties written via &lt;code&gt;$this-&amp;gt;$key = $value&lt;/code&gt; dynamic assignment; &lt;code&gt;DrupalConfigTranslationUsageProvider&lt;/code&gt;, &lt;code&gt;DrupalPolymorphicDispatchUsageProvider&lt;/code&gt;, and &lt;code&gt;ContribPluginsUsageProvider&lt;/code&gt; cover further dynamic dispatch patterns. Two submodules (&lt;code&gt;canvas_ai&lt;/code&gt;, &lt;code&gt;canvas_personalization&lt;/code&gt;) are excluded via &lt;code&gt;ignoreErrors&lt;/code&gt; entries pending their own cleanup.&lt;/p&gt;
+&lt;p&gt;The confirmed dead code deletion removed: the &lt;code&gt;InvalidRequestBodyValue&lt;/code&gt; exception class; &lt;code&gt;JsonSchemaType::isIterable()&lt;/code&gt; and &lt;code&gt;::isTraversable()&lt;/code&gt;; &lt;code&gt;withDelta()&lt;/code&gt; on &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt;, &lt;code&gt;FieldPropExpression&lt;/code&gt;, and &lt;code&gt;ReferenceFieldPropExpression&lt;/code&gt;; &lt;code&gt;CanvasResourceLinkCollection::hasLinkWithKey()&lt;/code&gt;, &lt;code&gt;filter()&lt;/code&gt;, and &lt;code&gt;merge()&lt;/code&gt; (the collection class itself is &lt;code&gt;@internal&lt;/code&gt;); &lt;code&gt;CanvasPropVisitor::extractAttributeName()&lt;/code&gt;; &lt;code&gt;ShapeMatchingHooks::getMediaSourceFieldName()&lt;/code&gt;; &lt;code&gt;ConfigEntityVersionDeriver::$basePluginId&lt;/code&gt;; &lt;code&gt;ComponentPluginManager::$isRecursing&lt;/code&gt;; injected dependencies removed from &lt;code&gt;ValidComponentTreeItemConstraintValidator&lt;/code&gt; (&lt;code&gt;TypedDataManagerInterface&lt;/code&gt;) and &lt;code&gt;CanvasTemplateRenderer&lt;/code&gt; (&lt;code&gt;ElementInfoManagerInterface&lt;/code&gt;, &lt;code&gt;RequestStack&lt;/code&gt;, &lt;code&gt;LanguageManagerInterface&lt;/code&gt;); and unused test class properties and imports. Symbols that must be kept but cannot yet be reached by analysis are suppressed inline with &lt;code&gt;@phpstan-ignore shipmonk.deadMethod&lt;/code&gt; or &lt;code&gt;@phpstan-ignore shipmonk.deadConstant&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you reference any of the following removed symbols in custom code, remove the references:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Deleted class — remove all usages:
+\Drupal\canvas\InvalidRequestBodyValue
+
+// Deleted enum methods:
+JsonSchemaType::isIterable()
+JsonSchemaType::isTraversable()
+
+// Deleted methods on prop expression classes:
+FieldObjectPropsExpression::withDelta(int $delta)
+FieldPropExpression::withDelta(int $delta)
+ReferenceFieldPropExpression::withDelta(int $delta)
+
+// Deleted methods on CanvasResourceLinkCollection (@internal, but deletions are real):
+CanvasResourceLinkCollection::hasLinkWithKey(string $key)
+CanvasResourceLinkCollection::filter(callable $f)
+CanvasResourceLinkCollection::merge($a, $b)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;ValidComponentTreeItemConstraintValidator&lt;/code&gt; and &lt;code&gt;CanvasTemplateRenderer&lt;/code&gt; no longer accept their previously injected services in their constructors; if you subclass or manually instantiate these, update the constructor calls accordingly.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 8, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 12, 2026 (4 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;wim leers drove the entire change. After getting stuck on the initial setup (the &lt;code&gt;rules.neon&lt;/code&gt; include is optional, not required as the docs imply), he ran a series of CI iterations reducing false positives from 467 down to zero. He explicitly used Claude (claude-sonnet-4-6 and claude-haiku-4-5) to generate all eleven usage providers, spending $31.06 in API costs over roughly six wall-clock hours, and noted in the thread: &amp;quot;Everything outside [phpstan_rules/] was done manually&amp;quot; and &amp;quot;$31.06 + a few hours of my time to never have to chase dead code again seems well worth it.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588661: Make CLI builds use shared Vite infrastructure</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md</link>
+      <guid isPermaLink="false">019e1d18-7b46-77b6-9317-de75cae519fd</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 12 May 2026 12:31:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 100 files, +2708/−1026 · js +1955/−879 · mdx +588/−145 · yml +114 · php +20/−2 · css +12 · json +10 · webp +4 · svg +3 · jpg +1 · mp4 +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/d0aec30985f80853e3af0e36b4e999dc345f42c8"&gt;d0aec30&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588661"&gt;#3588661&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas build&lt;/code&gt; and &lt;code&gt;canvas push&lt;/code&gt; commands now use a shared Vite-based build pipeline. This unlocks Vite-resolved import patterns that were not previously available in local Code Component builds: static asset imports (images, video, audio, fonts), SVG files imported as URLs, and SVG files imported as React components using the &lt;code&gt;?react&lt;/code&gt; suffix. Three additional packages (&lt;code&gt;@drupal-api-client/json-api-client&lt;/code&gt;, &lt;code&gt;drupal-jsonapi-params&lt;/code&gt;, and &lt;code&gt;swr&lt;/code&gt;) are now listed as built-in bundled packages available to Code Components. A new &lt;code&gt;canvas pull --include-brand-kit&lt;/code&gt; and &lt;code&gt;canvas push --include-brand-kit&lt;/code&gt; flow lets you manage Brand Kit fonts from a local &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; file alongside Code Components. The documentation for Code Components has been substantially reorganized, with new pages covering local codebase setup, imports and assets, Brand Kit, and component metadata.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;componentDir&lt;/code&gt; default changed from &lt;code&gt;process.cwd()&lt;/code&gt; to &lt;code&gt;src/components&lt;/code&gt;; must now be inside &lt;code&gt;aliasBaseDir&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;buildCanvasProject()&lt;/code&gt; function in &lt;code&gt;packages/cli/utils/build-project&lt;/code&gt; unifies CLI build and push pipelines&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change replaces the multi-step build pipeline in &lt;code&gt;packages/cli&lt;/code&gt; with a single &lt;code&gt;buildCanvasProject()&lt;/code&gt; call imported from &lt;code&gt;utils/build-project&lt;/code&gt;. Previously, &lt;code&gt;canvas build&lt;/code&gt; called &lt;code&gt;analyzeAndBundleImports&lt;/code&gt;, &lt;code&gt;buildComponent&lt;/code&gt; (per component), &lt;code&gt;buildTailwindForComponents&lt;/code&gt;, and &lt;code&gt;generateManifest&lt;/code&gt; as discrete steps. These are now unified under &lt;code&gt;buildCanvasProject()&lt;/code&gt;, which returns a structured &lt;code&gt;BuildResult&lt;/code&gt; carrying &lt;code&gt;componentResults&lt;/code&gt;, &lt;code&gt;tailwindResult&lt;/code&gt;, &lt;code&gt;vendorImportCount&lt;/code&gt;, and &lt;code&gt;localImportCount&lt;/code&gt;. Vite owns the browser graph, artifact output, vendor chunk splitting, and asset manifest entries.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;canvas push&lt;/code&gt; now calls &lt;code&gt;pushBuiltComponents&lt;/code&gt; instead of &lt;code&gt;buildAndPushComponents&lt;/code&gt;. The push path no longer rebuilds components from source; it consumes the pre-assembled component payloads from the build result. Dependency ordering during upload is handled by inspecting &lt;code&gt;importedJsComponents&lt;/code&gt; on each payload. Duplicate asset files referenced by multiple manifest entries are now uploaded once and the same URI is reused for each entry.&lt;/p&gt;
+&lt;p&gt;On the configuration side, &lt;code&gt;componentDir&lt;/code&gt; defaults changed from &lt;code&gt;process.cwd()&lt;/code&gt; to &lt;code&gt;&amp;quot;src/components&amp;quot;&lt;/code&gt; for both the Workbench and the CLI &lt;code&gt;canvas.config.json&lt;/code&gt; schema. The documentation also notes that &lt;code&gt;componentDir&lt;/code&gt; must now be inside &lt;code&gt;aliasBaseDir&lt;/code&gt;. Projects that relied on the old &lt;code&gt;process.cwd()&lt;/code&gt; default or placed components outside &lt;code&gt;aliasBaseDir&lt;/code&gt; need to add an explicit &lt;code&gt;componentDir&lt;/code&gt; entry to &lt;code&gt;canvas.config.json&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;CanvasBuilder.php&lt;/code&gt;, three entries were appended to the built-in packages list: &lt;code&gt;json_api_client&lt;/code&gt; (&lt;code&gt;@drupal-api-client/json-api-client&lt;/code&gt;), &lt;code&gt;drupal_jsonapi_params&lt;/code&gt;, and &lt;code&gt;swr&lt;/code&gt;. A pre-existing malformed code fence in the &lt;code&gt;FormattedText&lt;/code&gt; example (missing opening backtick) was also corrected. The packages documentation file hash in &lt;code&gt;CanvasPackagesDocsFileHashTest&lt;/code&gt; was updated to match the new content.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If your project uses a &lt;code&gt;canvas.config.json&lt;/code&gt; that does not explicitly set &lt;code&gt;componentDir&lt;/code&gt;, the default has changed from the project root (&lt;code&gt;process.cwd()&lt;/code&gt;) to &lt;code&gt;src/components&lt;/code&gt;. Add an explicit entry if your components live elsewhere:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;componentDir&amp;quot;: &amp;quot;./components&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;componentDir&lt;/code&gt; path must be inside &lt;code&gt;aliasBaseDir&lt;/code&gt; (default &lt;code&gt;src&lt;/code&gt;). If your component directory is outside &lt;code&gt;aliasBaseDir&lt;/code&gt;, move it or adjust both settings:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;aliasBaseDir&amp;quot;: &amp;quot;.&amp;quot;,
+  &amp;quot;componentDir&amp;quot;: &amp;quot;./components&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To use static asset or SVG React imports, import them directly from the local codebase and push with the CLI. For TypeScript projects using &lt;code&gt;?react&lt;/code&gt; SVG imports, add the SVGR client types to a Vite environment file:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-ts"&gt;/// &amp;lt;reference types=&amp;quot;vite/client&amp;quot; /&amp;gt;
+/// &amp;lt;reference types=&amp;quot;vite-plugin-svgr/client&amp;quot; /&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To opt in to Brand Kit font sync:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;npx canvas pull --include-brand-kit
+npx canvas push --include-brand-kit
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 12, 2026 (6 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;rikki_iki&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3581110: Add Multi-Value List Text/Integer Prop Support (UI)</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md</link>
       <guid isPermaLink="false">019ddaec-a062-76c1-9104-946ea83528a5</guid>
@@ -810,86 +941,6 @@ const pageItems = data?.items ?? [];
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582814: Add non-interactive agent selection to @drupal-canvas/create</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582814.md</link>
-      <guid isPermaLink="false">019dbcfc-8aa5-77f2-8d7d-7680af3a2f68</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 02 Apr 2026 13:16:04 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +243/−17 · js +221/−11 · md +21/−5 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/11eec2e4e149a2c570883c6611ef1cfa49e47169"&gt;11eec2e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582814"&gt;#3582814&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;@drupal-canvas/create&lt;/code&gt; CLI (version 1.3.0) gains a new &lt;code&gt;--agents&lt;/code&gt; flag that lets developers control AI agent compatibility symlink creation without interactive prompts. Previously, the agent setup step always showed an interactive prompt when a &lt;code&gt;.agents/skills&lt;/code&gt; directory was present, blocking fully unattended use in CI pipelines or scripts. Now callers can pass a comma-separated agent list (e.g. &lt;code&gt;--agents claude-code,roo&lt;/code&gt;) to set up symlinks without prompting, pass &lt;code&gt;--agents none&lt;/code&gt; to skip the step explicitly, or omit the flag to retain the existing interactive prompt on TTY runs. On non-TTY runs with no flag provided, the step is silently skipped.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;--agents &amp;lt;list&amp;gt;&lt;/code&gt; CLI flag on &lt;code&gt;@drupal-canvas/create&lt;/code&gt; for non-interactive agent compatibility symlink control; pass &lt;code&gt;none&lt;/code&gt; to skip, a comma-separated list to select, or omit to keep the existing interactive prompt on TTY runs.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change adds a new &lt;code&gt;--agents &amp;lt;agents&amp;gt;&lt;/code&gt; option to the &lt;code&gt;commander&lt;/code&gt; program in &lt;code&gt;src/cli.js&lt;/code&gt;. Parsing is delegated to a new &lt;code&gt;parseAgentSelection()&lt;/code&gt; function in &lt;code&gt;src/lib/agent-selection.js&lt;/code&gt;, which splits on commas, deduplicates with &lt;code&gt;Set&lt;/code&gt;, rejects unknown agent names (via a new &lt;code&gt;isAgentType()&lt;/code&gt; guard in &lt;code&gt;agents.js&lt;/code&gt;), rejects universal agents that already use &lt;code&gt;.agents/skills&lt;/code&gt;, rejects mixing &lt;code&gt;none&lt;/code&gt; with other names, and returns &lt;code&gt;undefined&lt;/code&gt; when the flag is omitted (preserving the &amp;quot;undecided&amp;quot; state). The resolved &lt;code&gt;AgentType[] | undefined&lt;/code&gt; value is threaded through the &lt;code&gt;Context&lt;/code&gt; type and passed to &lt;code&gt;createApp()&lt;/code&gt;, which forwards it to &lt;code&gt;setupAgentSkills()&lt;/code&gt; alongside a new &lt;code&gt;interactive&lt;/code&gt; boolean derived from &lt;code&gt;process.stdin.isTTY &amp;amp;&amp;amp; process.stdout.isTTY&lt;/code&gt;. Inside &lt;code&gt;setupAgentSkills()&lt;/code&gt; the logic is: if &lt;code&gt;selectedAgents&lt;/code&gt; is a defined array, use it directly and skip the prompt; if it is &lt;code&gt;undefined&lt;/code&gt; and &lt;code&gt;interactive&lt;/code&gt; is true, call &lt;code&gt;promptForAgents&lt;/code&gt; as before; if it is &lt;code&gt;undefined&lt;/code&gt; and &lt;code&gt;interactive&lt;/code&gt; is false, return immediately without output. An empty explicit selection (&lt;code&gt;[]&lt;/code&gt;) prints &amp;quot;No additional agents selected. Skipping compatibility setup.&amp;quot; and returns early. The README is also updated to document the new flag and to reflect the currently available predefined templates (&lt;code&gt;acquia-nebula&lt;/code&gt;, &lt;code&gt;balintbrews-canvas-starter&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 2, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574410: Hide global regions when editing a view mode other than Full</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574410.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-948613e57e4b</guid>
-      <pubDate>Tue, 31 Mar 2026 20:03:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +191/−16 · php +129/−9 · js +62/−7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/f733d16347e1ef4d3fbeff07d6c2125d4f5ecca5"&gt;f733d16&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574410"&gt;#3574410&lt;/a&gt; · 5 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When editing a content template for a view mode other than Full (such as Teaser or Card), global regions like header and footer are now hidden from both the editor and preview. These regions do not render when the view mode is displayed on the actual site, so hiding them makes it clearer what the template will actually look like. The editor now shows only the content region for non-full view modes.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;After &lt;a href="https://www.drupal.org/node/3574412"&gt;#3574412&lt;/a&gt; enabled creating content templates for view modes other than Full, the global regions (header, footer, etc.) were still appearing in the editor and preview even though they are not part of the display for those view modes.&lt;/p&gt;
-&lt;p&gt;The solution adds a &lt;code&gt;shouldIncludeGlobalRegions()&lt;/code&gt; method in &lt;code&gt;ApiLayoutController&lt;/code&gt; that returns false for &lt;code&gt;ContentTemplate&lt;/code&gt; entities whose view mode is not &amp;quot;full&amp;quot;. This method is called throughout the controller to conditionally load global regions from &lt;code&gt;PageRegion::loadForActiveTheme()&lt;/code&gt;, include editable regions in auto-save validation, and set a &lt;code&gt;#canvas_hide_global_regions&lt;/code&gt; flag on the preview build.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;CanvasPreviewRenderer::prepare()&lt;/code&gt;, when this flag is set, all page regions except &lt;code&gt;CanvasPageVariant::MAIN_CONTENT_REGION&lt;/code&gt; are emptied before rendering.&lt;/p&gt;
-&lt;p&gt;On the frontend, the component context menu checks whether global regions exist before showing the &amp;quot;Move to region&amp;quot; option. The viewport sets minimum height to 0 for non-full view modes so the preview size matches the actual content rather than requiring a minimum page height.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 18, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 31, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;jessebaker (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;justafish (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Wim Leers initially suggested either server-side changes or a focus mode similar to &lt;a href="https://www.drupal.org/node/3497648"&gt;#3497648&lt;/a&gt;. Jesse Baker outlined a longer-term vision for an isolated editor frame similar to no-code component editing, but acknowledged focus mode might be a good compromise. Lauriii implemented the simpler approach of just hiding the regions, explaining this was an intentional product decision to ship the core value efficiently rather than implementing more advanced inline editing capabilities. After Wim raised concerns about preview accuracy being broken, they clarified via direct message that the implementation does preserve page-level markup and CSS. Follow-up &lt;a href="https://www.drupal.org/node/3582608"&gt;#3582608&lt;/a&gt; was created to address potential preview accuracy improvements.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

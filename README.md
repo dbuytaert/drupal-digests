@@ -1,4 +1,4 @@
-**TL;DR:** [574 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [578 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_438 summaries · 29 new this week_
+_440 summaries · 30 new this week_
 
+- [#3301239: Improve the error message thrown in PoStreamReader::readLine() when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md)
+- [#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md)
 - [#2844620: Automatically split cache debug headers into multiple lines when they exceed 8k](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2844620.md)
-- [#3308877: Add static cache for loadEntityByUuid function to store uuid-id pairs in memory](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3308877.md)
-- [#3585555: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md)
+
+### Drupal Canvas
+
+_58 summaries · 2 new this week_
+
+- [#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md)
+- [#3588661: Make CLI builds use shared Vite infrastructure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md)
+- [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 
 ### Drupal AI
 
@@ -19,14 +27,6 @@ _69 summaries · 3 new this week_
 - [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 - [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
 - [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
-
-### Drupal Canvas
-
-_56 summaries · 0 new this week_
-
-- [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
-- [#3572553: Save Multi-Value Prop Configuration for Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3572553.md)
-- [#3573776: Canvas needs a way for server to send notifications and trigger actions in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573776.md)
 
 ### Drupal CMS
 

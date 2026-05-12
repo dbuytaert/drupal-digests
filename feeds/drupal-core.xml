@@ -5,6 +5,124 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3301239: Improve the error message thrown in PoStreamReader::readLine() when translations cannot be saved</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md</link>
+      <guid isPermaLink="false">019e1d15-2980-75b1-82db-977984e36a56</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 12 May 2026 16:09:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +36/−5 · php +36/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/79cbaf5364669852e25712cd1c28b306c45bc50b"&gt;79cbaf5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3301239"&gt;#3301239&lt;/a&gt; · 42 contributors · 94 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 51&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On multilingual Drupal sites, enabling a module while the interface translations directory (&lt;code&gt;translations://&lt;/code&gt;) is misconfigured or unwriteable previously caused a fatal PHP error: &lt;code&gt;TypeError: fgets(): Argument #1 ($stream) must be of type resource, bool given&lt;/code&gt;. This would crash Drush or a deployment pipeline mid-run. The fix makes &lt;code&gt;PoStreamReader&lt;/code&gt; throw a catchable &lt;code&gt;RuntimeException&lt;/code&gt; instead, so the locale subsystem can log a clear message and continue rather than halting with an unhandled fatal error.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;PoStreamReader::open()&lt;/code&gt; now throws &lt;code&gt;\RuntimeException&lt;/code&gt; when &lt;code&gt;fopen&lt;/code&gt; fails to open the stream, instead of silently setting the internal file descriptor to &lt;code&gt;false&lt;/code&gt;; callers that invoke &lt;code&gt;open()&lt;/code&gt; directly should wrap it in a try/catch.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;PoStreamReader::open()&lt;/code&gt;, the original code called &lt;code&gt;fopen()&lt;/code&gt; but never checked its return value. When &lt;code&gt;fopen&lt;/code&gt; fails (for example because &lt;code&gt;translations://&lt;/code&gt; is not properly configured), it returns &lt;code&gt;false&lt;/code&gt;. A subsequent call to &lt;code&gt;readLine()&lt;/code&gt; then passed that &lt;code&gt;false&lt;/code&gt; value directly to &lt;code&gt;fgets()&lt;/code&gt;, which in PHP 8 throws a &lt;code&gt;TypeError&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix restructures &lt;code&gt;open()&lt;/code&gt;: it calls &lt;code&gt;@fopen($this-&amp;gt;uri, 'rb')&lt;/code&gt; (suppressing the PHP-level warning that would otherwise be emitted) and immediately checks the result. If the handle is falsy, it throws &lt;code&gt;new \RuntimeException('Cannot open stream for uri ' . $this-&amp;gt;uri)&lt;/code&gt;. This gives calling code a catchable, typed exception rather than an unhandled fatal. A new &lt;code&gt;PoStreamReaderTest&lt;/code&gt; unit test was added in &lt;code&gt;core/tests/Drupal/Tests/Component/Gettext/PoStreamReaderTest.php&lt;/code&gt; to verify this path.&lt;/p&gt;
+&lt;p&gt;The related issue &lt;a href="https://www.drupal.org/node/3546047"&gt;#3546047&lt;/a&gt; was opened separately to improve the upstream logging in &lt;code&gt;locale_translation_download_source()&lt;/code&gt; when the download itself fails, covering the complementary failure mode.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you call &lt;code&gt;PoStreamReader::open()&lt;/code&gt; directly, wrap it to handle the new failure mode:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before: open() would silently succeed even if fopen() failed.
+$reader-&amp;gt;setURI($uri);
+$reader-&amp;gt;open();
+
+// After: open() throws \RuntimeException when the stream cannot be opened.
+$reader-&amp;gt;setURI($uri);
+try {
+  $reader-&amp;gt;open();
+}
+catch (\RuntimeException $e) {
+  // Handle misconfigured translations directory or unreadable file.
+  \Drupal::logger('mymodule')-&amp;gt;error($e-&amp;gt;getMessage());
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 2, 2022&lt;/li&gt;
+&lt;li&gt;Committed: May 12, 2026 (3 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;immaculatexavier (Material)&lt;/li&gt;
+&lt;li&gt;iperiba92&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
+&lt;li&gt;rcodina (Seidor)&lt;/li&gt;
+&lt;li&gt;matiasmiranda (Phase2)&lt;/li&gt;
+&lt;li&gt;pfrenssen (Liip)&lt;/li&gt;
+&lt;li&gt;vladimiraus (Tomato Elephant Studio)&lt;/li&gt;
+&lt;li&gt;hchonov (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;i-grou&lt;/li&gt;
+&lt;li&gt;guiu.rocafort.ferrer (Randstad Digital)&lt;/li&gt;
+&lt;li&gt;teknocat&lt;/li&gt;
+&lt;li&gt;oily&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;grevil (DROWL.de)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue sat for nearly three years, accumulating many &amp;quot;patch works for me&amp;quot; comments without ever landing, largely because early patches simply swallowed the error rather than surfacing a useful message. The discussion shifted when pfrenssen (comment #30) and joachim (comment #29) argued that the right fix was an improved error, not silent suppression. guiu.rocafort.ferrer revived the issue on 11.x, reproduced the failure, and proposed throwing a &lt;code&gt;RuntimeException&lt;/code&gt; from &lt;code&gt;open()&lt;/code&gt; rather than only patching &lt;code&gt;readLine()&lt;/code&gt;. pfrenssen then fixed a failing test that arose because PHP itself was emitting a warning that interfered with PHPUnit. vladimiraus contributed a refactor of the approach, and rcodina fixed the remaining pipeline failures before the issue was finally committed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for non-HTML requests</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md</link>
+      <guid isPermaLink="false">019e1d13-e558-7095-b38f-54d254bb41fb</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 12 May 2026 15:49:58 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +88/−4 · php +88/−4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c2809119e3ebd094ad578677806d759e52527ef9"&gt;c280911&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587298"&gt;#3587298&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A bug in &lt;code&gt;RouteProcessorCsrf::processOutbound()&lt;/code&gt; caused REST and JSON:API responses that embed CSRF-protected URLs (for example, a logout link) to be cached without varying by session. Two users sharing the same role or other common cache context could receive each other's CSRF tokens from the cache. The fix is targeted at Drupal 11.4.0 (committed to main and 11.x). Sites on 11.3.x are not yet patched in an official release.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; CSRF tokens generated for non-HTML requests (REST, JSON:API) were not varied by session, allowing a cached response to serve one user's token to another user sharing the same role or other common cache context.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The non-HTML branch of &lt;code&gt;processOutbound()&lt;/code&gt; generates a real CSRF token via &lt;code&gt;$this-&amp;gt;csrfToken-&amp;gt;get($path)&lt;/code&gt; and injects it as a &lt;code&gt;?token=&lt;/code&gt; query parameter. The behavior of returning a real token (rather than a render placeholder) was introduced by &lt;a href="https://www.drupal.org/node/3485174"&gt;#3485174&lt;/a&gt;. That change did not also call &lt;code&gt;$bubbleable_metadata-&amp;gt;addCacheContexts(['session'])&lt;/code&gt;, so callers assembling a cacheable REST or JSON:API response never received &lt;code&gt;session&lt;/code&gt; among the required vary contexts. The HTML branch was already correct: its lazy-builder render callback declared &lt;code&gt;'#cache' =&amp;gt; ['contexts' =&amp;gt; ['session']]&lt;/code&gt; (lines 79-81 of &lt;code&gt;RouteProcessorCsrf&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;The production fix is a single line added immediately after the token is set: &lt;code&gt;$bubbleable_metadata?-&amp;gt;addCacheContexts(['session'])&lt;/code&gt;. The nullsafe operator means the call is a no-op when &lt;code&gt;$bubbleable_metadata&lt;/code&gt; is null, preserving existing behavior for callers that do not pass metadata.&lt;/p&gt;
+&lt;p&gt;Test changes mirror the real-world impact. Several REST and JSON:API functional test classes now override &lt;code&gt;getExpectedCacheContexts()&lt;/code&gt; to include &lt;code&gt;session&lt;/code&gt;. &lt;code&gt;LinksetControllerTest::testUserAccountMenu()&lt;/code&gt; adds &lt;code&gt;session&lt;/code&gt; to expected cacheability because the account menu exposes the CSRF-protected &lt;code&gt;/user/logout&lt;/code&gt; URL for authenticated users. A new &lt;code&gt;normalizeHeadersForGetHeadComparison()&lt;/code&gt; hook was introduced in the REST test base and overridden in &lt;code&gt;BasicAuthResourceTestTrait&lt;/code&gt; to neutralize &lt;code&gt;?token=&lt;/code&gt; values in &lt;code&gt;Link&lt;/code&gt; headers: with stateless basic_auth, the CSRF seed is regenerated on every request, so HEAD and GET legitimately produce different token strings even after the fix. The unit test in &lt;code&gt;RouteProcessorCsrfTest&lt;/code&gt; gained a &lt;code&gt;CacheContextsManager&lt;/code&gt; stub (required for &lt;code&gt;BubbleableMetadata::addCacheContexts()&lt;/code&gt; to pass its internal validation) and a direct assertion that &lt;code&gt;['session']&lt;/code&gt; is present in the returned metadata.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 28, 2026&lt;/li&gt;
+&lt;li&gt;First commit: May 7, 2026 (9 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: May 12, 2026 (4 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;petar_basic (drunomics)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;petar_basic discovered the bug on a vanilla 11.3.7 install, reproduced it by extending the existing unit test, validated the fix end-to-end with two real users, and opened the initial MR. After smustgrave flagged that the pipeline was failing, petar_basic investigated and found the failures were themselves evidence of the bug: Basic Auth functional tests only passed before because the dynamic page cache was serving one session's cached response, including its CSRF tokens, to a different session's request. petar_basic updated the REST fixtures, added the &lt;code&gt;normalizeHeadersForGetHeadComparison()&lt;/code&gt; hook, and added the unit-test stub to produce a green pipeline. fago reviewed and confirmed correctness, noting that the API response correctly surfaced the &lt;code&gt;session&lt;/code&gt; cache context header after the change.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2844620: Automatically split cache debug headers into multiple lines when they exceed 8k</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2844620.md</link>
       <guid isPermaLink="false">019e1c33-0464-7763-a68e-63e2f5422dec</guid>
@@ -1002,84 +1120,6 @@ if ($user-&amp;gt;getLastAccessedTime() === 0) { /* user never accessed */ }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, &amp;quot;ghost of drupal past&amp;quot; raised two concerns: return types on new interface methods are now required, and the return type should allow lazy iteration rather than forcing a full array. plopesc resolved both points by adopting &lt;code&gt;iterable&lt;/code&gt; as the return type, which is equivalent to &lt;code&gt;array|\Traversable&lt;/code&gt; and avoids PHP 8.2 iterable-compatibility issues. Later, catch identified that to stay within Drupal's interface BC policy the base class &lt;code&gt;StorageBase&lt;/code&gt; must carry a default implementation, not only the leaf classes. plopesc added the &lt;code&gt;StorageBase&lt;/code&gt; implementation, which catch confirmed resolved the compatibility concern.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588558: Test failures on 11.x</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588558.md</link>
-      <guid isPermaLink="false">019e0b20-818c-72c0-a671-373dd85cbe9b</guid>
-      <pubDate>Fri, 08 May 2026 07:29:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−1 · php +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/78659fbbf2943ceb830d11013290a9e83e2ee849"&gt;78659fb&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588558"&gt;#3588558&lt;/a&gt; · 3 contributors · 22 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The node access rebuild confirmation form (&lt;code&gt;RebuildPermissionsForm&lt;/code&gt;) declared its injected service property with &lt;code&gt;readonly&lt;/code&gt;, which conflicted with &lt;code&gt;DependencySerializationTrait&lt;/code&gt;. Whenever the form was serialized and then deserialized (for example, when form state is stored in a session), the trait's &lt;code&gt;__wakeup()&lt;/code&gt; method tried to re-initialize the property from the container and PHP threw an error because &lt;code&gt;readonly&lt;/code&gt; properties cannot be assigned outside the constructor. Removing &lt;code&gt;readonly&lt;/code&gt; from that property fixes the crash.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The problem originates from &lt;a href="https://www.drupal.org/node/3533299"&gt;#3533299&lt;/a&gt; (Deprecate node access rebuild functions), which introduced &lt;code&gt;RebuildPermissionsForm&lt;/code&gt; with a constructor-promoted &lt;code&gt;protected readonly NodeAccessRebuild $nodeAccessRebuild&lt;/code&gt; property. &lt;code&gt;RebuildPermissionsForm&lt;/code&gt; extends &lt;code&gt;ConfirmFormBase&lt;/code&gt;, which uses &lt;code&gt;DependencySerializationTrait&lt;/code&gt;. That trait's &lt;code&gt;__wakeup()&lt;/code&gt; loops over an object's properties and re-fetches any that match known service IDs from the container, writing them back by name. PHP does not allow assignment to a &lt;code&gt;readonly&lt;/code&gt; property after construction, so &lt;code&gt;__wakeup()&lt;/code&gt; raises a fatal error on deserialization.&lt;/p&gt;
-&lt;p&gt;The fix in MR !15700 is a single-character change in &lt;code&gt;core/modules/node/src/Form/RebuildPermissionsForm.php&lt;/code&gt;: the &lt;code&gt;readonly&lt;/code&gt; modifier is dropped from the constructor-promoted property, leaving it &lt;code&gt;protected NodeAccessRebuild $nodeAccessRebuild&lt;/code&gt;. During review, the question arose of whether &lt;code&gt;readonly&lt;/code&gt; should also be removed from the &lt;code&gt;main&lt;/code&gt; branch. &lt;code&gt;catch&lt;/code&gt; concluded it was acceptable to keep it on &lt;code&gt;main&lt;/code&gt; because properties on form controllers are &lt;code&gt;@internal&lt;/code&gt;, so subclass compatibility is not a concern for the public API surface.&lt;/p&gt;
-&lt;p&gt;The two mysqli-related update-test failures mentioned in the issue body (from &lt;a href="https://www.drupal.org/node/3581109"&gt;#3581109&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3184242"&gt;#3184242&lt;/a&gt;) were tracked separately in &lt;a href="https://www.drupal.org/node/3588702"&gt;#3588702&lt;/a&gt; and are not part of this merged diff.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 8, 2026 (2 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, godotislate raised a subtle forward-compatibility concern: if &lt;code&gt;main&lt;/code&gt; kept the &lt;code&gt;readonly&lt;/code&gt; modifier, a site upgrading from 11.4 to 12.0 with a subclass that redeclared the property without &lt;code&gt;readonly&lt;/code&gt; could hit a PHP error. catch replied that form controller properties are &lt;code&gt;@internal&lt;/code&gt; by convention, so there was no compatibility obligation, and &lt;code&gt;readonly&lt;/code&gt; could stay on &lt;code&gt;main&lt;/code&gt;. The discussion was brief and the fix proceeded as readonly-removal on 11.x only.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588385: Add a transaction around the database key value store setMultiple()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588385.md</link>
-      <guid isPermaLink="false">019e0b21-4662-70bb-9a46-d65b66381f71</guid>
-      <pubDate>Thu, 07 May 2026 23:15:39 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +14/−0 · php +14&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d2f42dadfe7de0b8467aa93b19afa62596509e70"&gt;d2f42da&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588385"&gt;#3588385&lt;/a&gt; · 3 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The database-backed key-value store now writes all entries from a &lt;code&gt;setMultiple()&lt;/code&gt; call inside a single database transaction. Previously, each key was written individually with no transactional protection, so a failure partway through could leave only some keys stored. The change makes bulk writes atomic: either all keys are committed or none are, which is safer during concurrent requests or unexpected errors.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The base class &lt;code&gt;KeyValueStoreBase::setMultiple()&lt;/code&gt; loops over its input and calls &lt;code&gt;$this-&amp;gt;set()&lt;/code&gt; for each key. &lt;code&gt;KeyValueDatabaseStore&lt;/code&gt; did not override this, so there was no transaction wrapping the individual &lt;code&gt;set()&lt;/code&gt; calls. The fix adds a &lt;code&gt;setMultiple()&lt;/code&gt; override in &lt;code&gt;KeyValueDatabaseStore&lt;/code&gt; that opens a transaction via &lt;code&gt;$this-&amp;gt;connection-&amp;gt;startTransaction()&lt;/code&gt;, delegates to &lt;code&gt;parent::setMultiple($data)&lt;/code&gt;, and calls &lt;code&gt;$transaction-&amp;gt;commitOrRelease()&lt;/code&gt; on success or &lt;code&gt;$transaction-&amp;gt;rollBack()&lt;/code&gt; on any exception.&lt;/p&gt;
-&lt;p&gt;A follow-up in &lt;a href="https://www.drupal.org/node/3586760"&gt;#3586760&lt;/a&gt; is exploring replacing this pattern with a single multi-row &lt;code&gt;UPSERT&lt;/code&gt; query, which would make the transaction unnecessary by making the entire operation a single SQL statement.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 7, 2026 (2 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
