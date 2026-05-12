@@ -1,4 +1,4 @@
-**TL;DR:** [573 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [574 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_437 summaries · 29 new this week_
+_438 summaries · 29 new this week_
 
+- [#2844620: Automatically split cache debug headers into multiple lines when they exceed 8k](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2844620.md)
 - [#3308877: Add static cache for loadEntityByUuid function to store uuid-id pairs in memory](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3308877.md)
 - [#3585555: Bump PHPStan & friends to latest release](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md)
-- [#3559132: FileSystem::deleteRecursive() leaves files/directories when realpath() returns...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3559132.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [165 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_165 rules · 23 new this week_
+_166 rules · 23 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Add $fileUrlGenerator argument to ResponsiveImageFormatter constructor calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-fileurlgenerator-argument-to-responsiveimageformatter-3064751.php)
+- [Replace NodeViewController with EntityViewController](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-nodeviewcontroller-with-entityviewcontroller-3589630.php)
 
 
 ## RSS feeds

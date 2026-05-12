@@ -241,6 +241,87 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace NodeViewController with EntityViewController</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e1c3b-6f28-7772-98ed-0d67c35c31dc.md</link>
+      <guid isPermaLink="false">019e1c3b-6f28-7772-98ed-0d67c35c31dc</guid>
+      <pubDate>Tue, 12 May 2026 12:48:37 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3589630"&gt;#3589630&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces direct instantiation of the deprecated &lt;code&gt;NodeViewController&lt;/code&gt; with &lt;code&gt;EntityViewController&lt;/code&gt;, dropping the extra &lt;code&gt;AccountInterface&lt;/code&gt; and &lt;code&gt;EntityRepositoryInterface&lt;/code&gt; constructor arguments that &lt;code&gt;EntityViewController&lt;/code&gt; does not accept. A &lt;code&gt;RenameClassRector&lt;/code&gt; pass handles all other references: &lt;code&gt;use&lt;/code&gt; imports, type hints, and &lt;code&gt;extends&lt;/code&gt; declarations.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\node\Controller\NodeViewController;
+$ctrl = new NodeViewController($entityTypeManager, $renderer, $currentUser, $entityRepository);
+// also: class MyController extends NodeViewController {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Entity\Controller\EntityViewController;
+$ctrl = new EntityViewController($entityTypeManager, $renderer);
+// also: class MyController extends EntityViewController {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Subclasses that override &lt;code&gt;__construct&lt;/code&gt; and call &lt;code&gt;parent::__construct($a, $b, $c, $d)&lt;/code&gt; will have &lt;code&gt;extends&lt;/code&gt; updated but the &lt;code&gt;parent::__construct&lt;/code&gt; call is not modified; developers must manually drop the &lt;code&gt;AccountInterface&lt;/code&gt; and &lt;code&gt;EntityRepositoryInterface&lt;/code&gt; arguments from their own parent call.&lt;code&gt;NodeViewController::title()&lt;/code&gt; has no equivalent on &lt;code&gt;EntityViewController&lt;/code&gt;; callers of that method are not rewritten.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceNodeViewControllerRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace new NodeViewController(...) with new EntityViewController(...) and drop the extra constructor arguments.',
+            [new CodeSample(
+                'new \Drupal\node\Controller\NodeViewController($entityTypeManager, $renderer, $currentUser, $entityRepository)',
+                'new \Drupal\Core\Entity\Controller\EntityViewController($entityTypeManager, $renderer)',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof New_) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\node\Controller\NodeViewController')) {
+            return null;
+        }
+        $node-&amp;gt;class = new FullyQualified('Drupal\Core\Entity\Controller\EntityViewController');
+        // EntityViewController::__construct only takes 2 args; drop any extras.
+        $node-&amp;gt;args = array_slice($node-&amp;gt;args, 0, 2);
+        return $node;
+    }
+}
+
+return RectorConfig::configure()
+    -&amp;gt;withRules([ReplaceNodeViewControllerRector::class])
+    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
+        'Drupal\node\Controller\NodeViewController' =&amp;gt; 'Drupal\Core\Entity\Controller\EntityViewController',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Add $fileUrlGenerator argument to ResponsiveImageFormatter constructor calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e19aa-1d94-753f-aa21-834c93dffbf7.md</link>
       <guid isPermaLink="false">019e19aa-1d94-753f-aa21-834c93dffbf7</guid>
@@ -1543,106 +1624,6 @@ final class GetOriginalClassToGetDecoratedClassesRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([GetOriginalClassToGetDecoratedClassesRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated hide() and show() with #printed assignment</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0510-b6c0-70b3-8c48-14125ce72139.md</link>
-      <guid isPermaLink="false">019e0510-b6c0-70b3-8c48-14125ce72139</guid>
-      <pubDate>Fri, 08 May 2026 00:50:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2258355"&gt;#2258355&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites statement-level calls to the deprecated global &lt;code&gt;hide($element)&lt;/code&gt; and &lt;code&gt;show($element)&lt;/code&gt; functions to direct &lt;code&gt;$element['#printed'] = true/false&lt;/code&gt; property assignment. These functions are deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;. Only statement-level calls are rewritten; expression-context calls (where the return value is captured) are intentionally skipped because the return type differs.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;hide($element);
-show($element);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$element['#printed'] = true;
-$element['#printed'] = false;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only statement-level calls (where the return value is not used) are rewritten. Expression-context uses such as &lt;code&gt;$result = hide($element)&lt;/code&gt; or &lt;code&gt;if (hide($element))&lt;/code&gt; are skipped because the original returns &lt;code&gt;$element&lt;/code&gt; while the rewrite would evaluate to &lt;code&gt;true&lt;/code&gt;, changing observable behavior. The deprecation also recommends &lt;code&gt;['#access'] = FALSE/TRUE&lt;/code&gt; for form elements as a more semantically correct alternative, but this rule applies the mechanical functional equivalent (&lt;code&gt;#printed&lt;/code&gt;) which matches what the deprecated functions themselves did.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ArrayDimFetch;
-use PhpParser\Node\Expr\Assign;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\Node\Stmt\Expression;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class HideShowFunctionToHashPrintedRector extends AbstractRector
-{
-    /** @var array&amp;lt;string, bool&amp;gt; */
-    private const FUNCTION_TO_VALUE = [
-        'hide' =&amp;gt; true,
-        'show' =&amp;gt; false,
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated global hide() and show() functions with direct #printed property assignment on the render element.',
-            [new CodeSample(
-                'hide($element);',
-                '$element[\'#printed\'] = TRUE;',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Expression::class];
-    }
-
-    /** @param Expression $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof Expression) {
-            return null;
-        }
-        if (!$node-&amp;gt;expr instanceof FuncCall) {
-            return null;
-        }
-        $call = $node-&amp;gt;expr;
-        if (!$this-&amp;gt;isNames($call-&amp;gt;name, ['hide', 'show'])) {
-            return null;
-        }
-        if (count($call-&amp;gt;args) !== 1 || !$call-&amp;gt;args[0] instanceof Arg) {
-            return null;
-        }
-        $funcName = $this-&amp;gt;getName($call-&amp;gt;name);
-        if ($funcName === null) {
-            return null;
-        }
-        $value = self::FUNCTION_TO_VALUE[$funcName]
-            ? $this-&amp;gt;nodeFactory-&amp;gt;createTrue()
-            : $this-&amp;gt;nodeFactory-&amp;gt;createFalse();
-        $node-&amp;gt;expr = new Assign(
-            new ArrayDimFetch($call-&amp;gt;args[0]-&amp;gt;value, new String_('#printed')),
-            $value,
-        );
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([HideShowFunctionToHashPrintedRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
