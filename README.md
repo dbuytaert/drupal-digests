@@ -1,4 +1,4 @@
-**TL;DR:** [570 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [571 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_438 summaries · 67 new this week_
+_438 summaries · 66 new this week_
 
 - [#455724: Deprecate check_markup()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md)
 - [#3588331: PsrResponseSubscriber doesn't support \Psr\Http\Message\StreamInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588331.md)
@@ -14,11 +14,11 @@ _438 summaries · 67 new this week_
 
 ### Drupal Canvas
 
-_58 summaries · 21 new this week_
+_59 summaries · 22 new this week_
 
+- [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
 - [#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md)
 - [#3588661: Make CLI builds use shared Vite infrastructure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md)
-- [#3581110: Add Multi-Value List Text/Integer Prop Support (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3581110.md)
 
 ### Drupal AI
 

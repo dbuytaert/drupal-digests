@@ -5,6 +5,77 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3586613: Add content-entity-reference well-known prop shape for code components</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md</link>
+      <guid isPermaLink="false">019e230a-86b1-7083-b4ff-4e2d5d78439b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 12 May 2026 16:32:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 30 files, +1810/−76 · php +1703/−59 · md +59/−11 · yml +33/−6 · txt +5 · json +5 · twig +5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/29e44233fe353fda804eba99ae0aa4fdf55f0050"&gt;29e4423&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586613"&gt;#3586613&lt;/a&gt; · 3 contributors · 24 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas code components can now declare a &lt;code&gt;content-entity-reference&lt;/code&gt; prop, allowing a component to receive a resolved Drupal content entity object at render time. Previously, entity-reference semantics were only implicit (inferred from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; without a formal prop type), making props indistinguishable from plain &lt;code&gt;type: object&lt;/code&gt; props and blocking tooling, validation, and proper shape routing. With this change a component author declares a prop using &lt;code&gt;$ref: json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt;, selects which entity type and which fields to expose via &lt;code&gt;dataDependencies.entityFields&lt;/code&gt;, and the component receives a structured payload of those field values keyed by developer-friendly names. Cardinality-1 entity references are supported; multi-cardinality is a tracked follow-up.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public methods &lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps()&lt;/code&gt;, &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt;, &lt;code&gt;BetterEntityDataDefinition::getEntityType()&lt;/code&gt;, &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt;; new optional &lt;code&gt;conditions&lt;/code&gt; on &lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt;; new &lt;code&gt;content-entity-reference&lt;/code&gt; well-known prop shape.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new well-known prop shape &lt;code&gt;json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt; is added to &lt;code&gt;schema.json&lt;/code&gt; and registered in &lt;code&gt;canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;. It is represented as the new &lt;code&gt;JsonSchemaObjectRef::ContentEntityReference&lt;/code&gt; enum case (&lt;code&gt;@internal&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;The developer-facing prop definition deliberately omits &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; and &lt;code&gt;x-allowed-bundle&lt;/code&gt;. Those keys are derived at runtime: &lt;code&gt;JavaScriptComponent::toSdcDefinition()&lt;/code&gt; projects them into the returned SDC definition array from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; (the single source of truth), leaving the stored config entity untouched. The new public methods &lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps()&lt;/code&gt; and &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt; expose the entity-reference subset of props and their field expression lists respectively.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt; is extended to validate content-entity-reference props: they must not be required (the referenced entity may be absent or deleted), &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; must resolve to a known content entity type, &lt;code&gt;x-allowed-bundle&lt;/code&gt; is required if and only if the target entity type has bundles, and &lt;code&gt;examples&lt;/code&gt; are forbidden. The new &lt;code&gt;ContentEntityReferenceObjectConstraint&lt;/code&gt; (registered as the JSON Schema &lt;code&gt;object&lt;/code&gt; constraint via &lt;code&gt;CanvasServiceProvider&lt;/code&gt;) enforces the same rules at prop-value validation time, with matching error messages.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt; gains an optional &lt;code&gt;conditions&lt;/code&gt; map. The &lt;code&gt;entityFields&lt;/code&gt; config schema constraint now uses it to require that every &lt;code&gt;entityFields&lt;/code&gt; key corresponds to a &lt;code&gt;content-entity-reference&lt;/code&gt;-shaped prop (and vice versa), closing the &lt;code&gt;@todo&lt;/code&gt; left by &lt;a href="https://www.drupal.org/node/3585298"&gt;#3585298&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt; returns a &lt;code&gt;StorablePropShape&lt;/code&gt; for entity-reference shapes: field type &lt;code&gt;entity_reference&lt;/code&gt;, widget &lt;code&gt;entity_reference_autocomplete&lt;/code&gt;, with &lt;code&gt;target_type&lt;/code&gt; in storage settings and optionally &lt;code&gt;target_bundles&lt;/code&gt; via the &lt;code&gt;default&lt;/code&gt; handler. &lt;code&gt;EntityFieldPropSourceMatcher::matchContentEntityReferenceShape()&lt;/code&gt; matches host-entity reference fields whose target entity type and bundle satisfy the shape.&lt;/p&gt;
+&lt;p&gt;At render time, &lt;code&gt;JsComponent::getExplicitInput()&lt;/code&gt; reuses the parent-resolved &lt;code&gt;EvaluationResult&lt;/code&gt; for each populated entity-reference prop, evaluates every declared &lt;code&gt;entityFields&lt;/code&gt; expression on the referenced &lt;code&gt;FieldableEntityInterface&lt;/code&gt;, and assembles a payload keyed by &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt;. That method converts field names to entity keys where applicable (e.g. &lt;code&gt;title&lt;/code&gt; → &lt;code&gt;label&lt;/code&gt;) and uses &lt;code&gt;$&lt;/code&gt; as the separator for reference sub-expressions, since &lt;code&gt;$&lt;/code&gt; is not valid in a Drupal field machine name but is a valid JavaScript identifier character. Dangling references, empty host fields, or non-&lt;code&gt;FieldableEntityInterface&lt;/code&gt; values are silently skipped. The ad-hoc &amp;quot;entity-ref props cannot be required&amp;quot; check previously in &lt;code&gt;JsComponentHasValidAndSupportedSdcMetadataConstraintValidator&lt;/code&gt; is removed, subsumed by the new &lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt; branch. &lt;code&gt;BetterEntityDataDefinition::getEntityType()&lt;/code&gt; is added as a new public method to eagerly probe entity-type resolution.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No changes are required to existing code. The new prop type is additive only; no config update hook is needed.&lt;/p&gt;
+&lt;p&gt;To declare a content-entity-reference prop in a code component:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;# In dataDependencies.entityFields (single source of truth for target type + bundle):
+dataDependencies:
+  entityFields:
+    article:
+      - 'entity:node:article/title'
+      - 'entity:node:article/field_image'
+
+# In props (omit x-allowed-entity-type-id / x-allowed-bundle here;
+# they are projected by toSdcDefinition() at runtime):
+props:
+  type: object
+  properties:
+    article:
+      title: 'Featured article'
+      type: object
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The component receives a payload such as &lt;code&gt;{ label: '...', field_image: ... }&lt;/code&gt; for the &lt;code&gt;article&lt;/code&gt; prop at render time.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 12, 2026 (18 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, wim leers flagged that an early MR blurred the separation of concerns between prop source matchers and suggesters introduced in &lt;a href="https://www.drupal.org/node/3555300"&gt;#3555300&lt;/a&gt; and marked the issue Needs Work. penyaskito split the &lt;code&gt;JsonSchemaObjectRef&lt;/code&gt; enum into its own prerequisite issue (&lt;a href="https://www.drupal.org/node/3587673"&gt;#3587673&lt;/a&gt;) in response. After a second round of thorough implementation, wim leers approved and noted the JSON Schema validation (absent from his original proof-of-concept MR) and other improvements as significant additions over the PoC. longwave reviewed both rounds and offered no further notes on the final version. The issue was bumped to Major priority at approval time given the scope of the change (+1711, -76 across 26 files).&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md</link>
       <guid isPermaLink="false">019e1d17-3f35-722d-ac68-8526e44be025</guid>
@@ -902,52 +973,6 @@ const pageItems = data?.items ?? [];
 &lt;h3&gt;Key contributors&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582709: Provide an endpoint to identify that a push is starting and has stopped</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582709.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-9520f12ac370</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 03 Apr 2026 14:34:35 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +476/−16 · php +318/−2 · js +84/−14 · yml +74&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/4a242b335c9a667a341de61c3781ffee625c858b"&gt;4a242b3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582709"&gt;#3582709&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas CLI push command now signals the server when a push starts, completes, or fails. This allows the Canvas editor UI to display a notification showing the push is in progress, then update it to show success or failure when the push finishes. The endpoints also dispatch events that other systems can subscribe to.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Three POST endpoints: &lt;code&gt;/canvas/api/v0/push/start&lt;/code&gt;, &lt;code&gt;/canvas/api/v0/push/complete&lt;/code&gt;, and &lt;code&gt;/canvas/api/v0/push/fail&lt;/code&gt; for CLI push lifecycle signaling&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Canvas module has an existing notification system that displays messages in the editor UI. This change adds three REST endpoints that the CLI push command calls to signal lifecycle events.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ApiPushController&lt;/code&gt; provides three methods that each create a notification and dispatch an event. The &lt;code&gt;start()&lt;/code&gt; method creates a &amp;quot;processing&amp;quot; notification. The &lt;code&gt;complete()&lt;/code&gt; method creates a &amp;quot;success&amp;quot; notification. The &lt;code&gt;fail()&lt;/code&gt; method creates an &amp;quot;error&amp;quot; notification and accepts an optional JSON body with a &lt;code&gt;message&lt;/code&gt; field. All three use the same notification key (&lt;code&gt;cli-push&lt;/code&gt;), so the existing notification system's &lt;code&gt;KEY_REPLACE_TYPES&lt;/code&gt; logic automatically replaces the processing notification when complete or fail is called.&lt;/p&gt;
-&lt;p&gt;Each method dispatches a &lt;code&gt;PushEvent&lt;/code&gt; containing a &lt;code&gt;PushStatus&lt;/code&gt; enum value (Started, Completed, or Failed) for extensibility.&lt;/p&gt;
-&lt;p&gt;The CLI push command in &lt;code&gt;packages/cli/src/commands/push.ts&lt;/code&gt; calls &lt;code&gt;/push/start&lt;/code&gt; before beginning work and either &lt;code&gt;/push/complete&lt;/code&gt; or &lt;code&gt;/push/fail&lt;/code&gt; at the end. The calls are best-effort: they are wrapped in try-catch blocks and failures do not affect the push itself. Error handling was refactored to throw exceptions instead of calling &lt;code&gt;process.exit()&lt;/code&gt; directly, so the fail signal can be sent in the catch block.&lt;/p&gt;
-&lt;p&gt;The OAuth authentication provider was updated to recognize these three routes alongside the existing artifact upload route.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 3, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
