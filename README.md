@@ -1,4 +1,4 @@
-**TL;DR:** [567 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [568 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_435 summaries · 65 new this week_
+_436 summaries · 66 new this week_
 
+- [#3586470: Support preloading of fonts declared from components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586470.md)
 - [#3301239: Improve the error message thrown in PoStreamReader::readLine() when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md)
 - [#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md)
-- [#2844620: Automatically split cache debug headers into multiple lines when they exceed 8k](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2844620.md)
 
 ### Drupal Canvas
 
