@@ -5,6 +5,109 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#455724: Deprecate check_markup()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md</link>
+      <guid isPermaLink="false">019e2159-1484-7021-8e8d-32935ff5de66</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 13 May 2026 09:28:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +159/−46 · php +159/−46&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a69f1e953a8cb8ca061ccbe6bd45f6ff37541d9f"&gt;a69f1e9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/455724"&gt;#455724&lt;/a&gt; · 19 contributors · 132 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 25&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;check_markup()&lt;/code&gt; function in &lt;code&gt;filter.module&lt;/code&gt; is deprecated as of Drupal 11.4.0 and will be removed in Drupal 13.0.0. The function has no direct procedural replacement. The recommended approach is to return a &lt;code&gt;processed_text&lt;/code&gt; render array directly rather than flattening it to a markup string, because flattening discards cacheability metadata (cache tags, contexts, max-age) that filters can attach. Module code that currently calls &lt;code&gt;check_markup()&lt;/code&gt; and renders the result must be updated before upgrading to Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;check_markup()&lt;/code&gt; in &lt;code&gt;filter.module&lt;/code&gt; is deprecated in drupal:11.4.0 and removed in drupal:13.0.0; use a &lt;code&gt;processed_text&lt;/code&gt; render array instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The function &lt;code&gt;check_markup()&lt;/code&gt; was a thin convenience wrapper: it built a &lt;code&gt;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; ..., '#format' =&amp;gt; ..., ...]&lt;/code&gt; render array and immediately flattened it to a &lt;code&gt;MarkupInterface&lt;/code&gt; string via the renderer. That flattening step is the problem, because it silently drops any cacheability metadata that filter plugins attach during processing.&lt;/p&gt;
+&lt;p&gt;The commit adds a &lt;code&gt;@trigger_error()&lt;/code&gt; deprecation notice at the top of &lt;code&gt;check_markup()&lt;/code&gt; and documents the deprecation in the docblock. There is explicitly no new service or function provided as a replacement; callers are expected to pass the &lt;code&gt;processed_text&lt;/code&gt; render array further up the stack and let the rendering system handle it.&lt;/p&gt;
+&lt;p&gt;The one production caller updated in this commit is the Views &lt;code&gt;MarkupField&lt;/code&gt; handler (&lt;code&gt;core/modules/views/src/Plugin/views/field/MarkupField.php&lt;/code&gt;), which now returns a &lt;code&gt;processed_text&lt;/code&gt; render array directly. Test code that needed to assert on string output was updated to use a new test-only trait &lt;code&gt;Drupal\Tests\filter\Traits\ProcessedTextTestTrait&lt;/code&gt;, whose &lt;code&gt;processText()&lt;/code&gt; helper replicates what &lt;code&gt;check_markup()&lt;/code&gt; did but is explicitly documented as unsuitable for production use. The issue was originally filed in 2009 as a renaming request, and was rescoped to a full deprecation as part of the broader meta effort to eliminate core &lt;code&gt;.module&lt;/code&gt; procedural files (&lt;a href="https://www.drupal.org/node/3566536"&gt;#3566536&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace calls to &lt;code&gt;check_markup()&lt;/code&gt; with a &lt;code&gt;processed_text&lt;/code&gt; render array and let Drupal's render pipeline handle it:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
+$output = check_markup($text, $format_id, $langcode, $filter_types_to_skip);
+
+// After:
+$output = [
+  '#type' =&amp;gt; 'processed_text',
+  '#text' =&amp;gt; $text,
+  '#format' =&amp;gt; $format_id,
+  '#langcode' =&amp;gt; $langcode,
+  '#filter_types_to_skip' =&amp;gt; $filter_types_to_skip,
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Return the render array from your method or template variable rather than casting it to a string. If you must obtain a string for an isolated test assertion, use the &lt;code&gt;Drupal\Tests\filter\Traits\ProcessedTextTestTrait&lt;/code&gt; helper in your test class — but do not use that pattern in production code.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2009&lt;/li&gt;
+&lt;li&gt;Committed: May 13, 2026 (17 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;greggles&lt;/li&gt;
+&lt;li&gt;cburschka&lt;/li&gt;
+&lt;li&gt;heine&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;sun&lt;/li&gt;
+&lt;li&gt;agentrickard&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;claudiu.cristea reopened work on the issue in 2025, noting that &lt;code&gt;check_markup()&lt;/code&gt; had roughly 450 known usages in contributed projects. In a series of comments they weighed whether the logic should move into the &lt;code&gt;renderer&lt;/code&gt; service, a new dedicated service, or simply be dropped with no replacement. They concluded that the two-line body of &lt;code&gt;check_markup()&lt;/code&gt; did not warrant a new service and that the correct guidance was to avoid flattening the render array at all, which led to the &amp;quot;no direct replacement&amp;quot; framing that appears in the final deprecation message.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588331: PsrResponseSubscriber doesn't support \Psr\Http\Message\StreamInterface</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588331.md</link>
+      <guid isPermaLink="false">019e2157-c7ca-7560-9422-7e14fd59977d</guid>
+      <pubDate>Wed, 13 May 2026 08:59:28 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +56/−2 · php +56/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/88b77e672f584eddc3a67dfa842525f1102422e9"&gt;88b77e6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588331"&gt;#3588331&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal controllers that return PSR-7 responses backed by non-seekable stream bodies (such as those produced by the MCP SDK or other third-party streaming SDKs) would previously respond incorrectly because &lt;code&gt;PsrResponseSubscriber&lt;/code&gt; never told the Symfony bridge to treat the response as streamed. The subscriber now inspects the PSR-7 body's seekability and passes the appropriate flag, so non-seekable streams are converted to a proper Symfony &lt;code&gt;StreamedResponse&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;PsrResponseSubscriber::onKernelView()&lt;/code&gt; previously called &lt;code&gt;HttpFoundationFactoryInterface::createResponse($controller_result)&lt;/code&gt; with no second argument, meaning &lt;code&gt;$streamed&lt;/code&gt; always defaulted to &lt;code&gt;false&lt;/code&gt;. The Symfony bridge's &lt;code&gt;createResponse&lt;/code&gt; uses that flag to decide whether to produce a &lt;code&gt;StreamedResponse&lt;/code&gt; (which reads the body lazily) or a regular &lt;code&gt;Response&lt;/code&gt; (which buffers the body). Non-seekable PSR-7 streams cannot be rewound after reading, so buffering them silently produces an empty or corrupt response body.&lt;/p&gt;
+&lt;p&gt;The fix replaces the hard-coded call with &lt;code&gt;$streamed = !$controller_result-&amp;gt;getBody()-&amp;gt;isSeekable()&lt;/code&gt; and passes that value as the second argument. Seekable bodies continue to produce a regular &lt;code&gt;Response&lt;/code&gt;; non-seekable bodies now produce a &lt;code&gt;StreamedResponse&lt;/code&gt;. Two new unit tests cover the two branches using &lt;code&gt;StreamInterface&lt;/code&gt; mocks with controlled &lt;code&gt;isSeekable()&lt;/code&gt; return values and mock expectations on &lt;code&gt;createResponse&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 13, 2026 (8 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586470: Support preloading of fonts declared from components</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586470.md</link>
       <guid isPermaLink="false">019e208f-03d4-7520-9adb-262a5ca2fc13</guid>
@@ -1046,104 +1149,6 @@ protected function getRawContent(): string { ... }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;catch pointed out early in the thread that the module can only be marked obsolete in 12.x, not 11.x, because the update hook guaranteeing uninstallation must have run before the module can be removed. danielveza asked whether the integration code inside &lt;code&gt;LayoutBuilderEntityViewDisplay::save&lt;/code&gt; and &lt;code&gt;FieldBlockDeriver&lt;/code&gt; should also be removed as part of this issue; catch confirmed that it should and bumped the issue to Major as a 12.0.0 beta blocker. gábor hojtsy then took over the implementation, rewrote the patch to remove the integration code, and marked it ready for review.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2954725: AccountInterface::getLastAccessedTime() implementors return incorrect data type</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2954725.md</link>
-      <guid isPermaLink="false">019e0b28-aa6f-7659-9868-b6c5ae10c714</guid>
-      <pubDate>Fri, 08 May 2026 13:52:50 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +35/−4 · php +35/−4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5af6f438ff5ee073709f16c89bc8582420e510f8"&gt;5af6f43&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2954725"&gt;#2954725&lt;/a&gt; · 12 contributors · 53 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;AccountInterface::getLastAccessedTime()&lt;/code&gt; is documented to return an &lt;code&gt;int&lt;/code&gt;, but both &lt;code&gt;User&lt;/code&gt; and &lt;code&gt;UserSession&lt;/code&gt; implementations were returning string values sourced directly from database columns. This caused silent failures in strict comparisons (using &lt;code&gt;===&lt;/code&gt;) and was inconsistent with the method's documented contract. The return values in both implementations are now cast to &lt;code&gt;int&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause is that PHP database drivers return column values as strings by default. &lt;code&gt;User::getLastAccessedTime()&lt;/code&gt; called &lt;code&gt;$this-&amp;gt;getFieldValue('access', 'value')&lt;/code&gt; and &lt;code&gt;UserSession::getLastAccessedTime()&lt;/code&gt; returned &lt;code&gt;$this-&amp;gt;access&lt;/code&gt; directly, neither applying any cast.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;(int)&lt;/code&gt; casts in both &lt;code&gt;User::getLastAccessedTime()&lt;/code&gt; (&lt;code&gt;core/modules/user/src/Entity/User.php&lt;/code&gt;) and &lt;code&gt;UserSession::getLastAccessedTime()&lt;/code&gt; (&lt;code&gt;core/lib/Drupal/Core/Session/UserSession.php&lt;/code&gt;). The &lt;code&gt;@var&lt;/code&gt; docblock on &lt;code&gt;UserSession::$access&lt;/code&gt; is corrected from &lt;code&gt;string&lt;/code&gt; to &lt;code&gt;int&lt;/code&gt;. &lt;code&gt;AccountProxy::getLastAccessedTime()&lt;/code&gt; is unaffected because it delegates to the underlying account object, so it picks up the fix through the cast on those implementations.&lt;/p&gt;
-&lt;p&gt;The migrate kernel test &lt;code&gt;MigrateUserTest::testUser()&lt;/code&gt; was updated to cast &lt;code&gt;$source-&amp;gt;access&lt;/code&gt; before the &lt;code&gt;assertSame()&lt;/code&gt; call, since the migration source record still carries a string but &lt;code&gt;getLastAccessedTime()&lt;/code&gt; now guarantees an int. New &lt;code&gt;testGetLastAccessedTime()&lt;/code&gt; kernel tests were added to &lt;code&gt;UserEntityTest&lt;/code&gt; and &lt;code&gt;UserSessionTest&lt;/code&gt; to pin the int-return contract going forward.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you were working around this bug by casting the return value yourself, those casts can now be removed:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (workaround)
-$lastAccess = (int) $user-&amp;gt;getLastAccessedTime();
-
-// After (no cast needed)
-$lastAccess = $user-&amp;gt;getLastAccessedTime();
-
-// Strict comparisons now work correctly
-if ($user-&amp;gt;getLastAccessedTime() === 0) { /* user never accessed */ }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 20, 2018&lt;/li&gt;
-&lt;li&gt;First commit: April 20, 2026 (8 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 8, 2026 (17 days and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dpi (PreviousNext)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;manuel.adan (Arcovía Digital)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583594: Add getUrl() and (renamed) xpath() helpers to HttpKernelUiHelperTrait</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583594.md</link>
-      <guid isPermaLink="false">019e0b22-e7b5-72f3-b51f-2a1d5281ae89</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 08 May 2026 07:46:49 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +34/−0 · php +34&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/326c357eebcb0a82f86bd9f698340f7cd293410c"&gt;326c357&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3583594"&gt;#3583594&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two helper methods have been added to &lt;code&gt;HttpKernelUiHelperTrait&lt;/code&gt; (&lt;code&gt;\Drupal\Tests&lt;/code&gt;) to reduce friction when converting Browser tests to Kernel tests. &lt;code&gt;getNodeElementsByXpath()&lt;/code&gt; performs an XPath search against the current page and returns Mink &lt;code&gt;NodeElement&lt;/code&gt; objects, matching the behaviour of &lt;code&gt;BrowserTestBase::xpath()&lt;/code&gt;. &lt;code&gt;getUrl()&lt;/code&gt; returns the current URL from the Mink session. Both methods are now available in any Kernel test class that uses this trait, including &lt;code&gt;KernelTestBase&lt;/code&gt; subclasses.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two methods added to &lt;code&gt;HttpKernelUiHelperTrait&lt;/code&gt;: &lt;code&gt;getNodeElementsByXpath(string $xpath, array $arguments = []): array&lt;/code&gt; returning &lt;code&gt;\Behat\Mink\Element\NodeElement[]&lt;/code&gt;, and &lt;code&gt;getUrl(): string&lt;/code&gt; returning the current Mink session URL.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Kernel tests already include &lt;code&gt;AssertContentTrait::xpath()&lt;/code&gt; (via &lt;code&gt;KernelTestBase&lt;/code&gt;), which returns &lt;code&gt;\SimpleXMLElement[]|false&lt;/code&gt;. &lt;code&gt;BrowserTestBase::xpath()&lt;/code&gt; returns &lt;code&gt;\Behat\Mink\Element\NodeElement[]&lt;/code&gt;. Adding a second &lt;code&gt;xpath()&lt;/code&gt; directly to &lt;code&gt;HttpKernelUiHelperTrait&lt;/code&gt; causes a fatal PHP trait method collision in &lt;code&gt;KernelTestBase&lt;/code&gt;. To avoid this, the Mink-based XPath helper is added under the distinct name &lt;code&gt;getNodeElementsByXpath(string $xpath, array $arguments = []): array&lt;/code&gt;. It delegates to &lt;code&gt;$this-&amp;gt;assertSession()-&amp;gt;buildXPathQuery()&lt;/code&gt; for argument substitution and then calls &lt;code&gt;$this-&amp;gt;getSession()-&amp;gt;getPage()-&amp;gt;findAll('xpath', $xpath)&lt;/code&gt;, exactly mirroring the &lt;code&gt;BrowserTestBase&lt;/code&gt; implementation. &lt;code&gt;getUrl()&lt;/code&gt; simply wraps &lt;code&gt;$this-&amp;gt;getSession()-&amp;gt;getCurrentUrl()&lt;/code&gt;, matching the contract of &lt;code&gt;UiHelperTrait::getUrl()&lt;/code&gt;. A follow-on issue (&lt;a href="https://www.drupal.org/node/3585774"&gt;#3585774&lt;/a&gt;) is filed to standardise and disambiguate the names of all &lt;code&gt;xpath()&lt;/code&gt; variants across the test suite.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 8, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 8, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;joachim&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;joachim flagged that directly porting &lt;code&gt;xpath()&lt;/code&gt; would be hazardous because the two existing variants return incompatible types, and proposed naming the new method something unambiguous like &lt;code&gt;getNodeElementByXpath()&lt;/code&gt;. That observation drove the decision to add the method under the distinctive name &lt;code&gt;getNodeElementsByXpath()&lt;/code&gt; rather than as a plain copy of &lt;code&gt;xpath()&lt;/code&gt;, and to file &lt;a href="https://www.drupal.org/node/3585774"&gt;#3585774&lt;/a&gt; as a follow-on cleanup.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

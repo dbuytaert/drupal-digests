@@ -1,4 +1,4 @@
-**TL;DR:** [568 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [570 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_436 summaries · 66 new this week_
+_438 summaries · 67 new this week_
 
+- [#455724: Deprecate check_markup()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md)
+- [#3588331: PsrResponseSubscriber doesn't support \Psr\Http\Message\StreamInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588331.md)
 - [#3586470: Support preloading of fonts declared from components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586470.md)
-- [#3301239: Improve the error message thrown in PoStreamReader::readLine() when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md)
-- [#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _11 summaries · 3 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_166 rules · 23 new this week_
+_167 rules · 24 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace NodeViewController with EntityViewController](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-nodeviewcontroller-with-entityviewcontroller-3589630.php)
+- [Replace check_markup() with processed_text render array](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-check-markup-with-processed-text-render-array-455724.php)
 
 
 ## RSS feeds

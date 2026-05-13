@@ -241,6 +241,122 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace check_markup() with processed_text render array</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e215f-ef60-71b2-8814-ada1c0fff96e.md</link>
+      <guid isPermaLink="false">019e215f-ef60-71b2-8814-ada1c0fff96e</guid>
+      <pubDate>Wed, 13 May 2026 12:46:35 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/455724"&gt;#455724&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;check_markup()&lt;/code&gt; function (removed in Drupal 13) with an equivalent &lt;code&gt;['#type' =&amp;gt; 'processed_text', ...]&lt;/code&gt; render array. The render array preserves all passed arguments — &lt;code&gt;$text&lt;/code&gt;, &lt;code&gt;$format_id&lt;/code&gt;, &lt;code&gt;$langcode&lt;/code&gt;, and &lt;code&gt;$filter_types_to_skip&lt;/code&gt; — mapping them to the corresponding render element keys. Both positional and named argument styles are handled.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;check_markup($text, $format_id);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; $text, '#format' =&amp;gt; $format_id];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The return type changes from &lt;code&gt;MarkupInterface&lt;/code&gt; to a render array. Any call site that uses the result as a string (concatenation, &lt;code&gt;echo&lt;/code&gt;, cast to string) needs additional manual updates to pass the render array through a renderer. Call sites that return the render array directly or nest it inside another render array are fully handled by this rule.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class CheckMarkupToProcessedTextRector extends AbstractRector
+{
+    // Maps check_markup() parameter names to processed_text render array keys.
+    private const PARAM_MAP = [
+        'text'                 =&amp;gt; '#text',
+        'format_id'            =&amp;gt; '#format',
+        'langcode'             =&amp;gt; '#langcode',
+        'filter_types_to_skip' =&amp;gt; '#filter_types_to_skip',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated check_markup() calls with a processed_text render array.',
+            [new CodeSample(
+                &amp;quot;check_markup(\$text, \$format_id);&amp;quot;,
+                &amp;quot;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; \$text, '#format' =&amp;gt; \$format_id];&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'check_markup')) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;args;
+        if (count($args) === 0) {
+            return null;
+        }
+
+        $items = [
+            new ArrayItem(new String_('processed_text'), new String_('#type')),
+        ];
+
+        $paramNames = array_keys(self::PARAM_MAP);
+        $positionalIndex = 0;
+
+        foreach ($args as $arg) {
+            // Skip variadic/unpack placeholders.
+            if (!$arg instanceof Arg) {
+                continue;
+            }
+
+            if ($arg-&amp;gt;name !== null) {
+                // Named argument: map by parameter name.
+                $paramName = $arg-&amp;gt;name-&amp;gt;toString();
+                if (isset(self::PARAM_MAP[$paramName])) {
+                    $items[] = new ArrayItem($arg-&amp;gt;value, new String_(self::PARAM_MAP[$paramName]));
+                }
+            } else {
+                // Positional argument: map by position.
+                if (isset($paramNames[$positionalIndex])) {
+                    $key = self::PARAM_MAP[$paramNames[$positionalIndex]];
+                    $items[] = new ArrayItem($arg-&amp;gt;value, new String_($key));
+                }
+                $positionalIndex++;
+            }
+        }
+
+        return new Array_($items);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([CheckMarkupToProcessedTextRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace NodeViewController with EntityViewController</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e1c3b-6f28-7772-98ed-0d67c35c31dc.md</link>
       <guid isPermaLink="false">019e1c3b-6f28-7772-98ed-0d67c35c31dc</guid>
@@ -1533,97 +1649,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\\Tests\\TestRequirementsTrait' =&amp;gt; 'Drupal\\Tests\\DrupalTestCaseTrait',
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace EntityTypeInterface::getOriginalClass() with getDecoratedClasses()[0] ?? getClass()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0516-58c6-7415-85ca-c503a63c2887.md</link>
-      <guid isPermaLink="false">019e0516-58c6-7415-85ca-c503a63c2887</guid>
-      <pubDate>Fri, 08 May 2026 00:56:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3557461"&gt;#3557461&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;EntityTypeInterface::getOriginalClass()&lt;/code&gt; with the semantically equivalent &lt;code&gt;getDecoratedClasses()[0] ?? $entityType-&amp;gt;getClass()&lt;/code&gt;. &lt;code&gt;getOriginalClass()&lt;/code&gt; is deprecated in Drupal 11.4.0 and removed in 12.0.0. Because &lt;code&gt;getDecoratedClasses()&lt;/code&gt; returns an array (not a string), the replacement expression recovers the original class name string while retaining the same fallback-to-current-class behaviour.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$original = $entityType-&amp;gt;getOriginalClass();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$original = $entityType-&amp;gt;getDecoratedClasses()[0] ?? $entityType-&amp;gt;getClass();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only transforms calls where the receiver is a simple variable (e.g. &lt;code&gt;$entityType-&amp;gt;getOriginalClass()&lt;/code&gt;). Calls on complex expressions such as &lt;code&gt;$manager-&amp;gt;getDefinition('node')-&amp;gt;getOriginalClass()&lt;/code&gt; are intentionally skipped to avoid evaluating the receiver expression twice (potential side effects).&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\ArrayDimFetch;
-use PhpParser\Node\Expr\BinaryOp\Coalesce;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\Variable;
-use PhpParser\Node\Scalar\LNumber;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class GetOriginalClassToGetDecoratedClassesRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace EntityTypeInterface::getOriginalClass() with getDecoratedClasses()[0] ?? $entityType-&amp;gt;getClass()',
-            [new CodeSample(
-                '$entityType-&amp;gt;getOriginalClass();',
-                '$entityType-&amp;gt;getDecoratedClasses()[0] ?? $entityType-&amp;gt;getClass();',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [MethodCall::class];
-    }
-
-    /** @param MethodCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof MethodCall) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'getOriginalClass')) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\Core\Entity\EntityTypeInterface'))) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 0) {
-            return null;
-        }
-        // Only transform when receiver is a simple variable to avoid
-        // evaluating complex expressions (with potential side effects) twice.
-        if (!$node-&amp;gt;var instanceof Variable) {
-            return null;
-        }
-
-        // Build: $entityType-&amp;gt;getDecoratedClasses()[0] ?? $entityType-&amp;gt;getClass()
-        $getDecoratedClasses = new MethodCall($node-&amp;gt;var, 'getDecoratedClasses');
-        $arrayDimFetch = new ArrayDimFetch($getDecoratedClasses, new LNumber(0));
-        $getClass = new MethodCall($node-&amp;gt;var, 'getClass');
-
-        return new Coalesce($arrayDimFetch, $getClass);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([GetOriginalClassToGetDecoratedClassesRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
