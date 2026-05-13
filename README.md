@@ -1,4 +1,4 @@
-**TL;DR:** [578 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [567 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [166 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_440 summaries · 30 new this week_
+_435 summaries · 66 new this week_
 
 - [#3301239: Improve the error message thrown in PoStreamReader::readLine() when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md)
 - [#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md)
@@ -14,7 +14,7 @@ _440 summaries · 30 new this week_
 
 ### Drupal Canvas
 
-_58 summaries · 2 new this week_
+_58 summaries · 21 new this week_
 
 - [#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md)
 - [#3588661: Make CLI builds use shared Vite infrastructure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md)
@@ -22,7 +22,7 @@ _58 summaries · 2 new this week_
 
 ### Drupal AI
 
-_69 summaries · 3 new this week_
+_63 summaries · 6 new this week_
 
 - [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 - [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
@@ -30,7 +30,7 @@ _69 summaries · 3 new this week_
 
 ### Drupal CMS
 
-_11 summaries · 0 new this week_
+_11 summaries · 3 new this week_
 
 - [#3580694: The project template should always place config outside the web root by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3580694.md)
 - [#3579163: Add support for listing paid site templates in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3579163.md)

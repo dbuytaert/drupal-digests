@@ -49,26 +49,55 @@
     <item>
       <title>#3579163: Add support for listing paid site templates in the installer</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3579163.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e34423fd91</guid>
+      <guid isPermaLink="false">019e1e2d-9f04-70b3-be57-3b6ac5044bdb</guid>
+      <category>Module maintainers</category>
       <pubDate>Tue, 17 Mar 2026 22:08:57 +0000</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +2/−2 · css +2/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Closed (fixed)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +252/−35 · php +236/−35 · yml +16&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/commit/689f58926839a8c55a71b617679c1df6dde3c90d"&gt;689f589&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579163"&gt;#3579163&lt;/a&gt; · 3 contributors · 43 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579163"&gt;#3579163&lt;/a&gt; · 3 contributors · 44 comments&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Drupal CMS installer can now list and install paid site templates. During installation, site builders can browse premium templates, view pricing and purchase links, and install them using a license key provided by the vendor. When a paid template is selected, the installer opens a purchase URL in a new tab, then prompts for a license key that authorizes Composer to download the package from the vendor's repository. This infrastructure supports multiple site template vendors offering commercial starter kits through the installer.&lt;/p&gt;
+&lt;p&gt;The Drupal CMS installer now supports paid (premium) site templates alongside free ones. Premium templates display a price and a &amp;quot;Buy for $X&amp;quot; link that opens the vendor's purchase page in a new tab. After purchasing, the user enters a license key through a modal dialog; the installer validates the key against the vendor's Composer repository (and optionally a lightweight server-side validation endpoint), saves it as a bearer token in &lt;code&gt;auth.json&lt;/code&gt;, and then proceeds with installation as normal. Free templates also receive a &amp;quot;Free&amp;quot; badge for visual parity. The blank starter template is always listed first and pre-selected. Site hosts and testing environments can place a &lt;code&gt;site-templates.php&lt;/code&gt; file in the site directory to override the remotely curated template list entirely; this is documented as an official extension point.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;site-templates.php&lt;/code&gt; extension point in the site directory: returning an iterable of template arrays overrides the remote &lt;code&gt;site-templates.yml&lt;/code&gt; list in the Drupal CMS installer.&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The installer's site template infrastructure was extended to represent both free and paid templates through a &lt;code&gt;SiteTemplate&lt;/code&gt; value object. This object encapsulates metadata including name, description, screenshot, package information, pricing, purchase URLs, and repository details.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;SiteTemplateForm&lt;/code&gt; reads template definitions from a remotely curated &lt;code&gt;site-templates.yml&lt;/code&gt; file, and supports a per-site override via &lt;code&gt;sites/default/site-templates.php&lt;/code&gt; for hosts or testing scenarios. Templates can specify an alternate Composer repository and an authorization type (currently only &lt;code&gt;bearer&lt;/code&gt; tokens are supported).&lt;/p&gt;
-&lt;p&gt;When a paid template is selected, the installer collects a license key through a modal dialog with client-side UUID formatting. The key is validated by attempting to query the package from the vendor's repository. If successful, Composer is configured with the bearer token in &lt;code&gt;auth.json&lt;/code&gt; and the repository is added to &lt;code&gt;composer.json&lt;/code&gt;. The installer then proceeds with normal template installation.&lt;/p&gt;
-&lt;p&gt;The implementation includes comprehensive test coverage through kernel tests for the &lt;code&gt;SiteTemplate&lt;/code&gt; class, functional tests for the installer flow, and a build test that simulates installing a paid template from a protected repository using a test HTTP server.&lt;/p&gt;
+&lt;p&gt;The central addition is the &lt;code&gt;SiteTemplate&lt;/code&gt; final readonly value object (&lt;code&gt;Drupal\drupal_cms_installer\SiteTemplate&lt;/code&gt;, marked &lt;code&gt;@internal&lt;/code&gt;). It normalizes both locally present recipes and remotely hosted Composer packages into a single shape, carrying: &lt;code&gt;name&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;locator&lt;/code&gt; (file path or Composer package name), &lt;code&gt;repository&lt;/code&gt;, &lt;code&gt;authorization&lt;/code&gt;, &lt;code&gt;links&lt;/code&gt; (as &lt;code&gt;Link&lt;/code&gt; objects), &lt;code&gt;price&lt;/code&gt;, &lt;code&gt;purchaseUrl&lt;/code&gt;, &lt;code&gt;keyValidationUrl&lt;/code&gt;, and a &lt;code&gt;getScreenshot()&lt;/code&gt; method that base64-encodes local &lt;code&gt;.webp&lt;/code&gt; files so they can be served from outside the web root. The static factory &lt;code&gt;SiteTemplate::createFromRecipe()&lt;/code&gt; wraps an existing &lt;code&gt;Recipe&lt;/code&gt; object.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SiteTemplateForm&lt;/code&gt; was refactored to work with &lt;code&gt;SiteTemplate&lt;/code&gt; instances throughout. The &lt;code&gt;access_key&lt;/code&gt; field is now a &lt;code&gt;#type =&amp;gt; container&lt;/code&gt; holding one textfield per premium template, each shown conditionally via &lt;code&gt;#states&lt;/code&gt; when its associated radio is selected. Validation logic moved from &lt;code&gt;submitForm()&lt;/code&gt; into &lt;code&gt;validateForm()&lt;/code&gt;: alternate Composer repositories are registered via &lt;code&gt;ComposerExecutor::execute('repository', 'add', ...)&lt;/code&gt; using the xxh3 hash of the host+port as the repository name, the bearer token is written via &lt;code&gt;composer config bearer.&amp;lt;host&amp;gt; &amp;lt;key&amp;gt;&lt;/code&gt;, then &lt;code&gt;composer show --all &amp;lt;package&amp;gt;&lt;/code&gt; confirms the package is visible; on failure the token is unset and a form error is set. The site directory may also contain a &lt;code&gt;site-templates.php&lt;/code&gt; returning an iterable of template arrays; when present it overrides the remote &lt;code&gt;site-templates.yml&lt;/code&gt; list entirely and is treated as &lt;code&gt;@api&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;form_element__site_template&lt;/code&gt; Twig template was substantially expanded to render links, price, purchase button, and a &amp;quot;Already purchased? Enter license key&amp;quot; button that opens a &lt;code&gt;&amp;lt;dialog&amp;gt;&lt;/code&gt; element. The &lt;code&gt;premium-helper.js&lt;/code&gt; behavior manages the dialog lifecycle, applies a UUID input mask, performs debounced server-side validation (via &lt;code&gt;Drupal.debounce&lt;/code&gt; and a &lt;code&gt;fetch()&lt;/code&gt; against &lt;code&gt;keyValidationUrl&lt;/code&gt;), and updates status indicators (loading spinner, valid checkmark, invalid X). The &lt;code&gt;site-templates.yml&lt;/code&gt; format was extended with &lt;code&gt;purchase.price&lt;/code&gt;, &lt;code&gt;purchase.url&lt;/code&gt;, &lt;code&gt;purchase.validation_url&lt;/code&gt;, &lt;code&gt;links&lt;/code&gt;, and &lt;code&gt;package.authorization&lt;/code&gt; keys. A new &lt;code&gt;SiteTemplateInstallTest&lt;/code&gt; build test provides end-to-end coverage of the bearer-token flow using an embedded PHP server that simulates a protected Composer repository.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Site hosts who want to override the installer's template list can create a file at &lt;code&gt;sites/default/site-templates.php&lt;/code&gt; (or whichever site directory is in use) that returns an iterable of template arrays:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+// sites/default/site-templates.php
+return [
+  'my_template' =&amp;gt; [
+    'name' =&amp;gt; 'My Template',
+    'description' =&amp;gt; 'A custom site template.',
+    'screenshot' =&amp;gt; 'https://example.com/screenshot.webp',
+    'package' =&amp;gt; [
+      'name' =&amp;gt; 'vendor/my-template',
+      'repository' =&amp;gt; 'https://packages.example.com',
+      'authorization' =&amp;gt; 'bearer',
+    ],
+    'purchase' =&amp;gt; [
+      'price' =&amp;gt; 99,
+      'url' =&amp;gt; 'https://example.com/buy',
+      'validation_url' =&amp;gt; 'https://example.com/validate', // optional
+    ],
+    'links' =&amp;gt; [
+      ['text' =&amp;gt; 'Demo', 'url' =&amp;gt; 'https://example.com/demo'],
+    ],
+  ],
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;When this file exists and returns an iterable, it replaces the remote &lt;code&gt;site-templates.yml&lt;/code&gt; list entirely. This is an official extension point (&lt;code&gt;@api&lt;/code&gt;).&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -84,7 +113,7 @@
 &lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This feature was developed through close collaboration between Acquia (phenaproxima) and Dripyard (mherchel, andyg5000), with design review from pameeela. The work progressed through multiple merge requests over several days, with phenaproxima building the backend infrastructure and validation logic, mherchel implementing UI/UX and styling, andyg5000 adding server-side license validation, and pameeela contributing style refinements. The implementation required updating a core patch to make profile build tests discoverable by PHPUnit.&lt;/p&gt;
+&lt;p&gt;phenaproxima led the backend architecture across multiple merge requests, writing the &lt;code&gt;SiteTemplate&lt;/code&gt; value object, the Composer integration, and the end-to-end build tests. mherchel drove the frontend: the modal dialog UX, the UUID input masking, and the JavaScript state machine for license key validation. pameeela reviewed the design in a Zoom call early on and contributed the final round of CSS styling tweaks (commit &lt;code&gt;ab79bb57&lt;/code&gt;). The thread also notes that andyg5000 (Dripyard) was consulted during the design phase and provided the initial use-case requirements for paid templates.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -167,31 +196,43 @@
       <title>#3575283: Add the ability to export a site template as a ZIP file</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3575283.md</link>
       <guid isPermaLink="false">019d857f-33e4-728b-bbba-949a7bcf6bf5</guid>
+      <category>Module maintainers</category>
       <pubDate>Mon, 09 Mar 2026 00:30:57 +0000</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +176/−36 · php +167/−36 · yml +9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Closed (fixed)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +75/−2 · php +75/−2&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/commit/dfd34d6c83764de4f9f968629d3781b45a40137f"&gt;dfd34d6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575283"&gt;#3575283&lt;/a&gt; · 4 contributors · 24 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575283"&gt;#3575283&lt;/a&gt; · 4 contributors · 25 comments&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal CMS now provides an internal route that exports the current site as a downloadable ZIP file containing a recipe. This makes it possible to capture a customized site's configuration and content for reuse. The route is not exposed in the UI by default, allowing individual site templates to decide where and when to make it available. Sites based on the starter kit can optionally include this export capability.&lt;/p&gt;
+&lt;p&gt;Drupal CMS now ships a dedicated route at &lt;code&gt;/admin/config/development/site-export&lt;/code&gt; (inside the &lt;code&gt;drupal_cms_helper&lt;/code&gt; module) that exports the current site as a downloadable ZIP file containing a Drupal recipe. The route requires the &lt;code&gt;administer site configuration&lt;/code&gt; permission and is intentionally not linked anywhere in the UI. Individual site templates, such as the &amp;quot;Blank&amp;quot; starter kit, can expose it by adding their own menu links. Sites installed from the blank starter kit (&lt;code&gt;drupal_cms_site_template_base&lt;/code&gt;) will have their export automatically seeded from that base template, including scaffold files like &lt;code&gt;README.md&lt;/code&gt; and CI configuration.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New route &lt;code&gt;drupal_cms_helper.site_export&lt;/code&gt; at &lt;code&gt;/admin/config/development/site-export&lt;/code&gt; (marked &lt;code&gt;@api&lt;/code&gt;); &lt;code&gt;SiteExporter::export()&lt;/code&gt; gains an optional &lt;code&gt;?string $base&lt;/code&gt; parameter for specifying a base recipe to seed the export.&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drupal_cms_helper&lt;/code&gt; module adds a new route at &lt;code&gt;/admin/config/development/site-export&lt;/code&gt; that returns a ZIP archive containing a site recipe. The route controller &lt;code&gt;ExportController&lt;/code&gt; uses the existing &lt;code&gt;SiteExporter&lt;/code&gt; service to generate the recipe, which includes configuration, content, and metadata.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;SiteExporter::export()&lt;/code&gt; method now accepts an optional &lt;code&gt;$base&lt;/code&gt; parameter to copy files from a base recipe template. During installation, when a user selects the starter kit template, the installer stores its path in state. The export controller retrieves this path to include template-specific files like README and CI configuration in the exported archive.&lt;/p&gt;
-&lt;p&gt;The route requires the &lt;code&gt;administer site configuration&lt;/code&gt; permission but is intentionally not linked anywhere in the UI. Individual site templates can add menu links or other UI elements to expose this functionality where appropriate. The &lt;code&gt;.htaccess&lt;/code&gt; file is removed from the exported config directory since site templates are meant to be shared.&lt;/p&gt;
-&lt;p&gt;The implementation went through several iterations, first attempting to add a button to the config export form, then reverting due to UX concerns, and finally settling on an invisible route that templates can expose as needed.&lt;/p&gt;
+&lt;p&gt;The new route &lt;code&gt;drupal_cms_helper.site_export&lt;/code&gt; (marked &lt;code&gt;# @api&lt;/code&gt; in routing) maps to &lt;code&gt;ExportController::exportArchive()&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;). The controller reads the &lt;code&gt;site_template_base&lt;/code&gt; state key, which the installer's &lt;code&gt;SiteTemplateForm&lt;/code&gt; stores when a user chooses the &lt;code&gt;drupal_cms_site_template_base&lt;/code&gt; recipe during setup. That path is forwarded to &lt;code&gt;SiteExporter::export()&lt;/code&gt; as the new optional &lt;code&gt;?string $base&lt;/code&gt; parameter.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SiteExporter::export()&lt;/code&gt; was extended with a &lt;code&gt;$base&lt;/code&gt; argument (defaulting to &lt;code&gt;NULL&lt;/code&gt;). When a base path is supplied and is a valid directory, the new private &lt;code&gt;copyBaseRecipe()&lt;/code&gt; method mirrors the base recipe into the destination (excluding its &lt;code&gt;content/&lt;/code&gt; directory) and renames &lt;code&gt;*.example&lt;/code&gt; files by stripping the &lt;code&gt;.example&lt;/code&gt; suffix, so scaffold templates become active. The logic that previously lived inline in &lt;code&gt;SiteExportCommand&lt;/code&gt; was consolidated into &lt;code&gt;copyBaseRecipe()&lt;/code&gt;. The &lt;code&gt;.htaccess&lt;/code&gt; deletion from the exported &lt;code&gt;config/&lt;/code&gt; directory was also moved into &lt;code&gt;SiteExporter::export()&lt;/code&gt; itself, making all callers benefit from it automatically.&lt;/p&gt;
+&lt;p&gt;An initial implementation added the export as a button on the core config export form via &lt;code&gt;hook_form_config_export_form_alter&lt;/code&gt;, but was quickly reverted after UX review. The final design uses an invisible standalone route that site templates can surface where appropriate, and drops the earlier custom &lt;code&gt;PharData&lt;/code&gt; class-exists access check in favor of the standard permission requirement alone.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Site template authors who call &lt;code&gt;SiteExporter::export()&lt;/code&gt; directly can now pass a base recipe path as the second argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (still works, $base defaults to NULL)
+$siteExporter-&amp;gt;export($destination);
+
+// After: optionally seed the export from a base recipe
+$siteExporter-&amp;gt;export($destination, '/path/to/base-recipe');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To expose the export route in a custom site template, add a menu link entity pointing to &lt;code&gt;drupal_cms_helper.site_export&lt;/code&gt;. No code changes are required to use the route; a user with &lt;code&gt;administer site configuration&lt;/code&gt; can already access &lt;code&gt;/admin/config/development/site-export&lt;/code&gt; directly.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: February 23, 2026&lt;/li&gt;
 &lt;li&gt;First commit: February 23, 2026&lt;/li&gt;
-&lt;li&gt;Last commit: March 8, 2026 (13 days and 8 commits later)&lt;/li&gt;
+&lt;li&gt;Last commit: March 9, 2026 (13 days and 8 commits later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Key contributors&lt;/h3&gt;
 &lt;ul&gt;
@@ -201,8 +242,7 @@
 &lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The change took a winding path to its final form. Initially committed with a button in the config management UI, it was quickly reverted after UX review found that location confusing. Discussion then explored creating a separate module, but the maintainer preferred keeping the functionality in &lt;code&gt;drupal_cms_helper&lt;/code&gt; alongside existing dev tooling.&lt;/p&gt;
-&lt;p&gt;The breakthrough came when the team decided to create an invisible route that individual site templates could expose through menu links. This approach ensures only sites meant for customization and export would show the feature. Over eight commits and two weeks, the implementation was refined to remove unnecessary access checks and properly integrate with the installer's template selection.&lt;/p&gt;
+&lt;p&gt;The change took two distinct rounds to land. The first round merged quickly with a single approving review from thejimbirch, but phenaproxima reverted it hours later after pameeela flagged that the config management UI was a confusing home for the export feature. In the comment announcing the revert, phenaproxima immediately proposed the alternative: an invisible route that individual site templates could choose to surface with their own menu links. penyaskito suggested splitting the functionality into a separate &lt;code&gt;site_template_builder&lt;/code&gt; module, but phenaproxima preferred keeping it inside &lt;code&gt;drupal_cms_helper&lt;/code&gt; alongside existing dev tooling. pameeela approved the revised route-based approach, and the implementation was re-landed in that form.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -215,20 +255,20 @@
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +31/−1 · php +31/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Closed (fixed)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +127/−12 · php +127/−12&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/commit/867047915339821e056e5c2c47f5f96062c44a36"&gt;8670479&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574664"&gt;#3574664&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574664"&gt;#3574664&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The site export command in Drupal CMS now allows you to build on top of an existing recipe template, preserving important scaffolding like CI configuration, license files, and documentation. This makes it easier to share custom site configurations while keeping best practices intact. The command also fixes several export bugs that affected menu hierarchies and front page paths, ensuring exported recipes work correctly when shared with others.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;drush site:export&lt;/code&gt; command in Drupal CMS gains a &lt;code&gt;--base&lt;/code&gt; option that lets site template authors seed an export from an existing recipe directory (such as &lt;code&gt;drupal_cms_site_template_base&lt;/code&gt;). The base recipe's files are copied to the export destination first, preserving scaffolding like CI configuration, license files, and README documents, then the site's live configuration is exported on top. Three export bugs are also fixed: the command now refuses to overwrite an existing destination directory, the &lt;code&gt;system.site&lt;/code&gt; front page path is converted from its internal system path to its URL alias in the exported config, and child menu link content entities now correctly record their parent menu link as a dependency in the exported content.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drush site:export&lt;/code&gt; command gains a &lt;code&gt;--base&lt;/code&gt; option that accepts a path to an existing recipe. When specified, the command uses Symfony Filesystem to mirror the base recipe's files (excluding version control and content) into the destination, then exports the current site configuration on top. Files with a &lt;code&gt;.example&lt;/code&gt; suffix are automatically renamed to their active form.&lt;/p&gt;
-&lt;p&gt;Three export bugs are also fixed with temporary shims pending core releases. First, &lt;code&gt;system.site&lt;/code&gt; config now exports front page paths as aliases rather than system paths by using &lt;code&gt;AliasManagerInterface&lt;/code&gt; during the transform. Second, &lt;code&gt;DefaultContentSubscriber&lt;/code&gt; ensures menu link content entities export their parent dependencies by loading parent menu links by UUID and adding them to export metadata. Third, the command prevents overwriting existing destinations by checking for directory existence upfront.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;GenericConfigurationListener&lt;/code&gt; class changes from readonly to mutable to support the conditional front page transformation. Test coverage validates base recipe copying, file renaming, content exclusion, and the menu link dependency fix.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;SiteExportCommand&lt;/code&gt;, the new &lt;code&gt;--base&lt;/code&gt; option triggers a two-step copy before the export. First, &lt;code&gt;Symfony\Component\Finder\Finder&lt;/code&gt; selects all files from the base recipe path with &lt;code&gt;ignoreVCS(TRUE)&lt;/code&gt;, &lt;code&gt;ignoreDotFiles(FALSE)&lt;/code&gt; (so hidden files like &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; and &lt;code&gt;.tugboat&lt;/code&gt; are included), and &lt;code&gt;notPath('content')&lt;/code&gt; (so base recipe content is excluded). &lt;code&gt;Symfony\Component\Filesystem\Filesystem::mirror()&lt;/code&gt; writes those files to the destination. Second, a follow-up &lt;code&gt;Finder&lt;/code&gt; pass locates any file whose name matches &lt;code&gt;*.example&lt;/code&gt; or &lt;code&gt;.*.example&lt;/code&gt; and renames each by stripping the eight-character &lt;code&gt;.example&lt;/code&gt; suffix, activating dormant placeholder files such as &lt;code&gt;.gitattributes.example&lt;/code&gt;. The command also checks for an existing destination directory upfront and returns &lt;code&gt;Command::FAILURE&lt;/code&gt; immediately if it exists.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;GenericConfigurationListener&lt;/code&gt; is changed from &lt;code&gt;final readonly&lt;/code&gt; to &lt;code&gt;final&lt;/code&gt; (mutable) so that &lt;code&gt;SiteExporter&lt;/code&gt; can toggle a public &lt;code&gt;$convertFrontPagePathToAlias&lt;/code&gt; flag at runtime. When the flag is &lt;code&gt;TRUE&lt;/code&gt;, the listener's &lt;code&gt;__invoke()&lt;/code&gt; method calls &lt;code&gt;AliasManagerInterface::getAliasByPath()&lt;/code&gt; on the &lt;code&gt;system.site&lt;/code&gt; &lt;code&gt;page.front&lt;/code&gt; value before writing it to config storage, replacing the internal node path with its URL alias. &lt;code&gt;AliasManagerInterface&lt;/code&gt; is injected via the updated constructor. This shim is marked for removal when core issue &lt;a href="https://www.drupal.org/node/1503146"&gt;#1503146&lt;/a&gt; is released.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DefaultContentSubscriber&lt;/code&gt; becomes &lt;code&gt;final readonly&lt;/code&gt; and gains an &lt;code&gt;EntityRepositoryInterface&lt;/code&gt; constructor dependency. In &lt;code&gt;preExport()&lt;/code&gt;, when the entity being exported is a &lt;code&gt;MenuLinkContentInterface&lt;/code&gt; and its parent ID starts with &lt;code&gt;menu_link_content:&lt;/code&gt;, the subscriber extracts the UUID, loads the parent entity via &lt;code&gt;EntityRepositoryInterface::loadEntityByUuid()&lt;/code&gt;, and calls &lt;code&gt;$event-&amp;gt;metadata-&amp;gt;addDependency()&lt;/code&gt; to register it. This shim is marked for removal when core issue &lt;a href="https://www.drupal.org/node/3562072"&gt;#3562072&lt;/a&gt; is released.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -243,7 +283,7 @@
 &lt;li&gt;vishalkhode (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;phenaproxima authored, reviewed, and committed this feature independently over nine days across four commits. The issue originated from feedback by Andy from Dripyard, who reported the export bugs affecting site template creators. phenaproxima acknowledged the urgency of unblocking site template development and merged the changes with confidence after adding comprehensive test coverage.&lt;/p&gt;
+&lt;p&gt;The issue body credits Andy from Dripyard for reporting the export bugs affecting site template creators. phenaproxima authored and self-merged the fix, noting in the thread that strong test coverage and the need to keep site template work unblocked gave him confidence to merge without external review.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
