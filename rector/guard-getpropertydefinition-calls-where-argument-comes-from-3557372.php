@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/guard-getpropertydefinition-calls-where-argument-comes-from-3557372.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([GuardGetPropertyDefinitionNullArgRector::class]);

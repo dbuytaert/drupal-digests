@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/replace-locale-translate-get-interface-translation-files-3577671.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([LocaleTranslateGetInterfaceTranslationFilesRector::class]);

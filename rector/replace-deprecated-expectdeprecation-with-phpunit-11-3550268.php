@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/replace-deprecated-expectdeprecation-with-phpunit-11-3550268.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([ReplaceExpectDeprecationRector::class]);

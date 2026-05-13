@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/add-moduleextensionlist-to-nodeviewsdata-subclass-3449181.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([NodeViewsDataModuleExtensionListRector::class]);

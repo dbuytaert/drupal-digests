@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/replace-removed-filesysteminterface-exists-constants-with-3575575.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([ReplaceFileExistsConstantsRector::class]);

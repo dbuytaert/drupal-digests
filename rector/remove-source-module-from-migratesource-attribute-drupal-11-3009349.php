@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/remove-source-module-from-migratesource-attribute-drupal-11-3009349.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([RemoveSourceModuleFromMigrateSourceAttributeRector::class]);

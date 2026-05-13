@@ -7,4 +7,5 @@ use Rector\Config\RectorConfig;
 require_once __DIR__ . '/rules/remove-rendererinterface-addcacheabledependency-calls-with-3525388.php';
 
 return RectorConfig::configure()
+    ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
     ->withRules([RemoveRendererAddCacheableDependencyNonObjectRector::class]);

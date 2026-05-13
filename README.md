@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_435 summaries · 66 new this week_
+_435 summaries · 65 new this week_
 
 - [#3301239: Improve the error message thrown in PoStreamReader::readLine() when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md)
 - [#3587298: RouteProcessorCsrf::processOutbound() should bubble 'session' cache context for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587298.md)
