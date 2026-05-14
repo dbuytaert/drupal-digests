@@ -7,7 +7,7 @@
     <item>
       <title>#3586613: Add content-entity-reference well-known prop shape for code components</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md</link>
-      <guid isPermaLink="false">019e230a-86b1-7083-b4ff-4e2d5d78439b</guid>
+      <guid isPermaLink="false">019e24f0-eb74-70d8-a587-6115442b750a</guid>
       <category>Module maintainers</category>
       <pubDate>Tue, 12 May 2026 16:32:14 +0000</pubDate>
       <description>&lt;ul&gt;
@@ -21,40 +21,46 @@
 &lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas code components can now declare a &lt;code&gt;content-entity-reference&lt;/code&gt; prop, allowing a component to receive a resolved Drupal content entity object at render time. Previously, entity-reference semantics were only implicit (inferred from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; without a formal prop type), making props indistinguishable from plain &lt;code&gt;type: object&lt;/code&gt; props and blocking tooling, validation, and proper shape routing. With this change a component author declares a prop using &lt;code&gt;$ref: json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt;, selects which entity type and which fields to expose via &lt;code&gt;dataDependencies.entityFields&lt;/code&gt;, and the component receives a structured payload of those field values keyed by developer-friendly names. Cardinality-1 entity references are supported; multi-cardinality is a tracked follow-up.&lt;/p&gt;
+&lt;p&gt;Canvas code components can now declare a first-class &lt;code&gt;content-entity-reference&lt;/code&gt; prop type. Instead of using a bare &lt;code&gt;type: object&lt;/code&gt; and relying on implicit inference from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt;, component developers use &lt;code&gt;$ref: json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt; to explicitly signal that a prop receives a content entity. At render time, Canvas resolves the referenced entity, evaluates all declared entity field expressions against it, and delivers a keyed payload to the component. The concrete entity type and bundle are derived at runtime from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; (the single source of truth) and are never duplicated in the persisted prop schema.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;Affects module maintainers.&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public methods &lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps()&lt;/code&gt;, &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt;, &lt;code&gt;BetterEntityDataDefinition::getEntityType()&lt;/code&gt;, &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt;; new optional &lt;code&gt;conditions&lt;/code&gt; on &lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt;; new &lt;code&gt;content-entity-reference&lt;/code&gt; well-known prop shape.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New prop shape &lt;code&gt;json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt;; new public methods &lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps()&lt;/code&gt; and &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt;; new &lt;code&gt;conditions&lt;/code&gt; property on &lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt;; new &lt;code&gt;BetterEntityDataDefinition::getEntityType()&lt;/code&gt; method.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new well-known prop shape &lt;code&gt;json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt; is added to &lt;code&gt;schema.json&lt;/code&gt; and registered in &lt;code&gt;canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;. It is represented as the new &lt;code&gt;JsonSchemaObjectRef::ContentEntityReference&lt;/code&gt; enum case (&lt;code&gt;@internal&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;The developer-facing prop definition deliberately omits &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; and &lt;code&gt;x-allowed-bundle&lt;/code&gt;. Those keys are derived at runtime: &lt;code&gt;JavaScriptComponent::toSdcDefinition()&lt;/code&gt; projects them into the returned SDC definition array from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; (the single source of truth), leaving the stored config entity untouched. The new public methods &lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps()&lt;/code&gt; and &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt; expose the entity-reference subset of props and their field expression lists respectively.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt; is extended to validate content-entity-reference props: they must not be required (the referenced entity may be absent or deleted), &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; must resolve to a known content entity type, &lt;code&gt;x-allowed-bundle&lt;/code&gt; is required if and only if the target entity type has bundles, and &lt;code&gt;examples&lt;/code&gt; are forbidden. The new &lt;code&gt;ContentEntityReferenceObjectConstraint&lt;/code&gt; (registered as the JSON Schema &lt;code&gt;object&lt;/code&gt; constraint via &lt;code&gt;CanvasServiceProvider&lt;/code&gt;) enforces the same rules at prop-value validation time, with matching error messages.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt; gains an optional &lt;code&gt;conditions&lt;/code&gt; map. The &lt;code&gt;entityFields&lt;/code&gt; config schema constraint now uses it to require that every &lt;code&gt;entityFields&lt;/code&gt; key corresponds to a &lt;code&gt;content-entity-reference&lt;/code&gt;-shaped prop (and vice versa), closing the &lt;code&gt;@todo&lt;/code&gt; left by &lt;a href="https://www.drupal.org/node/3585298"&gt;#3585298&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt; returns a &lt;code&gt;StorablePropShape&lt;/code&gt; for entity-reference shapes: field type &lt;code&gt;entity_reference&lt;/code&gt;, widget &lt;code&gt;entity_reference_autocomplete&lt;/code&gt;, with &lt;code&gt;target_type&lt;/code&gt; in storage settings and optionally &lt;code&gt;target_bundles&lt;/code&gt; via the &lt;code&gt;default&lt;/code&gt; handler. &lt;code&gt;EntityFieldPropSourceMatcher::matchContentEntityReferenceShape()&lt;/code&gt; matches host-entity reference fields whose target entity type and bundle satisfy the shape.&lt;/p&gt;
-&lt;p&gt;At render time, &lt;code&gt;JsComponent::getExplicitInput()&lt;/code&gt; reuses the parent-resolved &lt;code&gt;EvaluationResult&lt;/code&gt; for each populated entity-reference prop, evaluates every declared &lt;code&gt;entityFields&lt;/code&gt; expression on the referenced &lt;code&gt;FieldableEntityInterface&lt;/code&gt;, and assembles a payload keyed by &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt;. That method converts field names to entity keys where applicable (e.g. &lt;code&gt;title&lt;/code&gt; → &lt;code&gt;label&lt;/code&gt;) and uses &lt;code&gt;$&lt;/code&gt; as the separator for reference sub-expressions, since &lt;code&gt;$&lt;/code&gt; is not valid in a Drupal field machine name but is a valid JavaScript identifier character. Dangling references, empty host fields, or non-&lt;code&gt;FieldableEntityInterface&lt;/code&gt; values are silently skipped. The ad-hoc &amp;quot;entity-ref props cannot be required&amp;quot; check previously in &lt;code&gt;JsComponentHasValidAndSupportedSdcMetadataConstraintValidator&lt;/code&gt; is removed, subsumed by the new &lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt; branch. &lt;code&gt;BetterEntityDataDefinition::getEntityType()&lt;/code&gt; is added as a new public method to eagerly probe entity-type resolution.&lt;/p&gt;
+&lt;p&gt;The new shape &lt;code&gt;json-schema-definitions://canvas.module/content-entity-reference&lt;/code&gt; is added to &lt;code&gt;schema.json&lt;/code&gt; and registered in &lt;code&gt;canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;. The &lt;code&gt;JsonSchemaObjectRef&lt;/code&gt; enum gains a &lt;code&gt;ContentEntityReference&lt;/code&gt; case.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;JavaScriptComponent::toSdcDefinition()&lt;/code&gt; now projects &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; and, when the target entity type has bundles, &lt;code&gt;x-allowed-bundle&lt;/code&gt; from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; into the returned SDC definition array. The stored config entity is never mutated; the projection is local and idempotent. Two new public methods support this: &lt;code&gt;::getContentEntityReferenceProps()&lt;/code&gt; returns the subset of props that carry this shape (matched by normalized schema, not raw definition), and &lt;code&gt;::getEntityFieldExpressions()&lt;/code&gt; returns the declared field expression strings for a given prop.&lt;/p&gt;
+&lt;p&gt;At render time, &lt;code&gt;JsComponent::getExplicitInput()&lt;/code&gt; iterates populated content-entity-reference props, reads the already-resolved &lt;code&gt;EvaluationResult&lt;/code&gt; from the parent call, and evaluates each entity field expression against the resolved &lt;code&gt;FieldableEntityInterface&lt;/code&gt;. Dangling references, empty fields, and unresolvable sources are silently skipped. Developer-facing payload keys are computed by &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt;: entity key names (e.g., &lt;code&gt;label&lt;/code&gt;) take precedence over raw field names; reference traversal segments are joined with &lt;code&gt;$&lt;/code&gt; (valid in JS/TS identifiers but not in Drupal field machine names, preventing collisions).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ContentEntityReferenceObjectConstraint&lt;/code&gt; is registered as the JSON Schema &lt;code&gt;object&lt;/code&gt; constraint in &lt;code&gt;CanvasServiceProvider&lt;/code&gt;. It validates that &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; resolves to a known content entity type and that &lt;code&gt;x-allowed-bundle&lt;/code&gt; is present if and only if the entity type has bundles. The same logic is exposed as &lt;code&gt;::validateMetadataSchema()&lt;/code&gt; for use at metadata-derivation time by &lt;code&gt;ComponentMetadataRequirementsChecker&lt;/code&gt;, which also enforces that content-entity-reference props are never &lt;code&gt;required&lt;/code&gt; and never carry &lt;code&gt;examples&lt;/code&gt;. The ad-hoc &amp;quot;entity-ref props cannot be required&amp;quot; check previously in &lt;code&gt;JsComponentHasValidAndSupportedSdcMetadataConstraintValidator&lt;/code&gt; is removed, fully subsumed by this path.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt; gains a &lt;code&gt;conditions&lt;/code&gt; property. In &lt;code&gt;canvas.schema.yml&lt;/code&gt;, this is used to narrow the &lt;code&gt;entityFields&lt;/code&gt; key-subset check so it only matches props that carry the &lt;code&gt;content-entity-reference&lt;/code&gt; &lt;code&gt;$ref&lt;/code&gt;, closing a &lt;code&gt;@todo&lt;/code&gt; left by &lt;a href="https://www.drupal.org/node/3585298"&gt;#3585298&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;EntityFieldPropSourceMatcher::matchContentEntityReferenceShape()&lt;/code&gt; (private) matches host-entity reference fields to a content-entity-reference prop by comparing the field's referenceable entity type and bundle against &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; / &lt;code&gt;x-allowed-bundle&lt;/code&gt; from the projected schema.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt; now handles this shape, returning a &lt;code&gt;StorablePropShape&lt;/code&gt; with field type &lt;code&gt;entity_reference&lt;/code&gt;, widget &lt;code&gt;entity_reference_autocomplete&lt;/code&gt;, and &lt;code&gt;target_type&lt;/code&gt; storage setting derived from &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt;; &lt;code&gt;target_bundles&lt;/code&gt; is added to the instance settings when &lt;code&gt;x-allowed-bundle&lt;/code&gt; is present.&lt;/p&gt;
 &lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No changes are required to existing code. The new prop type is additive only; no config update hook is needed.&lt;/p&gt;
-&lt;p&gt;To declare a content-entity-reference prop in a code component:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# In dataDependencies.entityFields (single source of truth for target type + bundle):
-dataDependencies:
-  entityFields:
-    article:
-      - 'entity:node:article/title'
-      - 'entity:node:article/field_image'
-
-# In props (omit x-allowed-entity-type-id / x-allowed-bundle here;
-# they are projected by toSdcDefinition() at runtime):
-props:
+&lt;p&gt;Code component developers declare a content-entity-reference prop in their component's &lt;code&gt;props&lt;/code&gt; definition:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;article:
+  title: Interesting article
   type: object
-  properties:
-    article:
-      title: 'Featured article'
-      type: object
-      $ref: json-schema-definitions://canvas.module/content-entity-reference
+  $ref: json-schema-definitions://canvas.module/content-entity-reference
 &lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The component receives a payload such as &lt;code&gt;{ label: '...', field_image: ... }&lt;/code&gt; for the &lt;code&gt;article&lt;/code&gt; prop at render time.&lt;/p&gt;
+&lt;p&gt;Rules that apply to this prop type:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The prop must &lt;strong&gt;not&lt;/strong&gt; be listed in &lt;code&gt;required&lt;/code&gt;; referenced entities may be deleted or absent.&lt;/li&gt;
+&lt;li&gt;Do &lt;strong&gt;not&lt;/strong&gt; add &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; or &lt;code&gt;x-allowed-bundle&lt;/code&gt; to the persisted prop definition; &lt;code&gt;JavaScriptComponent::toSdcDefinition()&lt;/code&gt; injects these from &lt;code&gt;dataDependencies.entityFields&lt;/code&gt; at runtime.&lt;/li&gt;
+&lt;li&gt;Do &lt;strong&gt;not&lt;/strong&gt; add &lt;code&gt;examples&lt;/code&gt;; the entity value is resolved at runtime.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The prop receives a keyed object payload at render time. Keys follow entity key names where available (e.g., &lt;code&gt;label&lt;/code&gt;) or field machine names otherwise. Reference traversal uses &lt;code&gt;$&lt;/code&gt; as a separator (e.g., &lt;code&gt;image$url&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;Callers integrating with &lt;code&gt;JavaScriptComponent&lt;/code&gt; can now use:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;JavaScriptComponent::getContentEntityReferenceProps(): array&lt;/code&gt; — returns the prop name-to-definition map for entity-reference props.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;JavaScriptComponent::getEntityFieldExpressions(string $prop_name): list&amp;lt;string&amp;gt;&lt;/code&gt; — returns the entity field expression strings for a given entity-reference prop.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The new optional &lt;code&gt;conditions&lt;/code&gt; property on &lt;code&gt;SequenceKeysMustMatchConstraint&lt;/code&gt; filters which elements of the target sequence are considered when checking key membership:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;SequenceKeysMustMatch:
+  propertyPathToSequence: props
+  conditions:
+    type: object
+    &amp;quot;$ref&amp;quot;: &amp;quot;json-schema-definitions://canvas.module/content-entity-reference&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
@@ -70,7 +76,7 @@ props:
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, wim leers flagged that an early MR blurred the separation of concerns between prop source matchers and suggesters introduced in &lt;a href="https://www.drupal.org/node/3555300"&gt;#3555300&lt;/a&gt; and marked the issue Needs Work. penyaskito split the &lt;code&gt;JsonSchemaObjectRef&lt;/code&gt; enum into its own prerequisite issue (&lt;a href="https://www.drupal.org/node/3587673"&gt;#3587673&lt;/a&gt;) in response. After a second round of thorough implementation, wim leers approved and noted the JSON Schema validation (absent from his original proof-of-concept MR) and other improvements as significant additions over the PoC. longwave reviewed both rounds and offered no further notes on the final version. The issue was bumped to Major priority at approval time given the scope of the change (+1711, -76 across 26 files).&lt;/p&gt;
+&lt;p&gt;wim leers marked the issue Needs Work after reviewing MR !992, identifying that the implementation blurred the separation of concerns between prop source matchers and suggesters that had been carefully established in a prior issue (&lt;a href="https://www.drupal.org/node/3555300"&gt;#3555300&lt;/a&gt;). In response, penyaskito split the &lt;code&gt;JsonSchemaObjectRef&lt;/code&gt; enum introduction into a prerequisite issue (&lt;a href="https://www.drupal.org/node/3587673"&gt;#3587673&lt;/a&gt;) to keep the scope manageable. After further rounds of review with longwave, wim leers approved the final version, noting it was a &amp;quot;significant improvement&amp;quot; over his own original proof-of-concept MR (!622) and specifically highlighting the addition of JSON Schema validation that he had not written in his PoC.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

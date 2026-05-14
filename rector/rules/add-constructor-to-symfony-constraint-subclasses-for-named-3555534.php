@@ -242,7 +242,12 @@ CODE_SAMPLE
 
         // Regular (non-promoted) properties: nullable typed param + assignment.
         foreach ($regular as $data) {
-            $paramType = $data['type'] !== null ? new NullableType($data['type']) : null;
+            // Preserve an already-nullable property type as-is; wrapping it
+            // in another NullableType would emit invalid `??type` syntax.
+            $paramType = $data['type'];
+            if ($paramType !== null && !$paramType instanceof NullableType) {
+                $paramType = new NullableType($paramType);
+            }
             $param     = new Param(new Variable($data['name']), new ConstFetch(new Name('NULL')), $paramType);
             $params[]  = $param;
 
