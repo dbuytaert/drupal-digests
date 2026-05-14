@@ -14,7 +14,7 @@ _68 summaries · 11 new this week_
 
 ### Drupal Core
 
-_439 summaries · 67 new this week_
+_439 summaries · 66 new this week_
 
 - [#3579253: run-tests.sh does not properly process PHPUnit output when no test are executed...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579253.md)
 - [#455724: Deprecate check_markup()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md)
