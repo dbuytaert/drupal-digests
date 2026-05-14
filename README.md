@@ -1,8 +1,16 @@
-**TL;DR:** [576 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [577 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_68 summaries · 11 new this week_
+
+- [#3588587: Add Codex backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md)
+- [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
+- [#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _59 summaries · 22 new this week_
 - [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
 - [#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md)
 - [#3588661: Make CLI builds use shared Vite infrastructure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md)
-
-### Drupal AI
-
-_67 summaries · 10 new this week_
-
-- [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
-- [#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md)
-- [#3588773: [Sprint 2] Replace browser menu automation with menu:administer API (blocked)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588773.md)
 
 ### Drupal CMS
 
