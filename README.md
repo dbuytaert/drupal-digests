@@ -1,4 +1,4 @@
-**TL;DR:** [571 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [574 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -22,11 +22,11 @@ _59 summaries · 22 new this week_
 
 ### Drupal AI
 
-_63 summaries · 6 new this week_
+_66 summaries · 9 new this week_
 
 - [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
-- [#3577857: Allow Document Loader to define LLM inputs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md)
-- [#3580850: Integrate with the MDX editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3580850.md)
+- [#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md)
+- [#3588762: [Sprint 1] Compaction loses critical facts — propose gotchas.md artifact](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588762.md)
 
 ### Drupal CMS
 

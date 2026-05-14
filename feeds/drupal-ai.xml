@@ -73,6 +73,128 @@ use gitlab_api tools       # restrict access: true — grants write operations t
 </description>
     </item>
     <item>
+      <title>#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md</link>
+      <guid isPermaLink="false">019e25ba-eb50-7630-825e-8f232942c2fa</guid>
+      <pubDate>Mon, 11 May 2026 22:48:26 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +343/−20 · sh +277 · md +46/−17 · json +17 · js +3/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/a919b62489a396737832fa1bd73f939dd64ed7bc"&gt;a919b62&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588768"&gt;#3588768&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; module, Phase 6 of the migrate-site skill previously dispatched two LLM agents (menu-builder and site-configurator) to fill out Drupal admin forms. Because the inputs (site name, menu structure, logo) come entirely from known migration artifacts with no ambiguity, the LLM added inference cost, hallucination risk, and unpredictable session length. Measured wall-clock for a real Phase 6 run was 88 minutes; the same work by a deterministic script takes under 5 minutes. This change replaces the default agent dispatch with two bash scripts, and demotes the LLM agents to a documented fallback for manual override only.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change is in &lt;code&gt;.claude/skills/migrate-site/SKILL.md&lt;/code&gt;: the Phase 6 block that previously instructed the orchestrator to spawn &lt;code&gt;site-configurator&lt;/code&gt; and &lt;code&gt;menu-builder&lt;/code&gt; agents in parallel now instructs it to run &lt;code&gt;bash scripts/configure-site.sh&lt;/code&gt; followed by &lt;code&gt;bash scripts/create-menus.sh&lt;/code&gt; in sequence. Both scripts exit 0 regardless of outcome; failures are appended to &lt;code&gt;docs/migration/blocked.md&lt;/code&gt; in a structured format with manual recovery instructions.&lt;/p&gt;
+&lt;p&gt;Three new script files are introduced. &lt;code&gt;scripts/acquia-browser-helpers.sh&lt;/code&gt; is a sourced library providing &lt;code&gt;acquia_classify_redirect&lt;/code&gt;, &lt;code&gt;acquia_session_warmup&lt;/code&gt;, and &lt;code&gt;acquia_form_post&lt;/code&gt;. The classifier distinguishes three redirect outcomes after a form submit: &lt;code&gt;success&lt;/code&gt; (URL matches &lt;code&gt;/admin/structure/menu/item/&amp;lt;id&amp;gt;/edit&lt;/code&gt;), &lt;code&gt;sso-waf&lt;/code&gt; (URL contains &lt;code&gt;id.acquia.com&lt;/code&gt;, &lt;code&gt;source.acquia.com&lt;/code&gt;, or the simplesamlphp ACS path), and &lt;code&gt;unknown&lt;/code&gt;. &lt;code&gt;scripts/configure-site.sh&lt;/code&gt; extracts &lt;code&gt;Site name:&lt;/code&gt;, &lt;code&gt;Slogan:&lt;/code&gt;, and &lt;code&gt;Front page:&lt;/code&gt; from &lt;code&gt;docs/migration/plan.md&lt;/code&gt; via &lt;code&gt;grep&lt;/code&gt;/&lt;code&gt;sed&lt;/code&gt;, reads CSS selectors from &lt;code&gt;references/drupal-admin-selectors.json&lt;/code&gt;, and submits to &lt;code&gt;/admin/config/system/site-settings&lt;/code&gt; (the Acquia-specific path; &lt;code&gt;/admin/config/system/site-information&lt;/code&gt; returns 403). &lt;code&gt;scripts/create-menus.sh&lt;/code&gt; reads &lt;code&gt;docs/migration/menu-map.json&lt;/code&gt; (a new artifact that Phase 1's site-analyzer must emit), checks each item for existence via &lt;code&gt;GET /api/menu_items/&amp;lt;menu&amp;gt;&lt;/code&gt;, and submits new items to &lt;code&gt;/admin/structure/menu/manage/&amp;lt;menu&amp;gt;/add&lt;/code&gt;. Both scripts support a &lt;code&gt;--dry-run&lt;/code&gt; flag and retry once on non-success redirects.&lt;/p&gt;
+&lt;p&gt;CSS selectors are centralized in a new &lt;code&gt;references/drupal-admin-selectors.json&lt;/code&gt; file rather than hardcoded in each script, so a change in the Drupal admin theme requires editing only one file. A &lt;code&gt;references/menu-map-schema.md&lt;/code&gt; documents the shape of &lt;code&gt;menu-map.json&lt;/code&gt; and explicitly notes that the &lt;code&gt;parent&lt;/code&gt; and &lt;code&gt;weight&lt;/code&gt; fields are recognized by the schema but currently silently dropped by &lt;code&gt;create-menus.sh&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The second commit (a919b624) added the tests that preceded the fix in the commit history and also hardened the existing classifier test to use &lt;code&gt;execFileSync&lt;/code&gt; with &lt;code&gt;bash -c script -- url&lt;/code&gt; instead of &lt;code&gt;execSync&lt;/code&gt; with string interpolation, closing a shell-injection vector in the test helper.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you use the canvas_ai_migrations migrate-site skill, Phase 6 now requires &lt;code&gt;docs/migration/menu-map.json&lt;/code&gt; to be present (emitted by Phase 1). Verify that your Phase 1 site-analyzer produces this file before running Phase 6. The LLM agents remain available as a manual fallback; to invoke them you must explicitly override the default script path documented in SKILL.md.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;references/drupal-admin-selectors.json&lt;/code&gt; file centralizes form selectors. If your Acquia admin theme differs from the expected selectors, update that file rather than the scripts:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;menu_add&amp;quot;: {
+    &amp;quot;label&amp;quot;: &amp;quot;input[name=\&amp;quot;link[title][0][value]\&amp;quot;]&amp;quot;,
+    &amp;quot;url&amp;quot;:   &amp;quot;input[name=\&amp;quot;link[uri][0][uri]\&amp;quot;]&amp;quot;
+  },
+  &amp;quot;site_settings&amp;quot;: {
+    &amp;quot;name&amp;quot;:       &amp;quot;input[name=\&amp;quot;site_name\&amp;quot;]&amp;quot;,
+    &amp;quot;slogan&amp;quot;:     &amp;quot;input[name=\&amp;quot;site_slogan\&amp;quot;]&amp;quot;,
+    &amp;quot;front_page&amp;quot;: &amp;quot;input[name=\&amp;quot;site_frontpage\&amp;quot;]&amp;quot;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 11, 2026 (5 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588762: [Sprint 1] Compaction loses critical facts — propose gotchas.md artifact</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588762.md</link>
+      <guid isPermaLink="false">019e25bc-f6ef-713e-ae44-6d775be1b21e</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 11 May 2026 15:03:25 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +52/−0 · md +52&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/d031b00c6cfb700295b0dc02b01d9d016fef6e61"&gt;d031b00&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588762"&gt;#3588762&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Long AI-assisted migration sessions trigger context compaction, which strips specific technical facts from the agent's working memory. After compaction the agent would re-attempt already-known broken patterns, such as passing multiple &lt;code&gt;-c&lt;/code&gt; flags to &lt;code&gt;canvas:upload&lt;/code&gt;, or calling &lt;code&gt;ToolSearch&lt;/code&gt; dozens of times to reload tool schemas it had already resolved. This change introduces a &lt;code&gt;gotchas.md&lt;/code&gt; artifact and two new protocol sections in &lt;code&gt;SKILL.md&lt;/code&gt; so that hard-won facts survive compaction and are available at the start of every session.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; runtime artifact and &lt;code&gt;Session Start&lt;/code&gt; / &lt;code&gt;Compaction Protocol&lt;/code&gt; sections in &lt;code&gt;SKILL.md&lt;/code&gt; define a persistent memory contract for the migrate-site skill.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three coordinated changes landed in commit &lt;code&gt;44d2d74f&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;A versioned template at &lt;code&gt;.claude/skills/migrate-site/references/gotchas.md&lt;/code&gt; ships with the skill, pre-populated with known facts across four sections: Canvas CLI (e.g. &lt;code&gt;canvas:upload&lt;/code&gt; takes one &lt;code&gt;-c&lt;/code&gt; flag at a time; &lt;code&gt;canvas:download&lt;/code&gt; overwrites local files without warning), Runtime (e.g. &lt;code&gt;getNodePath()&lt;/code&gt; can return the truthy string &lt;code&gt;'#'&lt;/code&gt;; Tailwind directives only work in &lt;code&gt;global.css&lt;/code&gt;), Acquia Platform (e.g. menu JSON:API responses are CDN-cached; media style URLs return thumbnails rather than originals), and OAuth scope vs. endpoint mismatches (e.g. &lt;code&gt;canvas_oauth:menu_link_content&lt;/code&gt; mints a token but &lt;code&gt;POST /jsonapi/menu_link_content&lt;/code&gt; is 404 on Acquia Source). The template is the stable, version-controlled baseline; per-migration discoveries are appended only to the runtime copy at &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A &amp;quot;Session Start&amp;quot; preflight block is inserted into &lt;code&gt;SKILL.md&lt;/code&gt; before Phase 0. It defines four mandatory steps: (1) copy the template to &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; if the file does not yet exist, or preserve the existing copy if the session is being resumed; (2) read the runtime copy fully into context; (3) pre-load tool schemas via &lt;code&gt;ToolSearch select:&amp;lt;tool_name&amp;gt;&lt;/code&gt; so &lt;code&gt;mcp__chrome-devtools__*&lt;/code&gt; and other frequently used schemas are ready without reactive reloading; (4) run an orphan safeguard that detects a &lt;code&gt;migration_completed&lt;/code&gt; event in &lt;code&gt;state.jsonl&lt;/code&gt; without a matching PASS record in &lt;code&gt;09-migration-complete-checklist.json&lt;/code&gt; and routes the session into &lt;code&gt;RECOVERY_REQUIRED&lt;/code&gt; rather than re-emitting a false completion signal. The orphan safeguard implementation lives in &lt;code&gt;.claude/agents/artifact-checker.md&lt;/code&gt; under mode &lt;code&gt;session-start&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A &amp;quot;Compaction Protocol&amp;quot; section in &lt;code&gt;SKILL.md&lt;/code&gt; requires that every compaction summary embed the full, verbatim contents of &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; inside a &lt;code&gt;HARD-WON FACTS (preserve verbatim)&lt;/code&gt; delimited block. After compaction the agent must re-execute the Session Start procedure before resuming any phase. Commit &lt;code&gt;d031b00c&lt;/code&gt; adds a Vitest prose-sanity suite that asserts structural properties of both the template and the updated &lt;code&gt;SKILL.md&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 11, 2026 (4 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588763: [Sprint 1] Verify-scopes preflight (Phase 0.5)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588763.md</link>
+      <guid isPermaLink="false">019e25bb-feac-72fa-acb6-e249aa2a2cff</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 11 May 2026 15:03:25 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +341/−0 · js +227 · md +61 · json +53&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/0c7b5eeca9eaefef2471134a89655c7ef784790b"&gt;0c7b5ee&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588763"&gt;#3588763&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; migrate-site skill now includes a Phase 0.5 &amp;quot;verify-scopes&amp;quot; preflight step. Before the main migration begins, a new script probes every OAuth scope in a manifest: it requests a token via the &lt;code&gt;client_credentials&lt;/code&gt; grant, then calls the corresponding API endpoint with that token. The result for each scope is recorded as &lt;code&gt;confirmed&lt;/code&gt;, &lt;code&gt;issuance-only&lt;/code&gt;, &lt;code&gt;denied&lt;/code&gt;, or &lt;code&gt;unknown&lt;/code&gt; in &lt;code&gt;docs/migration/workflow/scope-availability.json&lt;/code&gt;. Downstream agents (menu-builder, site-configurator, and others) read this file to decide whether to use an API-first path or fall back to browser automation. The migration never aborts because a scope is unavailable; it logs the state and continues. This eliminates the class of failure where an agent burns retries on a 404 endpoint that simply does not exist on the current Acquia Source release, because the OAuth server issued a valid token but the corresponding API was never deployed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;docs/migration/workflow/scope-availability.json&lt;/code&gt; artifact produced by Phase 0.5; agent instruction files (&lt;code&gt;menu-builder.md&lt;/code&gt;, &lt;code&gt;site-configurator.md&lt;/code&gt;) now require this file to be present for API-first routing decisions.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core problem was that several OAuth scopes on Acquia Source mint a valid token (HTTP 200 from &lt;code&gt;/oauth/token&lt;/code&gt;) but have no corresponding API endpoint: for example, &lt;code&gt;menu:administer&lt;/code&gt; issued a token yet &lt;code&gt;POST /api/menu_link_content/menu_link_content&lt;/code&gt; returned 404. Agents had no way to distinguish &amp;quot;scope configured but endpoint missing&amp;quot; from &amp;quot;scope configured and endpoint reachable,&amp;quot; so they looped through retry and diagnostic logic for endpoints that could never succeed.&lt;/p&gt;
+&lt;p&gt;The fix introduces &lt;code&gt;scripts/preflight/check-12-verify-scopes.mjs&lt;/code&gt;, a preflight check registered with severity &lt;code&gt;soft&lt;/code&gt; in the existing runner framework. It exports &lt;code&gt;classifyResponse(status)&lt;/code&gt;, which maps HTTP status codes to four states: &lt;code&gt;confirmed&lt;/code&gt; (200/201/204), &lt;code&gt;issuance-only&lt;/code&gt; (404/405), &lt;code&gt;denied&lt;/code&gt; (403), and &lt;code&gt;unknown&lt;/code&gt; (everything else including network errors). The exported &lt;code&gt;verifyScopes()&lt;/code&gt; function iterates the scope manifest, calls &lt;code&gt;requestToken()&lt;/code&gt; per scope, then calls &lt;code&gt;probeEndpoint()&lt;/code&gt; with the issued bearer token. Results are written as a JSON object keyed by scope name to &lt;code&gt;docs/migration/workflow/scope-availability.json&lt;/code&gt;. A &lt;code&gt;null&lt;/code&gt; endpoint in the manifest is a deliberate &amp;quot;this API does not exist&amp;quot; marker and is classified as &lt;code&gt;issuance-only&lt;/code&gt; without making an HTTP call.&lt;/p&gt;
+&lt;p&gt;The scope manifest lives at &lt;code&gt;scripts/preflight/lib/scope-manifest.json&lt;/code&gt; and defines nine scopes. Six are marked as stable (verified against a live instance): &lt;code&gt;canvas_oauth:menu_link_content&lt;/code&gt;, &lt;code&gt;canvas_oauth:taxonomy_term&lt;/code&gt;, &lt;code&gt;canvas_oauth:canvas_page&lt;/code&gt;, &lt;code&gt;canvas_oauth:media&lt;/code&gt;, &lt;code&gt;acquia_source:site_settings&lt;/code&gt;, and &lt;code&gt;acquia_source:content_types&lt;/code&gt;. Three (&lt;code&gt;acquia_source:templates&lt;/code&gt;, &lt;code&gt;acquia_source:code_components&lt;/code&gt;, &lt;code&gt;acquia_source:redirects&lt;/code&gt;) are best-effort guesses against standard JSON:API conventions and are annotated with &lt;code&gt;_guess&lt;/code&gt; markers in the manifest.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SKILL.md&lt;/code&gt; receives a new &amp;quot;Phase 0.5 — Verify Scopes&amp;quot; block that documents the four classification states and the non-blocking design. The agent instruction files &lt;code&gt;menu-builder.md&lt;/code&gt; and &lt;code&gt;site-configurator.md&lt;/code&gt; each gain a &amp;quot;Phase 0.5 dependency&amp;quot; section instructing the agent to read &lt;code&gt;scope-availability.json&lt;/code&gt; before choosing an API path, and to treat any missing file as all-&lt;code&gt;unknown&lt;/code&gt; (fall back to browser automation for the entire run). After writing the JSON file, the check also appends an &amp;quot;OAuth scopes on this Acquia release&amp;quot; section to the runtime &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; so the classification survives context compaction. The template file at &lt;code&gt;.claude/skills/migrate-site/references/gotchas.md&lt;/code&gt; is never modified at runtime. Results are session-only; there is no persistent cache across &lt;code&gt;migrate.sh&lt;/code&gt; invocations.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 11, 2026 (4 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3577857: Allow Document Loader to define LLM inputs</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577857.md</link>
       <guid isPermaLink="false">019e0b29-d116-7734-a5e3-d938d6994cb2</guid>
@@ -814,137 +936,6 @@ drush cr
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;marcus_johansson opened the issue and later reviewed the emerging implementation, flagging that changes to the &lt;code&gt;fromParameters&lt;/code&gt; signature would be a breaking-change concern after release and recommending that the loose parameter array be replaced with a strongly typed DTO to simplify validation and testing. kristen pol drove the planning thread across multiple sprints: she proposed tagging context items by category to enable smarter automatic selection, linked in the related architecture and scoping issues (&lt;a href="https://www.drupal.org/node/3559379"&gt;#3559379&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3564706"&gt;#3564706&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3568679"&gt;#3568679&lt;/a&gt;), and ultimately folded the resolution into &lt;a href="https://www.drupal.org/node/3574359"&gt;#3574359&lt;/a&gt; once the approach was agreed upon.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579414: Remove hardcoded tool parameter check and use plugin discovery</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579414.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e75dc06954</guid>
-      <pubDate>Tue, 17 Mar 2026 09:50:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +33/−25 · php +33/−25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_agents_test/-/commit/2ec94a8cabae4e01929ecce913e8b83435e8a884"&gt;2ec94a8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579414"&gt;#3579414&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Agents Test module now automatically discovers and displays all available parameter test plugins when creating agent tests. Previously, the interactive test form hardcoded a fixed list of parameter validation rules, meaning custom plugins couldn't be used even though the system supported them. This change makes the module properly extensible, allowing developers to create custom parameter validation plugins that immediately appear in the testing interface.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;InteractiveAgentTestForm&lt;/code&gt; class was building parameter test options using a hardcoded array of ten validation rules (empty, isset, not_set, equals, etc.), even though &lt;code&gt;AgentsParameterTest&lt;/code&gt; items were already implemented as plugins with a discovery system. This meant custom plugins existed but couldn't be selected in the UI.&lt;/p&gt;
-&lt;p&gt;The fix injects the &lt;code&gt;AgentsParameterTestPluginManager&lt;/code&gt; service into the form and replaces the hardcoded options array with a new &lt;code&gt;getParameterTestOptions()&lt;/code&gt; method. This method queries the plugin manager for all available definitions and builds the options list dynamically from their labels, preserving the 'empty' (No rules) option as the first entry.&lt;/p&gt;
-&lt;p&gt;The form states logic for showing/hiding the value field was also refactored. Instead of listing all checks that should show the field, it now uses an inverse approach, hiding the field only for 'empty', 'isset', and 'not_set'. This makes the visibility rules work automatically for new plugins without requiring code changes.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 16, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 17, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was opened and resolved within one day, with a straightforward implementation. The problem was clearly identified: the plugin system existed but wasn't being used for UI rendering. The solution followed established Drupal patterns of injecting the plugin manager and using discovery to populate form options, making this a textbook example of fixing a plugin system integration gap.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3522130: Add client-side transform for daterange_default to ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3522130.md</link>
-      <guid isPermaLink="false">019d857f-33e3-726a-abae-0ef8a76113c6</guid>
-      <pubDate>Sat, 14 Mar 2026 21:05:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +285/−16 · js +276/−2 · php +4/−14 · yml +4 · md +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/0974302b2a77071c7b795753e3fd84327fbd7969"&gt;0974302&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3522130"&gt;#3522130&lt;/a&gt; · 5 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas now supports date range fields in component properties. Previously, components using date range elements would trigger a logic exception because the necessary data transformations were missing. This fix enables site builders to use date range widgets when editing component instances, allowing them to specify both start and end dates that flow correctly through the component rendering system. The implementation ensures dates are properly converted to UTC ISO format for storage and display.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Canvas system uses field widgets from core to edit component properties in the sidebar. Each widget type requires a client-side transform to convert form values into the format expected by components. The &lt;code&gt;daterange_default&lt;/code&gt; widget was missing this transform, causing exceptions when components declared date range properties.&lt;/p&gt;
-&lt;p&gt;The fix adds a &lt;code&gt;dateRange&lt;/code&gt; transform that processes both &lt;code&gt;value&lt;/code&gt; and &lt;code&gt;end_value&lt;/code&gt; fields from the date range widget. It reuses the existing &lt;code&gt;dateTime&lt;/code&gt; transform logic to handle both date-only and datetime types. The transform extracts date and optional time values from the form structure, converts them to UTC ISO-8601 strings, and returns an object with &lt;code&gt;value&lt;/code&gt; and &lt;code&gt;end_value&lt;/code&gt; properties.&lt;/p&gt;
-&lt;p&gt;The implementation includes null guards aligned with other transforms, a new &lt;code&gt;canvas.transform.dateRange&lt;/code&gt; library definition, widget mapping registration in &lt;code&gt;ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()&lt;/code&gt;, and comprehensive test coverage including Cypress end-to-end tests that verify autosave PATCH requests contain correct date values. The fix also removes a test override and TODO comment that were blocking &lt;code&gt;daterange_default&lt;/code&gt; support.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 1, 2025&lt;/li&gt;
-&lt;li&gt;Committed: March 14, 2026 (10 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue took ten months from opening to commit, progressing through several iterations. The initial report identified the missing transform when enabling comprehensive component property testing. Scott Falconer implemented the solution but initially included out-of-scope Cypress test stabilization work. After feedback from Wim Leers requesting those changes be extracted to a separate issue, Scott narrowed the merge request to focus solely on date range support. Lauriii made their first commit to this issue's fork before the final landing. The fix also addressed &lt;a href="https://www.drupal.org/node/3523379"&gt;#3523379&lt;/a&gt;'s proposed resolution and appears aligned with &lt;a href="https://www.drupal.org/node/3546401"&gt;#3546401&lt;/a&gt;, consolidating multiple related concerns into one solution.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3576225: Index Strategy for the Drupal-created collections</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3576225.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94b29cdeae88</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 06 Mar 2026 16:31:06 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +571/−67 · php +562/−67 · yml +9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_vdb_provider_postgres/-/commit/c4933a3d380c83f7ab76f24934976ca392570c17"&gt;c4933a3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576225"&gt;#3576225&lt;/a&gt; · 4 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI VDB Provider Postgres module now allows you to choose how your vector search data is indexed. You can select between exact search for small datasets or use HNSW or IVFFlat strategies for faster searches on large datasets. This setting is exposed in the Search API server configuration form and can be changed at any time. The module automatically creates or updates the database index when you save your configuration, and it respects your chosen similarity metric (cosine, euclidean, or inner product) when building the index.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;VectorIndexStrategy&lt;/code&gt; enum and &lt;code&gt;PostgresPgvectorClient::ensureVectorIndex()&lt;/code&gt; method for managing pgvector index strategies&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;PostgresProvider&lt;/code&gt; plugin now exposes a &lt;strong&gt;Vector index strategy&lt;/strong&gt; select element in &lt;code&gt;buildSettingsForm()&lt;/code&gt; with three options: None (exact search via sequential scan), HNSW (Hierarchical Navigable Small World), and IVFFlat. The selected strategy is persisted in &lt;code&gt;database_settings.vector_index_strategy&lt;/code&gt; within the Search API server configuration.&lt;/p&gt;
-&lt;p&gt;Because the upstream &lt;code&gt;ai_search&lt;/code&gt; module does not invoke provider &lt;code&gt;submitSettingsForm()&lt;/code&gt; during normal form submission, index application happens via a &lt;code&gt;ConfigEvents::SAVE&lt;/code&gt; event subscriber at priority &lt;code&gt;-10&lt;/code&gt;. This runs after the upstream subscriber (priority &lt;code&gt;0&lt;/code&gt;) that creates the collection table, ensuring the table exists before index operations.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;PostgresPgvectorClient::ensureVectorIndex()&lt;/code&gt; method compares the current index state (strategy and operator class) against the desired configuration and only drops and recreates the index when they differ. The operator class is derived from the configured similarity metric: &lt;code&gt;vector_cosine_ops&lt;/code&gt;, &lt;code&gt;vector_l2_ops&lt;/code&gt;, or &lt;code&gt;vector_ip_ops&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;VectorIndexStrategy&lt;/code&gt; backed enum provides case definitions, human-readable labels, and form options. &lt;code&gt;VectorIndexException&lt;/code&gt; is thrown on index operation failures and logged without failing the entire config save. Index changes are also reapplied after clearing all indexed data via &lt;code&gt;deleteAllItems()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No external code changes are required. This is a new feature exposed through the UI.&lt;/p&gt;
-&lt;p&gt;If you maintain custom code that directly calls &lt;code&gt;PostgresPgvectorClient&lt;/code&gt; methods or extends &lt;code&gt;PostgresProvider&lt;/code&gt;, note that the client now provides public methods &lt;code&gt;ensureVectorIndex()&lt;/code&gt;, &lt;code&gt;createVectorIndex()&lt;/code&gt;, &lt;code&gt;dropVectorIndex()&lt;/code&gt;, and &lt;code&gt;getVectorIndexStrategy()&lt;/code&gt; for managing pgvector indexes programmatically. The new &lt;code&gt;VectorIndexStrategy&lt;/code&gt; enum is available at &lt;code&gt;\Drupal\ai_vdb_provider_postgres\Enum\VectorIndexStrategy&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 27, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 6, 2026 (7 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This feature request was opened and implemented by nikro (Dropsolid) with testing and review by abhisekmazumdar (Dropsolid). The issue was opened on February 27, 2026 and committed on March 6, 2026, a turnaround of about one week.&lt;/p&gt;
-&lt;p&gt;The initial patch was comprehensive, including the enum, event subscriber, client methods, form integration, and automatic reapplication after clearing data. abhisekmazumdar noted they had delayed review while setting up the required pgvector environment, but once tested the feature worked as designed across all transitions (None to HNSW, HNSW to IVFFlat, etc.) and correctly applied metric-aware operator classes.&lt;/p&gt;
-&lt;p&gt;The diff included PHPCS cleanup of pre-existing code style issues (unqualified type hints, trailing commas, docblock formatting), which nikro noted upfront in comment #4. The issue summary tracked completion of six planned tasks; the last two (automated tests and documentation updates) were skipped. Tests were deemed impractical due to the need for a live pgvector connection in CI, and documentation was considered low priority.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
