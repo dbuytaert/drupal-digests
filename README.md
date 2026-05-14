@@ -1,4 +1,4 @@
-**TL;DR:** [574 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [576 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_438 summaries · 66 new this week_
+_439 summaries · 67 new this week_
 
+- [#3579253: run-tests.sh does not properly process PHPUnit output when no test are executed...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579253.md)
 - [#455724: Deprecate check_markup()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md)
 - [#3588331: PsrResponseSubscriber doesn't support \Psr\Http\Message\StreamInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588331.md)
-- [#3586470: Support preloading of fonts declared from components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586470.md)
 
 ### Drupal Canvas
 
@@ -22,11 +22,11 @@ _59 summaries · 22 new this week_
 
 ### Drupal AI
 
-_66 summaries · 9 new this week_
+_67 summaries · 10 new this week_
 
 - [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 - [#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md)
-- [#3588762: [Sprint 1] Compaction loses critical facts — propose gotchas.md artifact](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588762.md)
+- [#3588773: [Sprint 2] Replace browser menu automation with menu:administer API (blocked)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588773.md)
 
 ### Drupal CMS
 

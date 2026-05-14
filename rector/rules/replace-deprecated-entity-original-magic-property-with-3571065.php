@@ -97,6 +97,7 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
         if ($node instanceof PropertyFetch) {
             if ($this->isName($node->name, 'original')
                 && !$this->isThisVar($node->var)
+                && !$this->isInsideBcCallback($node)
                 && $this->isObjectType($node->var, new ObjectType('Drupal\Core\Entity\EntityInterface'))
             ) {
                 return new MethodCall($node->var, 'getOriginal');
@@ -130,5 +131,36 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
     private function isThisVar(Node $node): bool
     {
         return $node instanceof Variable && $node->name === 'this';
+    }
+
+    /**
+     * Returns true when $node is inside a closure/arrow-function that's an
+     * argument to DeprecationHelper::backwardsCompatibleCall(). The callback
+     * exists to preserve the deprecated API path (legacy_fn) for old Drupal
+     * versions; rewriting it kills the BC bridge and breaks call sites.
+     */
+    private function isInsideBcCallback(Node $node): bool
+    {
+        $cursor = $node->getAttribute('parent');
+        while ($cursor !== null) {
+            if ($cursor instanceof Node\Expr\Closure
+                || $cursor instanceof Node\Expr\ArrowFunction
+            ) {
+                $fnParent = $cursor->getAttribute('parent');
+                if ($fnParent instanceof Node\Arg) {
+                    $call = $fnParent->getAttribute('parent');
+                    if ($call instanceof Node\Expr\StaticCall
+                        && $call->class instanceof Node\Name
+                        && str_ends_with($call->class->toString(), 'DeprecationHelper')
+                        && $call->name instanceof Node\Identifier
+                        && $call->name->toString() === 'backwardsCompatibleCall'
+                    ) {
+                        return true;
+                    }
+                }
+            }
+            $cursor = $cursor->getAttribute('parent');
+        }
+        return false;
     }
 }

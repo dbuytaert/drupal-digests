@@ -174,12 +174,12 @@ CODE
      */
     private function addLabelKeyParam(ClassMethod $method): bool
     {
-        foreach ($method->params as $param) {
-            if ($param->var instanceof Variable
-                && $param->var->name === 'label_key'
-            ) {
-                return false;
-            }
+        // The canonical pre-change signature was a single ?array parameter;
+        // we splice into position 1 assuming that shape. If the override
+        // already deviates (extra or different params), inserting blindly
+        // reorders the parameter list and breaks call sites — skip it.
+        if (count($method->params) !== 1) {
+            return false;
         }
 
         $param = new Param(

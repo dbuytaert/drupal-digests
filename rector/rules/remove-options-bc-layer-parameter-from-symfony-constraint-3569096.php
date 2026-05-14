@@ -150,6 +150,23 @@ CODE_SAMPLE,
             return null;
         }
 
+        // Bail when the constructor body uses $options beyond the
+        // single reference in parent::__construct(). The rule rewrites
+        // the signature and parent call, but won't touch the body —
+        // and a body that reads $options['key'] would silently break
+        // with an undefined-variable use after we strip the param.
+        // The expected reference count is exactly 1 (the parent call).
+        $optionsRefs = 0;
+        $this->traverseNodesWithCallable($constructMethod->stmts ?? [], function (Node $n) use (&$optionsRefs) {
+            if ($n instanceof Variable && $this->getName($n) === 'options') {
+                $optionsRefs++;
+            }
+            return null;
+        });
+        if ($optionsRefs > 1) {
+            return null;
+        }
+
         // Remove the $options parameter from the constructor
         array_shift($constructMethod->params);
 
