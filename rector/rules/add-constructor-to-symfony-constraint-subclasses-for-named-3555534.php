@@ -157,17 +157,17 @@ CODE_SAMPLE
                 $propType    = $stmt->type;
                 $propDefault = $propItem->default;
 
-                $isStringType     = $propType instanceof Identifier && $propType->name === 'string';
-                $hasStringDefault = $propDefault !== null;
+                $isStringType = $propType instanceof Identifier && $propType->name === 'string';
+                $hasDefault   = $propDefault !== null;
 
-                if ($isStringType && $hasStringDefault) {
+                if ($isStringType && $hasDefault) {
                     $promotable[] = [
                         'name'    => $propName,
                         'type'    => $propType,
                         'default' => $propDefault,
                         'stmt'    => $stmt,
                     ];
-                } else {
+                } elseif ($hasDefault) {
                     $regular[] = [
                         'name'    => $propName,
                         'type'    => $propType,
@@ -175,6 +175,13 @@ CODE_SAMPLE
                         'stmt'    => $stmt,
                     ];
                 }
+                // Skip typed properties with no default: the generated
+                // body would emit `$this->prop = $param ?? $this->prop`,
+                // and reading an uninitialized typed property fires PHP's
+                // "must not be accessed before initialization" error
+                // every time the constructor runs without that arg.
+                // Such properties are typically set externally by callers
+                // after construction; leaving them out preserves that flow.
             }
         }
 

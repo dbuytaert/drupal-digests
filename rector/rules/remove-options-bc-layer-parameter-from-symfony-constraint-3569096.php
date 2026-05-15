@@ -167,6 +167,28 @@ CODE_SAMPLE,
             return null;
         }
 
+        // Bail when the class has any public typed property without a
+        // default value. Symfony's Constraint::__construct($options)
+        // populates public properties from the $options array via
+        // reflection. Classes that rely on that magic for typed-property
+        // init leave those properties uninitialized once $options is
+        // removed; the next read fires PHP's 'must not be accessed
+        // before initialization' error. Properties with defaults survive
+        // removal safely; only the uninitialized typed ones are at risk.
+        foreach ($node->getProperties() as $prop) {
+            if (!$prop->isPublic()) {
+                continue;
+            }
+            if ($prop->type === null) {
+                continue;
+            }
+            foreach ($prop->props as $propItem) {
+                if ($propItem->default === null) {
+                    return null;
+                }
+            }
+        }
+
         // Remove the $options parameter from the constructor
         array_shift($constructMethod->params);
 

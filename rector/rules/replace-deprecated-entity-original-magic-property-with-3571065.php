@@ -97,7 +97,7 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
         if ($node instanceof PropertyFetch) {
             if ($this->isName($node->name, 'original')
                 && !$this->isThisVar($node->var)
-                && !$this->isInsideBcCallback($node)
+                && !$this->fileUsesBcHelper()
                 && $this->isObjectType($node->var, new ObjectType('Drupal\Core\Entity\EntityInterface'))
             ) {
                 return new MethodCall($node->var, 'getOriginal');
@@ -134,33 +134,27 @@ final class EntityOriginalPropertyToMethodRector extends AbstractRector
     }
 
     /**
-     * Returns true when $node is inside a closure/arrow-function that's an
-     * argument to DeprecationHelper::backwardsCompatibleCall(). The callback
-     * exists to preserve the deprecated API path (legacy_fn) for old Drupal
-     * versions; rewriting it kills the BC bridge and breaks call sites.
+     * Returns true when the current file uses DeprecationHelper::
+     * backwardsCompatibleCall(). Files that use this BC helper for
+     * \$entity->original access are presumed to be entirely about the
+     * BC pattern: the modern_fn already uses getOriginal(), the legacy_fn
+     * intentionally preserves the deprecated property access for old
+     * Drupal versions. Rewriting the legacy_fn would emit invalid PHP
+     * (e.g. unset(getOriginal())) and break the BC bridge regardless.
+     *
+     * AST-based parent walking (Node::getAttribute('parent') chained
+     * through Closure/ArrowFunction → Arg → StaticCall) does not work
+     * reliably in rector's traversal: the parent attribute isn't
+     * propagated through closure bodies, so the walk returns null at
+     * the first hop. A file-content scan sidesteps this entirely.
+     *
+     * Trade-off: legitimate non-BC \$entity->original uses in the same
+     * file are also skipped. In practice such files are rare — files
+     * using the BC helper for \$entity->original are almost always
+     * entirely about the BC migration.
      */
-    private function isInsideBcCallback(Node $node): bool
+    private function fileUsesBcHelper(): bool
     {
-        $cursor = $node->getAttribute('parent');
-        while ($cursor !== null) {
-            if ($cursor instanceof Node\Expr\Closure
-                || $cursor instanceof Node\Expr\ArrowFunction
-            ) {
-                $fnParent = $cursor->getAttribute('parent');
-                if ($fnParent instanceof Node\Arg) {
-                    $call = $fnParent->getAttribute('parent');
-                    if ($call instanceof Node\Expr\StaticCall
-                        && $call->class instanceof Node\Name
-                        && str_ends_with($call->class->toString(), 'DeprecationHelper')
-                        && $call->name instanceof Node\Identifier
-                        && $call->name->toString() === 'backwardsCompatibleCall'
-                    ) {
-                        return true;
-                    }
-                }
-            }
-            $cursor = $cursor->getAttribute('parent');
-        }
-        return false;
+        return str_contains($this->file->getFileContent(), 'backwardsCompatibleCall');
     }
 }

@@ -1,24 +1,24 @@
-**TL;DR:** [577 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [580 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_68 summaries · 11 new this week_
-
-- [#3588587: Add Codex backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md)
-- [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
-- [#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md)
-
 ### Drupal Core
 
-_439 summaries · 64 new this week_
+_441 summaries · 66 new this week_
 
+- [#3516173: Block status code visibility condition should use a status code cache context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516173.md)
+- [#3581303: Convert locale batch callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581303.md)
 - [#3579253: run-tests.sh does not properly process PHPUnit output when no test are executed...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579253.md)
-- [#455724: Deprecate check_markup()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md)
-- [#3588331: PsrResponseSubscriber doesn't support \Psr\Http\Message\StreamInterface](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588331.md)
+
+### Drupal AI
+
+_69 summaries · 12 new this week_
+
+- [#3588588: Add Gemini CLI backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588588.md)
+- [#3588587: Add Codex backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md)
+- [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 
 ### Drupal Canvas
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_167 rules · 20 new this week_
+_167 rules · 17 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
