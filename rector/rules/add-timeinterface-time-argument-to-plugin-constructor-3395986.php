@@ -33,12 +33,14 @@ declare(strict_types=1);
  *
  * Caveats:
  *   Requires Drupal core source (or stubs) on the analysis path so that
- *   isObjectType can resolve the class hierarchy. Subclasses that do
- *   not call parent::__construct() at all will have their signature
- *   updated but no parent call will be inserted. The rule appends $time
- *   at the end of the parent::__construct() argument list, which is
- *   correct only when no arguments were previously skipped between the
- *   last positional arg and $position.
+ *   isObjectType can resolve the class hierarchy. The rule only updates
+ *   parent::__construct() calls that already pass exactly the pre-
+ *   deprecation number of positional arguments (i.e. count matches
+ *   $position): if a subclass omitted some args, appending $time at the
+ *   end would land it in the wrong slot, so the rule skips. Subclasses
+ *   that do not call parent::__construct() at all have their signature
+ *   updated but no parent call inserted; this is stylistic, not
+ *   behavior-breaking (the inherited init is unchanged).
  *
  * @see https://www.drupal.org/node/3395986
  * @deprecated drupal:10.3.0
@@ -205,7 +207,12 @@ CODE,
                 if (!$this->isName($node->name, '__construct')) {
                     return null;
                 }
-                if (isset($node->args[$position])) {
+                // Only append when the parent call has EXACTLY $position
+                // pre-existing positional args. With fewer args (subclass
+                // omitted some), $node->args[] appends at count($node->args)
+                // which lands $time in the wrong slot; with more, $time
+                // is already past $position. Skip in both cases.
+                if (count($node->args) !== $position) {
                     return null;
                 }
                 $node->args[] = new Arg(new Variable('time'));

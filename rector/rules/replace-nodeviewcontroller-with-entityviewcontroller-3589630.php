@@ -23,13 +23,17 @@ declare(strict_types=1);
  *   // also: class MyController extends EntityViewController {}
  *
  * Caveats:
- *   Subclasses that override __construct and call
- *   parent::__construct($a, $b, $c, $d) will have extends updated but
- *   the parent::__construct call is not modified; developers must
- *   manually drop the AccountInterface and EntityRepositoryInterface
- *   arguments from their own parent call.NodeViewController::title()
+ *   Only rewrites new NodeViewController(...) direct instantiations.
+ *   References via extends, instanceof, type hints, and use imports are
+ *   intentionally left for manual review: blindly renaming extends
+ *   NodeViewController would leave subclass parent::__construct(...)
+ *   calls with the old 4-arg signature, which
+ *   EntityViewController::__construct(...) (2 args) would reject at
+ *   runtime. Manual conversion of subclasses lets the developer also
+ *   drop the now-extra AccountInterface and EntityRepositoryInterface
+ *   arguments from their own constructor. NodeViewController::title()
  *   has no equivalent on EntityViewController; callers of that method
- *   are not rewritten.
+ *   need manual reworking.
  *
  * @see https://www.drupal.org/node/3589630
  * @deprecated drupal:11.4.0
@@ -42,7 +46,6 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name\FullyQualified;
 use Rector\Config\RectorConfig;
 use Rector\Rector\AbstractRector;
-use Rector\Renaming\Rector\Name\RenameClassRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
