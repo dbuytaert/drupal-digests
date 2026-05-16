@@ -14,7 +14,7 @@ _61 summaries · 24 new this week_
 
 ### Drupal Core
 
-_441 summaries · 64 new this week_
+_441 summaries · 58 new this week_
 
 - [#3516173: Block status code visibility condition should use a status code cache context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516173.md)
 - [#3581303: Convert locale batch callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581303.md)
@@ -22,7 +22,7 @@ _441 summaries · 64 new this week_
 
 ### Drupal AI
 
-_69 summaries · 12 new this week_
+_69 summaries · 11 new this week_
 
 - [#3588588: Add Gemini CLI backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588588.md)
 - [#3588587: Add Codex backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md)
