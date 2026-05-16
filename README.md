@@ -14,7 +14,7 @@ _61 summaries · 24 new this week_
 
 ### Drupal Core
 
-_441 summaries · 66 new this week_
+_441 summaries · 64 new this week_
 
 - [#3516173: Block status code visibility condition should use a status code cache context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516173.md)
 - [#3581303: Convert locale batch callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581303.md)
