@@ -241,6 +241,111 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace deprecated locale batch procedural functions with service method calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e2e3d-6c3d-7636-9653-059165ab5960.md</link>
+      <guid isPermaLink="false">019e2e3d-6c3d-7636-9653-059165ab5960</guid>
+      <pubDate>Sat, 16 May 2026 00:43:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581303"&gt;#3581303&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces 17 deprecated procedural functions from &lt;code&gt;locale.batch.inc&lt;/code&gt;, &lt;code&gt;locale.bulk.inc&lt;/code&gt;, and &lt;code&gt;locale.compare.inc&lt;/code&gt; with equivalent calls on the new &lt;code&gt;LocaleFetch&lt;/code&gt;, &lt;code&gt;LocaleImportBatch&lt;/code&gt;, &lt;code&gt;LocaleConfigBatch&lt;/code&gt;, and &lt;code&gt;LocaleProjectChecker&lt;/code&gt; services. All deprecated functions delegate directly to the service methods with identical arguments, making the rewrite safe and mechanical.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;locale_translate_batch_build($files, $options);
+locale_config_batch_update_components($options, $langcodes);
+locale_translation_batch_fetch_finished($success, $results);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleImportBatch::class)-&amp;gt;buildBatch($files, $options);
+\Drupal::service(\Drupal\locale\LocaleConfigBatch::class)-&amp;gt;buildBatch($options, $langcodes);
+\Drupal::service(\Drupal\locale\LocaleFetch::class)-&amp;gt;batchFinished($success, $results);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;locale_config_batch_build&lt;/code&gt; and &lt;code&gt;locale_translation_batch_status_build&lt;/code&gt; are not rewritten: the former changed its argument signature and the latter changed its behavior (the replacement calls &lt;code&gt;batch_set()&lt;/code&gt; immediately rather than returning the array). Those two functions require manual migration.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceLocaleBatchProceduralFunctionsRector extends AbstractRector
+{
+    // Map: function_name =&amp;gt; [ServiceClass FQCN, method name]
+    private const FUNCTION_MAP = [
+        'locale_translation_batch_version_check'           =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'batchVersionCheck'],
+        'locale_translation_batch_status_check'            =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'batchStatusCheck'],
+        'locale_translation_batch_fetch_download'          =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'batchDownload'],
+        'locale_translation_batch_fetch_import'            =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'batchImport'],
+        'locale_translation_batch_fetch_finished'          =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'batchFinished'],
+        '_locale_translation_batch_status_operations'      =&amp;gt; ['Drupal\\locale\\LocaleFetch', 'getStatusOperations'],
+        'locale_translate_batch_build'                     =&amp;gt; ['Drupal\\locale\\LocaleImportBatch', 'buildBatch'],
+        'locale_translate_batch_import'                    =&amp;gt; ['Drupal\\locale\\LocaleImportBatch', 'batchImport'],
+        'locale_translate_batch_import_save'               =&amp;gt; ['Drupal\\locale\\LocaleImportBatch', 'batchSave'],
+        'locale_translate_batch_refresh'                   =&amp;gt; ['Drupal\\locale\\LocaleImportBatch', 'batchRefresh'],
+        'locale_translate_batch_finished'                  =&amp;gt; ['Drupal\\locale\\LocaleImportBatch', 'batchFinished'],
+        'locale_config_batch_update_components'            =&amp;gt; ['Drupal\\locale\\LocaleConfigBatch', 'buildBatch'],
+        'locale_config_batch_update_default_config_langcodes' =&amp;gt; ['Drupal\\locale\\LocaleConfigBatch', 'batchUpdateDefaultConfigLangcodes'],
+        'locale_config_batch_update_config_translations'   =&amp;gt; ['Drupal\\locale\\LocaleConfigBatch', 'batchUpdateConfigTranslations'],
+        'locale_config_batch_finished'                     =&amp;gt; ['Drupal\\locale\\LocaleConfigBatch', 'batchFinished'],
+        'locale_translation_check_projects_batch'          =&amp;gt; ['Drupal\\locale\\LocaleProjectChecker', 'triggerBatch'],
+        'locale_translation_batch_status_finished'         =&amp;gt; ['Drupal\\locale\\LocaleProjectChecker', 'batchFinished'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale batch procedural functions with service method calls.',
+            [new CodeSample(
+                'locale_translate_batch_build($files, $options);',
+                '\\Drupal::service(\\Drupal\\locale\\LocaleImportBatch::class)-&amp;gt;buildBatch($files, $options);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        $funcName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($funcName === null || !isset(self::FUNCTION_MAP[$funcName])) {
+            return null;
+        }
+        [$serviceClass, $method] = self::FUNCTION_MAP[$funcName];
+
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified($serviceClass), 'class'))],
+        );
+        return new MethodCall($serviceCall, $method, $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleBatchProceduralFunctionsRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace check_markup() with processed_text render array</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e215f-ef60-71b2-8814-ada1c0fff96e.md</link>
       <guid isPermaLink="false">019e215f-ef60-71b2-8814-ada1c0fff96e</guid>
@@ -1607,49 +1712,6 @@ final class RemoveRouteBuilderDeprecatedArgsRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([RemoveRouteBuilderDeprecatedArgsRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace TestRequirementsTrait with DrupalTestCaseTrait</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e051b-75ae-73ab-b620-e82ec21907f5.md</link>
-      <guid isPermaLink="false">019e051b-75ae-73ab-b620-e82ec21907f5</guid>
-      <pubDate>Fri, 08 May 2026 01:02:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3573954"&gt;#3573954&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 12.0.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces &lt;code&gt;use TestRequirementsTrait&lt;/code&gt; with &lt;code&gt;use DrupalTestCaseTrait&lt;/code&gt; in test classes. &lt;code&gt;\Drupal\Tests\TestRequirementsTrait&lt;/code&gt; is deprecated in drupal:12.0.0 and removed in drupal:13.0.0; &lt;code&gt;\Drupal\Tests\DrupalTestCaseTrait&lt;/code&gt; is its replacement, providing the &lt;code&gt;$root&lt;/code&gt; property via a hooked getter and consolidating shared test infrastructure methods.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Tests\TestRequirementsTrait;
-
-class MyTest extends KernelTestBase {
-  use TestRequirementsTrait;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Tests\DrupalTestCaseTrait;
-
-class MyTest extends KernelTestBase {
-  use DrupalTestCaseTrait;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;The old &lt;code&gt;use Drupal\Tests\TestRequirementsTrait;&lt;/code&gt; import statement is left as a dead unused import after the rename; pair with a dead-import removal pass (e.g. &lt;code&gt;RemoveUnusedImportsRector&lt;/code&gt;) to clean it up. Calls to the now-deprecated &lt;code&gt;getDrupalRoot()&lt;/code&gt; or &lt;code&gt;setUpAppRoot()&lt;/code&gt; are not rewritten by this rule.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Renaming\Rector\Name\RenameClassRector;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
-        'Drupal\\Tests\\TestRequirementsTrait' =&amp;gt; 'Drupal\\Tests\\DrupalTestCaseTrait',
-    ]);
-
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

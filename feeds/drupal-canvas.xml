@@ -5,6 +5,95 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/drupal-canvas</link>
     <item>
+      <title>#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md</link>
+      <guid isPermaLink="false">019e2e37-20c1-7045-84f7-fcc795dad7fb</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 15 May 2026 21:40:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +299/−6 · php +115 · js +98/−6 · yml +85 · json +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/3753845c9a34aa42c8106f09ac591688fe6a2912"&gt;3753845&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585327"&gt;#3585327&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas module now exposes a new HTTP API endpoint, &lt;code&gt;GET /canvas/api/v0/site-data&lt;/code&gt;, that returns the site-level &lt;code&gt;canvasData.v0&lt;/code&gt; payload (base URL, branding, theme assets, and JSON:API settings). Previously, this data was only available when Drupal rendered a full page with the relevant asset libraries attached, which meant Canvas Workbench running as a local Vite dev server had no way to call &lt;code&gt;getSiteData()&lt;/code&gt; with live site data. With this change, the &lt;code&gt;@drupal-canvas/vite-plugin&lt;/code&gt; fetches the endpoint at build start using an OAuth Bearer token and injects the response into &lt;code&gt;window.drupalSettings.canvasData.v0&lt;/code&gt; before any component code runs, so the existing &lt;code&gt;getSiteData()&lt;/code&gt; function works in Workbench without modification. The scope is intentionally limited to site-level data; page-level data (breadcrumbs, page title, main entity) is deferred to a follow-up issue.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New HTTP endpoint GET /canvas/api/v0/site-data returns the site-level canvasData.v0 payload (baseUrl, branding, themeAssets, jsonapiSettings), authenticated via Canvas OAuth.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new route &lt;code&gt;canvas.api.site_data&lt;/code&gt; is registered at &lt;code&gt;GET /canvas/api/v0/site-data&lt;/code&gt; in &lt;code&gt;canvas.routing.yml&lt;/code&gt; with the same access requirements as other read-only Canvas API routes: &lt;code&gt;_canvas_authentication_required: TRUE&lt;/code&gt;, &lt;code&gt;_canvas_ui_access: 'TRUE'&lt;/code&gt;, and &lt;code&gt;canvas_external_api: true&lt;/code&gt;. The controller &lt;code&gt;Drupal\canvas\Controller\SiteDataController&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) calls the four &lt;code&gt;CodeComponentDataProvider&lt;/code&gt; methods already used by &lt;code&gt;ComponentSourceHooks::jsSettingsAlter()&lt;/code&gt; (&lt;code&gt;getCanvasDataThemeAssetsV0&lt;/code&gt;, &lt;code&gt;getCanvasDataJsonApiSettingsV0&lt;/code&gt;, &lt;code&gt;getCanvasDataBrandingV0&lt;/code&gt;, &lt;code&gt;getCanvasDataBaseUrlV0&lt;/code&gt;) and merges them via &lt;code&gt;NestedArray::mergeDeep&lt;/code&gt;. It returns a &lt;code&gt;CacheableJsonResponse&lt;/code&gt; with cache contexts for &lt;code&gt;url.site&lt;/code&gt; and dependencies on &lt;code&gt;system.site&lt;/code&gt;, &lt;code&gt;system.theme&lt;/code&gt;, &lt;code&gt;system.theme.global&lt;/code&gt;, and the active theme's settings config.&lt;/p&gt;
+&lt;p&gt;OAuth coverage is added by appending &lt;code&gt;canvas.api.site_data&lt;/code&gt; to the &lt;code&gt;$named_routes&lt;/code&gt; array in &lt;code&gt;CanvasOauthAuthenticationProvider::applies()&lt;/code&gt;, which explicitly enumerates routes; without this the OAuth provider would not authenticate requests to the new route.&lt;/p&gt;
+&lt;p&gt;On the TypeScript side, &lt;code&gt;@drupal-canvas/vite-plugin&lt;/code&gt; gains a &lt;code&gt;buildStart()&lt;/code&gt; hook that reads an access token (first from the &lt;code&gt;CANVAS_ACCESS_TOKEN&lt;/code&gt; environment variable, then from the token store via &lt;code&gt;getTokenEntry()&lt;/code&gt; from &lt;code&gt;@drupal-canvas/auth&lt;/code&gt;). If a valid token is found, it fetches the endpoint and caches the response in &lt;code&gt;canvasApiData&lt;/code&gt;. The &lt;code&gt;transformIndexHtml&lt;/code&gt; hook then merges &lt;code&gt;canvasApiData&lt;/code&gt; into the &lt;code&gt;canvasData.v0&lt;/code&gt; object, resolving relative theme asset paths (logo and favicon URLs starting with &lt;code&gt;/&lt;/code&gt;) to absolute URLs by prepending the site base URL. When &lt;code&gt;canvasApiData&lt;/code&gt; is present, the static &lt;code&gt;jsonapiPrefix&lt;/code&gt; option and &lt;code&gt;CANVAS_JSONAPI_PREFIX&lt;/code&gt; env var are no longer used, since &lt;code&gt;jsonapiSettings&lt;/code&gt; comes from the API response. The endpoint shape is also added to the module's OpenAPI spec.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 16, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 15, 2026 (29 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;effulgentsia suggested narrowing the scope to site data only, pointing out that page data is more complex because it requires knowing which page is being requested and should usually be mocked in Workbench rather than fetched live. mglaman accepted the scope reduction and reworked the implementation accordingly, with the page-data endpoint deferred to a follow-up.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the rendering host entity</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md</link>
+      <guid isPermaLink="false">019e2e36-19fb-738c-b4c3-663d4da7aded</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 15 May 2026 20:58:37 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +993/−62 · php +854/−61 · yml +109 · md +28/−1 · txt +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/8194d952dea7d588a96d63e654e12d6181dc380e"&gt;8194d95&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587374"&gt;#3587374&lt;/a&gt; · 3 contributors · 12 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a Canvas JavaScript component placed on an entity page declares a &lt;code&gt;content-entity-reference&lt;/code&gt; prop, site builders previously had only two ways to populate it: pick a specific entity statically, or link to an entity-reference field on the host entity. This change adds a third option: &amp;quot;use the rendered page's own entity as the prop value.&amp;quot; The stored source configuration is simply &lt;code&gt;{&amp;quot;sourceType&amp;quot;: &amp;quot;host-entity&amp;quot;}&lt;/code&gt;. When no host entity is available (for example in a pattern preview), the prop is silently skipped rather than causing an error. The change builds directly on the &lt;code&gt;content-entity-reference&lt;/code&gt; prop shape added in &lt;a href="https://www.drupal.org/node/3586613"&gt;#3586613&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;PropSource::HostEntity = 'host-entity'&lt;/code&gt; enum case in the public &lt;code&gt;PropSource&lt;/code&gt; enum; &lt;code&gt;PropSourceSuggester::suggest()&lt;/code&gt; return type gains a &lt;code&gt;host-entity&lt;/code&gt; bucket alongside &lt;code&gt;entity-field&lt;/code&gt; and &lt;code&gt;host-entity-url&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;HostEntityPropSource&lt;/code&gt; class (marked &lt;code&gt;@internal&lt;/code&gt;) is wired into the &lt;code&gt;PropSource&lt;/code&gt; enum as &lt;code&gt;PropSource::HostEntity = 'host-entity'&lt;/code&gt;, extending the existing &lt;code&gt;parse()&lt;/code&gt; dispatch table. Its &lt;code&gt;evaluate()&lt;/code&gt; method returns &lt;code&gt;new EvaluationResult($host_entity, CacheableMetadata::createFromObject($host_entity))&lt;/code&gt; when a host entity is present, and throws &lt;code&gt;MissingHostEntityException&lt;/code&gt; when &lt;code&gt;$host_entity&lt;/code&gt; is &lt;code&gt;NULL&lt;/code&gt;. The existing try/catch in &lt;code&gt;GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInput()&lt;/code&gt; already handles this exception, which is what silently skips the prop in host-less contexts.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;HostEntityPropSourceMatcher&lt;/code&gt; (&lt;code&gt;@internal&lt;/code&gt;) performs a two-step gate: the prop's &lt;code&gt;x-allowed-entity-type-id&lt;/code&gt; must equal the host entity type ID (strict equality), and if &lt;code&gt;x-allowed-bundle&lt;/code&gt; is present it must equal the host bundle. It returns at most one &lt;code&gt;HostEntityPropSource&lt;/code&gt;, injected into &lt;code&gt;PropSourceSuggester&lt;/code&gt; as a new &lt;code&gt;host-entity&lt;/code&gt; bucket alongside the existing &lt;code&gt;entity-field&lt;/code&gt; and &lt;code&gt;host-entity-url&lt;/code&gt; buckets.&lt;/p&gt;
+&lt;p&gt;The commit also introduces &lt;code&gt;LinkedPropSourceInterface&lt;/code&gt; (&lt;code&gt;@internal&lt;/code&gt;), which unifies the three &amp;quot;linked&amp;quot; prop source types (&lt;code&gt;EntityFieldPropSource&lt;/code&gt;, &lt;code&gt;HostEntityUrlPropSource&lt;/code&gt;, and the new &lt;code&gt;HostEntityPropSource&lt;/code&gt;) under a common contract. As part of this, the &lt;code&gt;label()&lt;/code&gt; method on those two existing &lt;code&gt;@internal&lt;/code&gt; classes changed signature from &lt;code&gt;label(): TranslatableMarkup|string&lt;/code&gt; (no parameter) to &lt;code&gt;label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup&lt;/code&gt;. Callers in &lt;code&gt;LinkedPropSource&lt;/code&gt; (the render element) and &lt;code&gt;PropSourceSuggester&lt;/code&gt; were updated accordingly. The &lt;code&gt;HostEntityPropSource::label()&lt;/code&gt; produces context-aware strings such as &amp;quot;This Article content item&amp;quot; (bundled types) or &amp;quot;This user&amp;quot; (bundle-less types).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 28, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 15, 2026 (17 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586613: Add content-entity-reference well-known prop shape for code components</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md</link>
       <guid isPermaLink="false">019e2d61-1889-77a1-990f-c228c9aa8c89</guid>
@@ -843,136 +932,6 @@ npx canvas push
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Wim leers flagged in comment #2 that file upload is security-sensitive territory, drawing on his prior work on core's file upload unification in &lt;a href="https://www.drupal.org/node/1927648"&gt;#1927648&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/2940383"&gt;#2940383&lt;/a&gt;. He required use of &lt;code&gt;FileUploadHandler&lt;/code&gt; and argued against two-step uploads (first file, then media entity) as both slower and more fragile. That recommendation directly shaped the final design: a single multipart request that creates both entities in one go. penyaskito then opened the MR and worked through several rounds of security-focused review with wim leers before landing the change.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583557: Add infinite scroll for pages listing and top navigation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583557.md</link>
-      <guid isPermaLink="false">019dbc09-8d75-70da-ac74-ec1b4dc2d4fb</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 09 Apr 2026 18:19:34 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +377/−44 · js +370/−44 · php +7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/ef11e19fafeb4efffe28f8a8286ac81fe6f02832"&gt;ef11e19&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3583557"&gt;#3583557&lt;/a&gt; · 4 contributors · 10 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas editor's Pages list panel (left sidebar) and top navigation panel previously capped page listings at 50 results. This change adds infinite scroll to both locations: when a user scrolls to the bottom of either list, the next batch of pages loads automatically and appends to the existing list. The feature builds on the offset-based pagination API introduced in &lt;a href="https://www.drupal.org/node/3502691"&gt;#3502691&lt;/a&gt;. A secondary sort by entity ID was also added on the backend to guarantee stable pagination when multiple pages share the same creation timestamp.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ContentListResult&lt;/code&gt; interface (&lt;code&gt;{ items, totalCount }&lt;/code&gt;) replaces the plain &lt;code&gt;ContentStub[]&lt;/code&gt; return type of &lt;code&gt;useGetContentListQuery&lt;/code&gt;; callers must read &lt;code&gt;data.items&lt;/code&gt; instead of &lt;code&gt;data&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The backend fix in &lt;code&gt;ApiContentControllers::getContentList&lt;/code&gt; adds a secondary &lt;code&gt;.sort($id_key)&lt;/code&gt; after the primary &lt;code&gt;.sort($revision_created_field_name, 'DESC')&lt;/code&gt;. Without this, pages with identical &lt;code&gt;revision_created&lt;/code&gt; values could be returned in varying database-dependent orders across paginated requests, causing duplicates or missing items.&lt;/p&gt;
-&lt;p&gt;On the frontend the main structural change is in &lt;code&gt;contentApi&lt;/code&gt; (RTK Query). The &lt;code&gt;getContentList&lt;/code&gt; endpoint return type changed from &lt;code&gt;ContentStub[]&lt;/code&gt; to a new &lt;code&gt;ContentListResult&lt;/code&gt; interface (&lt;code&gt;{ items: ContentStub[], totalCount: number | null }&lt;/code&gt;). Three new RTK Query options enable client-side cache merging across paginated calls: &lt;code&gt;serializeQueryArgs&lt;/code&gt; keys the cache by &lt;code&gt;entityType-search&lt;/code&gt; only (ignoring &lt;code&gt;offset&lt;/code&gt;), &lt;code&gt;merge&lt;/code&gt; appends new items to the cache when &lt;code&gt;offset &amp;gt; 0&lt;/code&gt; and replaces them when &lt;code&gt;offset === 0&lt;/code&gt;, and &lt;code&gt;forceRefetch&lt;/code&gt; triggers a new network request whenever the query args change.&lt;/p&gt;
-&lt;p&gt;Cache invalidation on delete and create was replaced with manual cache management to avoid losing accumulated items. The delete mutation uses &lt;code&gt;contentApi.util.updateQueryData&lt;/code&gt; to optimistically filter the deleted item from all matching cached queries and decrements &lt;code&gt;totalCount&lt;/code&gt;, with rollback on failure. The create mutation force-refetches from &lt;code&gt;offset: 0&lt;/code&gt; after success rather than invalidating the &lt;code&gt;Content/LIST&lt;/code&gt; tag.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;usePaginatedContentList&lt;/code&gt; hook encapsulates &lt;code&gt;offset&lt;/code&gt; state, debounces the search term (300 ms), resets &lt;code&gt;offset&lt;/code&gt; to 0 when the search changes, and computes &lt;code&gt;hasMore&lt;/code&gt; (true only when not searching and &lt;code&gt;items.length &amp;lt; totalCount&lt;/code&gt;). It exposes &lt;code&gt;items&lt;/code&gt;, &lt;code&gt;hasMore&lt;/code&gt;, and &lt;code&gt;handleLoadMore&lt;/code&gt; to callers. Both the &lt;code&gt;Pages&lt;/code&gt; and &lt;code&gt;PageInfo&lt;/code&gt; containers replaced their direct &lt;code&gt;useGetContentListQuery&lt;/code&gt; + &lt;code&gt;useDebounce&lt;/code&gt; calls with this hook.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;InfiniteScrollObserver&lt;/code&gt; React component uses &lt;code&gt;IntersectionObserver&lt;/code&gt; with a 100 px &lt;code&gt;rootMargin&lt;/code&gt; to detect when a 1 px sentinel &lt;code&gt;div&lt;/code&gt; enters the viewport, then calls &lt;code&gt;onLoadMore&lt;/code&gt;. It is rendered conditionally at the bottom of both the &lt;code&gt;PageList&lt;/code&gt; component and the &lt;code&gt;Navigation&lt;/code&gt; component when &lt;code&gt;hasMore&lt;/code&gt; is true.&lt;/p&gt;
-&lt;p&gt;Callers that only needed items (&lt;code&gt;useSmartRedirect&lt;/code&gt;, &lt;code&gt;UnpublishedChanges&lt;/code&gt;) were updated to read &lt;code&gt;data?.items&lt;/code&gt; from the new response shape. Cypress tests that previously waited for a re-fetch after deletion were updated to remove those waits since deletion no longer triggers a network request. Playwright tests were added for both panels using &lt;code&gt;page.route&lt;/code&gt; to mock paginated API responses, avoiding the need to create 50+ real pages.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your custom code calls &lt;code&gt;useGetContentListQuery&lt;/code&gt; and reads the result directly as an array, update it to read &lt;code&gt;data.items&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-ts"&gt;// Before
-const { data: pageItems } = useGetContentListQuery({ entityType: 'canvas_page' });
-
-// After
-const { data } = useGetContentListQuery({ entityType: 'canvas_page' });
-const pageItems = data?.items ?? [];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 7, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 9, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3580221: Add CLI push/pull for fonts</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3580221.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-9500af600ac5</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Wed, 08 Apr 2026 19:04:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 25 files, +3222/−48 · js +3081/−15 · md +115/−15 · php +13/−16 · txt +9 · json +3 · example +1/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/040e79d7fd1132ff61517e8a5cbfeac246218dc7"&gt;040e79d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580221"&gt;#3580221&lt;/a&gt; · 2 contributors · 8 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas CLI can now push and pull Brand Kit fonts, allowing font configuration to be version-controlled and deployed like other Canvas assets. When a &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; file is present in the project root, &lt;code&gt;canvas push&lt;/code&gt; resolves each font family (via &lt;code&gt;unifont&lt;/code&gt; for provider-based fonts, or a local file path), uploads the font files to the Drupal site, and syncs the full font list to the global Brand Kit. &lt;code&gt;canvas pull&lt;/code&gt; fetches fonts from the global Brand Kit, downloads the files into a local &lt;code&gt;fonts/&lt;/code&gt; directory, and writes local &lt;code&gt;src&lt;/code&gt; entries back to &lt;code&gt;canvas.brand-kit.json&lt;/code&gt;. Font sync is entirely opt-in: the file must be present for any font operations to run. The &lt;code&gt;administer brand kit&lt;/code&gt; permission is no longer hidden from the Drupal permissions page when the &lt;code&gt;canvas_dev_mode&lt;/code&gt; module is not installed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New optional &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; file in the project root for font configuration; default CLI OAuth scope now includes &lt;code&gt;canvas:brand_kit&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; &lt;code&gt;administer brand kit&lt;/code&gt; permission is no longer hidden from the Drupal permissions page when &lt;code&gt;canvas_dev_mode&lt;/code&gt; is not installed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;createFontsPullTask&lt;/code&gt; export in &lt;code&gt;pull.ts&lt;/code&gt; and &lt;code&gt;pushFonts&lt;/code&gt; / &lt;code&gt;buildFontPushPlannedResults&lt;/code&gt; exports in &lt;code&gt;font-push.ts&lt;/code&gt;; new TypeScript interfaces &lt;code&gt;FontsConfig&lt;/code&gt;, &lt;code&gt;FontFamilyEntry&lt;/code&gt;, &lt;code&gt;FontDefaults&lt;/code&gt;, &lt;code&gt;FontAxisDefaults&lt;/code&gt;, &lt;code&gt;BrandKitConfigFile&lt;/code&gt; exported from &lt;code&gt;config.ts&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The global Brand Kit entity stores font configuration site-wide. Previously it was editor-only; the CLI had no way to version or deploy fonts. This change adds font sync to both push and pull as an optional step gated on the presence of &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; in the project root.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Config (&lt;code&gt;packages/cli/src/config.ts&lt;/code&gt;):&lt;/strong&gt; The &lt;code&gt;Config&lt;/code&gt; interface gains a &lt;code&gt;fonts?: FontsConfig&lt;/code&gt; field. At startup, &lt;code&gt;loadFontsFromBrandKitFile()&lt;/code&gt; reads and parses &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; (if present) and stores the &lt;code&gt;fonts&lt;/code&gt; block. New TypeScript interfaces describe the full font config shape: &lt;code&gt;FontsConfig&lt;/code&gt;, &lt;code&gt;FontFamilyEntry&lt;/code&gt; (a union of &lt;code&gt;LocalFontFamilyEntry&lt;/code&gt; with a &lt;code&gt;src&lt;/code&gt; path and &lt;code&gt;ProviderFontFamilyEntry&lt;/code&gt; with an optional &lt;code&gt;provider&lt;/code&gt;), &lt;code&gt;FontDefaults&lt;/code&gt;, &lt;code&gt;FontProviderOptions&lt;/code&gt;, and &lt;code&gt;FontAxisDefaults&lt;/code&gt;. The &lt;code&gt;BRAND_KIT_CONFIG_FILENAME&lt;/code&gt; and &lt;code&gt;BRAND_KIT_GLOBAL_ID&lt;/code&gt; constants are exported. The default OAuth scope gains &lt;code&gt;canvas:brand_kit&lt;/code&gt; (was &lt;code&gt;canvas:js_component canvas:asset_library&lt;/code&gt;; now &lt;code&gt;canvas:js_component canvas:asset_library canvas:brand_kit&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Font push (&lt;code&gt;packages/cli/src/lib/fonts/font-push.ts&lt;/code&gt;):&lt;/strong&gt; &lt;code&gt;pushFonts()&lt;/code&gt; validates the config first (via &lt;code&gt;font-validate.ts&lt;/code&gt;), then fetches the current Brand Kit to diff against remote. For provider-based families it calls &lt;code&gt;createFontResolver()&lt;/code&gt; (a &lt;code&gt;unifont&lt;/code&gt; wrapper in &lt;code&gt;font-resolver.ts&lt;/code&gt;) and then &lt;code&gt;downloadResolvedFaces()&lt;/code&gt; to fetch font files to temp paths. For local &lt;code&gt;src&lt;/code&gt; entries it reads the file from disk. Variable font axes are extracted from the font binary using &lt;code&gt;opentype.js&lt;/code&gt; (decompressing woff2 with &lt;code&gt;woff2-encoder&lt;/code&gt; first) via &lt;code&gt;font-metadata.ts&lt;/code&gt;. Axis tags get human-readable display names (e.g. &lt;code&gt;wght&lt;/code&gt; → &lt;code&gt;&amp;quot;Weight&amp;quot;&lt;/code&gt;) for the Brand Kit UI. &lt;code&gt;axisDefaults&lt;/code&gt; overrides are clamped to each axis min/max. Only variants not already present on the remote Brand Kit are uploaded; push replaces the remote font set in full so fonts not in config are deleted. All outcomes (create/update/delete/unchanged) are reported. An empty &lt;code&gt;families&lt;/code&gt; array clears all fonts on the Brand Kit.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Font pull (&lt;code&gt;packages/cli/src/lib/fonts/font-pull.ts&lt;/code&gt;):&lt;/strong&gt; &lt;code&gt;pullFonts()&lt;/code&gt; fetches the Brand Kit via &lt;code&gt;api.getBrandKit()&lt;/code&gt;, skips variants already represented in &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; (matched by a normalized &lt;code&gt;family\0weight\0style&lt;/code&gt; key), and for each new variant downloads the file via &lt;code&gt;api.downloadFile()&lt;/code&gt; into a &lt;code&gt;fonts/&lt;/code&gt; directory with slugified filenames. Variable font weight ranges are reconstructed from stored axes (&lt;code&gt;wght&lt;/code&gt; min/max). &lt;code&gt;updateBrandKitConfig()&lt;/code&gt; merges new &lt;code&gt;LocalFontFamilyEntry&lt;/code&gt; objects into the existing file, preserving other top-level keys. &lt;code&gt;createFontsPullTask()&lt;/code&gt; in &lt;code&gt;pull.ts&lt;/code&gt; wraps this as a &lt;code&gt;PullTask&lt;/code&gt; that runs alongside components and global CSS.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;OAuth (&lt;code&gt;CanvasOauthAuthenticationProvider&lt;/code&gt;):&lt;/strong&gt; &lt;code&gt;BrandKit::ENTITY_TYPE_ID&lt;/code&gt; is added to the list of protected config entity types so the existing config entity REST endpoints (&lt;code&gt;canvas.api.config.get&lt;/code&gt;, &lt;code&gt;canvas.api.config.patch&lt;/code&gt;, etc.) accept OAuth tokens for Brand Kit operations.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;&lt;code&gt;canvas.module&lt;/code&gt;:&lt;/strong&gt; &lt;code&gt;canvas_form_alter()&lt;/code&gt; is removed. This hook was hiding the &lt;code&gt;administer brand kit&lt;/code&gt; permission entry from the Drupal permissions UI when &lt;code&gt;canvas_dev_mode&lt;/code&gt; was not installed. Its removal means the permission is always visible.&lt;/p&gt;
-&lt;p&gt;New npm dependencies added to the CLI: &lt;code&gt;unifont ^0.7.4&lt;/code&gt;, &lt;code&gt;opentype.js ^1.3.4&lt;/code&gt;, &lt;code&gt;woff2-encoder ^2.0.0&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you have &lt;code&gt;CANVAS_SCOPE&lt;/code&gt; set explicitly in &lt;code&gt;.env&lt;/code&gt; or your environment, add &lt;code&gt;canvas:brand_kit&lt;/code&gt; to enable font push/pull:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;CANVAS_SCOPE=&amp;quot;canvas:js_component canvas:asset_library canvas:brand_kit&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If &lt;code&gt;CANVAS_SCOPE&lt;/code&gt; is unset, the new default already includes &lt;code&gt;canvas:brand_kit&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;To opt in to font sync, create &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; in your project root:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;fonts&amp;quot;: {
-    &amp;quot;families&amp;quot;: [
-      {
-        &amp;quot;name&amp;quot;: &amp;quot;Inter&amp;quot;,
-        &amp;quot;provider&amp;quot;: &amp;quot;google&amp;quot;,
-        &amp;quot;weights&amp;quot;: [&amp;quot;400&amp;quot;, &amp;quot;700&amp;quot;],
-        &amp;quot;styles&amp;quot;: [&amp;quot;normal&amp;quot;, &amp;quot;italic&amp;quot;]
-      },
-      {
-        &amp;quot;name&amp;quot;: &amp;quot;My Font&amp;quot;,
-        &amp;quot;src&amp;quot;: &amp;quot;fonts/MyFont-Regular.woff2&amp;quot;,
-        &amp;quot;weights&amp;quot;: [&amp;quot;400&amp;quot;],
-        &amp;quot;styles&amp;quot;: [&amp;quot;normal&amp;quot;]
-      }
-    ]
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No changes are required if you do not create &lt;code&gt;canvas.brand-kit.json&lt;/code&gt;; the push and pull commands continue to work as before.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 19, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 8, 2026 (20 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

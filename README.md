@@ -1,8 +1,16 @@
-**TL;DR:** [580 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [582 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [168 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_61 summaries · 24 new this week_
+
+- [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
+- [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
+- [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
 
 ### Drupal Core
 
@@ -20,14 +28,6 @@ _69 summaries · 12 new this week_
 - [#3588587: Add Codex backend for harness-native plugin install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md)
 - [#3588596: Add Webhook support, Project support and events for this](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md)
 
-### Drupal Canvas
-
-_59 summaries · 22 new this week_
-
-- [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
-- [#3589128: Automate review using PHPStan: adopt shipmonk-rnd/dead-code-detector](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589128.md)
-- [#3588661: Make CLI builds use shared Vite infrastructure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3588661.md)
-
 ### Drupal CMS
 
 _11 summaries · 3 new this week_
@@ -39,7 +39,7 @@ _11 summaries · 3 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [167 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [168 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_167 rules · 17 new this week_
+_168 rules · 7 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace check_markup() with processed_text render array](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-check-markup-with-processed-text-render-array-455724.php)
+- [Replace deprecated locale batch procedural functions with service method calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-batch-procedural-functions-with-3581303.php)
 
 
 ## RSS feeds
