@@ -241,6 +241,114 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace drupal_static_reset() file_get_file_references keys with cache tag invalidation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e327d-4705-71c4-9eda-50f160e89ed8.md</link>
+      <guid isPermaLink="false">019e327d-4705-71c4-9eda-50f160e89ed8</guid>
+      <pubDate>Sat, 16 May 2026 20:32:11 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1452100"&gt;#1452100&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites &lt;code&gt;drupal_static_reset('file_get_file_references')&lt;/code&gt; and &lt;code&gt;drupal_static_reset('file_get_file_references:field_columns')&lt;/code&gt; to &lt;code&gt;\Drupal::service('cache.memory')-&amp;gt;invalidateTags(['file_references'])&lt;/code&gt;. Both static-cache keys were deprecated in Drupal 11.4.0 when the file-reference lookup was moved to the new &lt;code&gt;FileReferenceResolver&lt;/code&gt; service, which uses a memory-cache tag instead of &lt;code&gt;drupal_static()&lt;/code&gt;. Any contrib or custom code that manually resets these statics needs this update.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;drupal_static_reset('file_get_file_references');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('cache.memory')-&amp;gt;invalidateTags(['file_references']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Calls to the primary deprecated function &lt;code&gt;file_get_file_references()&lt;/code&gt; are intentionally not rewritten: its replacement &lt;code&gt;FileReferenceResolver::getReferences()&lt;/code&gt; returns a &lt;code&gt;Generator&lt;/code&gt; of &lt;code&gt;FileReferenceUsage&lt;/code&gt; objects rather than the nested array the old function returned, so any surrounding code that uses the return value requires manual refactoring. Named-argument and unpacked-argument forms of &lt;code&gt;drupal_static_reset()&lt;/code&gt; are also left for manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceDrupalStaticResetFileReferencesRector extends AbstractRector
+{
+    // Both static keys were deprecated together (drupal:11.4.0).
+    private const DEPRECATED_KEYS = [
+        'file_get_file_references',
+        'file_get_file_references:field_columns',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace drupal_static_reset() for file_get_file_references keys with cache tag invalidation',
+            [new CodeSample(
+                &amp;quot;drupal_static_reset('file_get_file_references');&amp;quot;,
+                &amp;quot;\\Drupal::service('cache.memory')-&amp;gt;invalidateTags(['file_references']);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'drupal_static_reset')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 1) {
+            return null;
+        }
+        $firstArg = $node-&amp;gt;args[0];
+        if (!$firstArg instanceof Arg) {
+            return null;
+        }
+        // Skip named and unpacked args — they are exotic enough to leave for
+        // manual review.
+        if ($firstArg-&amp;gt;name !== null || $firstArg-&amp;gt;unpack) {
+            return null;
+        }
+        if (!$firstArg-&amp;gt;value instanceof String_) {
+            return null;
+        }
+        if (!in_array($firstArg-&amp;gt;value-&amp;gt;value, self::DEPRECATED_KEYS, true)) {
+            return null;
+        }
+
+        return new MethodCall(
+            new StaticCall(
+                new FullyQualified('Drupal'),
+                'service',
+                [new Arg(new String_('cache.memory'))],
+            ),
+            'invalidateTags',
+            [new Arg(new Array_([new ArrayItem(new String_('file_references'))]))],
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceDrupalStaticResetFileReferencesRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated locale batch procedural functions with service method calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e2e3d-6c3d-7636-9653-059165ab5960.md</link>
       <guid isPermaLink="false">019e2e3d-6c3d-7636-9653-059165ab5960</guid>
@@ -1629,84 +1737,6 @@ final class CommentUriToPermalinkRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([CommentUriToPermalinkRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated $module_handler/$controller_resolver args from RouteBuilder::__construct()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e079b-4e79-7212-91c9-8f4527404895.md</link>
-      <guid isPermaLink="false">019e079b-4e79-7212-91c9-8f4527404895</guid>
-      <pubDate>Fri, 08 May 2026 12:41:19 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;In drupal:11.4.0 the &lt;code&gt;RouteBuilder&lt;/code&gt; constructor was simplified: the &lt;code&gt;$module_handler&lt;/code&gt; and &lt;code&gt;$controller_resolver&lt;/code&gt; arguments (positions 3 and 4) were removed, and &lt;code&gt;$check_provider&lt;/code&gt; moved from position 5 to position 3. This rule rewrites any &lt;code&gt;new RouteBuilder(...)&lt;/code&gt; call that still passes all six arguments to the new four-argument form.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Routing\RouteBuilder($dumper, $lock, $dispatcher, $moduleHandler, $controllerResolver, $checkProvider);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Routing\RouteBuilder($dumper, $lock, $dispatcher, $checkProvider);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only handles &lt;code&gt;new RouteBuilder(...)&lt;/code&gt; direct instantiation. Does not handle &lt;code&gt;parent::__construct(...)&lt;/code&gt; calls inside subclasses of &lt;code&gt;RouteBuilder&lt;/code&gt;, which would require walking up to the enclosing class to verify the parent chain.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\New_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class RemoveRouteBuilderDeprecatedArgsRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove deprecated $module_handler and $controller_resolver arguments from RouteBuilder::__construct().',
-            [new CodeSample(
-                'new \Drupal\Core\Routing\RouteBuilder($dumper, $lock, $dispatcher, $moduleHandler, $controllerResolver, $checkProvider);',
-                'new \Drupal\Core\Routing\RouteBuilder($dumper, $lock, $dispatcher, $checkProvider);',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof New_) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\Core\Routing\RouteBuilder')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 6) {
-            return null;
-        }
-        // Remove args at positions 3 ($module_handler) and 4 ($controller_resolver).
-        // The 6th arg at position 5 ($check_provider) becomes the new 4th arg.
-        $node-&amp;gt;args = [
-            $node-&amp;gt;args[0],
-            $node-&amp;gt;args[1],
-            $node-&amp;gt;args[2],
-            $node-&amp;gt;args[5],
-        ];
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveRouteBuilderDeprecatedArgsRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

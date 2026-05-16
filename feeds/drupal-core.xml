@@ -5,6 +5,178 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root </title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md</link>
+      <guid isPermaLink="false">019e3273-8ceb-72e5-a505-296ea69c6e45</guid>
+      <pubDate>Sat, 16 May 2026 20:15:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +16/−8 · php +16/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3590425"&gt;#3590425&lt;/a&gt; · 3 contributors · 10 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In Drupal's PHPUnit test infrastructure, the &lt;code&gt;$root&lt;/code&gt; property on &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; was previously initialized via a PHP 8.4 property hook. That hook has been replaced with a plain property initialized by a new &lt;code&gt;#[Before(100)]&lt;/code&gt; method called &lt;code&gt;setUpRoot()&lt;/code&gt;. The change makes the code backportable to 11.x (where property hooks are not available) and ensures &lt;code&gt;$root&lt;/code&gt; is reliably populated before any other &lt;code&gt;#[Before]&lt;/code&gt; hooks or &lt;code&gt;setUp()&lt;/code&gt; calls execute. This is a &lt;code&gt;main&lt;/code&gt;-only change; backporting is tracked in &lt;a href="https://www.drupal.org/node/3590435"&gt;#3590435&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The previous implementation used a PHP 8.4 hooked property: &lt;code&gt;protected string $root { get { ... } }&lt;/code&gt;, which initialized lazily on first read. This required a &lt;code&gt;phpcs:ignoreFile&lt;/code&gt; directive because PHP_CodeSniffer did not yet support property hook syntax. The replacement uses a plain &lt;code&gt;protected string $root;&lt;/code&gt; declaration combined with a &lt;code&gt;final #[Before(100)]&lt;/code&gt; method &lt;code&gt;setUpRoot()&lt;/code&gt; that performs eager initialization before any other test setup runs. The high priority value &lt;code&gt;100&lt;/code&gt; ensures &lt;code&gt;setUpRoot()&lt;/code&gt; fires before other &lt;code&gt;#[Before]&lt;/code&gt; hooks and before &lt;code&gt;setUp()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The method is declared &lt;code&gt;final&lt;/code&gt; to block subclasses from overriding it, which would bypass the single intended initialization. If &lt;code&gt;$root&lt;/code&gt; is already set when &lt;code&gt;setUpRoot()&lt;/code&gt; is invoked, it throws a &lt;code&gt;\LogicException&lt;/code&gt; with the message &amp;quot;setUpRoot should be called exactly once by PHPUnit's Before test hook and root overrides should happen after.&amp;quot; This guards against pre-assignment of &lt;code&gt;$root&lt;/code&gt; in a subclass constructor or property initializer. The method is marked &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;This change is part of a broader consolidation of test base-class logic into &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3573954"&gt;#3573954&lt;/a&gt;) and the deprecation of &lt;code&gt;TestRequirementsTrait::getDrupalRoot()&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3589047"&gt;#3589047&lt;/a&gt;). The plan documented in the issue body is to re-introduce a property hook once backporting to 11.x is no longer needed, at which point &lt;code&gt;setUpRoot()&lt;/code&gt; can be removed.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If a custom or contrib test class that uses &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; (or a base class that uses it) assigns &lt;code&gt;$this-&amp;gt;root&lt;/code&gt; or declares &lt;code&gt;protected string $root = '...'&lt;/code&gt; before PHPUnit runs the &lt;code&gt;#[Before]&lt;/code&gt; hooks, that test will now throw a &lt;code&gt;\LogicException&lt;/code&gt;. Remove any such pre-assignment; &lt;code&gt;$root&lt;/code&gt; is initialized automatically by &lt;code&gt;setUpRoot()&lt;/code&gt; before &lt;code&gt;setUp()&lt;/code&gt; runs.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (would now cause a LogicException at runtime):
+class MyTest extends BrowserTestBase {
+  protected string $root = '/custom/path'; // pre-assignment
+}
+
+// After: do not pre-set $root; override it in setUp() after parent::setUp() if needed.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 16, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kingdutch (Open Social)&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#1452100: Private file download returns access denied, when file attached to revision other than current</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1452100.md</link>
+      <guid isPermaLink="false">019e3276-1d3b-73be-a129-913395a17081</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 16 May 2026 17:07:08 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +521/−25 · php +520/−25 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c31dedafabdece7d8565c382ab6f44111b834db1"&gt;c31deda&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1452100"&gt;#1452100&lt;/a&gt; · 61 contributors · 217 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 110&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Private files attached to non-default entity revisions (draft revisions created by Content Moderation, or older revisions accessible via revision history) previously returned &amp;quot;Access Denied&amp;quot; to all users, including administrators. This happened because the file download hook and access handler only checked the default revision for a file reference. If a file had been replaced in the current revision, or existed only in a pending draft, no reference was found and access was denied. The fix makes private file access work correctly: users with the &lt;code&gt;view revision&lt;/code&gt; permission on the referencing entity can now download private files from non-default revisions, while users without that permission continue to be denied access to files that are not in the current revision.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;file_get_file_references()&lt;/code&gt;, &lt;code&gt;file_field_find_file_reference_column()&lt;/code&gt;, and &lt;code&gt;FileAccessControlHandler::getFileReferences()&lt;/code&gt; deprecated in drupal:11.4.0, removed in drupal:13.0.0; use &lt;code&gt;FileReferenceResolver::getReferences()&lt;/code&gt; instead.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;FileReferenceResolver&lt;/code&gt; service and &lt;code&gt;FileReferenceUsage&lt;/code&gt; value object for resolving file references across both default and non-default entity revisions.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old &lt;code&gt;file_get_file_references()&lt;/code&gt; function loaded only the current/default revision of each referencing entity. When a file was superseded in the current revision or existed only in a pending draft, no reference was found and access was denied. The &lt;code&gt;file_file_download()&lt;/code&gt; hook compounded this by also using &lt;code&gt;FIELD_LOAD_CURRENT&lt;/code&gt; for its early-exit reference check.&lt;/p&gt;
+&lt;p&gt;The fix introduces &lt;code&gt;FileReferenceResolver&lt;/code&gt; (registered as a service in &lt;code&gt;file.services.yml&lt;/code&gt;) and a &lt;code&gt;FileReferenceUsage&lt;/code&gt; readonly value object. &lt;code&gt;getReferences(FileInterface $file)&lt;/code&gt; is a generator that implements a two-pass strategy: first it loads the default revision of each entity recorded in &lt;code&gt;file_usage&lt;/code&gt; and checks all file-reference fields (across all translations); if the file is not found in the default revision and the entity type is revisionable, it queries &lt;code&gt;allRevisions()&lt;/code&gt; sorted descending to find the most recent non-default revision that references the file. Results are capped at 50 non-default revision lookups per entity type (&lt;code&gt;REVISION_LOOKUP_LIMIT&lt;/code&gt;). Results are cached in the memory cache under the &lt;code&gt;file_references&lt;/code&gt; cache tag. Each yielded &lt;code&gt;FileReferenceUsage&lt;/code&gt; carries the entity type ID, field name, and either the entity ID (default-revision match) or the revision ID (non-default-revision match).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;FileAccessControlHandler::checkAccess()&lt;/code&gt; now calls &lt;code&gt;$resolver-&amp;gt;getReferences()&lt;/code&gt; and &lt;code&gt;$resolver-&amp;gt;loadEntityFromUsage()&lt;/code&gt; instead of the old &lt;code&gt;getFileReferences()&lt;/code&gt; method. When the loaded entity implements &lt;code&gt;RevisionableInterface&lt;/code&gt; and &lt;code&gt;!isDefaultRevision()&lt;/code&gt;, the handler checks &lt;code&gt;view revision&lt;/code&gt; access rather than &lt;code&gt;view&lt;/code&gt; access before additionally checking field-level access. &lt;code&gt;FileDownloadHook::fileDownload()&lt;/code&gt; also uses the resolver for its early-exit check (consuming only the first yielded result).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;file_get_file_references()&lt;/code&gt;, &lt;code&gt;file_field_find_file_reference_column()&lt;/code&gt;, and &lt;code&gt;FileAccessControlHandler::getFileReferences()&lt;/code&gt; are all deprecated in drupal:11.4.0 and removed in drupal:13.0.0. Cache invalidation via &lt;code&gt;drupal_static_reset('file_get_file_references')&lt;/code&gt; or &lt;code&gt;drupal_static_reset('file_get_file_references:field_columns')&lt;/code&gt; is also deprecated.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in 11.4.0, removed in 13.0.0):
+use Drupal\Core\Entity\EntityStorageInterface;
+$references = file_get_file_references($file, NULL, EntityStorageInterface::FIELD_LOAD_REVISION, NULL);
+
+// After:
+$resolver = \Drupal::service(\Drupal\file\FileReferenceResolver::class);
+foreach ($resolver-&amp;gt;getReferences($file) as $usage) {
+  $entity = $resolver-&amp;gt;loadEntityFromUsage($usage);
+  // $usage-&amp;gt;entityTypeId, $usage-&amp;gt;fieldName, $usage-&amp;gt;id, $usage-&amp;gt;revisionId
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
+drupal_static_reset('file_get_file_references');
+
+// After:
+\Drupal::service('cache.memory')-&amp;gt;invalidateTags(['file_references']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;file_field_find_file_reference_column()&lt;/code&gt; is deprecated with no replacement.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 23, 2012&lt;/li&gt;
+&lt;li&gt;Committed: May 16, 2026 (14 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jlongbottom&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;therainmakor&lt;/li&gt;
+&lt;li&gt;gapple&lt;/li&gt;
+&lt;li&gt;benjy (PreviousNext)&lt;/li&gt;
+&lt;li&gt;cilefen&lt;/li&gt;
+&lt;li&gt;eiriksm (Ny Media AS)&lt;/li&gt;
+&lt;li&gt;cristiroma&lt;/li&gt;
+&lt;li&gt;leontin&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;drenton&lt;/li&gt;
+&lt;li&gt;shubhangi1995&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;fenstrat (PreviousNext)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;mxr576 (Pronovix)&lt;/li&gt;
+&lt;li&gt;rakshith.thotada&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;richard.thomas&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;xjm (xjm)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3590237: Add PHP 8.6 polyfill</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590237.md</link>
+      <guid isPermaLink="false">019e3274-7ee9-75cd-9f75-67ea299c9130</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 16 May 2026 16:47:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +84/−1 · lock +82/−1 · json +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c78fd35cc2a4f2b84bb38f5e4bdbd716d971eebf"&gt;c78fd35&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3590237"&gt;#3590237&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core now ships &lt;code&gt;symfony/polyfill-php86&lt;/code&gt; (v1.37), making two PHP 8.6 additions available on sites running older PHP versions: the &lt;code&gt;clamp()&lt;/code&gt; function and the &lt;code&gt;SortDirection&lt;/code&gt; enum. Contrib module authors and custom code developers can use these features today without gating on the PHP version of the host environment.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; PHP 8.6 &lt;code&gt;clamp()&lt;/code&gt; function and &lt;code&gt;SortDirection&lt;/code&gt; enum are now available on all supported PHP versions via &lt;code&gt;symfony/polyfill-php86&lt;/code&gt; v1.37&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The diff adds &lt;code&gt;&amp;quot;symfony/polyfill-php86&amp;quot;: &amp;quot;^1.37&amp;quot;&lt;/code&gt; to &lt;code&gt;core/composer.json&lt;/code&gt; and pins it to &lt;code&gt;~v1.37.0&lt;/code&gt; in the root &lt;code&gt;composer/composer.json&lt;/code&gt;. The package's &lt;code&gt;bootstrap.php&lt;/code&gt; is autoloaded via Composer's &lt;code&gt;files&lt;/code&gt; mechanism, so the polyfill is always active regardless of the PHP version. On PHP 8.6+ the package is a no-op; on earlier versions it provides the &lt;code&gt;clamp()&lt;/code&gt; global function and the &lt;code&gt;SortDirection&lt;/code&gt; enum stub under &lt;code&gt;Symfony\Polyfill\Php86&lt;/code&gt;. No existing core code was changed to use these symbols in this commit; the dependency was added to unblock contrib and to simplify backporting MRs that target &lt;code&gt;main&lt;/code&gt; (or &lt;code&gt;11.x&lt;/code&gt;) to older branches.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 14, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 16, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;A brief design question arose: dww asked whether at least one usage should be added in core so tests confirm the new functions work and the dependency is not unused. mstrelan countered that previous polyfills (such as the PHP 8.3 one) landed without immediate usage and proved useful precisely for backporting MRs and for contrib adoption. dww accepted that reasoning and the issue proceeded to commit without any in-core usage.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3516173: Block status code visibility condition should use a status code cache context</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516173.md</link>
       <guid isPermaLink="false">019e2d5d-caa7-7232-8db7-e97dbb937754</guid>
@@ -945,223 +1117,6 @@ public function __construct(
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;irafah (Zoocha)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3552922: Add symfony/runtime dependency to core</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552922.md</link>
-      <guid isPermaLink="false">019e171d-80ed-7632-8c95-0e21bddb4357</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 11 May 2026 10:12:46 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +13/−5 · json +9/−3 · php +4/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3552922"&gt;#3552922&lt;/a&gt; · 10 contributors · 33 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core now declares &lt;code&gt;symfony/runtime&lt;/code&gt; as a direct Composer dependency. The Symfony Runtime component provides a standardized, decoupled way to handle application bootstrapping outside of &lt;code&gt;DrupalKernel&lt;/code&gt;, enabling bootstrap logic to be moved into swappable runtime classes. The dependency was added as a prerequisite for the upcoming Drupal CLI (&lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt;) and for future front-controller improvements (&lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt;). The component itself is not yet used in this change; it becomes available for those follow-on issues to build on.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; New &lt;code&gt;symfony/runtime ^8.0&lt;/code&gt; (pinned to &lt;code&gt;~v8.0.8&lt;/code&gt; in core) added to Drupal core; requires PHP 8.4 and Composer plugin API v2, matching existing Drupal Symfony dependencies.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The diff touches several composer configuration files. &lt;code&gt;core/composer.json&lt;/code&gt; receives &lt;code&gt;symfony/runtime ~v8.0.8&lt;/code&gt; in its &lt;code&gt;require&lt;/code&gt; block. &lt;code&gt;core-recommended/composer.json&lt;/code&gt; receives the same package with the looser &lt;code&gt;^8.0&lt;/code&gt; constraint. Because &lt;code&gt;symfony/runtime&lt;/code&gt; ships as a Composer plugin (it registers an autoload bootstrap handler), all affected &lt;code&gt;composer.json&lt;/code&gt; files must also list it under &lt;code&gt;allow-plugins&lt;/code&gt;. Accordingly, the package is added with &lt;code&gt;true&lt;/code&gt; in &lt;code&gt;core/composer.json&lt;/code&gt;'s &lt;code&gt;allow-plugins&lt;/code&gt; and in &lt;code&gt;core-recommended/composer.json&lt;/code&gt;'s equivalent section. &lt;code&gt;ComposerPluginsValidator::$allowedPlugins&lt;/code&gt; in core is updated to include &lt;code&gt;'symfony/runtime' =&amp;gt; &amp;quot;*&amp;quot;&lt;/code&gt; so Drupal's own plugin validation does not reject it. The fake-site test fixture gains &lt;code&gt;&amp;quot;symfony/runtime&amp;quot;: false&lt;/code&gt; under &lt;code&gt;allow-plugins&lt;/code&gt; (matching the convention that scaffold and other core plugins are explicitly disallowed there), and the accompanying test assertion in &lt;code&gt;ComposerPluginsValidatorTest::providerAllowedPlugins()&lt;/code&gt; is updated to expect the new entry. No PHP runtime behavior changes with this commit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 17, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kingdutch&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;ghost of drupal past&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Release management sequencing shaped the timeline noticeably. After initial RTBC from klausi and release-manager support from xjm, xjm paused the issue at DrupalCon Vienna 2025: the concern was that adding the dependency to a minor release without the functionality it unlocks would leave an unused package in HEAD through potentially multiple Drupal versions. The agreed approach was to wait until one of the consuming issues (&lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt; Drupal CLI or &lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt; front-controller refactor) reached RTBC, then land this dependency change and immediately rebase the consumer. larowlan later flagged the issue as blocking the Drupal CLI strategic priority, which prompted godotislate to obtain explicit release-manager approval from catch and longwave. mradcliffe rebased the MR against current main, updated the pinned version to &lt;code&gt;~v8.0.8&lt;/code&gt; (the Symfony 8-era release), and confirmed &lt;code&gt;ComposerIntegrationTest&lt;/code&gt; passed locally. The changes were ultimately merged as part of &lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3313404: Use symfony/runtime for less bespoke bootstrap/compatibility with varied runtime environments</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3313404.md</link>
-      <guid isPermaLink="false">019e1720-94c4-729b-bedb-f8c9e4be6575</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 11 May 2026 09:52:56 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 33 files, +713/−76 · php +577/−72 · lock +85/−1 · template +27 · yml +11 · json +9/−3 · gitignore +3 · htaccess +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/57bf3237b20aa956c827a15ca5fb332f7063ce29"&gt;57bf323&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt; · 19 contributors · 87 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 99&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's front-controllers (&lt;code&gt;index.php&lt;/code&gt;, &lt;code&gt;update.php&lt;/code&gt;) and all core CLI scripts now bootstrap through &lt;code&gt;symfony/runtime&lt;/code&gt;. Instead of directly instantiating &lt;code&gt;DrupalKernel&lt;/code&gt;, creating a &lt;code&gt;Request&lt;/code&gt;, calling &lt;code&gt;handle&lt;/code&gt;/&lt;code&gt;send&lt;/code&gt;/&lt;code&gt;terminate&lt;/code&gt;, and exiting, they now require a generated &lt;code&gt;autoload_runtime.php&lt;/code&gt; file and return a closure that produces the kernel or console application object. The runtime layer then takes over request handling. The scaffold plugin generates &lt;code&gt;autoload_runtime.php&lt;/code&gt; in the web root on every &lt;code&gt;composer install&lt;/code&gt;, alongside the existing &lt;code&gt;autoload.php&lt;/code&gt;. Existing custom front-controllers using the old pattern continue to work unchanged, confirmed by a new functional test. The long-term payoff is a well-defined seam where environment-setup code currently buried in &lt;code&gt;DrupalKernel&lt;/code&gt; can be extracted in follow-on issues, and where alternative runtimes (such as FrankenPHP or AMPHP) can be substituted via an environment variable without touching any front-controller.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; New Composer dependency on &lt;code&gt;symfony/runtime ^8.0&lt;/code&gt;; &lt;code&gt;symfony/runtime&lt;/code&gt; Composer plugin must be listed in &lt;code&gt;allow-plugins&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Front-controllers now return a closure instead of bootstrapping directly; &lt;code&gt;$GLOBALS['autoloader']&lt;/code&gt; is deprecated in &lt;code&gt;drupal:11.3.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;$GLOBALS['autoloader']&lt;/code&gt; access deprecated via &lt;code&gt;DeprecatedAutoloadAccess&lt;/code&gt;; callers should require &lt;code&gt;vendor/autoload.php&lt;/code&gt; directly.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;DrupalRuntime&lt;/code&gt; class (&lt;code&gt;core/lib/Drupal/Core/Runtime/DrupalRuntime&lt;/code&gt;); generated &lt;code&gt;autoload_runtime.php&lt;/code&gt; in the web root; &lt;code&gt;APP_RUNTIME&lt;/code&gt; environment variable to substitute the runtime class.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The diff adds &lt;code&gt;symfony/runtime ^8.0&lt;/code&gt; as a Drupal core dependency and introduces two new classes plus a new scaffold-generated file.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;DrupalRuntime&lt;/code&gt; (in &lt;code&gt;core/lib/Drupal/Core/Runtime/&lt;/code&gt;) extends &lt;code&gt;SymfonyRuntime&lt;/code&gt;. Its constructor enforces three Drupal-specific defaults before calling &lt;code&gt;parent::__construct($options)&lt;/code&gt;: it sets &lt;code&gt;error_handler&lt;/code&gt; to &lt;code&gt;FALSE&lt;/code&gt; (preserving Drupal's own error handlers), sets &lt;code&gt;disable_dotenv&lt;/code&gt; to &lt;code&gt;TRUE&lt;/code&gt; (Drupal does not use dotenv), and defaults the env key (&lt;code&gt;APP_ENV&lt;/code&gt;) to &lt;code&gt;'prod'&lt;/code&gt; instead of Symfony's default &lt;code&gt;'dev'&lt;/code&gt;. It also places a &lt;code&gt;DeprecatedAutoloadAccess&lt;/code&gt; instance into &lt;code&gt;$GLOBALS['autoloader']&lt;/code&gt; to preserve backward compatibility for code that reads the global.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;DeprecatedAutoloadAccess&lt;/code&gt; (also in &lt;code&gt;core/lib/Drupal/Core/Runtime/&lt;/code&gt;) extends &lt;code&gt;Composer\Autoload\ClassLoader&lt;/code&gt;. Every method override immediately fires an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error (deprecated in &lt;code&gt;drupal:11.3.0&lt;/code&gt;, removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;) before lazily traversing the filesystem to find and delegate to the real &lt;code&gt;autoload.php&lt;/code&gt;. This allows the global to remain set without silently perpetuating usage.&lt;/p&gt;
-&lt;p&gt;The scaffold plugin gains &lt;code&gt;GenerateAutoloadRuntimeReferenceFile&lt;/code&gt;, which writes &lt;code&gt;autoload_runtime.php&lt;/code&gt; to the web root (parallel to the existing &lt;code&gt;autoload.php&lt;/code&gt; generation). The generated file sets &lt;code&gt;$_ENV['APP_RUNTIME']&lt;/code&gt; to &lt;code&gt;DrupalRuntime::class&lt;/code&gt; unless overridden by &lt;code&gt;$_SERVER['APP_RUNTIME']&lt;/code&gt; or &lt;code&gt;$_ENV['APP_RUNTIME']&lt;/code&gt;, then delegates to &lt;code&gt;vendor/autoload_runtime.php&lt;/code&gt; (the file generated by the &lt;code&gt;symfony/runtime&lt;/code&gt; Composer plugin itself). Setting &lt;code&gt;APP_RUNTIME&lt;/code&gt; to any class implementing &lt;code&gt;Symfony\Component\Runtime\RuntimeInterface&lt;/code&gt; swaps the entire runtime without modifying any front-controller.&lt;/p&gt;
-&lt;p&gt;The updated &lt;code&gt;index.php&lt;/code&gt; and &lt;code&gt;update.php&lt;/code&gt; now consist of a single &lt;code&gt;require_once 'autoload_runtime.php'&lt;/code&gt; call followed by &lt;code&gt;return static function () { return new DrupalKernel('prod', require 'autoload.php'); };&lt;/code&gt;. The same pattern is applied to all core CLI scripts under &lt;code&gt;core/scripts/&lt;/code&gt;. &lt;code&gt;symfony/runtime&lt;/code&gt; is added to the scaffold plugin's &lt;code&gt;ComposerPluginsValidator&lt;/code&gt; allowed-plugin list. A &lt;code&gt;LegacyFrontControllerTest&lt;/code&gt; functional test and companion test module verify that the pre-existing bootstrap pattern continues to work. Related dependency declaration: &lt;a href="https://www.drupal.org/node/3552922"&gt;#3552922&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Allow the &lt;code&gt;symfony/runtime&lt;/code&gt; Composer plugin&lt;/strong&gt; in your project's root &lt;code&gt;composer.json&lt;/code&gt;. Without this, &lt;code&gt;composer install&lt;/code&gt; will prompt interactively or fail in non-interactive CI environments:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;config&amp;quot;: {
-    &amp;quot;allow-plugins&amp;quot;: {
-      &amp;quot;symfony/runtime&amp;quot;: true
-    }
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;&lt;code&gt;autoload_runtime.php&lt;/code&gt;&lt;/strong&gt; is generated automatically by the scaffold plugin on &lt;code&gt;composer install&lt;/code&gt;. No manual action is needed for sites managed through the scaffold plugin.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Custom front-controllers&lt;/strong&gt; using the old pattern continue to work. Migrating to the new pattern is encouraged:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Old pattern (still works):
-use Drupal\Core\DrupalKernel;
-use Symfony\Component\HttpFoundation\Request;
-
-$autoloader = require_once 'autoload.php';
-$kernel = new DrupalKernel('prod', $autoloader);
-$request = Request::createFromGlobals();
-$response = $kernel-&amp;gt;handle($request);
-$response-&amp;gt;send();
-$kernel-&amp;gt;terminate($request, $response);
-
-// New pattern:
-use Drupal\Core\DrupalKernel;
-
-require_once 'autoload_runtime.php';
-
-return static function () {
-  return new DrupalKernel('prod', require 'autoload.php');
-};
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;&lt;code&gt;$GLOBALS['autoloader']&lt;/code&gt;&lt;/strong&gt; is deprecated as of &lt;code&gt;drupal:11.3.0&lt;/code&gt; and will be removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. Code that reads this global will trigger &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;. Replace it by requiring &lt;code&gt;vendor/autoload.php&lt;/code&gt; directly or passing the autoloader explicitly:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated:
-$loader = $GLOBALS['autoloader'];
-
-// Replacement:
-$loader = require_once __DIR__ . '/vendor/autoload.php';
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;To select a custom runtime&lt;/strong&gt;, set &lt;code&gt;APP_RUNTIME&lt;/code&gt; in &lt;code&gt;$_SERVER&lt;/code&gt; (via the web server configuration) or in &lt;code&gt;$_ENV&lt;/code&gt; before &lt;code&gt;autoload_runtime.php&lt;/code&gt; is required. The value must be the fully-qualified class name of a class implementing &lt;code&gt;Symfony\Component\Runtime\RuntimeInterface&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 4, 2022&lt;/li&gt;
-&lt;li&gt;Committed: May 11, 2026 (3 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;bradjones1 (Not Vanilla, Inc.)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;el7cosmos&lt;/li&gt;
-&lt;li&gt;kingdutch (Open Social)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;ghost of drupal past&lt;/li&gt;
-&lt;li&gt;shalini_jha&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;mxr576 (Pronovix)&lt;/li&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The thread contains a substantive design debate that shaped the final approach. &lt;code&gt;donquixote&lt;/code&gt; challenged whether the MR had clear payoff since it added new code without yet simplifying &lt;code&gt;DrupalKernel&lt;/code&gt;, and asked for a proof-of-concept showing the benefit. &lt;code&gt;kingdutch&lt;/code&gt; responded with a detailed comment enumerating &lt;code&gt;DrupalKernel&lt;/code&gt;'s four conflated responsibilities and explaining that async event-loop work in &lt;a href="https://www.drupal.org/node/3425210"&gt;#3425210&lt;/a&gt; made the problem concrete: &lt;code&gt;EventLoop::run&lt;/code&gt; must live outside the kernel but without a well-defined place, the only option was duplicating code across all front-controllers.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;nicxvan&lt;/code&gt; questioned whether using &lt;code&gt;symfony/runtime&lt;/code&gt;'s resolver mechanism added unnecessary complexity given that FrankenPHP runtimes in the wild do not use it. &lt;code&gt;kingdutch&lt;/code&gt; explained that the resolver is preparation for future issues (such as &lt;a href="https://www.drupal.org/node/2501901"&gt;#2501901&lt;/a&gt; for env-var-controlled environment names) and declined to collapse it, keeping the issue focused on introducing the component without rewriting anything else.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ghost of drupal past&lt;/code&gt; proposed a simpler autoload template that skips the closure-returning front-controller pattern and passes the kernel directly to the runtime, and asked why &lt;code&gt;DrupalKernelRunner&lt;/code&gt; was needed instead of Symfony's &lt;code&gt;HttpKernelRunner&lt;/code&gt;. &lt;code&gt;kingdutch&lt;/code&gt; explained that Symfony's &lt;code&gt;HttpKernelRunner&lt;/code&gt; configures output buffering that Drupal does not currently do, and that &lt;code&gt;SymfonyRuntime&lt;/code&gt; registers an error handler that would silently change Drupal's behavior, so both were deferred to separate issues via deprecation flow.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;znerol&lt;/code&gt; flagged thread-safety concerns around &lt;code&gt;putenv&lt;/code&gt;/&lt;code&gt;getenv&lt;/code&gt; in multi-threaded runtimes like FrankenPHP and recommended exclusive reliance on &lt;code&gt;$_SERVER&lt;/code&gt;. &lt;code&gt;kingdutch&lt;/code&gt; acknowledged the &lt;code&gt;putenv&lt;/code&gt; use (copied from &lt;code&gt;SymfonyRuntime&lt;/code&gt; for the console path) but pushed back on dropping &lt;code&gt;$_ENV&lt;/code&gt; support entirely, arguing it would break documented Symfony Runtime behavior and that Drupal's own Docker image uses &lt;code&gt;EGPCS&lt;/code&gt; on the command line. &lt;code&gt;catch&lt;/code&gt; confirmed after an in-person discussion in Vienna with &lt;code&gt;kingdutch&lt;/code&gt; and &lt;code&gt;alexpott&lt;/code&gt; that the approach is sound and cleared the framework manager review tag.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3463868: Two #config_targets error when used on a text_format form element</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3463868.md</link>
-      <guid isPermaLink="false">019e0bdf-98f6-70d7-88d9-3fdec97e6abd</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 11 May 2026 07:10:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +65/−3 · php +62/−3 · yml +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a50bc84789bc577df88731ff1dbb738f9ceeb289"&gt;a50bc84&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3463868"&gt;#3463868&lt;/a&gt; · 12 contributors · 56 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 19&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Configuration forms extending &lt;code&gt;ConfigFormBase&lt;/code&gt; that used a &lt;code&gt;text_format&lt;/code&gt; (rich text) element with the &lt;code&gt;#config_target&lt;/code&gt; property threw a &lt;code&gt;LogicException&lt;/code&gt; on submission: &amp;quot;Two #config_targets both target...&amp;quot; This made it impossible to wire a rich-text field directly to configuration using the standard config-form mechanism. After this fix the combination works correctly, and the form re-displays the saved value on subsequent page loads. As a side effect, &lt;code&gt;ConfigFormBase&lt;/code&gt; now also applies the cache tags of every config object it edits to the form's render array, so form caches are properly invalidated when the underlying configuration changes.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Using &lt;code&gt;#config_target&lt;/code&gt; on a &lt;code&gt;text_format&lt;/code&gt; element in &lt;code&gt;ConfigFormBase&lt;/code&gt; now works; requires a &lt;code&gt;ConfigTarget&lt;/code&gt; with a &lt;code&gt;fromConfig&lt;/code&gt; callback and a manually set &lt;code&gt;#format&lt;/code&gt; property.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;text_format&lt;/code&gt; element's &lt;code&gt;TextFormat::processFormat()&lt;/code&gt; builds two child elements (the &lt;code&gt;value&lt;/code&gt; textarea and the &lt;code&gt;format&lt;/code&gt; selector) by copying most parent properties. &lt;code&gt;#config_target&lt;/code&gt; was being copied alongside everything else, so &lt;code&gt;ConfigFormBase::doStoreConfigMap()&lt;/code&gt; encountered both the parent and the &lt;code&gt;value&lt;/code&gt; child claiming the same config key and raised the exception. The fix adds &lt;code&gt;#config_target&lt;/code&gt; to the &lt;code&gt;$keys_not_to_copy&lt;/code&gt; list inside &lt;code&gt;TextFormat::processFormat()&lt;/code&gt;, keeping it on the parent element only.&lt;/p&gt;
-&lt;p&gt;Because &lt;code&gt;text_format&lt;/code&gt; stores a compound value (&lt;code&gt;value&lt;/code&gt; and &lt;code&gt;format&lt;/code&gt; sub-keys), using &lt;code&gt;#config_target&lt;/code&gt; on such an element requires a &lt;code&gt;ConfigTarget&lt;/code&gt; instance with a &lt;code&gt;fromConfig&lt;/code&gt; callback that extracts only the text string for the textarea's &lt;code&gt;#default_value&lt;/code&gt;. The &lt;code&gt;#format&lt;/code&gt; property must be populated manually from config. The &lt;code&gt;format&lt;/code&gt; sub-key is saved by the normal form submission path without any extra handling.&lt;/p&gt;
-&lt;p&gt;A second change in &lt;code&gt;ConfigFormBase::storeConfigKeyToFormElementMap()&lt;/code&gt; iterates over all config names referenced in the map plus &lt;code&gt;getEditableConfigNames()&lt;/code&gt;, collects their cache tags via &lt;code&gt;getCacheTags()&lt;/code&gt;, and applies them to the form render array through &lt;code&gt;CacheableMetadata&lt;/code&gt;. This corrects a previously undetected gap where the form had no cache dependency on the config objects it edits. Several browser tests required updated expected cache-tag sets (notably &lt;code&gt;config:system.cron&lt;/code&gt;) as a result.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To use &lt;code&gt;#config_target&lt;/code&gt; on a &lt;code&gt;text_format&lt;/code&gt; element in a &lt;code&gt;ConfigFormBase&lt;/code&gt; form, supply a &lt;code&gt;ConfigTarget&lt;/code&gt; with a &lt;code&gt;fromConfig&lt;/code&gt; callback and set &lt;code&gt;#format&lt;/code&gt; manually:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Config\Config\ConfigTarget;
-
-$form['field'] = [
-  '#type' =&amp;gt; 'text_format',
-  '#title' =&amp;gt; $this-&amp;gt;t('My field'),
-  '#format' =&amp;gt; $this-&amp;gt;config('mymodule.settings')-&amp;gt;get('field.format'),
-  '#config_target' =&amp;gt; new ConfigTarget(
-    'mymodule.settings',
-    'field',
-    fromConfig: fn (?array $value = NULL): string =&amp;gt; $value['value'] ?? '',
-  ),
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The &lt;code&gt;format&lt;/code&gt; sub-key is saved automatically; no extra handling is needed for it.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 25, 2024&lt;/li&gt;
-&lt;li&gt;First commit: May 9, 2026 (1 year later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 11, 2026 (1 day and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;matthieuscarset&lt;/li&gt;
-&lt;li&gt;vinmayiswamy (Material)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;idebr (iO)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue went through two distinct approaches before landing. vinmayiswamy's first MR added a &lt;code&gt;text_format&lt;/code&gt;-specific special case directly inside &lt;code&gt;ConfigFormBase::doStoreConfigMap()&lt;/code&gt;. catch redirected the effort, noting that hardcoding a specific element type in the config system was the wrong layer and that if the usage is valid the system should accommodate it generically. idebr opened a second MR placing &lt;code&gt;#config_target&lt;/code&gt; in &lt;code&gt;TextFormat::processFormat()&lt;/code&gt;'s &lt;code&gt;$keys_not_to_copy&lt;/code&gt; list instead. alexpott then found that the fix did not correctly restore the saved value to the textarea on subsequent page loads, pushed a failing test to demonstrate it, and later committed follow-up work. idebr separately spotted that the form lacked a cache dependency on the config being edited, which alexpott folded into the same commit. The final commit combines all three findings.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

@@ -1,8 +1,16 @@
-**TL;DR:** [582 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [168 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [585 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_444 summaries · 61 new this week_
+
+- [#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md)
+- [#1452100: Private file download returns access denied, when file attached to revision...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1452100.md)
+- [#3590237: Add PHP 8.6 polyfill](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590237.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _61 summaries · 24 new this week_
 - [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
 - [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
 - [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
-
-### Drupal Core
-
-_441 summaries · 58 new this week_
-
-- [#3516173: Block status code visibility condition should use a status code cache context](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516173.md)
-- [#3581303: Convert locale batch callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581303.md)
-- [#3579253: run-tests.sh does not properly process PHPUnit output when no test are executed...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579253.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 3 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [168 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_168 rules · 7 new this week_
+_169 rules · 8 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace deprecated locale batch procedural functions with service method calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-batch-procedural-functions-with-3581303.php)
+- [Replace drupal_static_reset() file_get_file_references keys with cache tag...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-drupal-static-reset-file-get-file-references-keys-1452100.php)
 
 
 ## RSS feeds
