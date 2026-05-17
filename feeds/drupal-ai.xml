@@ -5,6 +5,53 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
+      <title>#3588793: [Sprint 6] Canvas content templates not used for content-type migrations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588793.md</link>
+      <guid isPermaLink="false">019e336d-4df9-71dd-a7c1-49ea77b2db08</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 16 May 2026 21:02:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588793"&gt;#3588793&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites migrated with the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; migrate-site skill can now support self-service content creation for dynamic content types such as events, blog posts, and news items. Previously, the skill treated all content as one-off Canvas page entities, meaning editors could not create a new event from the Drupal admin UI and have it render with Canvas styles without re-running a migration script. This feature adds a Phase 4.5 to the skill that detects dynamic content types during Phase 1 analysis, then creates Canvas content templates bound to Drupal node bundle display modes (&lt;code&gt;node.&amp;lt;type&amp;gt;.full&lt;/code&gt;), so any newly created node of a flagged type renders correctly by default.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;.claude/agents/canvas-content-template-agent.md&lt;/code&gt; adapter agent and Phase 4.5 conditional phase added to the migrate-site skill's &lt;code&gt;SKILL.md&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The skill previously used only Canvas page entities (explicit per-item pages created by the migration), ignoring Canvas content templates, which are display-mode-level registrations (&lt;code&gt;node.&amp;lt;type&amp;gt;.full&lt;/code&gt;) that automatically apply a Canvas component layout to any node of a given bundle. The fix has four parts.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Phase 1 detection&lt;/strong&gt; was added to &lt;code&gt;site-analyzer.md&lt;/code&gt;: it now flags dynamic content URL patterns (&lt;code&gt;/blog/*&lt;/code&gt;, &lt;code&gt;/events/*&lt;/code&gt;, &lt;code&gt;/news/*&lt;/code&gt;, &lt;code&gt;/people/*&lt;/code&gt;, paginated date-based paths) and writes &lt;code&gt;template_needed: true&lt;/code&gt; entries into &lt;code&gt;plan.md&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Phase 4.5 (conditional)&lt;/strong&gt; was inserted into &lt;code&gt;.claude/skills/migrate-site/SKILL.md&lt;/code&gt; between Phase 4 (upload) and Phase 5 (media). It skips entirely when &lt;code&gt;plan.md&lt;/code&gt; has no &lt;code&gt;template_needed: true&lt;/code&gt; entries. When it runs, it dispatches the new &lt;code&gt;canvas-content-template-agent&lt;/code&gt; for each flagged type, verifies rendering by creating a test node via the admin UI, and deletes any legacy per-item Canvas pages created as temporary workarounds (archiving via path-alias change is explicitly avoided because it creates stale &lt;code&gt;path_alias&lt;/code&gt; entries and permanent 301 redirect traps).&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;canvas-content-template-agent.md&lt;/code&gt;&lt;/strong&gt; is a thin adapter agent (Sonnet model, low-effort setting) that reads Acquia Nebula's &lt;code&gt;canvas-content-templates&lt;/code&gt; SKILL.md for format conventions and field-expression syntax, accepts a content type name and component-to-field mapping from the orchestrator, produces a template JSON file at &lt;code&gt;content-templates/{entityType}.{bundle}.{viewMode}.json&lt;/code&gt;, validates it with &lt;code&gt;npx canvas validate&lt;/code&gt;, uploads via browser automation (admin-cookie session, because the &lt;code&gt;page_template:administer&lt;/code&gt; OAuth endpoints returned 404 during an empirical scope probe on 2026-05-01), and verifies by creating a test node. The agent switches to OAuth once &lt;code&gt;scripts/verify-scopes.mjs&lt;/code&gt; reports those endpoints are live.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Nebula as a devDependency&lt;/strong&gt; is the structural mechanism: &lt;code&gt;package.json&lt;/code&gt; gains &lt;code&gt;&amp;quot;acquia-nebula&amp;quot;: &amp;quot;github:acquia/nebula&amp;quot;&lt;/code&gt; and a &lt;code&gt;postinstall&lt;/code&gt; symlink (&lt;code&gt;ln -sfn ../../node_modules/acquia-nebula/.agents/skills .claude/reference/nebula&lt;/code&gt;), making all 24 Nebula skills available at &lt;code&gt;.claude/reference/nebula/&lt;/code&gt; and refreshable via &lt;code&gt;npm update&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; entry was added noting that dynamic content types require Canvas content templates and that new content requires Phase 4.5, not a manual script. Four tests in &lt;code&gt;tests/skills/sprint6-skill-architecture.test.mjs&lt;/code&gt; cover the Nebula symlink, agent file, Phase 4.5 wiring, and site-analyzer detection. Commits: 8ef9c5c, 54718ae, 1a9b582.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No API-breaking changes. Existing migrations that processed only static pages are unaffected (Phase 4.5 skips when &lt;code&gt;plan.md&lt;/code&gt; has no &lt;code&gt;template_needed: true&lt;/code&gt; entries).&lt;/p&gt;
+&lt;p&gt;For projects that have already migrated a site with dynamic content types:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Run &lt;code&gt;npm install&lt;/code&gt; to pull Acquia Nebula as a devDependency and establish the &lt;code&gt;.claude/reference/nebula/&lt;/code&gt; symlink.&lt;/li&gt;
+&lt;li&gt;Re-run Phase 1 analysis against the source site to populate &lt;code&gt;template_needed: true&lt;/code&gt; entries in &lt;code&gt;plan.md&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Run Phase 4.5 manually or re-run the full skill; it will dispatch &lt;code&gt;canvas-content-template-agent&lt;/code&gt; for each flagged type.&lt;/li&gt;
+&lt;li&gt;Delete any per-item Canvas page entities that were created as workarounds (do &lt;strong&gt;not&lt;/strong&gt; archive via path-alias change — see &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt;).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The fix was driven entirely by ajv009, who documented both the architecture gap and its resolution in detail. The problem itself was discovered not through the agent's own documentation research but when a user consulted an external contact with Acquia platform knowledge during a recorded session. That external discovery, flagged explicitly in the issue body as a signal of incomplete platform knowledge in the skill, shaped the decision to adopt Acquia's Nebula skill as an updatable upstream rather than building a custom implementation from scratch.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588588: Add Gemini CLI backend for harness-native plugin install</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588588.md</link>
       <guid isPermaLink="false">019e2d69-497d-71d5-9942-6f8200179cba</guid>
@@ -881,46 +928,6 @@ drush cr
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;ajv009's review caught three edge cases: entity ID collisions when different guardrail names normalize to the same ID, entity ID length exceeding the 64-character config entity limit, and swallowed errors in &lt;code&gt;LiteLlmAiClient::guardrails()&lt;/code&gt; that hid connection failures behind a generic message. The length limit was fixed in the final implementation by truncating IDs to 64 characters. ajv009 also noted this MR adds the first tests to the module. nikro agreed with the findings and welcomed the test coverage.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579681: Canvas AI: Add 'YAML Path Equals' and 'YAML Path Exists' plugins</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579681.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94ed6d36d688</guid>
-      <pubDate>Fri, 27 Mar 2026 13:34:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +378/−0 · php +365 · yml +12 · json +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/2bccd05b019b0ec6ff740125775e63f88955f780"&gt;2bccd05&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579681"&gt;#3579681&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas AI agents that generate YAML-formatted tool inputs (like the Page Builder and Template Builder agents) can now be tested with two new validation plugins. &lt;code&gt;YAML Path Exists&lt;/code&gt; checks whether a specific path is present in the YAML output. &lt;code&gt;YAML Path Equals&lt;/code&gt; checks whether a value at a specific path matches an expected value. Test authors can use these plugins when writing automated tests for Canvas AI agents using the AI Agents Test module. This is a testing-only change with no user-facing effects.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Canvas AI agents generate tool parameters in YAML format. The AI Agents Test module provides an &lt;code&gt;AgentsParameterTest&lt;/code&gt; plugin system for validating those parameters, but it lacked plugins specifically for YAML validation.&lt;/p&gt;
-&lt;p&gt;This change adds a new test module &lt;code&gt;canvas_ai_agents_test&lt;/code&gt; with two new &lt;code&gt;AgentsParameterTest&lt;/code&gt; plugins. Both plugins validate only the &lt;code&gt;component_structure&lt;/code&gt; parameter.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;YamlPathExistsTest&lt;/code&gt; plugin checks whether one or more dot-notated paths exist in the YAML. The &lt;code&gt;YamlPathEqualsTest&lt;/code&gt; plugin checks whether values at specific paths match expected values using &lt;code&gt;path=value&lt;/code&gt; syntax. Both plugins support multiple checks separated by newlines and support escaping literal dots in keys with a backslash (e.g., &lt;code&gt;sdc\.canvas_test_sdc\.heading&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;YamlPathHelper&lt;/code&gt; service handles the shared YAML parsing and path traversal logic. It uses Symfony's YAML component to parse the string and walks the parsed array using a regex-split path that preserves escaped dots. The service returns an array indicating whether the path exists, the value if found, and any parse errors.&lt;/p&gt;
-&lt;p&gt;Both plugins inject the helper service, split the rule value by newlines, and call &lt;code&gt;getValueAtPath()&lt;/code&gt; for each path. They record detailed results for each check using the base plugin's &lt;code&gt;createDetailedResultRow()&lt;/code&gt; method.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 27, 2026 (10 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
