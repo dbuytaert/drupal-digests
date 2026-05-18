@@ -14,7 +14,7 @@ _76 summaries · 18 new this week_
 
 ### Drupal Core
 
-_444 summaries · 59 new this week_
+_444 summaries · 58 new this week_
 
 - [#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md)
 - [#1452100: Private file download returns access denied, when file attached to revision...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1452100.md)
