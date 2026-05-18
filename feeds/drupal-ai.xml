@@ -269,6 +269,106 @@ fi
 </description>
     </item>
     <item>
+      <title>#3588776: [Sprint 3] Issue files missing before-fix screenshots — fixer working blind</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588776.md</link>
+      <guid isPermaLink="false">019e3a64-80f1-712d-8620-25a6db254ebb</guid>
+      <pubDate>Wed, 13 May 2026 08:31:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +8/−0 · md +8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/112f31e45ce537a27a7fc122a0dfb573f4059340"&gt;112f31e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588776"&gt;#3588776&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; AI-agent workflow, the &lt;code&gt;storybook-qa&lt;/code&gt; agent was filing visual-mismatch issues without always capturing a built screenshot at filing time. This left the &lt;code&gt;component-fixer&lt;/code&gt; agent working blind: it had no before-fix baseline to compare against and could report a fix as successful without any visual evidence. Three Sprint 3 commits close this gap by making screenshot evidence mandatory at every stage of the Phase 3.5 QA loop. &lt;code&gt;storybook-qa&lt;/code&gt; now refuses to write an &lt;code&gt;issue.md&lt;/code&gt; file unless the required source/built PNG pairs already exist on disk. &lt;code&gt;component-fixer&lt;/code&gt; now verifies those PNGs are present and non-zero before starting any fix, and aborts with a &lt;code&gt;BLOCKED&lt;/code&gt; status when they are missing. A new Phase 3.5 gate runs &lt;code&gt;validate-screenshots.mjs&lt;/code&gt; across all open issue directories and fails the gate if any required PNG is absent or zero-byte.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The changes touch three agent instruction files and add a new validation script plus tests.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;.claude/agents/storybook-qa.md&lt;/code&gt;, a new &amp;quot;Issue Filing Protocol (mandatory)&amp;quot; block (lines 98–130) describes a five-step pre-filing sequence: determine the Viewport (&lt;code&gt;desktop&lt;/code&gt;, &lt;code&gt;mobile&lt;/code&gt;, or &lt;code&gt;both&lt;/code&gt;), capture source and built PNGs at the matching element selector via &lt;code&gt;agent-browser screenshot&lt;/code&gt;, capture computed styles as JSON, then verify every PNG is non-zero before writing &lt;code&gt;issue.md&lt;/code&gt;. Failure at any capture step causes the agent to emit a &lt;code&gt;issue_filing_skipped&lt;/code&gt; event to &lt;code&gt;state.jsonl&lt;/code&gt; and abort filing that issue rather than writing an incomplete record. The required filenames are viewport-driven: &lt;code&gt;source-desktop.png&lt;/code&gt; / &lt;code&gt;built-desktop.png&lt;/code&gt; for desktop, &lt;code&gt;source-mobile.png&lt;/code&gt; / &lt;code&gt;built-mobile.png&lt;/code&gt; for mobile, both pairs for &lt;code&gt;both&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;.claude/agents/component-fixer.md&lt;/code&gt;, a &amp;quot;Pre-fix screenshot guard (P1-6)&amp;quot; block (lines 69–75) requires the fixer to check the PNG siblings for every path in &lt;code&gt;issue_paths&lt;/code&gt; before any fix attempt. If any required PNG is missing or zero-byte, the agent emits an &lt;code&gt;action: fix_blocked&lt;/code&gt; state event to &lt;code&gt;state.jsonl&lt;/code&gt; and aborts with &lt;code&gt;BLOCKED: issue &amp;lt;NN-desc&amp;gt; missing screenshot evidence — re-dispatch storybook-qa to re-capture&lt;/code&gt;. The implementation deliberately chose a hard abort rather than the ticket's proposed silent re-dispatch, because a missing baseline indicates Phase 3.5 did not complete properly; silent recovery would mask the upstream failure.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;.claude/agents/artifact-checker.md&lt;/code&gt;, the Phase 3.5 gate now includes an issue-dir screenshot check. It runs &lt;code&gt;node scripts/issue-files/validate-screenshots.mjs docs/migration/issues/&lt;/code&gt; against every issue directory whose &lt;code&gt;issue.md&lt;/code&gt; has &lt;code&gt;Status: open&lt;/code&gt; or &lt;code&gt;Status: fixing&lt;/code&gt;. The script (&lt;code&gt;scripts/issue-files/validate-screenshots.mjs&lt;/code&gt;) reads the &lt;code&gt;Viewport&lt;/code&gt; field from each &lt;code&gt;issue.md&lt;/code&gt;, derives the required PNG filenames, and checks existence and non-zero size for each. A non-zero exit fails the gate and pastes the failure list into the artifact summary. Vitest tests for the script live in &lt;code&gt;tests/issue-files/required-screenshots.test.mjs&lt;/code&gt; and cover pass, missing file, zero-byte, mobile-only viewport, and resolved-issue-skip cases.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you are running the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; Phase 3.5 QA loop, expect the following behavior changes:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;storybook-qa&lt;/code&gt;&lt;/strong&gt; will refuse to write &lt;code&gt;issue.md&lt;/code&gt; when any required PNG is missing. Ensure the agent has access to a running Storybook server and the production site so it can complete captures during filing.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;component-fixer&lt;/code&gt;&lt;/strong&gt; will abort with &lt;code&gt;BLOCKED&lt;/code&gt; (rather than proceeding) when an issue directory is missing its screenshot evidence. Re-dispatch &lt;code&gt;storybook-qa&lt;/code&gt; to re-capture, then re-invoke &lt;code&gt;component-fixer&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The Phase 3.5 gate now runs &lt;code&gt;validate-screenshots.mjs&lt;/code&gt; automatically. To run it manually against an existing issues directory:&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;node scripts/issue-files/validate-screenshots.mjs docs/migration/issues/
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;A non-zero exit prints the failure list. Zero exit prints &lt;code&gt;PASS: all open issues have required screenshots&lt;/code&gt;.&lt;/p&gt;
+&lt;ol start="4"&gt;
+&lt;li&gt;Issue file screenshot fields use viewport-driven filename pairs (&lt;code&gt;source-desktop.png&lt;/code&gt; / &lt;code&gt;built-desktop.png&lt;/code&gt;, etc.) rather than the &lt;code&gt;source_screenshot:&lt;/code&gt; / &lt;code&gt;built_screenshot:&lt;/code&gt; YAML keys described in the ticket's spec. The gate logic keys off the &lt;code&gt;**Viewport:**&lt;/code&gt; field in &lt;code&gt;issue.md&lt;/code&gt;, not YAML keys.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 13, 2026 (6 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;In the closing comment, ajv009 documented two deliberate deviations from the ticket's literal spec: viewport-driven filenames instead of YAML &lt;code&gt;source_screenshot&lt;/code&gt;/&lt;code&gt;built_screenshot&lt;/code&gt; fields, and a hard &lt;code&gt;BLOCKED&lt;/code&gt; abort in &lt;code&gt;component-fixer&lt;/code&gt; instead of the spec's suggested &amp;quot;log warning and re-run storybook-qa.&amp;quot; The rationale given for the abort behavior was that silent recovery would mask upstream Phase 3.5 failures, which is the underlying problem the issue was filed to solve.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588777: [Sprint 3] Page-level Storybook stories not created before CMS push</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588777.md</link>
+      <guid isPermaLink="false">019e3a63-4c3e-73df-861b-51588c37dcae</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 13 May 2026 08:31:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +45/−0 · js +45&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/03b3a1388cb0a37746f29c2ff6d00921bca6edbe"&gt;03b3a13&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588777"&gt;#3588777&lt;/a&gt; · 1 contributor · 8 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; migrate-site skill now requires a mandatory Phase 3.7 gate between component QA (Phase 3.5) and the CMS upload (Phase 4). Before any content is pushed to the CMS, one &lt;code&gt;page-story-composer&lt;/code&gt; agent must run per page in the site inventory, producing a Storybook story under &lt;code&gt;src/stories/pages/&lt;/code&gt; that is populated with verbatim source content and verified to render with zero console errors. Phase 4 is blocked until the &lt;code&gt;artifact-checker&lt;/code&gt; in &lt;code&gt;phase-3.7&lt;/code&gt; mode confirms all pages have valid stories. This closes the gap where page-layout problems only surfaced after a full CMS deploy cycle, costing 10+ minutes per iteration.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;page-story-composer&lt;/code&gt; agent and &lt;code&gt;scripts/gates/phase-3.7-validate.mjs&lt;/code&gt; gate script added to canvas_ai_migrations; new mandatory Phase 3.7 step blocks Phase 4 until all page stories carry a valid &lt;code&gt;@migrate-site-provenance&lt;/code&gt; comment and pass a render check.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three artifacts were added. First, &lt;code&gt;.claude/agents/page-story-composer.md&lt;/code&gt; defines a new Sonnet-model sub-agent. It accepts a &lt;code&gt;page&lt;/code&gt; slug, a &lt;code&gt;content_path&lt;/code&gt; (&lt;code&gt;docs/migration/content/&amp;lt;slug&amp;gt;.md&lt;/code&gt;), and a &lt;code&gt;composition_path&lt;/code&gt; (&lt;code&gt;docs/migration/page-compositions/&amp;lt;slug&amp;gt;.json&lt;/code&gt;). It writes &lt;code&gt;src/stories/pages/&amp;lt;PageName&amp;gt;.stories.tsx&lt;/code&gt;, using PascalCase of the slug for the filename. The file's first line must be a &lt;code&gt;// @migrate-site-provenance: {...}&lt;/code&gt; JSON comment carrying &lt;code&gt;source&lt;/code&gt;, &lt;code&gt;page&lt;/code&gt;, &lt;code&gt;generated_by: &amp;quot;page-story-composer&amp;quot;&lt;/code&gt;, and &lt;code&gt;generated_at&lt;/code&gt;. After writing the story, the agent checks for console errors via &lt;code&gt;agent-browser console --json&lt;/code&gt;, retrying up to three times. A per-page gate artifact at &lt;code&gt;docs/migration/phase-3.7-page-&amp;lt;slug&amp;gt;.json&lt;/code&gt; records the final &lt;code&gt;status: &amp;quot;PASS&amp;quot;&lt;/code&gt; or &lt;code&gt;&amp;quot;FAIL&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Second, &lt;code&gt;scripts/gates/phase-3.7-validate.mjs&lt;/code&gt; is the gate script called by &lt;code&gt;artifact-checker mode: phase-3.7&lt;/code&gt;. It reads &lt;code&gt;docs/migration/page-inventory.json&lt;/code&gt;, checks that each page slug resolves to a corresponding PascalCase story file in &lt;code&gt;src/stories/pages/&lt;/code&gt;, parses and validates the provenance comment JSON (all four required fields must be present, &lt;code&gt;generated_by&lt;/code&gt; must equal &lt;code&gt;&amp;quot;page-story-composer&amp;quot;&lt;/code&gt;, &lt;code&gt;source&lt;/code&gt; must resolve to a real file, &lt;code&gt;page&lt;/code&gt; must match the inventory slug), and exits with code 0 on full pass, 1 on any failure, or 3 if the homepage entry is missing (the homepage is detected via &lt;code&gt;is_homepage: true&lt;/code&gt; in the inventory). Exit code 3 triggers &lt;code&gt;overall: escalated&lt;/code&gt; in the checklist JSON and blocks Phase 4 immediately without auto-retry.&lt;/p&gt;
+&lt;p&gt;Third, &lt;code&gt;.claude/skills/migrate-site/SKILL.md&lt;/code&gt; was updated: &lt;code&gt;page-story-composer&lt;/code&gt; is added to the agent table (Sonnet, Phase 3.7), and a new Phase 3.7 section sits between Phase 3.5 and Phase 4 with the full gate criteria and the rationale for using provenance-comment detection rather than canvas-starter boilerplate string scanning. The issue body proposed detecting literal strings like &amp;quot;Welcome to Our Site&amp;quot; or &amp;quot;placehold.co&amp;quot;, but the implementation uses the provenance comment instead because real client pages can legitimately contain those strings. Both the SKILL.md and &lt;code&gt;artifact-checker.md&lt;/code&gt; document this design choice explicitly.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No breaking change to existing phase outputs. Any workflow that dispatches Phase 4 must now first wait for &lt;code&gt;artifact-checker mode: phase-3.7&lt;/code&gt; to return &lt;code&gt;overall: PASS&lt;/code&gt;. The checklist artifact lands at &lt;code&gt;docs/migration/workflow/03.7-page-stories-checklist.json&lt;/code&gt;. If you have an automation that calls Phase 4 directly after Phase 3.5, insert:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;node scripts/gates/phase-3.7-validate.mjs --root .
+# exit 0 → proceed to Phase 4
+# exit 1 → re-dispatch page-story-composer for failing pages
+# exit 3 → homepage missing, surface to user
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Each story file must start with:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-ts"&gt;// @migrate-site-provenance: {&amp;quot;source&amp;quot;:&amp;quot;docs/migration/content/&amp;lt;slug&amp;gt;.md&amp;quot;,&amp;quot;page&amp;quot;:&amp;quot;&amp;lt;slug&amp;gt;&amp;quot;,&amp;quot;generated_by&amp;quot;:&amp;quot;page-story-composer&amp;quot;,&amp;quot;generated_at&amp;quot;:&amp;quot;&amp;lt;ISO-8601 UTC&amp;gt;&amp;quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Files without this comment will fail the gate regardless of content.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 13, 2026 (6 days and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;In the closing comment, ajv009 explicitly disclosed a deviation from the ticket's literal spec: the implementation uses provenance-comment detection rather than canvas-starter boilerplate string matching, with a reasoned trade-off. The comment acknowledged the one scenario where the approach fails closed (a manually edited file with provenance removed and real-looking titles) and offered to add the literal string scan as a secondary check if reviewers required it.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588596: Add Webhook support, Project support and events for this</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md</link>
       <guid isPermaLink="false">019e1e3c-3617-7265-94bf-14683b30befb</guid>
@@ -800,96 +900,6 @@ drush cr
 &lt;li&gt;bbruno (1xINTERNET)&lt;/li&gt;
 &lt;li&gt;erichomanchuk (Foster Interactive Inc.)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582856: Add Input Length Limit guardrail plugin against DoW attacks</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582856.md</link>
-      <guid isPermaLink="false">019d857f-33e5-770a-9eef-867765b2b1a4</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +603/−0 · php +582 · yml +20 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/9af5bb0e63429b979c2e0e53a2f8fb5cb5dc9c62"&gt;9af5bb0&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;New &lt;code&gt;input_length_limit&lt;/code&gt; guardrail plugin blocks chat requests that exceed a configurable character or token count before they reach the AI provider API. This provides a safety net against denial-of-wallet attacks (consuming expensive API tokens), context stuffing attacks, and overwhelming the model's context window.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;ai.guardrail.settings.input_length_limit&lt;/code&gt; config schema with &lt;code&gt;max_length&lt;/code&gt;, &lt;code&gt;use_tokens&lt;/code&gt;, &lt;code&gt;tokenizer_model&lt;/code&gt;, &lt;code&gt;check_all_messages&lt;/code&gt;, and &lt;code&gt;violation_message&lt;/code&gt; keys.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;input_length_limit&lt;/code&gt; guardrail plugin blocks chat input exceeding a configurable character or token count.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The AI module's guardrail system had no built-in way to limit the length of user input sent to AI providers. The new &lt;code&gt;InputLengthLimit&lt;/code&gt; plugin (&lt;code&gt;src/Plugin/AiGuardrail/InputLengthLimit.php&lt;/code&gt;) extends &lt;code&gt;AiGuardrailPluginBase&lt;/code&gt; and implements &lt;code&gt;processInput()&lt;/code&gt; as a pre-generate guardrail.&lt;/p&gt;
-&lt;p&gt;The plugin only applies to &lt;code&gt;ChatInput&lt;/code&gt;. Non-chat input types (e.g. &lt;code&gt;TextToImageInput&lt;/code&gt;) receive a &lt;code&gt;PassResult&lt;/code&gt; and are skipped. By default, it measures the last user message only. When &lt;code&gt;check_all_messages&lt;/code&gt; is enabled, it concatenates all &lt;code&gt;ChatMessage&lt;/code&gt; texts (joined with newlines) and measures the total.&lt;/p&gt;
-&lt;p&gt;Length measurement supports two modes: character-based counting via &lt;code&gt;mb_strlen()&lt;/code&gt; (the default), and token-based counting via the &lt;code&gt;ai.tokenizer&lt;/code&gt; service with a configurable &lt;code&gt;tokenizer_model&lt;/code&gt; (defaults to &lt;code&gt;gpt-4&lt;/code&gt;). When the measured length exceeds &lt;code&gt;max_length&lt;/code&gt;, the plugin returns a &lt;code&gt;StopResult&lt;/code&gt; with a configurable violation message supporting &lt;code&gt;@count&lt;/code&gt;, &lt;code&gt;@max&lt;/code&gt;, and &lt;code&gt;@unit&lt;/code&gt; placeholders. The &lt;code&gt;processOutput()&lt;/code&gt; method always returns &lt;code&gt;PassResult&lt;/code&gt; since this is an input-only guardrail.&lt;/p&gt;
-&lt;p&gt;The configuration form uses Drupal &lt;code&gt;#states&lt;/code&gt; to show the &lt;code&gt;tokenizer_model&lt;/code&gt; field only when &lt;code&gt;use_tokens&lt;/code&gt; is checked. A bug in the initial implementation used the wrong form element name selector for this visibility toggle, which was fixed during review.&lt;/p&gt;
-&lt;p&gt;Config schema was added at &lt;code&gt;ai.guardrail.settings.input_length_limit&lt;/code&gt; with five properties: &lt;code&gt;max_length&lt;/code&gt; (integer), &lt;code&gt;use_tokens&lt;/code&gt; (boolean), &lt;code&gt;tokenizer_model&lt;/code&gt; (string), &lt;code&gt;check_all_messages&lt;/code&gt; (boolean), and &lt;code&gt;violation_message&lt;/code&gt; (string). Unit tests cover character limits, token limits, all-messages mode, last-message-only mode, custom violation messages, multibyte characters, and non-chat input passthrough. Kernel tests verify the full guardrail pipeline using &lt;code&gt;AiGuardrail&lt;/code&gt; and &lt;code&gt;AiGuardrailSet&lt;/code&gt; config entities with the EchoAI test provider.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 2, 2026&lt;/li&gt;
-&lt;li&gt;First commit: April 9, 2026 (6 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 17, 2026 (8 days and 5 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, ahmad khader found a bug where the &lt;code&gt;tokenizer_model&lt;/code&gt; field visibility state used the wrong form element name (&lt;code&gt;use_tokens&lt;/code&gt; instead of &lt;code&gt;guardrail_settings[use_tokens]&lt;/code&gt;), fixed it, and moved the issue to RTBC. marcus_johansson split a broader guardrail config schema bug discovered during this work into a separate issue &lt;a href="https://www.drupal.org/node/3583785"&gt;#3583785&lt;/a&gt; for backporting.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582575: Add agent skill and drush generator for Guardrail plugins</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582575.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-951c6cf19283</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +723/−0 · md +332 · twig +332 · php +58 · gitignore +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/cc6a52e8ddffd8177d7953cda04d22a4d8478361"&gt;cc6a52e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582575"&gt;#3582575&lt;/a&gt; · 3 contributors · 22 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Drupal AI module now ships a Drush code generator and an AI agent skill to help developers create custom guardrail plugins. Before this change, creating a guardrail required knowing the full plugin API: the &lt;code&gt;#[AiGuardrail]&lt;/code&gt; attribute, base class hierarchy, four result types, streaming interfaces, and config schema requirements. The new &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt; command (alias: &lt;code&gt;ai-guardrail&lt;/code&gt;) asks five questions and writes a ready-to-edit plugin stub. The agent skill at &lt;code&gt;.agents/skills/create-guardrail-plugin/SKILL.md&lt;/code&gt; gives AI coding assistants (such as Claude or GitHub Copilot) a structured guide to scaffold guardrails from a natural-language description.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt; command (alias &lt;code&gt;ai-guardrail&lt;/code&gt;) scaffolds a deterministic or non-deterministic &lt;code&gt;AiGuardrail&lt;/code&gt; plugin stub in any module.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Guardrail plugins (&lt;code&gt;#[AiGuardrail]&lt;/code&gt;) run before and after AI generation and return one of four result types from &lt;code&gt;Drupal\ai\Guardrail\Result\&lt;/code&gt;: &lt;code&gt;PassResult&lt;/code&gt;, &lt;code&gt;StopResult&lt;/code&gt;, &lt;code&gt;RewriteInputResult&lt;/code&gt;, or &lt;code&gt;RewriteOutputResult&lt;/code&gt;. Two distinct plugin patterns exist: deterministic (fixed rules, extends &lt;code&gt;AiGuardrailPluginBase&lt;/code&gt;, implements &lt;code&gt;ConfigurableInterface&lt;/code&gt; + &lt;code&gt;PluginFormInterface&lt;/code&gt;) and non-deterministic (calls an AI provider internally, additionally implements &lt;code&gt;NonDeterministicGuardrailInterface&lt;/code&gt;, &lt;code&gt;NonStreamableGuardrailInterface&lt;/code&gt;, and &lt;code&gt;ContainerFactoryPluginInterface&lt;/code&gt;, uses &lt;code&gt;NeedsAiPluginManagerTrait&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Drush generator&lt;/strong&gt; (&lt;code&gt;src/Drush/Generators/GuardrailGenerator.php&lt;/code&gt;) extends &lt;code&gt;DrupalCodeGenerator\Command\BaseGenerator&lt;/code&gt; and is registered via the &lt;code&gt;#[Generator]&lt;/code&gt; attribute with name &lt;code&gt;plugin:ai:guardrail&lt;/code&gt; and alias &lt;code&gt;ai-guardrail&lt;/code&gt;. The &lt;code&gt;generate()&lt;/code&gt; method interviews for module machine name, label, plugin ID (auto-derived as snake_case from the label), description, and deterministic/non-deterministic choice, then writes &lt;code&gt;src/Plugin/AiGuardrail/{ClassName}.php&lt;/code&gt; from one of two Twig templates at &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;. The deterministic template produces &lt;code&gt;processInput()&lt;/code&gt; with a &lt;code&gt;ChatInput&lt;/code&gt; type check, last-message extraction via &lt;code&gt;end($messages)&lt;/code&gt;, and &lt;code&gt;@todo&lt;/code&gt; markers for custom validation logic, plus full &lt;code&gt;ConfigurableInterface&lt;/code&gt; boilerplate. The non-deterministic template adds the &lt;code&gt;NeedsAiPluginManagerTrait&lt;/code&gt;, a &lt;code&gt;create()&lt;/code&gt; method injecting &lt;code&gt;AiProviderFormHelper&lt;/code&gt; via &lt;code&gt;ai.form_helper&lt;/code&gt;, provider/model configuration in &lt;code&gt;buildConfigurationForm()&lt;/code&gt; using &lt;code&gt;AiProviderFormHelper::generateAiProvidersForm()&lt;/code&gt;, and &lt;code&gt;submitConfigurationForm()&lt;/code&gt; that extracts and type-casts LLM config keys using &lt;code&gt;CastUtility::typeCast()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Agent skill&lt;/strong&gt; (&lt;code&gt;.agents/skills/create-guardrail-plugin/SKILL.md&lt;/code&gt;) is a structured prompt document consumed by AI coding assistants via the &lt;code&gt;/create-guardrail-plugin&lt;/code&gt; slash command. It walks through four steps: determine guardrail type, gather requirements, run &lt;code&gt;drush generate plugin:ai:guardrail&lt;/code&gt;, add config schema to &lt;code&gt;config/schema/ai.schema.yml&lt;/code&gt; under the key &lt;code&gt;ai.guardrail.settings.{plugin_id}&lt;/code&gt;, and optionally generate a kernel test using the EchoAI provider. Config schema guidance was added during review (comment #8) after a reviewer found it missing when testing the skill against the &lt;code&gt;InputLengthLimit&lt;/code&gt; guardrail from &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;#[Generator]&lt;/code&gt; attribute sets &lt;code&gt;templatePath&lt;/code&gt; to &lt;code&gt;__DIR__ . '/../../../templates/Plugin/_ai-guardrail'&lt;/code&gt;, which is the actual location of the Twig files. The SKILL.md reference section lists &lt;code&gt;templates/guardrail/deterministic.twig&lt;/code&gt; (the older path discussed in review), but the authoritative path used by the generator is &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 1, 2026&lt;/li&gt;
-&lt;li&gt;First commit: April 8, 2026 (7 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 17, 2026 (9 days and 5 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, ahmad khader tested the agent skill by running the exact one-shot prompt from comment #5 against the &lt;code&gt;InputLengthLimit&lt;/code&gt; guardrail from &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt;. The generated code passed &lt;code&gt;php -l&lt;/code&gt; and &lt;code&gt;phpstan --level=1&lt;/code&gt; with zero errors, but the reviewer found that config schema instructions were missing from the skill. This gap was documented in detail in comment #8 and was then incorporated into the SKILL.md before the issue was fixed. The reviewer also raised a naming convention concern about the Twig template directory (&lt;code&gt;templates/guardrail/&lt;/code&gt; vs &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;), and the generator was updated to use the latter path.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
