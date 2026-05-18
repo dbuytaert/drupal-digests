@@ -5,6 +5,153 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal-ai</link>
     <item>
+      <title>#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md</link>
+      <guid isPermaLink="false">019e3894-7bdc-72d2-921a-d324c2722bbd</guid>
+      <pubDate>Sun, 17 May 2026 21:26:30 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588809"&gt;#3588809&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; workflow gains a new Phase 5.5 that deploys global CSS and brand kit settings to Canvas config entities as a deterministic (non-LLM) step. Previously, &lt;code&gt;global.css&lt;/code&gt; was bundled inside a specific component, meaning any style update required re-uploading the whole component. After this change, global styles live in the Canvas &lt;code&gt;asset_library&lt;/code&gt; config entity and can be independently PATCH-updated post-migration without touching component bundles. A companion script also patches the global &lt;code&gt;brand_kit&lt;/code&gt; entity with fonts discovered during migration. Both scripts run via Node.js and are orchestrated between Phase 5 (media) and Phase 6 (site-config) in SKILL.md.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two new scripts are added under &lt;code&gt;scripts/&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;setup-asset-library.mjs&lt;/code&gt; targets &lt;code&gt;/canvas/api/v0/config/asset_library/global&lt;/code&gt; using the &lt;code&gt;canvas:asset_library&lt;/code&gt; OAuth scope. It reads &lt;code&gt;src/components/global.css&lt;/code&gt;, GETs the endpoint to check existence, then either POSTs (HTTP 201 expected) or PATCHes (HTTP 200 expected). The payload uses &lt;code&gt;{ id, label, css: { original, compiled } }&lt;/code&gt;. On completion it writes &lt;code&gt;docs/migration/workflow/05.5-asset-library-checklist.json&lt;/code&gt; conforming to &lt;code&gt;state-envelope.schema.json&lt;/code&gt; via an atomic &lt;code&gt;.tmp&lt;/code&gt;-to-rename write.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; targets &lt;code&gt;/canvas/api/v0/config/brand_kit/global&lt;/code&gt; using the &lt;code&gt;canvas:brand_kit&lt;/code&gt; scope. Live API probing during development confirmed that POST on the brand_kit endpoint returns 403 with &lt;code&gt;&amp;quot;Brand kits cannot be created via the API&amp;quot;&lt;/code&gt; — only the pre-provisioned &lt;code&gt;global&lt;/code&gt; instance exists per Acquia installation. The script therefore does GET-then-PATCH only. Fonts are read from &lt;code&gt;docs/migration/discovery/design-tokens.json&lt;/code&gt;; if no fonts key is present, the script exits cleanly with a skip note. PATCH requires the Drupal permission &lt;code&gt;administer brand kit&lt;/code&gt;; the script detects the 403 message and throws a permission-specific error. The &lt;code&gt;canvas:brand_kit&lt;/code&gt; OAuth scope is only available on Acquia release 173672 and later; older instances will record &lt;code&gt;invalid_scope&lt;/code&gt; in the scope-availability manifest and Phase 5.5 brand_kit step is skipped automatically.&lt;/p&gt;
+&lt;p&gt;Both scripts export a pure function with a &lt;code&gt;fetchImpl&lt;/code&gt; parameter for fetch-mocked unit tests, and use a CLI guard (&lt;code&gt;import.meta.url === file://${process.argv[1]}&lt;/code&gt;) so importing the module in tests does not trigger side effects. SKILL.md documents the two-script sequence, OAuth scope requirements, and the POST-disabled brand_kit constraint. &lt;code&gt;component-builder.md&lt;/code&gt; adds a &lt;code&gt;## Global CSS handling&lt;/code&gt; note that components ship JS and component-scoped styles only. Two new entries in &lt;code&gt;references/gotchas.md&lt;/code&gt; cover the brand_kit POST restriction and the &lt;code&gt;administer brand kit&lt;/code&gt; permission requirement.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Operators running the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; workflow should add Phase 5.5 between media upload and site-config phases:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;# Phase 5.5 — Asset Library + Brand Kit Setup
+node scripts/setup-asset-library.mjs
+node scripts/setup-brand-kit.mjs
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Ensure the &lt;code&gt;canvas:asset_library&lt;/code&gt; OAuth scope is granted (it is universally available on Canvas/Acquia). For brand kit setup, ensure the &lt;code&gt;canvas:brand_kit&lt;/code&gt; scope is available (Acquia release 173672+) and that the migrating user role has the &lt;code&gt;administer brand kit&lt;/code&gt; Drupal permission. If the permission is absent, &lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; exits 1 with a descriptive error; coordinate with the Acquia operator before running Phase 5.5.&lt;/p&gt;
+&lt;p&gt;Global CSS is now read from &lt;code&gt;src/components/global.css&lt;/code&gt; and should no longer be embedded in any component bundle. The &lt;code&gt;CANVAS_GLOBAL_CSS_PATH&lt;/code&gt; environment variable can override the default path.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The closing comment from ajv009 notes that the brand_kit endpoint was not part of the original ticket scope. It was discovered through inspection of &lt;code&gt;openapi.yml&lt;/code&gt; and confirmed via live API probing on 2026-05-17, which revealed the POST-disabled constraint, the PATCH-only contract, and the &lt;code&gt;administer brand kit&lt;/code&gt; permission requirement. This empirical finding directly shaped the implementation contract and is why &lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; is PATCH-only with explicit permission-error detection.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy scopes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md</link>
+      <guid isPermaLink="false">019e3895-4f0b-74d5-b816-b051f2c29f2b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 17 May 2026 21:25:53 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588808"&gt;#3588808&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites migrated with the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; migrate-site skill no longer require manually creating Drupal content types and taxonomy vocabularies before running Phase 7 (content composition). Previously, if a source site had dynamic content types (events, blog posts, news items), implementers had to create the corresponding Drupal bundles via the admin UI themselves before Phase 7 would work. The new Phase 1.5 handles this automatically using browser automation against the Drupal admin UI, since the JSON:API endpoints needed for a fully programmatic path are not yet available on Acquia Source instances.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;content_model_setup_completed&lt;/code&gt; state event documented in &lt;code&gt;state-events.md&lt;/code&gt; for Phase 1.5 completion tracking.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds a &lt;code&gt;### Phase 1.5 — Content Model Setup (conditional)&lt;/code&gt; block to &lt;code&gt;SKILL.md&lt;/code&gt;, inserted between Phase 1 (site-analyzer) and Phase 2 (component-builder). Phase 1.5 is skipped when &lt;code&gt;plan.md&lt;/code&gt; contains no &lt;code&gt;content_types:&lt;/code&gt; entries; it executes when Phase 1 detected dynamic content types.&lt;/p&gt;
+&lt;p&gt;The implementation uses &lt;code&gt;agent-browser&lt;/code&gt; authenticated via the &lt;code&gt;.canvas-browser/&lt;/code&gt; session profile to navigate &lt;code&gt;/admin/structure/types&lt;/code&gt; and &lt;code&gt;/admin/structure/taxonomy&lt;/code&gt; in the Drupal admin HTML UI. For each content type declared in &lt;code&gt;plan.md&lt;/code&gt;, the phase checks whether the bundle exists, creates it via the &lt;code&gt;/admin/structure/types/add&lt;/code&gt; form if missing, and then provisions each declared field. Taxonomy vocabularies are handled similarly via &lt;code&gt;/admin/structure/taxonomy/add&lt;/code&gt;. The JSON:API routes &lt;code&gt;/jsonapi/node_type/*&lt;/code&gt; and &lt;code&gt;/jsonapi/taxonomy_vocabulary/*&lt;/code&gt; remain 404 on all probed Acquia Source releases; the design explicitly documents them as the future API path, gated by &lt;code&gt;scope-availability.json&lt;/code&gt;, for when Acquia ships those endpoints.&lt;/p&gt;
+&lt;p&gt;Phase 1.5 writes &lt;code&gt;docs/migration/workflow/01.5-content-model-checklist.json&lt;/code&gt; per the Phase Gate Convention and appends a &lt;code&gt;content_model_setup_completed&lt;/code&gt; event to &lt;code&gt;state.jsonl&lt;/code&gt;. A new precondition in the Phase 7 block requires this checklist to exist with &lt;code&gt;payload.overall: pass&lt;/code&gt; when any &lt;code&gt;content_types:&lt;/code&gt; were declared; otherwise Phase 7 halts with a &lt;code&gt;blocked.md&lt;/code&gt; entry. Five new scope probe entries (&lt;code&gt;canvas:brand_kit&lt;/code&gt;, &lt;code&gt;content_type:administer&lt;/code&gt;, &lt;code&gt;taxonomy:administer&lt;/code&gt;, &lt;code&gt;page_template:administer&lt;/code&gt;, &lt;code&gt;site_settings:administer&lt;/code&gt;) are added additively to &lt;code&gt;scripts/preflight/lib/scope-manifest.json&lt;/code&gt;, bringing the total to 14 scopes. The five historical &lt;code&gt;acquia_source:*&lt;/code&gt; entries are preserved unchanged. Nine tests in &lt;code&gt;tests/skills/sprint8-3588808-content-model-phase.test.mjs&lt;/code&gt; cover the new section, scope-manifest contents, state-events documentation, and the cross-file checklist filename consistency.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588799: [Sprint 8] Canvas content templates as a phase for content-type migrations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588799.md</link>
+      <guid isPermaLink="false">019e3897-9939-70e1-96ff-fbba5a733b1c</guid>
+      <pubDate>Sun, 17 May 2026 21:23:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588799"&gt;#3588799&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; migrate-site skill now has a fully working Phase 4.5 for Canvas content template creation. The Sprint 6 stub agent referenced an admin UI path (&lt;code&gt;/admin/structure/canvas-templates&lt;/code&gt;) that returns 404 on every probed Acquia Source instance. This refactor replaces it with the real Canvas REST API at &lt;code&gt;/canvas/api/v0/config/content_template&lt;/code&gt;, using Drupal session cookies rather than OAuth (no OAuth scope exists for this endpoint). One template per content type now serves all current and future nodes of that type automatically, so content editors can publish new events, blog posts, or other dynamic items without any developer intervention or script run per node.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas-content-template-agent.md&lt;/code&gt; was fully rewritten around a two-step API pattern. &lt;code&gt;POST /canvas/api/v0/config/content_template&lt;/code&gt; with a minimum body of &lt;code&gt;{entityType, bundle, viewMode}&lt;/code&gt; creates an empty draft entity with &lt;code&gt;status: false&lt;/code&gt;; a subsequent &lt;code&gt;PATCH /&amp;lt;id&amp;gt;&lt;/code&gt; with &lt;code&gt;{elements, status: true}&lt;/code&gt; populates and activates it. On a 409 conflict (template already exists), the agent skips the POST and patches directly. All requests use Drupal session cookies from &lt;code&gt;agent-browser --profile .canvas-browser/&lt;/code&gt; combined with a CSRF token fetched as plain text from &lt;code&gt;GET /session/token&lt;/code&gt;. The OAuth client-credentials path cannot be used for this endpoint.&lt;/p&gt;
+&lt;p&gt;Two Nebula discovery endpoints are now wired in before template construction: &lt;code&gt;GET /canvas/api/v0/ui/content_template/view_modes/node&lt;/code&gt; confirms valid bundle/view-mode combinations, and &lt;code&gt;GET /canvas/api/v0/ui/content_template/suggestions/prop-sources/node/&amp;lt;bundle&amp;gt;/&amp;lt;configEntityId&amp;gt;&lt;/code&gt; returns ready-to-paste prop source objects so that the agent does not need to manually construct the Unicode-separated entity-field expression syntax.&lt;/p&gt;
+&lt;p&gt;Phase 4.5 in &lt;code&gt;SKILL.md&lt;/code&gt; now has two hard preconditions: the &lt;code&gt;.canvas-browser/&lt;/code&gt; profile must be authenticated (verified at Phase 0.5, with &lt;code&gt;phase_4_5_blocked&lt;/code&gt; written to &lt;code&gt;state.jsonl&lt;/code&gt; on failure), and the migrating Drupal user must have the &lt;code&gt;administer content templates&lt;/code&gt; permission. On a 403 from the API, the agent writes a structured entry to &lt;code&gt;journals/blocked.md&lt;/code&gt; and halts. The orchestrator gates progression on &lt;code&gt;payload.overall: pass&lt;/code&gt; in the new JSON checklist at &lt;code&gt;docs/migration/workflow/04.5-content-template-checklist.json&lt;/code&gt;. A new &lt;code&gt;content_template_created&lt;/code&gt; state event is defined in &lt;code&gt;state-events.md&lt;/code&gt;. A new reference file &lt;code&gt;canvas-api-contracts.md&lt;/code&gt; documents all four Canvas API groups (&lt;code&gt;js_component&lt;/code&gt;, &lt;code&gt;asset_library&lt;/code&gt;, &lt;code&gt;brand_kit&lt;/code&gt;, &lt;code&gt;content_template&lt;/code&gt;) with their auth requirements, CRUD shapes, and common error codes, sourced from &lt;code&gt;canvas openapi.yml&lt;/code&gt; and live empirical probes.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Operators running Phase 4.5 must take two actions before the migration session:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Grant the &lt;code&gt;administer content templates&lt;/code&gt; Drupal permission to the migrating user role. This permission is not assigned to default admin users and may not appear on older Acquia releases' permissions page. Confirm with the Acquia operator.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Ensure the &lt;code&gt;.canvas-browser/&lt;/code&gt; agent-browser profile is authenticated before the migration session starts (via &lt;code&gt;npm run verify-browser-session&lt;/code&gt;). Phase 4.5 will halt immediately if the session is stale.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;There is no admin UI alternative. &lt;code&gt;/admin/structure/canvas-templates&lt;/code&gt; and &lt;code&gt;/admin/canvas/templates&lt;/code&gt; both return 404 on Acquia Source; the API at &lt;code&gt;/canvas/api/v0/config/content_template&lt;/code&gt; is the only path.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588798: [Sprint 8] Promote PASS/FAIL table format across all sub-agents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588798.md</link>
+      <guid isPermaLink="false">019e3898-85f9-74ca-ab2e-109cd20bdecf</guid>
+      <pubDate>Sun, 17 May 2026 21:22:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588798"&gt;#3588798&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; module's AI-assisted migration workflow has standardized how sub-agents report their results. Five agents (&lt;code&gt;storybook-qa&lt;/code&gt;, &lt;code&gt;phase-verifier&lt;/code&gt;, &lt;code&gt;visual-verifier&lt;/code&gt;, &lt;code&gt;upload-verifier&lt;/code&gt;, &lt;code&gt;component-builder&lt;/code&gt;) now produce a structured PASS/FAIL table in their chat reply AND write a JSON checklist file to &lt;code&gt;docs/migration/workflow/&lt;/code&gt; before returning. The orchestrator reads those JSON files to decide whether a phase passed, instead of parsing the agent's prose output. This makes phase gating deterministic across long sessions that trigger context compaction, where prose summaries were previously paraphrased and lost specific evidence values.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The motivation was a concrete compaction-survival problem: the LLM compaction algorithm's &amp;quot;Files and Artifacts&amp;quot; section quotes table rows verbatim but paraphrases prose paragraphs, so agents that narrated results like &amp;quot;fixed styling differences&amp;quot; left the orchestrator unable to confirm specific values in later iterations. Agents that used tables (the existing &lt;code&gt;artifact-checker&lt;/code&gt;) preserved exact values across compaction boundaries.&lt;/p&gt;
+&lt;p&gt;Each of the five updated agent definition files (&lt;code&gt;.claude/agents/*.md&lt;/code&gt;) gained a &lt;code&gt;## Output format&lt;/code&gt; section specifying: a &lt;code&gt;| Check | Status | Details |&lt;/code&gt; return table capped at 20 lines, and a mandatory side-effect of writing a JSON checklist to &lt;code&gt;docs/migration/workflow/&amp;lt;zero-padded-phase&amp;gt;-&amp;lt;agent&amp;gt;-checklist.json&lt;/code&gt;. The checklist schema nests results under a &lt;code&gt;payload&lt;/code&gt; key (with &lt;code&gt;overall&lt;/code&gt;, &lt;code&gt;items[]&lt;/code&gt;, and &lt;code&gt;gaps[]&lt;/code&gt;) so the pre-existing &lt;code&gt;checklist-gate.sh&lt;/code&gt; Stop hook, which reads &lt;code&gt;.payload.overall&lt;/code&gt; via &lt;code&gt;jq&lt;/code&gt;, handles the new checklists without modification.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SKILL.md&lt;/code&gt; gained a &lt;code&gt;## Phase Gate Convention&lt;/code&gt; section formalizing three steps: (1) verify the checklist file exists at the predicted path, (2) read &lt;code&gt;payload.overall&lt;/code&gt; and proceed or re-dispatch the agent listed in &lt;code&gt;payload.gaps[].rerun&lt;/code&gt;, (3) if the file is missing, dispatch &lt;code&gt;artifact-checker&lt;/code&gt; in &lt;code&gt;phase-N&lt;/code&gt; mode as a fallback synthesizer. The &lt;code&gt;state-events.md&lt;/code&gt; reference file gained an &lt;code&gt;agent_checklist_written&lt;/code&gt; event definition so the orchestrator can short-circuit existence checks when the event is present in &lt;code&gt;state.jsonl&lt;/code&gt;. Fourteen Vitest tests in &lt;code&gt;tests/skills/sprint8-3588798-checklist-convention.test.mjs&lt;/code&gt; verify the presence of the &lt;code&gt;## Output format&lt;/code&gt; section, the correct &lt;code&gt;payload&lt;/code&gt;-nested schema, and the zero-padded filename convention in every affected agent file.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No external code changes are required. If you have custom orchestration scripts that parse sub-agent chat replies to determine phase success, update them to read &lt;code&gt;payload.overall&lt;/code&gt; from the corresponding &lt;code&gt;docs/migration/workflow/&amp;lt;phase&amp;gt;-&amp;lt;agent&amp;gt;-checklist.json&lt;/code&gt; file instead. Example for &lt;code&gt;upload-verifier&lt;/code&gt; after Phase 4:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;overall=$(jq -r '.payload.overall' docs/migration/workflow/04-upload-verifier-checklist.json)
+if [ &amp;quot;$overall&amp;quot; = &amp;quot;pass&amp;quot; ]; then
+  # proceed
+fi
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588793: [Sprint 6] Canvas content templates not used for content-type migrations</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588793.md</link>
       <guid isPermaLink="false">019e336d-4df9-71dd-a7c1-49ea77b2db08</guid>
@@ -743,191 +890,6 @@ drush cr
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, ahmad khader tested the agent skill by running the exact one-shot prompt from comment #5 against the &lt;code&gt;InputLengthLimit&lt;/code&gt; guardrail from &lt;a href="https://www.drupal.org/node/3582856"&gt;#3582856&lt;/a&gt;. The generated code passed &lt;code&gt;php -l&lt;/code&gt; and &lt;code&gt;phpstan --level=1&lt;/code&gt; with zero errors, but the reviewer found that config schema instructions were missing from the skill. This gap was documented in detail in comment #8 and was then incorporated into the SKILL.md before the issue was fixed. The reviewer also raised a naming convention concern about the Twig template directory (&lt;code&gt;templates/guardrail/&lt;/code&gt; vs &lt;code&gt;templates/Plugin/_ai-guardrail/&lt;/code&gt;), and the generator was updated to use the latter path.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579632: Add ai:logs Drush command for inspecting AI LLM calls from the CLI</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579632.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94eb8ee91afd</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 03 Apr 2026 03:12:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +471/−0 · php +468 · md +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_logging/-/commit/a3ad1c964ab5a5db308a635617e8a06c24cf2820"&gt;a3ad1c9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579632"&gt;#3579632&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The ai_logging module now provides a &lt;code&gt;drush ai:logs&lt;/code&gt; command (aliases &lt;code&gt;ail&lt;/code&gt;, &lt;code&gt;ai-logs&lt;/code&gt;) to inspect AI LLM call logs from the terminal. The command queries &lt;code&gt;ai_log&lt;/code&gt; entities and displays prompts, responses, provider/model metadata, and tags. It supports filtering by tag (&lt;code&gt;--tag=ai_agents&lt;/code&gt;) or provider (&lt;code&gt;--provider=anthropic&lt;/code&gt;), limiting result count (&lt;code&gt;--count=20&lt;/code&gt;), and viewing single entries with full text (&lt;code&gt;--id=42&lt;/code&gt;). This is useful for debugging AI agents, chatbots, or other AI-powered features without opening the Drupal admin UI. The ai_logging module must be enabled and logging must be turned on at /admin/config/ai/logging/settings.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drush ai:logs&lt;/code&gt; command (aliases &lt;code&gt;ail&lt;/code&gt;, &lt;code&gt;ai-logs&lt;/code&gt;) for inspecting AI LLM call logs&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;AiLogCommands&lt;/code&gt; Drush command class uses &lt;code&gt;AutowireTrait&lt;/code&gt; for dependency injection and injects &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt; to query the &lt;code&gt;ai_log&lt;/code&gt; entity storage. The command has two modes: list mode (default) returns multiple log entries sorted by &lt;code&gt;created&lt;/code&gt; DESC then &lt;code&gt;id&lt;/code&gt; DESC, and single-entry mode (&lt;code&gt;--id=N&lt;/code&gt;) returns one full entry. List mode truncates &lt;code&gt;prompt&lt;/code&gt; and &lt;code&gt;output_text&lt;/code&gt; fields to 80 characters using core's &lt;code&gt;Unicode::truncate()&lt;/code&gt;. Filtering is implemented via entity query conditions on &lt;code&gt;tags&lt;/code&gt; or &lt;code&gt;provider&lt;/code&gt; fields. The command returns &lt;code&gt;RowsOfFields&lt;/code&gt;, so Drush provides &lt;code&gt;--format=json|yaml|csv|table&lt;/code&gt;, &lt;code&gt;--fields&lt;/code&gt;, and &lt;code&gt;--filter&lt;/code&gt; options automatically. The &lt;code&gt;ValidateModulesEnabled&lt;/code&gt; attribute ensures ai_logging is enabled before execution. Ten kernel tests cover list mode, filtering, single-entry lookup, truncation, empty results, and row structure. The initial implementation was rewritten after maintainer feedback to use Drush's built-in formatters instead of custom output logic, reducing the command from approximately 500 lines to 130 lines and dropping custom token estimation and formatting utilities.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 3, 2026 (16 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
-&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;scott_euser (comment #16) reviewed the initial implementation and noted it was overcomplicated with custom formatters, token counters, and truncation logic, and questioned whether to accept it given the project is minimally maintained. ajv009 (comment #18) rewrote the entire command based on that feedback, replacing all custom output formatting with Drush's built-in &lt;code&gt;RowsOfFields&lt;/code&gt; formatter, replacing custom utilities with core functions like &lt;code&gt;Unicode::truncate()&lt;/code&gt;, and adding kernel test coverage. The rewrite reduced the code from approximately 500 lines to 130 lines and made the command composable with Drush's standard options. The simplified version was accepted.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3577469: Add possibility to record video of functional testing and to run all functional testing on tags</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3577469.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94c64c881745</guid>
-      <pubDate>Wed, 01 Apr 2026 08:02:23 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +976/−22 · md +468 · php +388/−21 · sh +92 · txt +16/−1 · yml +12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/d00935c2a4e4aa44298b9ba7e0f0677528a4f479"&gt;d00935c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577469"&gt;#3577469&lt;/a&gt; · 6 contributors · 40 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is an internal change to the testing infrastructure. FunctionalJavascript tests can now record videos of their execution, making it easier to diagnose test failures. Tests also run selectively in CI: on main branches they skip entirely, on issue branches only tests tagged with the issue number run, and on tagged releases all tests run. This has no effect on sites using the module.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The issue addressed functional test maintainability and debuggability concerns. The solution added video recording and selective test execution.&lt;/p&gt;
-&lt;p&gt;The base test class (&lt;code&gt;BaseClassFunctionalJavascriptTests&lt;/code&gt;) now supports opt-in video recording. When a test sets &lt;code&gt;$videoRecording = TRUE&lt;/code&gt;, Chrome runs non-headless and ffmpeg captures the Selenium container's X display (&lt;code&gt;:99.0&lt;/code&gt;) at 25fps with 750k bitrate, saving MP4 files organized by module and test class. The recording lifecycle is managed in &lt;code&gt;setUp()&lt;/code&gt; and &lt;code&gt;tearDown()&lt;/code&gt;. The implementation uses &lt;code&gt;proc_open()&lt;/code&gt; to spawn ffmpeg with x11grab input, and stops gracefully by writing 'q' to stdin (ensuring the MP4 moov atom is finalized) with fallback to SIGTERM/SIGKILL. The &lt;code&gt;getMinkDriverArgs()&lt;/code&gt; override strips &lt;code&gt;--headless&lt;/code&gt; from Chrome options when recording is enabled.&lt;/p&gt;
-&lt;p&gt;A new shell script (&lt;code&gt;scripts/filter-functionaljavascript-tests.sh&lt;/code&gt;) removes test files before discovery to work around a run-tests.sh limitation where &lt;code&gt;--directory&lt;/code&gt; ignores &lt;code&gt;@group&lt;/code&gt; filtering. On main branches (matching &lt;code&gt;^[0-9]+(\.[0-9]+)?\.x$&lt;/code&gt;), all FunctionalJavascript tests are removed. On issue branches, only tests with &lt;code&gt;@group {issue_number}&lt;/code&gt; are kept. On tags, all tests run. The script exports &lt;code&gt;HAS_FJS=1/0&lt;/code&gt; so &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; can skip ffmpeg installation when no tests will run. The script examines &lt;code&gt;CI_COMMIT_TAG&lt;/code&gt;, &lt;code&gt;CI_MERGE_REQUEST_SOURCE_BRANCH_NAME&lt;/code&gt;, and &lt;code&gt;CI_COMMIT_BRANCH&lt;/code&gt; to determine context, then uses &lt;code&gt;find&lt;/code&gt; with vendor/node_modules exclusions and &lt;code&gt;grep -Fq&lt;/code&gt; to check for issue number annotations.&lt;/p&gt;
-&lt;p&gt;Other base class improvements: changed default theme from &lt;code&gt;stark&lt;/code&gt; to &lt;code&gt;claro&lt;/code&gt; for realistic admin UI testing, moved output paths from &lt;code&gt;sites/default/files/simpletest/&lt;/code&gt; to &lt;code&gt;sites/simpletest/&lt;/code&gt; to match core conventions, added &lt;code&gt;setDefaultProvider()&lt;/code&gt; helper to reduce boilerplate, and added strict typing throughout.&lt;/p&gt;
-&lt;p&gt;The two existing FunctionalJavascript tests were updated to enable video recording, add &lt;code&gt;@group 3577469&lt;/code&gt;, use strict typing, and use the new &lt;code&gt;setDefaultProvider()&lt;/code&gt; helper. The &lt;code&gt;AutoCompleteTagsTaxonomyTest&lt;/code&gt; namespace was corrected to remove an extra &amp;quot;Tests&amp;quot; segment.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: April 1, 2026 (25 days and 5 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;harivansh (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;b_sharpe (ImageX)&lt;/li&gt;
-&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;hestenet (Drupal Association)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;marcus_johansson proposed the approach based on prior Behat experience and implemented the initial video recording. b_sharpe reviewed and requested changes to the filter script: using &lt;code&gt;grep -Fq&lt;/code&gt; instead of &lt;code&gt;grep -q&lt;/code&gt; to avoid regex interpretation of issue numbers, adding vendor and bower_components exclusions, and changing paths from &lt;code&gt;sites/default/files/simpletest/&lt;/code&gt; to &lt;code&gt;sites/simpletest/&lt;/code&gt; to match core conventions. ajv009 tested the implementation locally with DDEV, Selenium, and ffmpeg, implemented b_sharpe's requested changes, and documented the use of AI assistance in the review process. There was discussion about H.264 licensing concerns, resolved when marcus_johansson confirmed that shipping the encoder (via apt packages) rather than using it is what triggers licensing requirements. a.dmitriiev provided final approval.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3456973: AI integration for Views bulk operations</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3456973.md</link>
-      <guid isPermaLink="false">019d857f-33e3-726a-abae-0ee7c69deaa8</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Wed, 01 Apr 2026 08:02:23 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +581/−0 · php +581&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/2e5294ddf6d67d25b09abe4c65cad2807ac0f08f"&gt;2e5294d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3456973"&gt;#3456973&lt;/a&gt; · 10 contributors · 54 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI Automators in the &lt;code&gt;ai_automators&lt;/code&gt; submodule can now be run in bulk via Views Bulk Operations or any other Drupal action UI. To use this, set the automator's worker type to &amp;quot;Action&amp;quot; when configuring it. The automator will not run during normal entity saves - only when explicitly triggered as an action. If &lt;code&gt;edit_mode&lt;/code&gt; is disabled on the automator, entities that already have a value for the target field are skipped, which avoids unnecessary AI API calls on existing content.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New valid value &lt;code&gt;'action'&lt;/code&gt; for the &lt;code&gt;worker_type&lt;/code&gt; property on &lt;code&gt;ai_automator&lt;/code&gt; config entities; automators with this type are exposed as Drupal actions and do not run during entity save&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ActionProcessing&lt;/code&gt; process rule plugin (&lt;code&gt;id: 'action'&lt;/code&gt;) and &lt;code&gt;RunAutomatorAction&lt;/code&gt; action plugin (&lt;code&gt;id: 'ai_automators_run'&lt;/code&gt;) with &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; in &lt;code&gt;ai_automators&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Background.&lt;/strong&gt; &lt;code&gt;ai_automators&lt;/code&gt; processes fields on entity save using pluggable worker types (called process rules). Previously there was no way to run an automator on demand against a filtered set of existing entities.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;New process rule: &lt;code&gt;ActionProcessing&lt;/code&gt;.&lt;/strong&gt; A new &lt;code&gt;AiAutomatorProcessRule&lt;/code&gt; plugin (&lt;code&gt;id: 'action'&lt;/code&gt;, class &lt;code&gt;ActionProcessing&lt;/code&gt;) implements &lt;code&gt;AiAutomatorDirectProcessInterface&lt;/code&gt; and returns &lt;code&gt;FALSE&lt;/code&gt; from &lt;code&gt;shouldProcessDirectly()&lt;/code&gt;. This prevents the automator from firing during entity presave. It lives in &lt;code&gt;src/Plugin/AiAutomatorProcess/ActionProcessing.php&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Derivative action plugins.&lt;/strong&gt; &lt;code&gt;RunAutomatorAction&lt;/code&gt; (&lt;code&gt;id: 'ai_automators_run'&lt;/code&gt;) extends &lt;code&gt;EntityActionBase&lt;/code&gt; and uses &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; to create one derivative per &lt;code&gt;ai_automator&lt;/code&gt; config entity whose &lt;code&gt;worker_type&lt;/code&gt; equals &lt;code&gt;'action'&lt;/code&gt;. Each derivative is labeled &lt;code&gt;&amp;quot;AI: [automator label]&amp;quot;&lt;/code&gt; and scoped to the automator's entity type. &lt;code&gt;RunAutomatorActionDeriver&lt;/code&gt; loads all &lt;code&gt;ai_automator&lt;/code&gt; configs and filters by &lt;code&gt;worker_type === 'action'&lt;/code&gt; inside &lt;code&gt;getDerivativeDefinitions()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Cache invalidation.&lt;/strong&gt; &lt;code&gt;AiAutomator::postSave()&lt;/code&gt; and &lt;code&gt;AiAutomator::postDelete()&lt;/code&gt; call &lt;code&gt;\Drupal::service('plugin.manager.action')-&amp;gt;clearCachedDefinitions()&lt;/code&gt; so derived action definitions stay in sync with config changes without manual cache clears.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Access and bundle checking.&lt;/strong&gt; &lt;code&gt;RunAutomatorAction::access()&lt;/code&gt; compares the entity's bundle against the automator's target bundle. A mismatch returns &lt;code&gt;AccessResult::forbidden()&lt;/code&gt; with the automator config entity as a cacheable dependency. Performing this check in &lt;code&gt;access()&lt;/code&gt; rather than &lt;code&gt;execute()&lt;/code&gt; means VBO correctly reports bundle-mismatched entities as skipped rather than silently counting them as processed.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;&lt;code&gt;edit_mode&lt;/code&gt; and recursion prevention.&lt;/strong&gt; &lt;code&gt;execute()&lt;/code&gt; checks whether the target field already has a value and, if &lt;code&gt;edit_mode&lt;/code&gt; is off, skips the entity with a status message. After calling &lt;code&gt;generateResponse()&lt;/code&gt;, the entity is saved inside a &lt;code&gt;ai_automators_entity_can_save_toggle(FALSE)&lt;/code&gt; / &lt;code&gt;finally { ai_automators_entity_can_save_toggle(TRUE) }&lt;/code&gt; guard to prevent the automator hook from re-triggering. Errors from &lt;code&gt;generateResponse()&lt;/code&gt; are caught and logged without aborting the batch.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Naming decision.&lt;/strong&gt; The initial implementation named the worker type &lt;code&gt;bulk_action&lt;/code&gt;. &lt;code&gt;fago&lt;/code&gt; requested renaming it to &lt;code&gt;action&lt;/code&gt; because the core action plugin system is general-purpose and not limited to VBO. All class names, plugin IDs, and file names were updated accordingly.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Deferred scope.&lt;/strong&gt; Processor subforms (allowing per-processor configuration UI) were proposed during review but deferred to a separate issue per &lt;code&gt;fago&lt;/code&gt;'s recommendation.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 25, 2024&lt;/li&gt;
-&lt;li&gt;First commit: March 26, 2026 (1 year later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 1, 2026 (5 days and 11 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;petar_basic (drunomics)&lt;/li&gt;
-&lt;li&gt;harivansh (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;fago (drunomics)&lt;/li&gt;
-&lt;li&gt;ajv009 (FreelyGive)&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The worker type was initially named &lt;code&gt;bulk_action&lt;/code&gt;; &lt;code&gt;fago&lt;/code&gt; requested renaming to &lt;code&gt;action&lt;/code&gt; because Drupal action plugins are general-purpose and not VBO-specific. The bundle mismatch check was moved from &lt;code&gt;execute()&lt;/code&gt; to &lt;code&gt;access()&lt;/code&gt; after &lt;code&gt;petar_basic&lt;/code&gt; noted that the original placement caused VBO to silently count skipped entities as successfully processed. An initial backport to 1.x broke tests due to structural differences in &lt;code&gt;AiAutomator&lt;/code&gt; entity definitions across branches; it was reverted and a proper backport was prepared separately.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579478: Add LiteLLM guardrails type and sync from proxy</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3579478.md</link>
-      <guid isPermaLink="false">019d857f-33e4-728b-bbba-94e97f38e931</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 31 Mar 2026 15:51:57 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +1162/−3 · php +1154/−3 · yml +8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_litellm/-/commit/5f5b069e92022b0214b9d3f5069d67cf09adbcc8"&gt;5f5b069&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579478"&gt;#3579478&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This feature integrates LiteLLM Proxy's server-side guardrail system with Drupal's AI module. Site administrators can sync guardrails configured in their LiteLLM proxy into Drupal as config entities, then attach them to guardrail sets. When a request is sent, the guardrail names are included in the API payload so the proxy enforces them server-side. This allows sites to use guardrails like PII masking or prompt injection detection without implementing the logic in Drupal.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; plugin (type &lt;code&gt;AiGuardrail&lt;/code&gt;) for pass-through guardrails enforced by LiteLLM Proxy&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;LiteLLM Proxy exposes a &lt;code&gt;GET /guardrails/list&lt;/code&gt; endpoint that returns guardrails configured in its &lt;code&gt;config.yaml&lt;/code&gt;. Each guardrail has a name, type, and enforcement mode (pre_call, post_call, during_call). The proxy enforces guardrails when the request payload includes a &lt;code&gt;guardrails&lt;/code&gt; array with the names to apply.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; plugin (&lt;code&gt;AiGuardrail&lt;/code&gt; type) is a pass-through plugin. Its &lt;code&gt;processInput()&lt;/code&gt; and &lt;code&gt;processOutput()&lt;/code&gt; methods always return &lt;code&gt;PassResult&lt;/code&gt; because Drupal does not enforce anything itself. The plugin stores only the &lt;code&gt;guardrail_name&lt;/code&gt; from its configuration.&lt;/p&gt;
-&lt;p&gt;The sync flow lives in &lt;code&gt;LiteLlmAiConfigForm::syncGuardrails()&lt;/code&gt;. It calls &lt;code&gt;LiteLlmAiClient::guardrails()&lt;/code&gt;, which fetches the list from the proxy and extracts the &lt;code&gt;guardrail_name&lt;/code&gt; field from each entry. For each name, the sync method generates a config entity ID by lowercasing, replacing non-alphanumeric characters with underscores, prepending &lt;code&gt;litellm_&lt;/code&gt;, and truncating to 64 characters. If an entity with that ID exists, it is updated. Otherwise a new &lt;code&gt;ai_guardrail&lt;/code&gt; entity is created with plugin type &lt;code&gt;litellm_guardrail&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;LiteLlmAiProvider::chat()&lt;/code&gt; receives a &lt;code&gt;ChatInput&lt;/code&gt; with a guardrail set, it walks the pre-generate and post-generate guardrails. For each &lt;code&gt;LiteLlmGuardrail&lt;/code&gt; instance, it extracts the &lt;code&gt;guardrail_name&lt;/code&gt; from the plugin configuration. The names are deduplicated and injected into &lt;code&gt;$this-&amp;gt;configuration['guardrails']&lt;/code&gt; before delegating to the parent &lt;code&gt;chat()&lt;/code&gt; method (which passes configuration values into the request payload). The key is then removed from configuration so it does not bleed into subsequent calls.&lt;/p&gt;
-&lt;p&gt;A &lt;code&gt;hook_form_alter()&lt;/code&gt; implementation adds a notice to guardrail set forms when LiteLLM guardrails are present, explaining that the pre/post distinction in Drupal is irrelevant because enforcement timing is controlled by the proxy configuration.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 16, 2026&lt;/li&gt;
-&lt;li&gt;Committed: March 31, 2026 (15 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;ajv009's review caught three edge cases: entity ID collisions when different guardrail names normalize to the same ID, entity ID length exceeding the 64-character config entity limit, and swallowed errors in &lt;code&gt;LiteLlmAiClient::guardrails()&lt;/code&gt; that hid connection failures behind a generic message. The length limit was fixed in the final implementation by truncating IDs to 64 characters. ajv009 also noted this MR adds the first tests to the module. nikro agreed with the findings and welcomed the test coverage.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
