@@ -1,4 +1,4 @@
-**TL;DR:** [596 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [597 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_447 summaries · 54 new this week_
+_447 summaries · 52 new this week_
 
 - [#3586654: Avoid scanning the file system for local po files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586654.md)
 - [#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md)
@@ -22,11 +22,11 @@ _77 summaries · 19 new this week_
 
 ### Drupal Canvas
 
-_61 summaries · 24 new this week_
+_62 summaries · 23 new this week_
 
 - [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
 - [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
-- [#3586613: Add content-entity-reference well-known prop shape for code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3586613.md)
+- [#3576863: Manage Content Templates within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576863.md)
 
 ### Drupal CMS
 
