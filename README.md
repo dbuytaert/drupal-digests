@@ -14,7 +14,7 @@ _76 summaries · 18 new this week_
 
 ### Drupal Core
 
-_444 summaries · 58 new this week_
+_444 summaries · 53 new this week_
 
 - [#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md)
 - [#1452100: Private file download returns access denied, when file attached to revision...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1452100.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_169 rules · 8 new this week_
+_169 rules · 5 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
