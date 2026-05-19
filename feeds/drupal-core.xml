@@ -5,6 +5,50 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3586654: Avoid scanning the file system for local po files</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586654.md</link>
+      <guid isPermaLink="false">019e4060-9775-722d-8f68-f97d86f2393f</guid>
+      <pubDate>Tue, 19 May 2026 09:17:58 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +4/−11 · php +4/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1d9e127ea48f2f17193440178f0c72cb710b3a17"&gt;1d9e127&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586654"&gt;#3586654&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites that check for translation updates via the locale module will see a dramatic performance improvement. On a site with 200 modules and 38 languages, &lt;code&gt;locale_translation_check_projects_local()&lt;/code&gt; dropped from around 5 minutes to roughly 7 seconds. The change removes an unnecessary file-system directory scan that was triggered for every project and language combination during a local &lt;code&gt;.po&lt;/code&gt; file check.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;LocaleSource::sourceCheckFile&lt;/code&gt; previously located local &lt;code&gt;.po&lt;/code&gt; files by calling &lt;code&gt;FileSystemInterface::scanDirectory()&lt;/code&gt; with a regex-escaped filename pattern, even though the file's URI was already stored on &lt;code&gt;$source_file-&amp;gt;uri&lt;/code&gt;. This scan ran for every project-language pair, causing severe I/O and serialization overhead at scale.&lt;/p&gt;
+&lt;p&gt;The fix replaces the entire directory scan with a direct &lt;code&gt;file_exists($source_file-&amp;gt;uri)&lt;/code&gt; check. When the URI is present and the file exists, &lt;code&gt;filemtime()&lt;/code&gt; and &lt;code&gt;hash_file()&lt;/code&gt; are called on the known path. The &lt;code&gt;$source_file-&amp;gt;uri&lt;/code&gt; assignment that the old scan performed is now skipped because the URI is already populated before &lt;code&gt;sourceCheckFile&lt;/code&gt; is called.&lt;/p&gt;
+&lt;p&gt;The scan was a historical artefact. As traced by comment archaeology against &lt;a href="https://www.drupal.org/node/1804688"&gt;#1804688&lt;/a&gt; (where it was introduced) and &lt;a href="https://www.drupal.org/node/1998056"&gt;#1998056&lt;/a&gt; (where cron-based auto-updates arrived), the original code tracked multiple versions of &lt;code&gt;.po&lt;/code&gt; files, which made a scan meaningful. When &lt;a href="https://www.drupal.org/node/1998056"&gt;#1998056&lt;/a&gt; shifted tracking to only the most recent download, the multi-version lookup rationale disappeared but the expensive scan was never removed. Because this functionality had effectively been absent since Drupal 8.8.0 with no reported breakage, removing the scan carries no compatibility risk. Broader optimisations to &lt;code&gt;locale_translation_get_status&lt;/code&gt; and the KV store reads are tracked separately in &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3590050"&gt;#3590050&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 19, 2026 (25 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;webflo (UEBERBIT GmbH)&lt;/li&gt;
+&lt;li&gt;ishani patel&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;penyaskito spent 1.5 hours tracing the directory-scan code back through &lt;a href="https://www.drupal.org/node/1804688"&gt;#1804688&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/1998056"&gt;#1998056&lt;/a&gt;, establishing that the multi-file tracking behaviour that originally justified the scan was silently dropped in 8.8.0 with no visible impact. That historical finding gave the team the confidence to remove the scan outright. berdir later narrowed the issue scope specifically to &lt;code&gt;sourceCheckFile&lt;/code&gt; so the fix could land immediately without waiting for the broader locale refactor ongoing in &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md</link>
       <guid isPermaLink="false">019e3f87-3422-76ce-ad9d-48217e5b5d25</guid>
@@ -1014,65 +1058,6 @@ $path = $this-&amp;gt;root . '/core/tests/fixtures/...';
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The fix went through two rounds. dww pushed the initial removal of &lt;code&gt;mb_ereg&lt;/code&gt; (MR 15637) and verified it passed locally on PHP 8.5. alexpott then pointed out the change could be a silent regression for multibyte languages and traced the original code back to a Views contrib issue (&lt;a href="https://www.drupal.org/node/513396"&gt;#513396&lt;/a&gt;) about multibyte-aware trimming. andypost followed up by explaining why the proposed &lt;code&gt;mb_onig&lt;/code&gt; polyfill library was not a viable replacement (archived, requires compiling a C extension) and opened MR 15728 with a &lt;code&gt;preg_match&lt;/code&gt;-based replacement that included Hindi test strings to confirm the behavior was correct. dww applied a minor style suggestion from godotislate, closed the original MR in favor of the new one, and alexpott committed the result.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3064751: Responsive image formatter does not support URL/Link options</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3064751.md</link>
-      <guid isPermaLink="false">019e199a-ee27-77db-8a93-0784dcd92dbd</guid>
-      <category>Module maintainers</category>
-      <category>Front-end developers</category>
-      <pubDate>Mon, 11 May 2026 20:36:58 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +156/−59 · php +154/−57 · twig +2/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a85f1db8b88f1ef4ee8993367195f0c2837f6a34"&gt;a85f1db&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3064751"&gt;#3064751&lt;/a&gt; · 10 contributors · 49 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a responsive image field was configured to link to the file or to the content entity, any URL options (such as HTML attributes like CSS classes or &lt;code&gt;data-*&lt;/code&gt; attributes) set on the link were silently ignored. The generated anchor tag came from a plain &lt;code&gt;href&lt;/code&gt; attribute in the Twig template, so the URL object's options were never consulted. This fix makes linked responsive images behave the same way the plain image formatter already did after &lt;a href="https://www.drupal.org/node/2829990"&gt;#2829990&lt;/a&gt;: URL options are now rendered as attributes on the anchor element.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; &lt;code&gt;$variables['url']&lt;/code&gt; in &lt;code&gt;template_preprocess_responsive_image_formatter&lt;/code&gt; is now always a &lt;code&gt;Url&lt;/code&gt; object; preprocess hooks that treated it as a string for the 'link to file' case must be updated.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;ResponsiveImageFormatter::__construct()&lt;/code&gt; without &lt;code&gt;$fileUrlGenerator&lt;/code&gt; is deprecated in drupal:11.4.0 and the argument will be required in drupal:12.0.0.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root problem was two-fold. First, &lt;code&gt;template_preprocess_responsive_image_formatter()&lt;/code&gt; passed a raw string URL for the &amp;quot;link to file&amp;quot; case (via &lt;code&gt;$file-&amp;gt;createFileUrl()&lt;/code&gt;) rather than a &lt;code&gt;Url&lt;/code&gt; object, so there was nowhere to attach options. This is replaced with &lt;code&gt;$this-&amp;gt;fileUrlGenerator-&amp;gt;generate($file-&amp;gt;getFileUri())&lt;/code&gt;, which returns a &lt;code&gt;Url&lt;/code&gt; object. Second, the Twig template rendered the link as a literal &lt;code&gt;&amp;lt;a href=&amp;quot;{{ url }}&amp;quot;&amp;gt;&lt;/code&gt; string interpolation, which cannot output any options. The template now uses the &lt;code&gt;{{ link(responsive_image, url) }}&lt;/code&gt; Twig function, which consults the &lt;code&gt;Url&lt;/code&gt; object's options and renders them as HTML attributes.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ResponsiveImageFormatter&lt;/code&gt; gains a new &lt;code&gt;FileUrlGeneratorInterface $fileUrlGenerator&lt;/code&gt; constructor parameter. It is optional (nullable, defaulting to &lt;code&gt;NULL&lt;/code&gt;) for backwards compatibility, with a &lt;code&gt;@trigger_error&lt;/code&gt; deprecation when omitted; the parameter will become required in Drupal 12.0.0. The &lt;code&gt;create()&lt;/code&gt; factory already passes &lt;code&gt;$container-&amp;gt;get('file_url_generator')&lt;/code&gt;. The existing constructor parameters were refactored to use PHP constructor property promotion at the same time, removing a block of explicit property assignments.&lt;/p&gt;
-&lt;p&gt;A new kernel test, &lt;code&gt;ResponsiveImageFormatterTest&lt;/code&gt;, verifies that attributes set on &lt;code&gt;$build[...]['#url']&lt;/code&gt; in a preprocess hook appear in the rendered HTML anchor tag.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Preprocess hooks and other PHP code that reads &lt;code&gt;$variables['url']&lt;/code&gt; from &lt;code&gt;template_preprocess_responsive_image_formatter&lt;/code&gt; must now treat it as a &lt;code&gt;\Drupal\Core\Url&lt;/code&gt; object instead of a plain string for the &amp;quot;link to file&amp;quot; case. Twig templates that just output &lt;code&gt;{{ url }}&lt;/code&gt; are unaffected because Twig converts &lt;code&gt;Url&lt;/code&gt; objects to strings automatically.&lt;/p&gt;
-&lt;p&gt;Code that constructs &lt;code&gt;ResponsiveImageFormatter&lt;/code&gt; directly without the &lt;code&gt;$fileUrlGenerator&lt;/code&gt; argument will trigger a deprecation in 11.4.0:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated — omitting $fileUrlGenerator triggers E_USER_DEPRECATED.
-new ResponsiveImageFormatter($pluginId, $def, $fieldDef, $settings, $label, $viewMode, $thirdParty, $riStorage, $imageStorage, $linkGen, $currentUser);
-
-// Correct — pass the file_url_generator service as the twelfth argument.
-new ResponsiveImageFormatter($pluginId, $def, $fieldDef, $settings, $label, $viewMode, $thirdParty, $riStorage, $imageStorage, $linkGen, $currentUser, $fileUrlGenerator);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 28, 2019&lt;/li&gt;
-&lt;li&gt;Committed: May 11, 2026 (6 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;idebr (ezCompany)&lt;/li&gt;
-&lt;li&gt;ocastle (Full Bundle)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;krzysztof domański (abventor)&lt;/li&gt;
-&lt;li&gt;ravi.shankar (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
