@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_447 summaries · 52 new this week_
+_447 summaries · 30 new this week_
 
 - [#3586654: Avoid scanning the file system for local po files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586654.md)
 - [#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md)
@@ -14,7 +14,7 @@ _447 summaries · 52 new this week_
 
 ### Drupal AI
 
-_77 summaries · 19 new this week_
+_77 summaries · 18 new this week_
 
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
@@ -22,7 +22,7 @@ _77 summaries · 19 new this week_
 
 ### Drupal Canvas
 
-_62 summaries · 23 new this week_
+_62 summaries · 21 new this week_
 
 - [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
 - [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
