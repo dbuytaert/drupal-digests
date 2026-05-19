@@ -269,6 +269,48 @@ fi
 </description>
     </item>
     <item>
+      <title>#3588780: [Sprint 3] Component revision tracking — before/current/after comparison</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588780.md</link>
+      <guid isPermaLink="false">019e3eb4-b785-75a5-a8e6-55b084d4ae19</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 13 May 2026 08:31:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +57/−1 · md +57/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/2aca47e57af99999009ffb1e176dba430c09a6d0"&gt;2aca47e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588780"&gt;#3588780&lt;/a&gt; · 1 contributor · 8 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; project's component-fixer had no way to verify that a fix actually improved a component's visual fidelity versus introducing a regression. This sprint adds a lightweight per-component revision tracking system: before and after each fix attempt, screenshots and computed styles are captured and compared to the original source baseline. The agent can now determine whether a change was converging (post-fix is more similar to source), diverging (regression), or unchanged (fix missed the right element), and it halts with a revert instruction on diverging results.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;capture-component.sh&lt;/code&gt; script and &lt;code&gt;compare-three-way.mjs&lt;/code&gt; aggregator; &lt;code&gt;component-fixer&lt;/code&gt; and &lt;code&gt;storybook-qa&lt;/code&gt; agent workflows gain mandatory pre/post capture steps and a &lt;code&gt;revisions/revisions.jsonl&lt;/code&gt; log per component.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three new artifacts implement the system. &lt;code&gt;scripts/visual/capture-component.sh&lt;/code&gt; is a bash script that issues a single &lt;code&gt;agent-browser batch&lt;/code&gt; call per phase (&lt;code&gt;source&lt;/code&gt;, &lt;code&gt;pre&lt;/code&gt;, or &lt;code&gt;post&lt;/code&gt;). For &lt;code&gt;source&lt;/code&gt; phase it writes &lt;code&gt;docs/migration/components/&amp;lt;Name&amp;gt;/source.png&lt;/code&gt; and &lt;code&gt;source-styles.json&lt;/code&gt;. For &lt;code&gt;pre&lt;/code&gt;/&lt;code&gt;post&lt;/code&gt; phases it writes &lt;code&gt;revisions/&amp;lt;N&amp;gt;-{phase}.png&lt;/code&gt;, &lt;code&gt;&amp;lt;N&amp;gt;-{phase}-styles.json&lt;/code&gt;, and &lt;code&gt;&amp;lt;N&amp;gt;-{phase}-diff.json&lt;/code&gt; (a pixel-diff against &lt;code&gt;source.png&lt;/code&gt;). Batching all four browser actions into one call avoids repeated browser startup overhead.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;scripts/visual/compare-three-way.mjs&lt;/code&gt; is the aggregator. It reads the two diff JSONs and three styles JSONs, converts &lt;code&gt;diffRatio&lt;/code&gt; (0 = identical) to &lt;code&gt;pixel_similarity&lt;/code&gt; (1 = identical), classifies &lt;code&gt;direction&lt;/code&gt; as &lt;code&gt;converging&lt;/code&gt;/&lt;code&gt;diverging&lt;/code&gt;/&lt;code&gt;unchanged&lt;/code&gt; using a 0.02-point band, and emits a JSON object with &lt;code&gt;revision&lt;/code&gt;, &lt;code&gt;pixel_similarity_pre&lt;/code&gt;, &lt;code&gt;pixel_similarity_post&lt;/code&gt;, &lt;code&gt;direction&lt;/code&gt;, and &lt;code&gt;css_deltas&lt;/code&gt;. Each &lt;code&gt;css_deltas&lt;/code&gt; entry carries a &lt;code&gt;regressed&lt;/code&gt; flag that is &lt;code&gt;true&lt;/code&gt; only when the pre-fix state matched source and the post-fix state does not, distinguishing regressions from properties that were already wrong.&lt;/p&gt;
+&lt;p&gt;The agent workflow in &lt;code&gt;.claude/agents/component-fixer.md&lt;/code&gt; gains Step 3a (call &lt;code&gt;capture-component.sh --phase pre&lt;/code&gt; before any code change) and Step 5a (call &lt;code&gt;capture-component.sh --phase post&lt;/code&gt; after upload, then run &lt;code&gt;compare-three-way.mjs&lt;/code&gt; and append a &lt;code&gt;revisions.jsonl&lt;/code&gt; line). On &lt;code&gt;direction: &amp;quot;diverging&amp;quot;&lt;/code&gt; the agent reverts with &lt;code&gt;git restore&lt;/code&gt; and emits &lt;code&gt;BLOCKED: regression detected&lt;/code&gt;. &lt;code&gt;.claude/agents/storybook-qa.md&lt;/code&gt; is updated to call &lt;code&gt;capture-component.sh --phase source&lt;/code&gt; once when the first issue for a component is filed, seeding the stable &lt;code&gt;source.png&lt;/code&gt; baseline. The &lt;code&gt;visual-comparison&lt;/code&gt; skill docs gain a dedicated &lt;code&gt;Three-way comparison&lt;/code&gt; section documenting the full capture-aggregate-interpret flow. Vitest tests for &lt;code&gt;compare-three-way.mjs&lt;/code&gt; and bash smoke tests for &lt;code&gt;capture-component.sh&lt;/code&gt; are included; a new &lt;code&gt;visual&lt;/code&gt; test suite is registered in &lt;code&gt;vitest.config.js&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No migration of existing components is required. To start tracking revisions for a component that already has issues, run the source-baseline capture once:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;scripts/visual/capture-component.sh --component &amp;lt;Name&amp;gt; --revision 0 --phase source \
+  --url &amp;lt;SOURCE_URL&amp;gt; --selector &amp;quot;&amp;lt;SECTION_SELECTOR&amp;gt;&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Subsequent &lt;code&gt;component-fixer&lt;/code&gt; runs will then use &lt;code&gt;--revision 1&lt;/code&gt;, &lt;code&gt;--revision 2&lt;/code&gt;, etc. automatically (the agent derives &lt;code&gt;N&lt;/code&gt; from the line count of &lt;code&gt;revisions/revisions.jsonl&lt;/code&gt;). Components that have never had a &lt;code&gt;storybook-qa&lt;/code&gt; issue filed since this change will need the source baseline captured manually before the fixer can produce a &lt;code&gt;direction&lt;/code&gt; result.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 13, 2026 (6 days and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588776: [Sprint 3] Issue files missing before-fix screenshots — fixer working blind</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588776.md</link>
       <guid isPermaLink="false">019e3a64-80f1-712d-8620-25a6db254ebb</guid>
@@ -862,44 +904,6 @@ drush cr
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, &lt;code&gt;marcus_johansson&lt;/code&gt; noted (citing a discussion at DrupalCon) that the matching logic must be AND-based: checking two fields should only match an entity when both values are equal, not either one. &lt;code&gt;merilainen&lt;/code&gt;, who opened the issue and wrote the original patch, updated the logic accordingly. Later, a PHPStan error was flagged after a rebase; &lt;code&gt;ahmad khader&lt;/code&gt; stepped in to fix it, retargeted the branch to &lt;code&gt;1.4.x&lt;/code&gt; at &lt;code&gt;marcus_johansson&lt;/code&gt;'s request, and brought the merge request to completion.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575594: Add css to make the mdxeditor slightly taller</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575594.md</link>
-      <guid isPermaLink="false">019db609-c962-724e-b565-8902b30274af</guid>
-      <pubDate>Fri, 17 Apr 2026 15:03:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +4/−0 · css +4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/70d3319e9a18b706c3d54c6129168b25d1d2f790"&gt;70d3319&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575594"&gt;#3575594&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The MDXEditor rich-text field in the AI module was too short when empty, making it difficult to work with. A &lt;code&gt;min-height: 240px&lt;/code&gt; CSS rule (roughly 8 lines of text) has been added so the editor presents a usable amount of space before any content is entered. This is a visual-only change with no functional impact.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The MDXEditor component rendered its &lt;code&gt;[contenteditable]&lt;/code&gt; area with no minimum height, so the editor collapsed to nearly nothing when the field was empty. The fix adds one CSS rule to the AI Core module's MDXEditor stylesheet targeting &lt;code&gt;.mdxeditor .mdxeditor-rich-text-editor [contenteditable]&lt;/code&gt; and setting &lt;code&gt;min-height: 240px&lt;/code&gt;. The selector scope (&lt;code&gt;.mdxeditor&lt;/code&gt; parent plus &lt;code&gt;.mdxeditor-rich-text-editor&lt;/code&gt; wrapper) ensures the rule applies only inside the rich-text editing surface and does not affect other contenteditable elements on the page. The change was committed to the 1.x, 1.3.x, 1.4.x, 2.0.x, and 2.x branches.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 25, 2026&lt;/li&gt;
-&lt;li&gt;First commit: April 2, 2026 (1 month later)&lt;/li&gt;
-&lt;li&gt;Last commit: April 17, 2026 (14 days and 7 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;bbruno (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;erichomanchuk (Foster Interactive Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
