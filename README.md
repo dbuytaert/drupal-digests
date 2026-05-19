@@ -1,8 +1,16 @@
-**TL;DR:** [593 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [595 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_446 summaries · 54 new this week_
+
+- [#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md)
+- [#3587707: Try to avoid extra cache sets/gets in ThemeRegistry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587707.md)
+- [#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _77 summaries · 19 new this week_
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
 - [#3588799: [Sprint 8] Canvas content templates as a phase for content-type migrations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588799.md)
-
-### Drupal Core
-
-_444 summaries · 53 new this week_
-
-- [#3590425: Remove usage of property hook for DrupalTestCaseTrait::$root ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590425.md)
-- [#1452100: Private file download returns access denied, when file attached to revision...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1452100.md)
-- [#3590237: Add PHP 8.6 polyfill](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590237.md)
 
 ### Drupal Canvas
 
