@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_447 summaries · 12 new this week_
+_447 summaries · 11 new this week_
 
 - [#3586654: Avoid scanning the file system for local po files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586654.md)
 - [#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md)
