@@ -1,4 +1,4 @@
-**TL;DR:** [598 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [599 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_448 summaries · 10 new this week_
+_449 summaries · 11 new this week_
 
+- [#3564234: Add display-builder agnostic overview page for display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md)
 - [#3591179: Update main and 11.x to latest Twig and Symfony versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591179.md)
 - [#3586654: Avoid scanning the file system for local po files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586654.md)
-- [#3590435: Backport changes to DrupalTestCaseTrait and related classes from 12.x to 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590435.md)
 
 ### Drupal AI
 
