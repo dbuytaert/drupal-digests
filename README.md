@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_449 summaries · 11 new this week_
+_449 summaries · 10 new this week_
 
 - [#3564234: Add display-builder agnostic overview page for display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md)
 - [#3591179: Update main and 11.x to latest Twig and Symfony versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591179.md)
