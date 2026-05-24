@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_449 summaries · 8 new this week_
+_449 summaries · 5 new this week_
 
 - [#3564234: Add display-builder agnostic overview page for display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md)
 - [#3591179: Update main and 11.x to latest Twig and Symfony versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591179.md)
@@ -14,7 +14,7 @@ _449 summaries · 8 new this week_
 
 ### Drupal AI
 
-_77 summaries · 8 new this week_
+_77 summaries · 7 new this week_
 
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_169 rules · 1 new this week_
+_169 rules · 0 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
