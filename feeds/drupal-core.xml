@@ -5,6 +5,49 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3587601: Avoid loading date formats in element info</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md</link>
+      <guid isPermaLink="false">019e6009-c254-7367-8616-f18d20372293</guid>
+      <pubDate>Mon, 25 May 2026 13:31:31 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +37/−30 · php +37/−30&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/68114871086f461a74cf4bdcbd41fe613d43d434"&gt;6811487&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587601"&gt;#3587601&lt;/a&gt; · 6 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On every cold cache request, the &lt;code&gt;Datetime&lt;/code&gt; form element class was loading two date format config entities (&lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt;) as part of populating the element info cache, even on pages that never rendered a datetime form element. This added 2 database queries and 2 cache set operations to every cache warmup cycle. The fix moves those loads out of &lt;code&gt;getInfo()&lt;/code&gt; and defers them to the form processing callbacks that run only when a datetime element is actually being rendered. The performance tests confirm a reduction of 2 queries, 2 cache gets, and 2 cache sets per cold-cache request on both the front page and node pages.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;Datetime&lt;/code&gt; element's &lt;code&gt;getInfo()&lt;/code&gt; method was using &lt;code&gt;DateFormat::load('html_date')&lt;/code&gt; and &lt;code&gt;DateFormat::load('html_time')&lt;/code&gt; to populate &lt;code&gt;#date_date_format&lt;/code&gt; and &lt;code&gt;#date_time_format&lt;/code&gt; default properties. Because &lt;code&gt;getInfo()&lt;/code&gt; results populate a shared element info cache, those loads ran on every cold-cache request regardless of whether any datetime element appeared on the page.&lt;/p&gt;
+&lt;p&gt;The fix removes &lt;code&gt;#date_date_format&lt;/code&gt; and &lt;code&gt;#date_time_format&lt;/code&gt; from the &lt;code&gt;getInfo()&lt;/code&gt; return value entirely. Instead, &lt;code&gt;valueCallback()&lt;/code&gt; and &lt;code&gt;processDatetime()&lt;/code&gt; each call &lt;code&gt;DateFormat::loadMultiple(['html_date', 'html_time'])&lt;/code&gt; at the start and set the two properties via &lt;code&gt;$element +=&lt;/code&gt; (the &lt;code&gt;+=&lt;/code&gt; operator preserves any caller-supplied values, keeping the existing override contract). The redundant duplicate &lt;code&gt;DateFormat::load()&lt;/code&gt; calls that previously existed inside the &lt;code&gt;datetime-local&lt;/code&gt; branch of &lt;code&gt;valueCallback()&lt;/code&gt; are also removed, replaced by reuse of the already-loaded &lt;code&gt;$formats&lt;/code&gt; array.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;DatetimeElementFormTest&lt;/code&gt; kernel test was missing a call to &lt;code&gt;installConfig(['system'])&lt;/code&gt;, so it did not have the &lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt; config entities available; this was fixed by adding a &lt;code&gt;setUp()&lt;/code&gt; override that installs both the entity schema and system config before tests run.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
+&lt;li&gt;First commit: May 5, 2026 (6 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: May 25, 2026 (19 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The review thread had a substantive back-and-forth over whether to add NULL checks when &lt;code&gt;DateFormat::loadMultiple()&lt;/code&gt; returns results. &lt;code&gt;dcam&lt;/code&gt; flagged inconsistent NULL guarding in the MR, &lt;code&gt;godotislate&lt;/code&gt; pressed further and noted that &lt;code&gt;$formats['html_date']&lt;/code&gt; or &lt;code&gt;$formats['html_time']&lt;/code&gt; could theoretically be NULL. &lt;code&gt;alexpott&lt;/code&gt; resolved the debate by pointing out that both &lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt; are locked system config entities that cannot be deleted, making the NULL guards incorrect rather than merely unnecessary. &lt;code&gt;catch&lt;/code&gt; confirmed this by attempting the removal, observing a test failure in &lt;code&gt;DatetimeElementFormTest&lt;/code&gt;, diagnosing that the test was simply missing &lt;code&gt;installConfig(['system'])&lt;/code&gt;, and fixing the test rather than restoring the guards.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3582833: Consolidate, refactor, remove and untangle Claro's CSS from Default Admin theme</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582833.md</link>
       <guid isPermaLink="false">019e5f49-b37f-7610-8dd3-d74114d527b4</guid>
@@ -1059,49 +1102,6 @@ catch (\RuntimeException $e) {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;larowlan opened the MR after profiling a JSON:API endpoint backed by a custom OpenSearch-based entity storage, where each lookup carried additional latency. In that environment, reducing UUID queries dropped a single collection page from 550 queries to 55. catch stepped in to fix test failures: the initial implementation cached empty results, which broke tests that checked for a non-existent UUID before creating an entity. catch's resolution introduced the separate &lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt; so the UUID lookup cache could be reset aggressively on any entity save, enabling safe caching of empty results. That fix in turn required modifying &lt;code&gt;LruMemoryCache::invalidateTags()&lt;/code&gt; to remove items outright rather than marking them invalid. catch also noted that priming the UUID cache from &lt;code&gt;setStaticCache()&lt;/code&gt; was a particularly nice touch, causing every UUID query for entities already loaded by ID to disappear entirely from the JSON:API performance test results.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585555: Bump PHPStan &amp; friends to latest release</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585555.md</link>
-      <guid isPermaLink="false">019e1999-1d7c-7419-893b-97328b0f6e23</guid>
-      <pubDate>Tue, 12 May 2026 00:07:45 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +25/−117 · php +18/−110 · json +7/−7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5200a3461a4a25b4d3eb2a1c560458b803db7aa2"&gt;5200a34&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585555"&gt;#3585555&lt;/a&gt; · 7 contributors · 31 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core bumps &lt;code&gt;mglaman/phpstan-drupal&lt;/code&gt; (to 2.0.15) and &lt;code&gt;phpstan/phpstan&lt;/code&gt; (to 2.1.54) along with related static-analysis packages, and applies the code fixes those newer versions revealed. The most significant change is a correction in the dependency-injection autowiring layer that eliminates PHP 8.4 deprecation notices for sites whose services use &lt;code&gt;AutowireTrait&lt;/code&gt;. The change was committed to both &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The functional code change is in &lt;code&gt;AutowireInstanceTrait::getAutowireArguments()&lt;/code&gt;. The old call &lt;code&gt;$parameter-&amp;gt;allowsNull()&lt;/code&gt; directly on a &lt;code&gt;ReflectionParameter&lt;/code&gt; instance is deprecated in PHP 8.4; it is replaced with &lt;code&gt;$parameter-&amp;gt;getType()?-&amp;gt;allowsNull() || $parameter-&amp;gt;getType() === NULL&lt;/code&gt;. The null-safe operator handles parameters that carry no type hint at all (where &lt;code&gt;getType()&lt;/code&gt; returns &lt;code&gt;null&lt;/code&gt;), preserving the original behaviour of setting such arguments to &lt;code&gt;null&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Two link module field-formatter classes (&lt;code&gt;LinkFormatter&lt;/code&gt; and a sibling formatter) gain &lt;code&gt;@phpstan-param \Drupal\Core\Field\FieldItemListInterface&amp;lt;\Drupal\link\LinkItemInterface&amp;gt; $items&lt;/code&gt; docblock annotations on their &lt;code&gt;viewElements()&lt;/code&gt; methods. These PHPStan generics annotation let the analyser infer the concrete item type without requiring runtime &lt;code&gt;assert()&lt;/code&gt; calls, resolving unknown-variable-type warnings introduced by the stricter PHPStan 2.x series.&lt;/p&gt;
-&lt;p&gt;The PHPStan baseline file &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; loses a large number of now-resolved suppressions: &lt;code&gt;missingType.return&lt;/code&gt; entries for generated &lt;code&gt;trait*()&lt;/code&gt; proxy methods across &lt;code&gt;BlockBase&lt;/code&gt;, &lt;code&gt;BlockManager&lt;/code&gt;, &lt;code&gt;ContentEntityDeleteForm&lt;/code&gt;, &lt;code&gt;FieldTypePluginManager&lt;/code&gt;, &lt;code&gt;ModerationStateFieldItemList&lt;/code&gt;, workspaces &lt;code&gt;Query&lt;/code&gt;/&lt;code&gt;QueryAggregate&lt;/code&gt;, and others; and &lt;code&gt;variable.undefined&lt;/code&gt; entries across several modules and tests that the upgraded analyser can now prove are always defined. A small number of new baseline entries are added where the stricter analysis flags previously unchecked patterns (for example, an &lt;code&gt;isset.offset&lt;/code&gt; check on a known array shape in &lt;code&gt;BlockListBuilder&lt;/code&gt; and a &lt;code&gt;variable.undefined&lt;/code&gt; for &lt;code&gt;$fiber&lt;/code&gt; in &lt;code&gt;RendererTest&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 18, 2026&lt;/li&gt;
-&lt;li&gt;First commit: May 9, 2026 (20 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 12, 2026 (2 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, xjm flagged that adding &lt;code&gt;assert()&lt;/code&gt; calls for link items could disrupt CI pipelines if non-link items had ever been permitted there. mondrake explained that the downstream &lt;code&gt;buildUrl()&lt;/code&gt; call already enforces the type natively, making a runtime failure on non-link items inevitable regardless. This led mondrake to switch from assertions to PHPStan generics annotations, which satisfied the type-analysis requirement without adding runtime overhead. longwave separately identified the &lt;code&gt;ReflectionParameter::allowsNull()&lt;/code&gt; deprecation warning spreading through anything using &lt;code&gt;AutowireTrait&lt;/code&gt; and proposed the one-line fix that was then incorporated.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

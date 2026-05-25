@@ -1,4 +1,4 @@
-**TL;DR:** [600 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [601 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_450 summaries · 6 new this week_
+_451 summaries · 7 new this week_
 
+- [#3587601: Avoid loading date formats in element info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md)
 - [#3582833: Consolidate, refactor, remove and untangle Claro's CSS from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582833.md)
 - [#3564234: Add display-builder agnostic overview page for display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md)
-- [#3591179: Update main and 11.x to latest Twig and Symfony versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591179.md)
 
 ### Drupal AI
 
