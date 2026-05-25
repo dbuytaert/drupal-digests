@@ -14,7 +14,7 @@ _449 summaries · 5 new this week_
 
 ### Drupal AI
 
-_77 summaries · 7 new this week_
+_77 summaries · 5 new this week_
 
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
