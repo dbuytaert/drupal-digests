@@ -241,6 +241,116 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace locale_translation_update_file_history() and locale_translation_file_history_delete() with CurrentImportStorage service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e646e-2823-702d-8197-7b928de00849.md</link>
+      <guid isPermaLink="false">019e646e-2823-702d-8197-7b928de00849</guid>
+      <pubDate>Tue, 26 May 2026 13:16:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces the deprecated &lt;code&gt;locale_translation_update_file_history($source)&lt;/code&gt; and &lt;code&gt;locale_translation_file_history_delete($projects, $langcodes)&lt;/code&gt; global functions with calls to the &lt;code&gt;CurrentImportStorage&lt;/code&gt; service. &lt;code&gt;locale_translation_update_file_history&lt;/code&gt; wraps the source in &lt;code&gt;CurrentImport::createFromSource()&lt;/code&gt; before passing it to &lt;code&gt;-&amp;gt;save()&lt;/code&gt;. &lt;code&gt;locale_translation_file_history_delete&lt;/code&gt; passes its arguments directly to &lt;code&gt;-&amp;gt;delete()&lt;/code&gt;. Note: &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; has no direct replacement and is not handled.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;locale_translation_update_file_history($source);
+locale_translation_file_history_delete($projects, $langcodes);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));
+\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;delete($projects, $langcodes);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Zero-argument calls to &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt; are not rewritten because the replacement &lt;code&gt;CurrentImportStorage::delete()&lt;/code&gt; requires the &lt;code&gt;$projects&lt;/code&gt; argument. Zero-argument calls to &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt; are also skipped. The third deprecated function &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; has no direct mechanical replacement and is not handled.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class LocaleTranslationHistoryFunctionsRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale_translation_update_file_history() and locale_translation_file_history_delete() with CurrentImportStorage service calls.',
+            [new CodeSample(
+                'locale_translation_update_file_history($source);',
+                '\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'locale_translation_update_file_history')) {
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+            $service = $this-&amp;gt;buildServiceCall('Drupal\\locale\\CurrentImportStorage');
+            $wrappedSource = new StaticCall(
+                new FullyQualified('Drupal\\locale\\CurrentImport'),
+                new Identifier('createFromSource'),
+                [$node-&amp;gt;args[0]]
+            );
+            return new MethodCall($service, new Identifier('save'), [new Arg($wrappedSource)]);
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'locale_translation_file_history_delete')) {
+            // Require at least 1 arg; the service delete() method requires $projects.
+            if (count($node-&amp;gt;args) &amp;lt; 1) {
+                return null;
+            }
+            $service = $this-&amp;gt;buildServiceCall('Drupal\\locale\\CurrentImportStorage');
+            return new MethodCall($service, new Identifier('delete'), $node-&amp;gt;args);
+        }
+
+        return null;
+    }
+
+    private function buildServiceCall(string $serviceClass): StaticCall
+    {
+        $classRef = new ClassConstFetch(
+            new FullyQualified($serviceClass),
+            new Identifier('class')
+        );
+        return new StaticCall(
+            new FullyQualified('Drupal'),
+            new Identifier('service'),
+            [new Arg($classRef)]
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([LocaleTranslationHistoryFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace drupal_static_reset() file_get_file_references keys with cache tag invalidation</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e327d-4705-71c4-9eda-50f160e89ed8.md</link>
       <guid isPermaLink="false">019e327d-4705-71c4-9eda-50f160e89ed8</guid>
@@ -1659,84 +1769,6 @@ return RectorConfig::configure()
         'Drupal\\menu_ui\\Plugin\\Menu\\LocalAction\\MenuLinkAdd' =&amp;gt; 'Drupal\\Core\\Menu\\LocalActionWithDestination',
     ]);
 
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace comment_uri() with $comment-&gt;permalink()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e094b-27ae-7512-80d7-2d3182e4d14c.md</link>
-      <guid isPermaLink="false">019e094b-27ae-7512-80d7-2d3182e4d14c</guid>
-      <pubDate>Fri, 08 May 2026 20:33:00 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2010202"&gt;#2010202&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.3.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites calls to the deprecated global function &lt;code&gt;comment_uri($comment)&lt;/code&gt; to the equivalent method call &lt;code&gt;$comment-&amp;gt;permalink()&lt;/code&gt;. The function was deprecated in drupal:11.3.0 and will be removed in drupal:12.0.0. Any contrib or custom code that still calls &lt;code&gt;comment_uri()&lt;/code&gt; directly must switch to the &lt;code&gt;CommentInterface::permalink()&lt;/code&gt; method.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$url = comment_uri($comment);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$url = $comment-&amp;gt;permalink();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites calls where the argument's type is resolvable as &lt;code&gt;Drupal\comment\CommentInterface&lt;/code&gt;. Calls where PHPStan cannot infer the argument type are left unchanged and require manual review.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class CommentUriToPermalinkRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated comment_uri($comment) with $comment-&amp;gt;permalink().',
-            [new CodeSample(
-                '$url = comment_uri($comment);',
-                '$url = $comment-&amp;gt;permalink();',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'comment_uri')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 1) {
-            return null;
-        }
-        $arg = $node-&amp;gt;args[0];
-        if (!$arg instanceof Arg) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($arg-&amp;gt;value, new ObjectType('Drupal\\comment\\CommentInterface'))) {
-            return null;
-        }
-        return new MethodCall($arg-&amp;gt;value, 'permalink');
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([CommentUriToPermalinkRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

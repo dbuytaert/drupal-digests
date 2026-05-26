@@ -1,4 +1,4 @@
-**TL;DR:** [601 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [602 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_451 summaries · 7 new this week_
+_452 summaries · 5 new this week_
 
+- [#3037156: Modernize locale history functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037156.md)
 - [#3587601: Avoid loading date formats in element info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md)
 - [#3582833: Consolidate, refactor, remove and untangle Claro's CSS from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582833.md)
-- [#3564234: Add display-builder agnostic overview page for display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [169 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_169 rules · 0 new this week_
+_170 rules · 1 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace drupal_static_reset() file_get_file_references keys with cache tag...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-drupal-static-reset-file-get-file-references-keys-1452100.php)
+- [Replace locale_translation_update_file_history() and...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-locale-translation-update-file-history-and-locale-3037156.php)
 
 
 ## RSS feeds

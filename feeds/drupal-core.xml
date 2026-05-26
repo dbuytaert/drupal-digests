@@ -5,6 +5,94 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3037156: Modernize locale history functions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037156.md</link>
+      <guid isPermaLink="false">019e6468-dd6e-70bc-8fd8-9f2f1de23fb2</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 26 May 2026 09:52:58 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +430/−144 · php +429/−144 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4b3d35596ffeaeccb34c597c8b6b85152c8077eb"&gt;4b3d355&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt; · 13 contributors · 78 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Three procedural functions that tracked locale translation import history have been deprecated in &lt;code&gt;locale.module&lt;/code&gt; in favor of the new &lt;code&gt;CurrentImportStorage&lt;/code&gt; service. The old approach loaded every row in the &lt;code&gt;locale_file&lt;/code&gt; table into a static cache each time the history was read, and invalidated that entire cache after any single update. On sites with many languages and projects this caused severe performance problems: heddn reported calls to these functions consuming around 96% of execution time, with cron imports taking close to two hours for 8-9 languages. The new service fetches and caches one project/language record at a time and only invalidates individual entries on write, eliminating the full-reload loop. Site owners with large multi-language installations should see a meaningful improvement in translation update cron performance.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Three &lt;code&gt;locale.module&lt;/code&gt; functions deprecated: &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt;, and &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt;; replaced by the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;CurrentImportStorage&lt;/code&gt; service.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; using &lt;code&gt;drupal_static()&lt;/code&gt; with no selectivity, always fetching every row of &lt;code&gt;locale_file&lt;/code&gt;. &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt; then called &lt;code&gt;drupal_static_reset('locale_translation_get_file_history')&lt;/code&gt; after each merge, so a cron run or install with N projects × M languages would reload the full table N×M times.&lt;/p&gt;
+&lt;p&gt;The replacement is &lt;code&gt;CurrentImportStorage&lt;/code&gt;, an &lt;code&gt;@internal&lt;/code&gt; service registered as &lt;code&gt;Drupal\locale\CurrentImportStorage&lt;/code&gt;. Its &lt;code&gt;get(string $project, string $langcode)&lt;/code&gt; method queries one row by project+langcode and stores the result in &lt;code&gt;cache.memory&lt;/code&gt; under the key &lt;code&gt;locale_current_import:{project}:{langcode}&lt;/code&gt; tagged with &lt;code&gt;locale_current_import&lt;/code&gt;. &lt;code&gt;save(CurrentImport $currentImport)&lt;/code&gt; runs a single &lt;code&gt;merge()&lt;/code&gt; and then writes that same cache entry directly, avoiding any invalidation of unrelated records. &lt;code&gt;delete()&lt;/code&gt; runs a filtered &lt;code&gt;DELETE&lt;/code&gt; and then invalidates all entries via the &lt;code&gt;locale_current_import&lt;/code&gt; cache tag. A new &lt;code&gt;getOutdatedImports()&lt;/code&gt; method encapsulates the cron query and &lt;code&gt;last_checked&lt;/code&gt; timestamp update that were previously inlined in &lt;code&gt;LocaleHooks&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The cron implementation was extracted from &lt;code&gt;LocaleHooks&lt;/code&gt; into a dedicated &lt;code&gt;LocaleCronHooks&lt;/code&gt; class so that &lt;code&gt;CurrentImportStorage&lt;/code&gt;, &lt;code&gt;LocaleFetch&lt;/code&gt;, and other dependencies can be properly constructor-injected rather than pulled from the service container procedurally.&lt;/p&gt;
+&lt;p&gt;The typed &lt;code&gt;CurrentImport&lt;/code&gt; value object (also &lt;code&gt;@internal&lt;/code&gt;) replaces the untyped &lt;code&gt;stdClass&lt;/code&gt; that the functions previously passed around. It carries &lt;code&gt;project&lt;/code&gt;, &lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;version&lt;/code&gt;, &lt;code&gt;hash&lt;/code&gt;, &lt;code&gt;timestamp&lt;/code&gt;, and &lt;code&gt;last_checked&lt;/code&gt;, and provides three named constructors: &lt;code&gt;createFromFile(LocaleFile $file)&lt;/code&gt;, &lt;code&gt;createFromSource(object $source)&lt;/code&gt;, and &lt;code&gt;createFromArray(array $result)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The three deprecated functions (&lt;code&gt;locale_translation_get_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt;) still exist in &lt;code&gt;locale.module&lt;/code&gt; emitting &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notices as of drupal:11.4.0 and are removed in drupal:13.0.0. &lt;code&gt;drupal_static_reset('locale_translation_get_file_history')&lt;/code&gt; is likewise deprecated and redirected to &lt;code&gt;cache.memory&lt;/code&gt; tag invalidation. The issue body notes there are zero usages of these functions in contrib. Related work: &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; (converting &lt;code&gt;locale.compare.inc&lt;/code&gt; to a service) was a prerequisite that landed first.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If custom code calls any of the deprecated functions, replace as follows. Note that &lt;code&gt;CurrentImport&lt;/code&gt; and &lt;code&gt;CurrentImportStorage&lt;/code&gt; are marked &lt;code&gt;@internal&lt;/code&gt; and may change in future releases.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before: load all history, then access by project/langcode
+$history = locale_translation_get_file_history();
+$record = $history[$project][$langcode];
+
+// After: fetch one record directly
+$currentImport = \Drupal::service(\Drupal\locale\CurrentImportStorage::class)
+  -&amp;gt;get($project, $langcode);
+// Returns a \Drupal\locale\CurrentImport|null
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+locale_translation_update_file_history($source);
+
+// After:
+\Drupal::service(\Drupal\locale\CurrentImportStorage::class)
+  -&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+locale_translation_file_history_delete($projects, $langcodes);
+
+// After:
+\Drupal::service(\Drupal\locale\CurrentImportStorage::class)
+  -&amp;gt;delete($projects, $langcodes);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+drupal_static_reset('locale_translation_get_file_history');
+
+// After:
+\Drupal::service('cache.memory')
+  -&amp;gt;invalidateTags(['locale_current_import']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 3, 2019&lt;/li&gt;
+&lt;li&gt;First commit: May 23, 2026 (7 years later)&lt;/li&gt;
+&lt;li&gt;Last commit: May 26, 2026 (3 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
+&lt;li&gt;snehalgaikwad (QED42)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;quadrexdev (DevBranch)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;heddn (comment #25) attached a profiler screenshot showing the three functions consuming approximately 96% of execution time in a profile-based install with 8-9 languages, with cron runs taking close to two hours. This concrete evidence of the performance impact helped justify the scope of the rewrite beyond a simple procedural-to-service refactor.&lt;/p&gt;
+&lt;p&gt;berdir and nicxvan pair-programmed the final design. berdir did live profiling on a real distribution with many languages, documenting the load-all → update → invalidate-all → load-all loop in detail (comment #43), and confirmed that per-record fetching and caching would address the main bottleneck. Multiple intermediate approaches (v1 through v3, across three separate MRs) were opened and discarded as the two worked out where &lt;code&gt;CurrentImportStorage&lt;/code&gt; needed to sit relative to &lt;code&gt;LocaleFile&lt;/code&gt;, the source objects, and the compare/batch subsystems that had been modernized in &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; just before this issue could proceed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3587601: Avoid loading date formats in element info</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md</link>
       <guid isPermaLink="false">019e6009-c254-7367-8616-f18d20372293</guid>
@@ -1065,43 +1153,6 @@ catch (\RuntimeException $e) {
 &lt;li&gt;benstallings (Encore Healthcare)&lt;/li&gt;
 &lt;li&gt;oily&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3308877: Add static cache for loadEntityByUuid function to store uuid-id pairs in memory</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3308877.md</link>
-      <guid isPermaLink="false">019e1b69-c4b6-777c-8880-326bbefee174</guid>
-      <pubDate>Tue, 12 May 2026 08:45:36 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +54/−40 · php +54/−40&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f56d20ef2dfc739be2a2a15acee5af8b82a31dda"&gt;f56d20e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3308877"&gt;#3308877&lt;/a&gt; · 8 contributors · 31 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Every call to &lt;code&gt;EntityRepository::loadEntityByUuid()&lt;/code&gt; previously issued a SQL query to look up the entity ID from the UUID before loading the entity by ID. On pages that look up the same entity by UUID multiple times, or that resolve many entity references (as JSON:API does), this produced a large number of redundant queries. A static in-memory cache now stores UUID-to-ID pairs so that only the first lookup for a given UUID requires a query. The cache is also primed whenever any entity is loaded by ID, so UUID lookups that follow a normal entity load are free. The JSON:API performance tests confirm the improvement: one scenario dropped from 25 queries to 17, another from 14 to 6.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;EntityStorageBase&lt;/code&gt; gains a new &lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt; property (&lt;code&gt;entity.memory_cache:uuid:{entityTypeId}&lt;/code&gt;) that allows the UUID lookup cache to be invalidated independently from the main entity memory cache.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;loadByProperties()&lt;/code&gt; now intercepts calls where the only filter is a single UUID string. It checks a &lt;code&gt;uuid_lookup:{entityTypeId}:{uuid}&lt;/code&gt; entry in the memory cache before running the EntityQuery. Both positive results (an array of entity IDs) and empty results (no entity found) are stored, so repeated calls with the same UUID are served entirely from memory. &lt;code&gt;setStaticCache()&lt;/code&gt; also writes these &lt;code&gt;uuid_lookup&lt;/code&gt; entries whenever entities are stored by ID, priming the UUID cache as a side effect of ordinary entity loads.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;resetCache()&lt;/code&gt; invalidates the entire UUID lookup cache tag (&lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt;) whenever any entity ID's cache is cleared, because there is no way to reverse-map a given ID back to its UUID without an additional query. When resetting all caches both the entity and UUID tags are invalidated together.&lt;/p&gt;
-&lt;p&gt;A required adjustment was made to &lt;code&gt;LruMemoryCache::invalidateTags()&lt;/code&gt;: it now removes items from the cache immediately when their tags are invalidated, instead of marking them as invalid and keeping them in memory. This is necessary for the UUID lookup cache to work correctly, since empty-result entries must be evictable via tag invalidation when an entity is saved or deleted. The change also means &lt;code&gt;LruMemoryCache&lt;/code&gt; no longer returns tag-invalidated items when &lt;code&gt;$allow_invalid = TRUE&lt;/code&gt; is passed to &lt;code&gt;get()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;UninstallDefaultContentTest&lt;/code&gt; was updated to obtain fresh storage instances after module install and uninstall rather than calling &lt;code&gt;resetCache()&lt;/code&gt; on stale instances, which the more aggressive UUID cache invalidation exposed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 9, 2022&lt;/li&gt;
-&lt;li&gt;Committed: May 12, 2026 (3 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;larowlan opened the MR after profiling a JSON:API endpoint backed by a custom OpenSearch-based entity storage, where each lookup carried additional latency. In that environment, reducing UUID queries dropped a single collection page from 550 queries to 55. catch stepped in to fix test failures: the initial implementation cached empty results, which broke tests that checked for a non-existent UUID before creating an entity. catch's resolution introduced the separate &lt;code&gt;$uuidMemoryCacheTag&lt;/code&gt; so the UUID lookup cache could be reset aggressively on any entity save, enabling safe caching of empty results. That fix in turn required modifying &lt;code&gt;LruMemoryCache::invalidateTags()&lt;/code&gt; to remove items outright rather than marking them invalid. catch also noted that priming the UUID cache from &lt;code&gt;setStaticCache()&lt;/code&gt; was a particularly nice touch, causing every UUID query for entities already loaded by ID to disappear entirely from the JSON:API performance test results.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
