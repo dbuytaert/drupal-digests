@@ -1,4 +1,4 @@
-**TL;DR:** [602 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [603 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_452 summaries · 5 new this week_
+_453 summaries · 6 new this week_
 
+- [#3587118: Remove content types from the standard install profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587118.md)
 - [#3037156: Modernize locale history functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037156.md)
 - [#3587601: Avoid loading date formats in element info](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md)
-- [#3582833: Consolidate, refactor, remove and untangle Claro's CSS from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582833.md)
 
 ### Drupal AI
 
@@ -22,7 +22,7 @@ _77 summaries · 0 new this week_
 
 ### Drupal Canvas
 
-_62 summaries · 1 new this week_
+_62 summaries · 0 new this week_
 
 - [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
 - [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
