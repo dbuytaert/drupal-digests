@@ -5,6 +5,97 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3592341: Fix dot-segment encoding for chained "../" and "./" in generated URLs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592341.md</link>
+      <guid isPermaLink="false">019e6de6-4a43-74cf-a1e9-e8cee434002f</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 28 May 2026 08:15:03 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +33/−6 · php +33/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/eb2964e1c1ce28d279abba09c48cfc8bf5795110"&gt;eb2964e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592341"&gt;#3592341&lt;/a&gt; · 5 contributors · 31 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's routing system maintains its own copy of Symfony's URL generation logic in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt;. That copy contained the same vulnerability described in Symfony CVE-2026-48784: when a route parameter contains chained dot-segments such as &lt;code&gt;../../..&lt;/code&gt; or &lt;code&gt;././.&lt;/code&gt;, the URL generator failed to percent-encode all of them, leaving raw &lt;code&gt;../&lt;/code&gt; or &lt;code&gt;./&lt;/code&gt; sequences in the generated URL. A browser or HTTP client following such a URL would resolve the dot-segments as path traversal. This fix ensures every &lt;code&gt;.&lt;/code&gt; and &lt;code&gt;..&lt;/code&gt; segment is encoded to &lt;code&gt;%2E&lt;/code&gt; and &lt;code&gt;%2E%2E&lt;/code&gt; respectively, regardless of how many are chained. The companion issue &lt;a href="https://www.drupal.org/node/3592421"&gt;#3592421&lt;/a&gt; updated the upstream Symfony packages; this issue fixes Drupal's own forked copy.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Incomplete percent-encoding of chained &lt;code&gt;../&lt;/code&gt; and &lt;code&gt;./&lt;/code&gt; dot-segments in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt; could allow path traversal via crafted route parameters (Symfony CVE-2026-48784).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old code in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt; used &lt;code&gt;strtr($path, ['/../' =&amp;gt; '/%2E%2E/', '/./' =&amp;gt; '/%2E/'])&lt;/code&gt; plus two &lt;code&gt;str_ends_with&lt;/code&gt; checks for trailing &lt;code&gt;/.&lt;/code&gt; and &lt;code&gt;/..&lt;/code&gt;. Because &lt;code&gt;strtr()&lt;/code&gt; performs a single non-overlapping scan, a sequence like &lt;code&gt;/../../..&lt;/code&gt; would only encode some of the segments: the replacement of the first &lt;code&gt;/../&lt;/code&gt; consumed the surrounding slashes, leaving the adjacent &lt;code&gt;../&lt;/code&gt; without leading or trailing slashes to match on the next pass. The test run by &lt;code&gt;smustgrave&lt;/code&gt; confirmed the symptom: expected &lt;code&gt;/test-path/%2E%2E/%2E%2E/%2E%2E/bar&lt;/code&gt; but received &lt;code&gt;/test-path/%2E%2E/../%2E%2E/bar&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix, cherry-picked from Symfony commit &lt;code&gt;4b63c3a3&lt;/code&gt;, replaces the &lt;code&gt;strtr&lt;/code&gt; approach with an explicit segment-by-segment pass: &lt;code&gt;explode('/', $path)&lt;/code&gt;, encode any segment that is exactly &lt;code&gt;.&lt;/code&gt; or &lt;code&gt;..&lt;/code&gt;, then &lt;code&gt;implode('/', $segments)&lt;/code&gt;. This handles any number of consecutive dot-segments and also covers segments at the tail of the path without special-casing. Tests covering all three chained patterns (&lt;code&gt;../../..&lt;/code&gt;, &lt;code&gt;././.&lt;/code&gt;, &lt;code&gt;../././..&lt;/code&gt;) and tail routes were ported directly from the Symfony commit.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;After the initial MR, &lt;code&gt;smustgrave&lt;/code&gt; asked whether test coverage should be added. &lt;code&gt;znerol&lt;/code&gt; ported the tests from the upstream Symfony commit and pushed them. &lt;code&gt;smustgrave&lt;/code&gt; then ran them locally and caught that the tests actually failed against the existing code, posting the specific mismatch between expected and actual output. That confirmed the real scope of the bug and validated the need for the fix. &lt;code&gt;dww&lt;/code&gt; reviewed the Symfony commit and the MR together and bumped the priority to Major given the CVE origin.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592421: Update Symfony routing and http-foundation versions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592421.md</link>
+      <guid isPermaLink="false">019e6de5-52af-76a9-8a3d-a5aa05c52773</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 28 May 2026 08:04:39 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +20/−20 · lock +15/−15 · json +5/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9f017a542494411c69ed40ab96f98a81d6f9d88b"&gt;9f017a5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592421"&gt;#3592421&lt;/a&gt; · 5 contributors · 38 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Two Symfony security vulnerabilities are addressed by bumping &lt;code&gt;symfony/http-foundation&lt;/code&gt; and &lt;code&gt;symfony/routing&lt;/code&gt; to version &lt;code&gt;^8.0.13&lt;/code&gt; across all supported Drupal branches (10.5.x through main). Sites that run &lt;code&gt;composer audit&lt;/code&gt; before this update will see CVE-2026-48736 and CVE-2026-48784 reported; after updating they will not. Both CVEs were disclosed on 2026-05-26.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; CVE-2026-48736 (SSRF bypass via IPv6 omission in &lt;code&gt;symfony/http-foundation&lt;/code&gt;) and CVE-2026-48784 (URL path traversal via dot-segment encoding in &lt;code&gt;symfony/routing&lt;/code&gt;) patched by requiring both packages at &lt;code&gt;^8.0.13&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;CVE-2026-48736 is in &lt;code&gt;symfony/http-foundation&lt;/code&gt;: &lt;code&gt;IpUtils::PRIVATE_SUBNETS&lt;/code&gt; omitted IPv6 transition address forms (6to4, NAT64, Teredo, IPv4-compatible), allowing an SSRF bypass via &lt;code&gt;NoPrivateNetworkHttpClient&lt;/code&gt;. The fix raises the minimum required version from &lt;code&gt;^8.0&lt;/code&gt; (previously pinned to &lt;code&gt;v8.0.8&lt;/code&gt; in the lockfile) to &lt;code&gt;^8.0.13&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;CVE-2026-48784 is in &lt;code&gt;symfony/routing&lt;/code&gt;: &lt;code&gt;UrlGenerator&lt;/code&gt; dot-segment encoding skipped every other chained &lt;code&gt;../&lt;/code&gt; or &lt;code&gt;./&lt;/code&gt; sequence, potentially collapsing a generated URL off-route under RFC 3986 normalization. The fix raises the minimum from &lt;code&gt;^8.0.12&lt;/code&gt; to &lt;code&gt;^8.0.13&lt;/code&gt;. Note that Drupal ships its own &lt;code&gt;UrlGenerator&lt;/code&gt; subclass, so fully covering CVE-2026-48784 for Drupal also requires the separate fix tracked in &lt;a href="https://www.drupal.org/node/3592341"&gt;#3592341&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The diff touches &lt;code&gt;core/composer.json&lt;/code&gt;, &lt;code&gt;composer/Metapackage/CoreRecommended/composer.json&lt;/code&gt;, &lt;code&gt;composer/Metapackage/PinnedDevDependencies/composer.json&lt;/code&gt;, and &lt;code&gt;composer.lock&lt;/code&gt;. No PHP source files outside of Composer metadata were changed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: May 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592065: Drupal core-recommended pins vulnerable symfony/polyfill-intl-idn version affected by CVE-2026-46644</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592065.md</link>
       <guid isPermaLink="false">019e66ef-03fc-727a-b02f-c6685a85d65c</guid>
@@ -1037,129 +1128,6 @@ $output = [
 &lt;ul&gt;
 &lt;li&gt;mglaman (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586470: Support preloading of fonts declared from components</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586470.md</link>
-      <guid isPermaLink="false">019e208f-03d4-7520-9adb-262a5ca2fc13</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 13 May 2026 07:00:11 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +19/−4 · php +16/−4 · yml +3 · woff2 +0&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c0f1c27c3f8e6dcc47282e39972f5642b83e7918"&gt;c0f1c27&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586470"&gt;#3586470&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Single Directory Components (SDC) now support font preloading via the &lt;code&gt;libraryOverrides&lt;/code&gt; key in a component's definition. Before this fix, declaring a &lt;code&gt;fonts&lt;/code&gt; entry in a component's &lt;code&gt;libraryOverrides&lt;/code&gt; would not work correctly because the path translation step ignored font entries. Component authors can now add a &lt;code&gt;fonts&lt;/code&gt; block with relative paths and &lt;code&gt;preload: true&lt;/code&gt;, and Drupal will resolve those paths and emit the appropriate preload headers just as it does for fonts declared in regular &lt;code&gt;.libraries.yml&lt;/code&gt; files.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; SDC &lt;code&gt;libraryOverrides&lt;/code&gt; now accepts a &lt;code&gt;fonts&lt;/code&gt; key with relative paths and &lt;code&gt;preload: true&lt;/code&gt;, enabling font preloading from Single Directory Components.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ComponentPluginManager::translateLibraryPaths()&lt;/code&gt; was responsible for rewriting component-relative file paths to paths that the core library system can resolve. It handled &lt;code&gt;css&lt;/code&gt; and &lt;code&gt;js&lt;/code&gt; entries, but the &lt;code&gt;fonts&lt;/code&gt; key introduced by &lt;a href="https://www.drupal.org/node/3366561"&gt;#3366561&lt;/a&gt; was never included, so font paths stayed component-relative and never reached the preload pipeline.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;fonts&lt;/code&gt; to the same path-translation loop. The &lt;code&gt;fonts&lt;/code&gt; key is unset from the passthrough overrides array, each font filename is checked for &lt;code&gt;UrlHelper::isExternal()&lt;/code&gt;, relative filenames are expanded to an absolute path and then converted to a library-root-relative path via &lt;code&gt;makePathRelativeToLibraryRoot()&lt;/code&gt;, and the translated entry is written back into &lt;code&gt;$altered_overrides['fonts']&lt;/code&gt;. External font URLs are passed through unchanged. A test component fixture (&lt;code&gt;lib-overrides&lt;/code&gt;) was extended with a &lt;code&gt;test-component-font.woff2&lt;/code&gt; entry (&lt;code&gt;preload: true&lt;/code&gt;) and the functional test &lt;code&gt;testLibraryOverrides()&lt;/code&gt; now asserts the font filename appears in the rendered page output.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To preload a font from an SDC component, add a &lt;code&gt;fonts&lt;/code&gt; block to the component's &lt;code&gt;libraryOverrides&lt;/code&gt; in its component definition file:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;libraryOverrides:
-  fonts:
-    my-font.woff2:
-      preload: true
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The path is relative to the component directory. External URLs are also supported and passed through unchanged.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 13, 2026 (19 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;grimreaper&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3301239: Improve the error message thrown in PoStreamReader::readLine() when translations cannot be saved</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3301239.md</link>
-      <guid isPermaLink="false">019e1d15-2980-75b1-82db-977984e36a56</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 12 May 2026 16:09:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +36/−5 · php +36/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/79cbaf5364669852e25712cd1c28b306c45bc50b"&gt;79cbaf5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3301239"&gt;#3301239&lt;/a&gt; · 42 contributors · 94 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 51&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On multilingual Drupal sites, enabling a module while the interface translations directory (&lt;code&gt;translations://&lt;/code&gt;) is misconfigured or unwriteable previously caused a fatal PHP error: &lt;code&gt;TypeError: fgets(): Argument #1 ($stream) must be of type resource, bool given&lt;/code&gt;. This would crash Drush or a deployment pipeline mid-run. The fix makes &lt;code&gt;PoStreamReader&lt;/code&gt; throw a catchable &lt;code&gt;RuntimeException&lt;/code&gt; instead, so the locale subsystem can log a clear message and continue rather than halting with an unhandled fatal error.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;PoStreamReader::open()&lt;/code&gt; now throws &lt;code&gt;\RuntimeException&lt;/code&gt; when &lt;code&gt;fopen&lt;/code&gt; fails to open the stream, instead of silently setting the internal file descriptor to &lt;code&gt;false&lt;/code&gt;; callers that invoke &lt;code&gt;open()&lt;/code&gt; directly should wrap it in a try/catch.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;PoStreamReader::open()&lt;/code&gt;, the original code called &lt;code&gt;fopen()&lt;/code&gt; but never checked its return value. When &lt;code&gt;fopen&lt;/code&gt; fails (for example because &lt;code&gt;translations://&lt;/code&gt; is not properly configured), it returns &lt;code&gt;false&lt;/code&gt;. A subsequent call to &lt;code&gt;readLine()&lt;/code&gt; then passed that &lt;code&gt;false&lt;/code&gt; value directly to &lt;code&gt;fgets()&lt;/code&gt;, which in PHP 8 throws a &lt;code&gt;TypeError&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix restructures &lt;code&gt;open()&lt;/code&gt;: it calls &lt;code&gt;@fopen($this-&amp;gt;uri, 'rb')&lt;/code&gt; (suppressing the PHP-level warning that would otherwise be emitted) and immediately checks the result. If the handle is falsy, it throws &lt;code&gt;new \RuntimeException('Cannot open stream for uri ' . $this-&amp;gt;uri)&lt;/code&gt;. This gives calling code a catchable, typed exception rather than an unhandled fatal. A new &lt;code&gt;PoStreamReaderTest&lt;/code&gt; unit test was added in &lt;code&gt;core/tests/Drupal/Tests/Component/Gettext/PoStreamReaderTest.php&lt;/code&gt; to verify this path.&lt;/p&gt;
-&lt;p&gt;The related issue &lt;a href="https://www.drupal.org/node/3546047"&gt;#3546047&lt;/a&gt; was opened separately to improve the upstream logging in &lt;code&gt;locale_translation_download_source()&lt;/code&gt; when the download itself fails, covering the complementary failure mode.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you call &lt;code&gt;PoStreamReader::open()&lt;/code&gt; directly, wrap it to handle the new failure mode:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before: open() would silently succeed even if fopen() failed.
-$reader-&amp;gt;setURI($uri);
-$reader-&amp;gt;open();
-
-// After: open() throws \RuntimeException when the stream cannot be opened.
-$reader-&amp;gt;setURI($uri);
-try {
-  $reader-&amp;gt;open();
-}
-catch (\RuntimeException $e) {
-  // Handle misconfigured translations directory or unreadable file.
-  \Drupal::logger('mymodule')-&amp;gt;error($e-&amp;gt;getMessage());
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 2, 2022&lt;/li&gt;
-&lt;li&gt;Committed: May 12, 2026 (3 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;immaculatexavier (Material)&lt;/li&gt;
-&lt;li&gt;iperiba92&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
-&lt;li&gt;rcodina (Seidor)&lt;/li&gt;
-&lt;li&gt;matiasmiranda (Phase2)&lt;/li&gt;
-&lt;li&gt;pfrenssen (Liip)&lt;/li&gt;
-&lt;li&gt;vladimiraus (Tomato Elephant Studio)&lt;/li&gt;
-&lt;li&gt;hchonov (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;i-grou&lt;/li&gt;
-&lt;li&gt;guiu.rocafort.ferrer (Randstad Digital)&lt;/li&gt;
-&lt;li&gt;teknocat&lt;/li&gt;
-&lt;li&gt;oily&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;grevil (DROWL.de)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue sat for nearly three years, accumulating many &amp;quot;patch works for me&amp;quot; comments without ever landing, largely because early patches simply swallowed the error rather than surfacing a useful message. The discussion shifted when pfrenssen (comment #30) and joachim (comment #29) argued that the right fix was an improved error, not silent suppression. guiu.rocafort.ferrer revived the issue on 11.x, reproduced the failure, and proposed throwing a &lt;code&gt;RuntimeException&lt;/code&gt; from &lt;code&gt;open()&lt;/code&gt; rather than only patching &lt;code&gt;readLine()&lt;/code&gt;. pfrenssen then fixed a failing test that arose because PHP itself was emitting a warning that interfered with PHPUnit. vladimiraus contributed a refactor of the approach, and rcodina fixed the remaining pipeline failures before the issue was finally committed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

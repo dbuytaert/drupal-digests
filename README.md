@@ -1,4 +1,4 @@
-**TL;DR:** [604 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [606 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_454 summaries · 7 new this week_
+_456 summaries · 8 new this week_
 
+- [#3592341: Fix dot-segment encoding for chained "../" and "./" in generated URLs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592341.md)
+- [#3592421: Update Symfony routing and http-foundation versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592421.md)
 - [#3592065: Drupal core-recommended pins vulnerable symfony/polyfill-intl-idn version...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592065.md)
-- [#3587118: Remove content types from the standard install profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587118.md)
-- [#3037156: Modernize locale history functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037156.md)
 
 ### Drupal AI
 
