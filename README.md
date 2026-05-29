@@ -1,4 +1,4 @@
-**TL;DR:** [607 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [608 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_457 summaries · 9 new this week_
+_458 summaries · 10 new this week_
 
+- [#3503843: Remove automatic preloading of all "public" routes, cache routes in fast...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3503843.md)
 - [#3592406: Mark Default Admin beta and revert the revert](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592406.md)
 - [#3592341: Fix dot-segment encoding for chained "../" and "./" in generated URLs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592341.md)
-- [#3592421: Update Symfony routing and http-foundation versions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592421.md)
 
 ### Drupal AI
 

@@ -5,6 +5,62 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3503843: Remove automatic preloading of all "public" routes, cache routes in fast chained bin</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3503843.md</link>
+      <guid isPermaLink="false">019e7307-8513-7662-a405-63228cbb2de1</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 29 May 2026 08:00:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +97/−385 · php +90/−381 · yml +7/−4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/01c9d7189cb115d5ee552eaedfa857653125ef5d"&gt;01c9d71&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3503843"&gt;#3503843&lt;/a&gt; · 7 contributors · 69 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal used to bulk-load all &amp;quot;public&amp;quot; (non-admin GET/HTML) routes into memory on every HTML request through a &lt;code&gt;RoutePreloader&lt;/code&gt; event subscriber. On larger sites this meant loading 100 to 200 or more serialized route objects, consuming roughly 1.5 MB of memory per request. That subscriber and its associated state key (&lt;code&gt;routing.non_admin_routes&lt;/code&gt;) have been removed. Routes are now cached individually in a new dedicated &lt;code&gt;cache.routes&lt;/code&gt; bin backed by the &lt;code&gt;chainedfast&lt;/code&gt; backend (APCu + persistent storage), and loaded on demand using &lt;code&gt;getMultiple()&lt;/code&gt; rather than pre-fetched in bulk. The net effect is a significant reduction in memory usage per request and faster cache reads when routes are warm in APCu, with a small increase in the number of cache lookups on cold caches that is outweighed by the cost of the eliminated bulk load.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;system_post_update_remove_non_admin_routes_state()&lt;/code&gt; removes the &lt;code&gt;routing.non_admin_routes&lt;/code&gt; state key&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;RouteProvider::$serializedRoutes&lt;/code&gt; and &lt;code&gt;RouteProvider::ROUTE_LOAD_CID_PREFIX&lt;/code&gt; deprecated in drupal:11.4.0, removed in drupal:12.0.0; no replacement&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;cache.routes&lt;/code&gt; cache bin (chained fast backend) introduced for per-route caching&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old approach stored all non-admin routes under a single cache item keyed by a &lt;code&gt;sha512&lt;/code&gt; hash of the route name list (using &lt;code&gt;ROUTE_LOAD_CID_PREFIX&lt;/code&gt;). These were stored as serialized strings in &lt;code&gt;cache.data&lt;/code&gt; and held in &lt;code&gt;RouteProvider::$serializedRoutes&lt;/code&gt; until needed, then deserialized on access. The &lt;code&gt;RoutePreloader&lt;/code&gt; subscriber populated a &lt;code&gt;routing.non_admin_routes&lt;/code&gt; state key during route rebuilds and triggered the bulk cache load on &lt;code&gt;KernelEvents::REQUEST&lt;/code&gt; for every HTML request.&lt;/p&gt;
+&lt;p&gt;The new approach introduces a &lt;code&gt;cache.routes&lt;/code&gt; service defined in &lt;code&gt;core.services.yml&lt;/code&gt; with &lt;code&gt;default_backend: cache.backend.chainedfast&lt;/code&gt;. &lt;code&gt;RouteProvider&lt;/code&gt; is now injected with this bin instead of &lt;code&gt;cache.data&lt;/code&gt;. &lt;code&gt;preLoadRoutes()&lt;/code&gt; calls &lt;code&gt;cache-&amp;gt;getMultiple()&lt;/code&gt; with the route names as cache IDs, routes not found in cache are fetched from the &lt;code&gt;router&lt;/code&gt; database table and immediately deserialized, then written back via &lt;code&gt;cache-&amp;gt;setMultiple()&lt;/code&gt; with the &lt;code&gt;routes&lt;/code&gt; cache tag. The intermediate serialized-string holding area (&lt;code&gt;$serializedRoutes&lt;/code&gt;) is eliminated; routes enter &lt;code&gt;$this-&amp;gt;routes&lt;/code&gt; as objects directly.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;RouteProvider::$serializedRoutes&lt;/code&gt; and &lt;code&gt;RouteProvider::ROUTE_LOAD_CID_PREFIX&lt;/code&gt; are deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt; (see change record https://www.drupal.org/node/3589089). The &lt;code&gt;RoutePreloader&lt;/code&gt; class and &lt;code&gt;router.route_preloader&lt;/code&gt; service are deleted outright with no BC layer, as event subscribers are explicitly excluded from Drupal's BC policy. A post-update function &lt;code&gt;system_post_update_remove_non_admin_routes_state()&lt;/code&gt; cleans up the now-unused &lt;code&gt;routing.non_admin_routes&lt;/code&gt; state entry. A parallel effort to add an explicit TTL to the APCu fast bin to bound memory growth is tracked in &lt;a href="https://www.drupal.org/node/3586418"&gt;#3586418&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If your custom code references &lt;code&gt;RouteProvider::$serializedRoutes&lt;/code&gt; or &lt;code&gt;RouteProvider::ROUTE_LOAD_CID_PREFIX&lt;/code&gt;, remove those usages; there is no replacement. If you registered a service that depends on &lt;code&gt;router.route_preloader&lt;/code&gt;, remove that dependency. The &lt;code&gt;RoutePreloader&lt;/code&gt; class no longer exists.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated — remove any reference to:
+RouteProvider::ROUTE_LOAD_CID_PREFIX
+$routeProvider-&amp;gt;serializedRoutes  // protected, but if subclassed
+
+// Removed service — remove from any service definitions:
+// router.route_preloader
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The new &lt;code&gt;cache.routes&lt;/code&gt; bin can be overridden like any other cache bin in &lt;code&gt;settings.php&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$settings['cache']['bins']['routes'] = 'cache.backend.apcu';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Sites running on shared or memory-constrained APCu should review available APCu memory, as individual route objects will now populate it instead of a handful of bulk cache items.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 2, 2025&lt;/li&gt;
+&lt;li&gt;Committed: May 28, 2026 (1 year and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir opened the issue after profiling a production site and finding that route preloading consumed around 1.5 MB per request and triggered dozens of redundant cache lookups. They ran multiple rounds of profiling across anonymous and authenticated page views, explored several caching strategies (fast-only, per-format, combined with &lt;code&gt;getMultiple()&lt;/code&gt;), and shared detailed query counts and memory measurements from Blackfire to guide the design.&lt;/p&gt;
+&lt;p&gt;catch independently opened a draft MR (MR !11105) to test the approach without caching, sharing observations about which specific routes drove most lookups (the &lt;code&gt;is_front&lt;/code&gt; logic, &lt;code&gt;&amp;lt;current&amp;gt;&lt;/code&gt;, bigpipe). Those experiments fed back into berdir's implementation without replacing it. alexpott's review raised the question of deprecating &lt;code&gt;preLoadRoutes()&lt;/code&gt; and &lt;code&gt;PreloadableRouteProviderInterface&lt;/code&gt; outright; berdir explored it, concluded it added complexity that belonged in a follow-up, and opened &lt;a href="https://www.drupal.org/node/3589340"&gt;#3589340&lt;/a&gt; for that discussion. longwave provided the final RTBC after reviewing the MR.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592406: Mark Default Admin beta and revert the revert</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592406.md</link>
       <guid isPermaLink="false">019e705c-9837-73e8-904f-fac0dc0fb9ca</guid>
@@ -1069,73 +1125,6 @@ $summaries = $runner-&amp;gt;summarizeResults($test_class, $phpunit_results);
 &lt;li&gt;Opened: March 14, 2026&lt;/li&gt;
 &lt;li&gt;Committed: May 14, 2026 (2 months and 2 commits later)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#455724: Deprecate check_markup()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/455724.md</link>
-      <guid isPermaLink="false">019e2159-1484-7021-8e8d-32935ff5de66</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 13 May 2026 09:28:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +159/−46 · php +159/−46&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a69f1e953a8cb8ca061ccbe6bd45f6ff37541d9f"&gt;a69f1e9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/455724"&gt;#455724&lt;/a&gt; · 19 contributors · 132 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 25&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;check_markup()&lt;/code&gt; function in &lt;code&gt;filter.module&lt;/code&gt; is deprecated as of Drupal 11.4.0 and will be removed in Drupal 13.0.0. The function has no direct procedural replacement. The recommended approach is to return a &lt;code&gt;processed_text&lt;/code&gt; render array directly rather than flattening it to a markup string, because flattening discards cacheability metadata (cache tags, contexts, max-age) that filters can attach. Module code that currently calls &lt;code&gt;check_markup()&lt;/code&gt; and renders the result must be updated before upgrading to Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;check_markup()&lt;/code&gt; in &lt;code&gt;filter.module&lt;/code&gt; is deprecated in drupal:11.4.0 and removed in drupal:13.0.0; use a &lt;code&gt;processed_text&lt;/code&gt; render array instead.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The function &lt;code&gt;check_markup()&lt;/code&gt; was a thin convenience wrapper: it built a &lt;code&gt;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; ..., '#format' =&amp;gt; ..., ...]&lt;/code&gt; render array and immediately flattened it to a &lt;code&gt;MarkupInterface&lt;/code&gt; string via the renderer. That flattening step is the problem, because it silently drops any cacheability metadata that filter plugins attach during processing.&lt;/p&gt;
-&lt;p&gt;The commit adds a &lt;code&gt;@trigger_error()&lt;/code&gt; deprecation notice at the top of &lt;code&gt;check_markup()&lt;/code&gt; and documents the deprecation in the docblock. There is explicitly no new service or function provided as a replacement; callers are expected to pass the &lt;code&gt;processed_text&lt;/code&gt; render array further up the stack and let the rendering system handle it.&lt;/p&gt;
-&lt;p&gt;The one production caller updated in this commit is the Views &lt;code&gt;MarkupField&lt;/code&gt; handler (&lt;code&gt;core/modules/views/src/Plugin/views/field/MarkupField.php&lt;/code&gt;), which now returns a &lt;code&gt;processed_text&lt;/code&gt; render array directly. Test code that needed to assert on string output was updated to use a new test-only trait &lt;code&gt;Drupal\Tests\filter\Traits\ProcessedTextTestTrait&lt;/code&gt;, whose &lt;code&gt;processText()&lt;/code&gt; helper replicates what &lt;code&gt;check_markup()&lt;/code&gt; did but is explicitly documented as unsuitable for production use. The issue was originally filed in 2009 as a renaming request, and was rescoped to a full deprecation as part of the broader meta effort to eliminate core &lt;code&gt;.module&lt;/code&gt; procedural files (&lt;a href="https://www.drupal.org/node/3566536"&gt;#3566536&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace calls to &lt;code&gt;check_markup()&lt;/code&gt; with a &lt;code&gt;processed_text&lt;/code&gt; render array and let Drupal's render pipeline handle it:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
-$output = check_markup($text, $format_id, $langcode, $filter_types_to_skip);
-
-// After:
-$output = [
-  '#type' =&amp;gt; 'processed_text',
-  '#text' =&amp;gt; $text,
-  '#format' =&amp;gt; $format_id,
-  '#langcode' =&amp;gt; $langcode,
-  '#filter_types_to_skip' =&amp;gt; $filter_types_to_skip,
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Return the render array from your method or template variable rather than casting it to a string. If you must obtain a string for an isolated test assertion, use the &lt;code&gt;Drupal\Tests\filter\Traits\ProcessedTextTestTrait&lt;/code&gt; helper in your test class — but do not use that pattern in production code.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2009&lt;/li&gt;
-&lt;li&gt;Committed: May 13, 2026 (17 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;greggles&lt;/li&gt;
-&lt;li&gt;cburschka&lt;/li&gt;
-&lt;li&gt;heine&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;sun&lt;/li&gt;
-&lt;li&gt;agentrickard&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;claudiu.cristea reopened work on the issue in 2025, noting that &lt;code&gt;check_markup()&lt;/code&gt; had roughly 450 known usages in contributed projects. In a series of comments they weighed whether the logic should move into the &lt;code&gt;renderer&lt;/code&gt; service, a new dedicated service, or simply be dropped with no replacement. They concluded that the two-line body of &lt;code&gt;check_markup()&lt;/code&gt; did not warrant a new service and that the correct guidance was to avoid flattening the render array at all, which led to the &amp;quot;no direct replacement&amp;quot; framing that appears in the final deprecation message.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
