@@ -1,4 +1,4 @@
-**TL;DR:** [610 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [613 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_460 summaries · 11 new this week_
+_463 summaries · 14 new this week_
 
-- [#3569674: Fix remaining PHPStan missingType.generics errors (level 1)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569674.md)
-- [#2922451: [policy no patch] Make it possible to mark plugins as deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2922451.md)
-- [#3503843: Remove automatic preloading of all "public" routes, cache routes in fast...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3503843.md)
+- [#3589208: Always use the file contents to determine asset aggregate filename hashes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589208.md)
+- [#3280235: Calling code can not collect bubbled attachments from TextProcessed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3280235.md)
+- [#3585716: EntityQuery uses hard-coded langcode in revision-data joins, breaking...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585716.md)
 
 ### Drupal AI
 
