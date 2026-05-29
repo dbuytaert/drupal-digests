@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_460 summaries · 12 new this week_
+_460 summaries · 11 new this week_
 
 - [#3569674: Fix remaining PHPStan missingType.generics errors (level 1)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569674.md)
 - [#2922451: [policy no patch] Make it possible to mark plugins as deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2922451.md)
