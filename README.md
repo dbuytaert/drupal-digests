@@ -1,4 +1,4 @@
-**TL;DR:** [616 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [617 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [170 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_466 summaries · 16 new this week_
+_467 summaries · 16 new this week_
 
+- [#3593008: AccessPolicyProcessor::processAccessPolicies() creates unnecessary Fibers when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593008.md)
 - [#3586951: Remove Settings Tray integration in Default Admin, keep in Stable 9](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586951.md)
 - [#3591509: Remove Migrate Drupal settings from settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591509.md)
-- [#3582690: Remove or replace usages of Shortcut from themes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582690.md)
 
 ### Drupal AI
 
