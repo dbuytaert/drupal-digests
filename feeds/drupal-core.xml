@@ -5,6 +5,46 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3549601: Allow --directory and @group to work together in run-tests.sh</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549601.md</link>
+      <guid isPermaLink="false">019e896b-723e-702b-82b0-dd61087d1049</guid>
+      <pubDate>Tue, 02 Jun 2026 13:54:24 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +103/−19 · php +64/−14 · sh +39/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/db775a3a854832765f9a9cf15fdd43ac7ac5cc60"&gt;db775a3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3549601"&gt;#3549601&lt;/a&gt; · 6 contributors · 65 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When running &lt;code&gt;core/scripts/run-tests.sh&lt;/code&gt; with both the &lt;code&gt;--directory&lt;/code&gt; option and a positional &lt;code&gt;@group&lt;/code&gt; argument, the group filter was previously ignored and all tests in the directory were run. This made it impossible for contrib module maintainers to do the two things at once: limit test discovery to their module's directory (which avoids fatal errors from unrelated third-party modules) and still run only a specific test group. The fix makes the two options work together: &lt;code&gt;--directory&lt;/code&gt; narrows the file scan and the group argument then filters the discovered tests down to the requested subset. The script now also prints a &amp;quot;Test discovery&amp;quot; header summarizing which directory, module, test suite(s), and group(s) are active for the run.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that in Drupal 11.2+ the &lt;code&gt;run-tests.sh&lt;/code&gt; script adopted PHPUnit 11's test discovery API (&lt;code&gt;PhpUnitTestDiscovery&lt;/code&gt;). When &lt;code&gt;--directory&lt;/code&gt; was in use, &lt;code&gt;getTestClasses()&lt;/code&gt; called the &lt;code&gt;getTestListLimitedToDirectory()&lt;/code&gt; code path, but the positional group argument from &lt;code&gt;Config::getTests()&lt;/code&gt; was never forwarded to the discovery layer; it was only used in the separate &amp;quot;groups-only&amp;quot; code path. The fix adds a &lt;code&gt;$testGroups&lt;/code&gt; parameter to the public &lt;code&gt;PhpUnitTestDiscovery::getTestClasses()&lt;/code&gt; and &lt;code&gt;findAllClassFiles()&lt;/code&gt; methods, and to the private helpers &lt;code&gt;getTestList()&lt;/code&gt; and &lt;code&gt;getTestListLimitedToDirectory()&lt;/code&gt;. Both helpers now apply an &lt;code&gt;array_intersect&lt;/code&gt; check against &lt;code&gt;$item['groups']&lt;/code&gt; and skip any test class whose groups do not overlap with the requested list. The call sites in &lt;code&gt;run-tests.sh&lt;/code&gt; (&lt;code&gt;simpletest_script_get_test_list()&lt;/code&gt; and the &lt;code&gt;--list-files-json&lt;/code&gt; path) are updated to pass &lt;code&gt;Config::getTests()&lt;/code&gt; as &lt;code&gt;$testGroups&lt;/code&gt;. A new guard in &lt;code&gt;Config::createFromCommandLine()&lt;/code&gt; throws a &lt;code&gt;RuntimeException&lt;/code&gt; when &lt;code&gt;--directory&lt;/code&gt; is combined with &lt;code&gt;--class&lt;/code&gt; or &lt;code&gt;--file&lt;/code&gt;, since those options are all file-based and mutually exclusive. This fix was built on top of the Symfony Console-based argument parsing introduced in &lt;a href="https://www.drupal.org/node/3536964"&gt;#3536964&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 30, 2025&lt;/li&gt;
+&lt;li&gt;Committed: June 2, 2026 (8 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jonathan1055&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The initial implementation by jonathan1055 kept the group-filtering logic inside &lt;code&gt;run-tests.sh&lt;/code&gt;. mondrake reviewed and proposed moving the filter into &lt;code&gt;PhpUnitTestDiscovery&lt;/code&gt; itself, arguing it made the logic more testable and fit the ongoing effort to strip complexity out of &lt;code&gt;run-tests.sh&lt;/code&gt;. That restructuring landed as a separate commit on the same MR. After a subsequent rebase dropped part of the implementation, jonathan1055 noticed by testing against a real contrib pipeline (the webform module) that group filtering had silently stopped working again. mondrake identified the dropped logic, fixed it, and added kernel tests that verify that &lt;code&gt;--directory&lt;/code&gt; plus a group argument returns strictly fewer results than &lt;code&gt;--directory&lt;/code&gt; alone. godotislate independently pulled the branch and ran the full combination of options locally, posting detailed output to confirm correctness before the final commit.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3587564: Move search functionality from node to Search module</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587564.md</link>
       <guid isPermaLink="false">019e8883-42dc-7649-a0f2-efd583b8028c</guid>
@@ -1074,64 +1114,6 @@ drupal_static_reset('locale_translation_get_file_history');
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The review thread had a substantive back-and-forth over whether to add NULL checks when &lt;code&gt;DateFormat::loadMultiple()&lt;/code&gt; returns results. &lt;code&gt;dcam&lt;/code&gt; flagged inconsistent NULL guarding in the MR, &lt;code&gt;godotislate&lt;/code&gt; pressed further and noted that &lt;code&gt;$formats['html_date']&lt;/code&gt; or &lt;code&gt;$formats['html_time']&lt;/code&gt; could theoretically be NULL. &lt;code&gt;alexpott&lt;/code&gt; resolved the debate by pointing out that both &lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt; are locked system config entities that cannot be deleted, making the NULL guards incorrect rather than merely unnecessary. &lt;code&gt;catch&lt;/code&gt; confirmed this by attempting the removal, observing a test failure in &lt;code&gt;DatetimeElementFormTest&lt;/code&gt;, diagnosing that the test was simply missing &lt;code&gt;installConfig(['system'])&lt;/code&gt;, and fixing the test rather than restoring the guards.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582833: Consolidate, refactor, remove and untangle Claro's CSS from Default Admin theme</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582833.md</link>
-      <guid isPermaLink="false">019e5f49-b37f-7610-8dd3-d74114d527b4</guid>
-      <category>Front-end developers</category>
-      <pubDate>Mon, 25 May 2026 11:33:22 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 97 files, +5851/−3609 · css +5848/−3609 · txt +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/20479799a7552caeb3196e40731ab7f5d85b4e7b"&gt;2047979&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582833"&gt;#3582833&lt;/a&gt; · 9 contributors · 90 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;default_admin&lt;/code&gt; admin theme shipped to Drupal core as Gin with Claro's CSS copied wholesale, leaving two parallel CSS trees: &lt;code&gt;css/&lt;/code&gt; (original Claro styles) and &lt;code&gt;migration/css/&lt;/code&gt; (Gin overrides). This issue consolidates all 40+ files from &lt;code&gt;migration/css/base/&lt;/code&gt; into the canonical &lt;code&gt;css/&lt;/code&gt; directory, merging each file into its corresponding component file or creating a new file where no Claro equivalent existed. The end result is a single authoritative CSS tree per component, eliminating the override layer. Along the way, several intentional visual corrections landed: focus rings are now a visible solid &lt;code&gt;0.25rem&lt;/code&gt; ring using &lt;code&gt;--gin-color-focus&lt;/code&gt; (previously 1px dotted transparent), heading font-weight dropped from bold to 400 (tracking Gin's variable-font design), and blockquotes changed from a quotation-mark decoration to a colored left border. Styles that belonged to contrib modules (Diff, Upgrade Status, Insert) were removed from core and separate issues filed in those queues.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Focus rings changed from invisible dotted to solid 0.25rem; heading font-weight changed from bold to 400; blockquote styling and action-link icon technique changed in default_admin theme.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The two CSS trees existed because &lt;code&gt;default_admin&lt;/code&gt; was built by flattening Gin (which used Claro as a base theme) into core. The &lt;code&gt;migration/css/&lt;/code&gt; directory held all the Gin override and additive files named with a &lt;code&gt;gin-*&lt;/code&gt; prefix; the canonical &lt;code&gt;css/&lt;/code&gt; directory held the original Claro structure. Each &lt;code&gt;gin-*.pcss.css&lt;/code&gt; file was either merged into an existing file in &lt;code&gt;css/&lt;/code&gt; or promoted to a new standalone file there.&lt;/p&gt;
-&lt;p&gt;Key structural changes visible in the diff: &lt;code&gt;css/base/variables.pcss.css&lt;/code&gt; now imports &lt;code&gt;media-queries.pcss.css&lt;/code&gt; at the top and contains the full &lt;code&gt;--gin-*&lt;/code&gt; custom-property block (colors, typography, spacing, layout, dark-mode overrides, and three density variants keyed on &lt;code&gt;data-gin-layout-density&lt;/code&gt;). &lt;code&gt;css/base/icons.pcss.css&lt;/code&gt; is a new file that centralizes all icon references as &lt;code&gt;--admin-icon-*&lt;/code&gt; custom properties pointing to SVG files. &lt;code&gt;css/components/action-link.pcss.css&lt;/code&gt; dropped per-state inline SVG &lt;code&gt;background-image&lt;/code&gt; declarations for each icon variant in favor of a unified &lt;code&gt;mask-image&lt;/code&gt; approach using those icon custom properties, dramatically reducing duplication.&lt;/p&gt;
-&lt;p&gt;Focus styles changed globally: &lt;code&gt;--focus-outline&lt;/code&gt; went from &lt;code&gt;1px dotted transparent&lt;/code&gt; to &lt;code&gt;0.25rem solid var(--gin-color-focus)&lt;/code&gt; and the &lt;code&gt;box-shadow&lt;/code&gt; focus variant was removed from the &lt;code&gt;elements&lt;/code&gt; file. The &lt;code&gt;--gin-color-focus&lt;/code&gt; and &lt;code&gt;--gin-color-focus-border&lt;/code&gt; custom properties are now declared in the consolidated variables block. The &lt;code&gt;css/base/font.pcss.css&lt;/code&gt; path correction (&lt;code&gt;../../../font/&lt;/code&gt; to &lt;code&gt;../../font/&lt;/code&gt;) fixes a broken &lt;code&gt;@font-face&lt;/code&gt; reference that would have prevented the Inter/Ginter font from loading.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;migration/css/&lt;/code&gt; directory is not yet fully removed; a follow-up (&lt;a href="https://www.drupal.org/node/3590364"&gt;#3590364&lt;/a&gt;) handles the remaining files (components, layout, theme layers not covered here).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No PHP or API changes. If a contrib theme or module overrides CSS files from &lt;code&gt;default_admin&lt;/code&gt;'s &lt;code&gt;migration/css/base/&lt;/code&gt; directory, those files have been merged into &lt;code&gt;css/&lt;/code&gt; and the &lt;code&gt;migration/&lt;/code&gt; originals may be removed in a follow-up. Contrib modules that had styles bundled in the Gin migration layer (Diff, Upgrade Status, Insert) should expect those styles to be absent from core; see the issues opened in those queues for how to relocate them.&lt;/p&gt;
-&lt;p&gt;The focus-ring change is the most noticeable visual shift:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-css"&gt;/* Before */
---focus-outline: 1px dotted transparent;
-
-/* After */
---focus-outline: 0.25rem solid var(--gin-color-focus);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 25, 2026 (1 month and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;li&gt;dharizza&lt;/li&gt;
-&lt;li&gt;mukeysh&lt;/li&gt;
-&lt;li&gt;nitinkumar_7&lt;/li&gt;
-&lt;li&gt;mgifford&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This was a community sprint coordinated by mherchel, who handled the majority of the 40+ file migrations and wrote the detailed mapping table in the issue summary. dharizza joined to take on &lt;code&gt;gin-table&lt;/code&gt;, &lt;code&gt;gin-button&lt;/code&gt;, &lt;code&gt;gin-dropbutton&lt;/code&gt;, &lt;code&gt;gin-system-report&lt;/code&gt;, &lt;code&gt;gin-status-report&lt;/code&gt;, and &lt;code&gt;gin-system-themes&lt;/code&gt;. Two first-time contributors to this issue also stepped in: mukeysh completed &lt;code&gt;gin-system-modules&lt;/code&gt; and &lt;code&gt;gin-performance&lt;/code&gt;, and nitinkumar_7 completed &lt;code&gt;gin-blocks&lt;/code&gt;, &lt;code&gt;gin-batch&lt;/code&gt;, and &lt;code&gt;gin-maxlength&lt;/code&gt;. jurgenhaas initially flagged several visual differences during review but confirmed after closer comparison that they were pre-existing differences in &lt;code&gt;main&lt;/code&gt; and not regressions introduced by the MR. mgifford did manual QA across admin pages and marked it RTBC.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

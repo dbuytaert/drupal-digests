@@ -1,4 +1,4 @@
-**TL;DR:** [619 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [620 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_469 summaries · 17 new this week_
+_470 summaries · 17 new this week_
 
+- [#3549601: Allow --directory and @group to work together in run-tests.sh](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549601.md)
 - [#3587564: Move search functionality from node to Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587564.md)
 - [#2875033: Optimize joins and table selection in SQL entity query implementation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2875033.md)
-- [#3593008: AccessPolicyProcessor::processAccessPolicies() creates unnecessary Fibers when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593008.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [171 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_171 rules · 1 new this week_
+_172 rules · 2 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Rename NodeSearch to SearchNode from search_node module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-nodesearch-to-searchnode-from-search-node-module-3587564.php)
+- [Remove deprecated $sql_query argument from Query::getTables()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php)
 
 
 ## RSS feeds
