@@ -6,6 +6,7 @@ use Rector\Config\RectorConfig;
 
 require_once __DIR__ . '/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php';
 require_once __DIR__ . '/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php';
+require_once __DIR__ . '/rules/rename-nodesearch-to-searchnode-from-search-node-module-3587564.php';
 require_once __DIR__ . '/rules/replace-locale-translation-update-file-history-and-locale-3037156.php';
 require_once __DIR__ . '/rules/replace-drupal-static-reset-file-get-file-references-keys-1452100.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-batch-procedural-functions-with-3581303.php';

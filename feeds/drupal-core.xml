@@ -5,6 +5,169 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3587564: Move search functionality from node to Search module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587564.md</link>
+      <guid isPermaLink="false">019e8883-42dc-7649-a0f2-efd583b8028c</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 02 Jun 2026 12:03:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 49 files, +1124/−992 · php +1103/−978 · yml +21/−14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/bcb6694582a8a28070adfad9808b74e3e0d49148"&gt;bcb6694&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587564"&gt;#3587564&lt;/a&gt; · 3 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A new &lt;code&gt;search_node&lt;/code&gt; core submodule now owns all of the Search module integration that was previously bundled inside the Node module. Sites that use the built-in content search (the &lt;code&gt;node_search&lt;/code&gt; search page) will need this new module enabled. An update hook handles the transition automatically on existing sites. This work is part of the broader effort to deprecate the Search module by extracting its integrations into dedicated submodules.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;\Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; deprecated in drupal:11.4.0, removed in drupal:12.0.0; use &lt;code&gt;\Drupal\search_node\Plugin\Search\SearchNode&lt;/code&gt; instead.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;search_node&lt;/code&gt; core submodule introduced, owning the &lt;code&gt;node_search&lt;/code&gt; plugin, its hooks, config, and Views data integration.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The canonical &lt;code&gt;node_search&lt;/code&gt; plugin class has moved from &lt;code&gt;core/modules/node/src/Plugin/Search/NodeSearch.php&lt;/code&gt; (&lt;code&gt;\Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt;) to &lt;code&gt;core/modules/search/modules/search_node/src/Plugin/Search/SearchNode.php&lt;/code&gt; (&lt;code&gt;\Drupal\search_node\Plugin\Search\SearchNode&lt;/code&gt;). The old class is retained as a deprecated shell that simply extends the new one and fires &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; in its constructor; the &lt;code&gt;#[Search(id: 'node_search')]&lt;/code&gt; attribute now lives on &lt;code&gt;SearchNode&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Several hooks previously implemented inside the Node module have been relocated. &lt;code&gt;NodeSearchHooks&lt;/code&gt; (cron rankings aggregation) was re-namespaced into &lt;code&gt;Drupal\search_node\Hook&lt;/code&gt;. A new &lt;code&gt;SearchNodeHooks&lt;/code&gt; class implements &lt;code&gt;hook_entity_predelete&lt;/code&gt; (clearing the search index when a node is deleted), &lt;code&gt;hook_node_update&lt;/code&gt; (clearing removed translations from the index), &lt;code&gt;hook_entity_view_display_alter&lt;/code&gt; (hiding field labels in the &lt;code&gt;search_index&lt;/code&gt; view mode), and a &lt;code&gt;hook_form_node_preview_form_select_alter&lt;/code&gt; to unset the &lt;code&gt;search_index&lt;/code&gt; view mode option. The Views data for &lt;code&gt;node_search_index&lt;/code&gt;, &lt;code&gt;node_search_total&lt;/code&gt;, and &lt;code&gt;node_search_dataset&lt;/code&gt; was extracted from &lt;code&gt;NodeViewsData::getViewsData()&lt;/code&gt; into a new &lt;code&gt;SearchNodeViewsHooks::viewsDataAlter()&lt;/code&gt; hook.&lt;/p&gt;
+&lt;p&gt;On the configuration side, the &lt;code&gt;search.page.node_search.yml&lt;/code&gt; optional config file now declares &lt;code&gt;search_node&lt;/code&gt; (not &lt;code&gt;node&lt;/code&gt;) as its required module; the schema entry for &lt;code&gt;search.plugin.node_search&lt;/code&gt; moved from &lt;code&gt;node.schema.yml&lt;/code&gt; to a new &lt;code&gt;search_node.schema.yml&lt;/code&gt;; and the &lt;code&gt;core.entity_view_mode.node.search_index&lt;/code&gt; and &lt;code&gt;core.entity_view_mode.node.search_result&lt;/code&gt; install configs moved from the Node module to &lt;code&gt;search_node&lt;/code&gt;. The &lt;code&gt;Node&lt;/code&gt; entity class itself was cleaned up: the &lt;code&gt;preDelete()&lt;/code&gt; static method and the translation-removal call in &lt;code&gt;postSave()&lt;/code&gt; were deleted, since those responsibilities now live in &lt;code&gt;SearchNodeHooks&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that subclasses or type-hints &lt;code&gt;\Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; must be updated:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in drupal:11.4.0, removed in drupal:12.0.0):
+use Drupal\node\Plugin\Search\NodeSearch;
+
+// After:
+use Drupal\search_node\Plugin\Search\SearchNode;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;search_node&lt;/code&gt; module must be enabled wherever the &lt;code&gt;node_search&lt;/code&gt; search page is in use. On existing sites an update hook handles this automatically, but custom install profiles or test environments that enable modules explicitly should add &lt;code&gt;search_node&lt;/code&gt; to their module list.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
+&lt;li&gt;First commit: May 26, 2026 (27 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: June 2, 2026 (7 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#2875033: Optimize joins and table selection in SQL entity query implementation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2875033.md</link>
+      <guid isPermaLink="false">019e8884-af63-77de-a79e-49fad03c574e</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 02 Jun 2026 09:57:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +205/−34 · php +205/−34&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/702159f4ab2387dff25364701ea92b2271e57477"&gt;702159f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2875033"&gt;#2875033&lt;/a&gt; · 36 contributors · 119 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 87&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The SQL entity query layer now generates significantly fewer joins and avoids unnecessary &lt;code&gt;GROUP BY&lt;/code&gt; clauses in many common scenarios. Previously, querying a base-table property like &lt;code&gt;uuid&lt;/code&gt; would join the table to itself; querying two fields from the data table would add two independent joins to the same table; following an entity reference with multiple conditions would repeat the reference join for each condition; and any entity type with a data table would unconditionally mark the query as non-simple, adding a &lt;code&gt;GROUP BY&lt;/code&gt; even when only one row per entity was possible. All of these redundancies are fixed. Sites with large datasets or many translations should see measurable query-time improvements for entity queries, including those driven by JSON:API and Views.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ConditionInterface&lt;/code&gt; requires two new methods &lt;code&gt;setQuery()&lt;/code&gt; and &lt;code&gt;getQuery()&lt;/code&gt;; &lt;code&gt;Query::getTables()&lt;/code&gt; no longer accepts a &lt;code&gt;$sql_query&lt;/code&gt; argument (deprecated &lt;code&gt;drupal:11.4.0&lt;/code&gt;, removed &lt;code&gt;drupal:13.0.0&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Query::getTables($sql_query)&lt;/code&gt; with an argument and passing a &lt;code&gt;Condition&lt;/code&gt; from a different query into &lt;code&gt;condition()&lt;/code&gt; are both deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;LanguageInterface::LANGCODE_DEFAULT&lt;/code&gt; is now a valid langcode argument to entity-query &lt;code&gt;condition()&lt;/code&gt; calls; it joins data tables on &lt;code&gt;default_langcode = 1&lt;/code&gt; rather than a literal language match.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that &lt;code&gt;Query::getTables()&lt;/code&gt; created a fresh &lt;code&gt;Tables&lt;/code&gt; instance on every call, so each nested &lt;code&gt;Condition&lt;/code&gt; (inside AND/OR groups) got its own join-tracking state and could not deduplicate against joins already added by sibling conditions. The fix introduces &lt;code&gt;doGetTables()&lt;/code&gt;, which stores and reuses a single &lt;code&gt;Tables&lt;/code&gt; instance per query. All &lt;code&gt;Condition&lt;/code&gt; objects that belong to the same query now share one &lt;code&gt;Tables&lt;/code&gt; instance, so the &lt;code&gt;entityTables&lt;/code&gt; and &lt;code&gt;fieldTables&lt;/code&gt; arrays correctly prevent the same join from being added twice.&lt;/p&gt;
+&lt;p&gt;Five specific join-redundancy bugs are fixed by this shared state:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Base-table self-join&lt;/strong&gt;: &lt;code&gt;prepare()&lt;/code&gt; stores the base table name in query metadata under &lt;code&gt;entity_query_base_table&lt;/code&gt;. The &lt;code&gt;Tables&lt;/code&gt; constructor pre-populates &lt;code&gt;entityTables&lt;/code&gt; with that entry, so a condition on a base-table column (e.g., &lt;code&gt;uuid&lt;/code&gt;) resolves directly to &lt;code&gt;base_table&lt;/code&gt; instead of joining the table to itself.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Data-table joins&lt;/strong&gt;: &lt;code&gt;ensureEntityTable()&lt;/code&gt; now keys entries by &lt;code&gt;$index_prefix . $base_table . '.' . $table . ($langcode ? '.' . $langcode : '')&lt;/code&gt;, properly deduplicating joins regardless of which condition requests them. The old key was incorrect when the base table differed from &lt;code&gt;'base_table'&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Entity-reference joins&lt;/strong&gt;: &lt;code&gt;addNextBaseTable()&lt;/code&gt; now caches its result in a &lt;code&gt;nextBaseTables&lt;/code&gt; array keyed by &lt;code&gt;$table.$sql_column&lt;/code&gt;, so following the same reference path in two conditions produces one join instead of two.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;simple_query&lt;/code&gt; / &lt;code&gt;GROUP BY&lt;/code&gt; elimination&lt;/strong&gt;: &lt;code&gt;prepare()&lt;/code&gt; now always starts with &lt;code&gt;simple_query = TRUE&lt;/code&gt;. Inside &lt;code&gt;Tables::addField()&lt;/code&gt;, the flag is only set to &lt;code&gt;FALSE&lt;/code&gt; when the data-table join has no langcode restriction (a langcode-restricted join is 1-to-1, so no fan-out occurs). Queries with a specific language condition or with a single-cardinality field no longer add &lt;code&gt;GROUP BY&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;Multi-value AND conditions&lt;/strong&gt;: A new &lt;code&gt;tableIndexPrefix&lt;/code&gt; property on &lt;code&gt;Condition&lt;/code&gt; ensures that each top-level &lt;code&gt;andConditionGroup()&lt;/code&gt; wrapping a multi-value field gets its own index namespace. This keeps the well-documented behaviour (placing &lt;code&gt;-&amp;gt;andConditionGroup()-&amp;gt;condition('field', 'X')&lt;/code&gt; and &lt;code&gt;-&amp;gt;andConditionGroup()-&amp;gt;condition('field', 'Y')&lt;/code&gt; as siblings to find entities that have both values) while still deduplicating joins within a single group.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Additionally, &lt;code&gt;LanguageInterface::LANGCODE_DEFAULT&lt;/code&gt; is now recognised in &lt;code&gt;addJoin()&lt;/code&gt;. When it is passed for a data table or revision data table, the join condition uses &lt;code&gt;default_langcode = 1&lt;/code&gt; rather than a literal language-code match, allowing callers to query against the entity's default language without knowing its code.&lt;/p&gt;
+&lt;p&gt;Two deprecations ship with this change: passing &lt;code&gt;$sql_query&lt;/code&gt; to &lt;code&gt;Query::getTables()&lt;/code&gt; is deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt; (use &lt;code&gt;doGetTables()&lt;/code&gt; or, for custom subclasses, override &lt;code&gt;doGetTables()&lt;/code&gt;); passing a &lt;code&gt;Condition&lt;/code&gt; created by a different query instance to another query's &lt;code&gt;condition()&lt;/code&gt; is also deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ConditionInterface&lt;/code&gt; gains two new required methods, &lt;code&gt;setQuery(QueryInterface $query)&lt;/code&gt; and &lt;code&gt;getQuery()&lt;/code&gt;, which the base &lt;code&gt;ConditionBase&lt;/code&gt; class implements by propagating the query reference recursively through nested conditions.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Implementations of &lt;code&gt;\Drupal\Core\Entity\Query\ConditionInterface&lt;/code&gt; must add two new methods:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function setQuery(QueryInterface $query): static {
+    $this-&amp;gt;query = $query;
+    foreach ($this-&amp;gt;conditions as $condition) {
+        if ($condition['field'] instanceof ConditionInterface) {
+            $condition['field']-&amp;gt;setQuery($query);
+        }
+    }
+    return $this;
+}
+
+public function getQuery(): QueryInterface {
+    return $this-&amp;gt;query;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your code calls &lt;code&gt;getTables()&lt;/code&gt; with a &lt;code&gt;$sql_query&lt;/code&gt; argument, remove it:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
+$tables = $this-&amp;gt;query-&amp;gt;getTables($this-&amp;gt;sqlQuery);
+
+// After:
+$tables = $this-&amp;gt;query-&amp;gt;doGetTables();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your code reuses a condition group from one query inside a different query, stop doing so:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated pattern – $query1 and $query2 are separate instances:
+$group = $query1-&amp;gt;andConditionGroup()-&amp;gt;condition('field', 'value');
+$query2-&amp;gt;condition($group);
+
+// Correct – always create condition groups from the query you are building:
+$group = $query2-&amp;gt;andConditionGroup()-&amp;gt;condition('field', 'value');
+$query2-&amp;gt;condition($group);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 2, 2017&lt;/li&gt;
+&lt;li&gt;Committed: June 2, 2026 (9 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;driskell (Other Media)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;kaythay (Aten Design Group)&lt;/li&gt;
+&lt;li&gt;joachim&lt;/li&gt;
+&lt;li&gt;rlmumford&lt;/li&gt;
+&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
+&lt;li&gt;ghost of drupal past&lt;/li&gt;
+&lt;li&gt;alexbrut (Smile)&lt;/li&gt;
+&lt;li&gt;etroid&lt;/li&gt;
+&lt;li&gt;andreyks (Adyax)&lt;/li&gt;
+&lt;li&gt;cilefen&lt;/li&gt;
+&lt;li&gt;damondt&lt;/li&gt;
+&lt;li&gt;davidwhthomas&lt;/li&gt;
+&lt;li&gt;itsekhmistro (Adyax)&lt;/li&gt;
+&lt;li&gt;mstef&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;driskell drove the final implementation that landed. After years of stalled patches, they rewrote the approach from first principles on 11.x: introduced the shared &lt;code&gt;Tables&lt;/code&gt; singleton, &lt;code&gt;tableIndexPrefix&lt;/code&gt; for multi-value AND semantics, &lt;code&gt;doGetTables()&lt;/code&gt;, &lt;code&gt;LANGCODE_DEFAULT&lt;/code&gt; join support, and the &lt;code&gt;setQuery()&lt;/code&gt;/&lt;code&gt;getQuery()&lt;/code&gt; API. In comment #71 they surfaced the obscure &lt;code&gt;andConditionGroup&lt;/code&gt; cross-delta behaviour as a design question and clearly documented why preserving it required the prefix approach, then in comment #74 they committed to a follow-up to clean it up rather than let it block the fix. joachim provided the framing in comment #75 that confirmed this was a refactoring issue and that the andConditionGroup question should stay separate.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3593008: AccessPolicyProcessor::processAccessPolicies() creates unnecessary Fibers when checking permissions for the current user</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593008.md</link>
       <guid isPermaLink="false">019e845e-ca08-73a9-9e38-a24e7d4e1d81</guid>
@@ -969,128 +1132,6 @@ drupal_static_reset('locale_translation_get_file_history');
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;This was a community sprint coordinated by mherchel, who handled the majority of the 40+ file migrations and wrote the detailed mapping table in the issue summary. dharizza joined to take on &lt;code&gt;gin-table&lt;/code&gt;, &lt;code&gt;gin-button&lt;/code&gt;, &lt;code&gt;gin-dropbutton&lt;/code&gt;, &lt;code&gt;gin-system-report&lt;/code&gt;, &lt;code&gt;gin-status-report&lt;/code&gt;, and &lt;code&gt;gin-system-themes&lt;/code&gt;. Two first-time contributors to this issue also stepped in: mukeysh completed &lt;code&gt;gin-system-modules&lt;/code&gt; and &lt;code&gt;gin-performance&lt;/code&gt;, and nitinkumar_7 completed &lt;code&gt;gin-blocks&lt;/code&gt;, &lt;code&gt;gin-batch&lt;/code&gt;, and &lt;code&gt;gin-maxlength&lt;/code&gt;. jurgenhaas initially flagged several visual differences during review but confirmed after closer comparison that they were pre-existing differences in &lt;code&gt;main&lt;/code&gt; and not regressions introduced by the MR. mgifford did manual QA across admin pages and marked it RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3564234: Add display-builder agnostic overview page for display modes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564234.md</link>
-      <guid isPermaLink="false">019e5099-85f6-733a-873f-bc633f58a515</guid>
-      <category>Module maintainers</category>
-      <category>Front-end developers</category>
-      <pubDate>Fri, 22 May 2026 14:39:17 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 51 files, +879/−211 · php +813/−211 · css +55 · yml +11&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/987768ba6b6144c08087ce65174f28776aecdc95"&gt;987768b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3564234"&gt;#3564234&lt;/a&gt; · 11 contributors · 53 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 23&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;Manage display&amp;quot; tab in Field UI now opens a display-builder agnostic overview page instead of dropping administrators directly into the default view mode's field formatter form. The overview lists all view modes for a bundle in two tables: &amp;quot;Enabled view modes&amp;quot; and &amp;quot;Disabled view modes&amp;quot;. Each enabled mode has a &amp;quot;Manage&amp;quot; link to its configuration form and a &amp;quot;Disable&amp;quot; link; disabled modes have an &amp;quot;Enable&amp;quot; link. The default view mode is always shown as enabled and cannot be disabled. A &amp;quot;Manage view modes&amp;quot; action link leads to the global view modes administration page. The individual display mode forms are unchanged; only the navigation entry point has moved.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; New &lt;code&gt;drupal.field_ui_display_overview&lt;/code&gt; library and &lt;code&gt;field_ui_display_overview_table.css&lt;/code&gt; stylesheet added to the 'Manage display' overview page.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;entity.entity_view_display_overview.{entity_type_id}&lt;/code&gt; route and &lt;code&gt;EntityViewDisplayOverviewController&lt;/code&gt; / &lt;code&gt;EntityViewDisplayStatusController&lt;/code&gt; for the display mode overview and toggle actions.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Three new routes are registered per entity type in &lt;code&gt;RouteSubscriber::alterRoutes()&lt;/code&gt;. The overview route &lt;code&gt;entity.entity_view_display_overview.{entity_type_id}&lt;/code&gt; is placed at &lt;code&gt;$path/display&lt;/code&gt; and handled by the new &lt;code&gt;EntityViewDisplayOverviewController::overview()&lt;/code&gt;. The existing default display route &lt;code&gt;entity.entity_view_display.{entity_type_id}.default&lt;/code&gt; was moved from &lt;code&gt;$path/display&lt;/code&gt; to &lt;code&gt;$path/display/default&lt;/code&gt;. A new CSRF-protected toggle route &lt;code&gt;entity.entity_view_display.{entity_type_id}.toggle_status&lt;/code&gt; at &lt;code&gt;$path/display/{view_mode_name}/{operation}&lt;/code&gt; is handled by &lt;code&gt;EntityViewDisplayStatusController::toggleStatus()&lt;/code&gt;, which enables or disables the named view mode and redirects back to the overview. The default view mode is hardcoded as always enabled; attempting to disable it throws an &lt;code&gt;\InvalidArgumentException&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &amp;quot;Custom display settings&amp;quot; collapsible section (the checkboxes for enabling view modes) was removed from &lt;code&gt;EntityDisplayFormBase::form()&lt;/code&gt; and its corresponding &lt;code&gt;submitForm()&lt;/code&gt; logic. That same checkbox UI and submit logic was moved into &lt;code&gt;EntityFormDisplayEditForm&lt;/code&gt;, so form modes still use the checkbox pattern on the default form display. View mode enable/disable is now exclusively managed through the overview page.&lt;/p&gt;
-&lt;p&gt;Local task derivatives in &lt;code&gt;FieldUiLocalTask&lt;/code&gt; were updated: &lt;code&gt;display_overview_{entity_type_id}&lt;/code&gt; now resolves to the new overview route. A new &amp;quot;Overview&amp;quot; secondary tab &lt;code&gt;field_display_overview_{entity_type_id}&lt;/code&gt; was added, and the &amp;quot;Manage display&amp;quot; operation link emitted by &lt;code&gt;entityOperation()&lt;/code&gt; in entity listing pages also now targets the overview route. The new &lt;code&gt;drupal.field_ui_display_overview&lt;/code&gt; library loads &lt;code&gt;css/field_ui_display_overview_table.css&lt;/code&gt; for the overview layout.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any code or test that navigated to &lt;code&gt;$bundle_path/display&lt;/code&gt; and expected the default view mode form must be updated to &lt;code&gt;$bundle_path/display/default&lt;/code&gt;.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$url = Url::fromRoute(&amp;quot;entity.entity_view_display.$entity_type_id.default&amp;quot;, $params);
-
-// Still works; no change needed for routes that already use the named route.
-// Only bare path strings or links hardcoded to /display are affected.
-
-// Before (hardcoded path):
-$this-&amp;gt;drupalGet('admin/structure/types/manage/article/display');
-
-// After:
-$this-&amp;gt;drupalGet('admin/structure/types/manage/article/display/default');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that previously submitted the &lt;code&gt;display_modes_custom[{mode}]&lt;/code&gt; checkbox on the default view display form to enable a view mode must switch to either clicking the &amp;quot;Enable&amp;quot; link on the overview page or directly creating/saving an &lt;code&gt;entity_view_display&lt;/code&gt; config entity with &lt;code&gt;status: TRUE&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$storage = \Drupal::entityTypeManager()-&amp;gt;getStorage('entity_view_display');
-$display = $storage-&amp;gt;create([
-  'targetEntityType' =&amp;gt; 'node',
-  'bundle' =&amp;gt; 'article',
-  'mode' =&amp;gt; 'full',
-  'status' =&amp;gt; TRUE,
-]);
-$display-&amp;gt;save();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 20, 2025&lt;/li&gt;
-&lt;li&gt;First commit: April 27, 2026 (4 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 22, 2026 (25 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;grimreaper (Smile)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;joachim (Chicken)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
-&lt;li&gt;pallavi singh3013 (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;rkoller&lt;/li&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The usability review comment by benjifisher (comment 23) shaped the shipped UI in several concrete ways: it prompted adding visually hidden text to operation links for screen-reader accessibility, changing table headings from &amp;quot;display modes&amp;quot; to &amp;quot;view modes&amp;quot;, adding a &amp;quot;Manage view modes&amp;quot; link back to the global view mode administration page (which had previously been removed), and opening a follow-up issue (&lt;a href="https://www.drupal.org/node/3574972"&gt;#3574972&lt;/a&gt;) for the horizontal whitespace problem. The pameeela contribution (comment 28) reworked the placement and phrasing of the &amp;quot;Manage view modes&amp;quot; link, and lauriii responded by converting it to a prominent action link displayed above the table, which became the final design.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591179: Update main and 11.x to latest Twig and Symfony versions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591179.md</link>
-      <guid isPermaLink="false">019e49d1-ccf4-7438-a081-b3dff8e19d00</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 21 May 2026 08:00:21 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +278/−263 · lock +229/−217 · json +46/−46 · php +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/dc3c97a4d019548b3e2272e502ea7b05a9ce44ae"&gt;dc3c97a&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3591179"&gt;#3591179&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Following the Drupal 11.3.10 security release, the &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt; development branches have been updated to the same patched versions of Twig and Symfony that were shipped in the stable security release. The update raises &lt;code&gt;twig/twig&lt;/code&gt; from &lt;code&gt;^3.21.0&lt;/code&gt; to &lt;code&gt;^3.26.0&lt;/code&gt; and tightens the minimum constraint for several Symfony 8.0 packages (including &lt;code&gt;http-kernel&lt;/code&gt;, &lt;code&gt;mailer&lt;/code&gt;, &lt;code&gt;mime&lt;/code&gt;, &lt;code&gt;routing&lt;/code&gt;, and &lt;code&gt;yaml&lt;/code&gt;) to &lt;code&gt;^8.0.12&lt;/code&gt;. Sites on a stable release were already covered by 11.3.10; this change keeps the development branches aligned with those security fixes so contributors are not working against vulnerable dependencies.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Twig and Symfony packages updated to security-patched versions matching Drupal 11.3.10; twig/twig minimum raised to 3.26.0 and several symfony/* packages pinned to 8.0.12&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit updates both &lt;code&gt;composer.json&lt;/code&gt; version constraints and the resolved &lt;code&gt;composer.lock&lt;/code&gt; entries. On the constraint side, &lt;code&gt;twig/twig&lt;/code&gt; is moved to &lt;code&gt;^3.26.0&lt;/code&gt; and five Symfony packages (&lt;code&gt;symfony/http-kernel&lt;/code&gt;, &lt;code&gt;symfony/mailer&lt;/code&gt;, &lt;code&gt;symfony/mime&lt;/code&gt;, &lt;code&gt;symfony/routing&lt;/code&gt;, &lt;code&gt;symfony/yaml&lt;/code&gt;, and the test-only &lt;code&gt;symfony/dom-crawler&lt;/code&gt;) are pinned to &lt;code&gt;^8.0.12&lt;/code&gt;. The remaining Symfony packages receive lock-file-only bumps without constraint changes. Symfony polyfills advance from &lt;code&gt;~v1.33.0&lt;/code&gt; to &lt;code&gt;~v1.37.0&lt;/code&gt;. The locked &lt;code&gt;symfony/serializer&lt;/code&gt; &lt;code&gt;v8.0.10&lt;/code&gt; entry gains a new conflict against &lt;code&gt;symfony/property-access &amp;lt;7.4.2|&amp;gt;=8.0,&amp;lt;8.0.2&lt;/code&gt;, and &lt;code&gt;symfony/validator&lt;/code&gt; &lt;code&gt;v8.0.10&lt;/code&gt; gains a conflict against &lt;code&gt;symfony/expression-language &amp;lt;7.4&lt;/code&gt;, reflecting upstream dependency refinements present in those releases. PHPStan baseline adjustments were also needed to resolve &lt;code&gt;ignore.unmatchedIdentifier&lt;/code&gt; errors against the MySQL, PostgreSQL, and SQLite database driver files that appeared after the Symfony upgrade; those changes are part of the same commit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
