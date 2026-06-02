@@ -5,6 +5,64 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#1499532: Respect explicitly set node path alias langcode on save</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md</link>
+      <guid isPermaLink="false">019e8a2c-0e0d-7599-ac4b-c575880552c2</guid>
+      <pubDate>Tue, 02 Jun 2026 20:22:58 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +49/−5 · php +49/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f30d64c5689364b63c6707c51b52e7bfcdaa8d89"&gt;f30d64c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1499532"&gt;#1499532&lt;/a&gt; · 10 contributors · 39 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On multilingual sites, setting a path alias to a specific language (or to language-neutral, &lt;code&gt;LanguageInterface::LANGCODE_NOT_SPECIFIED&lt;/code&gt;) programmatically was silently ignored when saving a node. The alias was always stored with the node translation's language instead. A langcode-only update (same alias text, different language) was also dropped entirely. Both cases are now fixed: the explicitly provided alias langcode is respected on both create and update.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two bugs lived in &lt;code&gt;PathItem::postSave()&lt;/code&gt; inside &lt;code&gt;core/modules/path/src/Plugin/Field/FieldType/PathItem.php&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;First, the langcode selection used the condition &lt;code&gt;($langcode &amp;amp;&amp;amp; $pid) ? $langcode : $this-&amp;gt;getLangcode()&lt;/code&gt;. Because &lt;code&gt;$pid&lt;/code&gt; is absent when creating a new alias, any explicit langcode supplied at node-creation time was always discarded in favour of the entity's own langcode. The fix simplifies this to &lt;code&gt;$langcode ?: $this-&amp;gt;getLangcode()&lt;/code&gt;, so any non-empty explicit langcode wins for both new and existing aliases.&lt;/p&gt;
+&lt;p&gt;Second, the update branch only called &lt;code&gt;$path_alias-&amp;gt;save()&lt;/code&gt; when the alias text changed (&lt;code&gt;$alias != $path_alias-&amp;gt;getAlias()&lt;/code&gt;). A change to the langcode alone was never persisted. The fix introduces a &lt;code&gt;$path_alias_changed&lt;/code&gt; flag that is set when either the alias text or the langcode (&lt;code&gt;$alias_langcode !== $path_alias-&amp;gt;language()-&amp;gt;getId()&lt;/code&gt;) differs from the stored value, and save is triggered when either is true.&lt;/p&gt;
+&lt;p&gt;A third, related fix is in &lt;code&gt;PathDefaultWidget::formElement()&lt;/code&gt;. The hidden &lt;code&gt;langcode&lt;/code&gt; form field previously always forwarded &lt;code&gt;$items[$delta]-&amp;gt;langcode&lt;/code&gt;, which for unsaved items resolved to the entity's langcode and would have overridden any programmatic langcode set before the form was rendered. It now passes &lt;code&gt;NULL&lt;/code&gt; when no &lt;code&gt;$pid&lt;/code&gt; exists yet (new alias), allowing the save logic to apply the explicitly set value instead.&lt;/p&gt;
+&lt;p&gt;New kernel test cases in &lt;code&gt;PathItemTest::testPathItem()&lt;/code&gt; cover: setting &lt;code&gt;langcode&lt;/code&gt; to &lt;code&gt;LANGCODE_NOT_SPECIFIED&lt;/code&gt; on a saved node's path field and re-saving (verifies the language-neutral alias is stored and the language-specific alias is gone), and creating a new node with &lt;code&gt;LANGCODE_NOT_SPECIFIED&lt;/code&gt; in the path data (verifies the alias is created language-neutral from the start).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No API changes. If your code was previously working around this bug by manually editing the path alias after node save, that workaround can be removed. For example, code like:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before: workaround needed because langcode was ignored on save
+$node-&amp;gt;path-&amp;gt;langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
+$node-&amp;gt;save();
+// Then manually fix the stored alias…
+$alias = $alias_storage-&amp;gt;load($pid);
+$alias-&amp;gt;set('langcode', LanguageInterface::LANGCODE_NOT_SPECIFIED);
+$alias-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;can now be simplified to:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// After: langcode is respected on save
+$node-&amp;gt;path-&amp;gt;langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
+$node-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 25, 2012&lt;/li&gt;
+&lt;li&gt;Committed: June 2, 2026 (14 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;q0rban&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;joelpittet picked up this 13-year-old issue after smustgrave flagged it as a daily BSI target, noting that the original patch referenced &lt;code&gt;$node-&amp;gt;path['language']&lt;/code&gt;, which had long since become &lt;code&gt;$node-&amp;gt;path-&amp;gt;langcode&lt;/code&gt; in modern Drupal. joelpittet opened MR !15411, rewrote the issue summary to the standard template, and disclosed in the thread that they used AI as an assistive tool while remaining the human reviewer: they questioned the extra &lt;code&gt;$path_alias_changed&lt;/code&gt; flag and ran the tests both with and without the fix to confirm the red/green results before submitting. smustgrave independently verified the fix by running a &lt;code&gt;drush php:eval&lt;/code&gt; snippet against a fresh install with two languages and confirmed the alias langcode changed from &lt;code&gt;en&lt;/code&gt; to &lt;code&gt;und&lt;/code&gt; with the patch applied.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3549601: Allow --directory and @group to work together in run-tests.sh</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549601.md</link>
       <guid isPermaLink="false">019e896b-723e-702b-82b0-dd61087d1049</guid>
@@ -1071,49 +1129,6 @@ drupal_static_reset('locale_translation_get_file_history');
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;heddn (comment #25) attached a profiler screenshot showing the three functions consuming approximately 96% of execution time in a profile-based install with 8-9 languages, with cron runs taking close to two hours. This concrete evidence of the performance impact helped justify the scope of the rewrite beyond a simple procedural-to-service refactor.&lt;/p&gt;
 &lt;p&gt;berdir and nicxvan pair-programmed the final design. berdir did live profiling on a real distribution with many languages, documenting the load-all → update → invalidate-all → load-all loop in detail (comment #43), and confirmed that per-record fetching and caching would address the main bottleneck. Multiple intermediate approaches (v1 through v3, across three separate MRs) were opened and discarded as the two worked out where &lt;code&gt;CurrentImportStorage&lt;/code&gt; needed to sit relative to &lt;code&gt;LocaleFile&lt;/code&gt;, the source objects, and the compare/batch subsystems that had been modernized in &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; just before this issue could proceed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3587601: Avoid loading date formats in element info</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587601.md</link>
-      <guid isPermaLink="false">019e6009-c254-7367-8616-f18d20372293</guid>
-      <pubDate>Mon, 25 May 2026 13:31:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +37/−30 · php +37/−30&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/68114871086f461a74cf4bdcbd41fe613d43d434"&gt;6811487&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587601"&gt;#3587601&lt;/a&gt; · 6 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On every cold cache request, the &lt;code&gt;Datetime&lt;/code&gt; form element class was loading two date format config entities (&lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt;) as part of populating the element info cache, even on pages that never rendered a datetime form element. This added 2 database queries and 2 cache set operations to every cache warmup cycle. The fix moves those loads out of &lt;code&gt;getInfo()&lt;/code&gt; and defers them to the form processing callbacks that run only when a datetime element is actually being rendered. The performance tests confirm a reduction of 2 queries, 2 cache gets, and 2 cache sets per cold-cache request on both the front page and node pages.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;Datetime&lt;/code&gt; element's &lt;code&gt;getInfo()&lt;/code&gt; method was using &lt;code&gt;DateFormat::load('html_date')&lt;/code&gt; and &lt;code&gt;DateFormat::load('html_time')&lt;/code&gt; to populate &lt;code&gt;#date_date_format&lt;/code&gt; and &lt;code&gt;#date_time_format&lt;/code&gt; default properties. Because &lt;code&gt;getInfo()&lt;/code&gt; results populate a shared element info cache, those loads ran on every cold-cache request regardless of whether any datetime element appeared on the page.&lt;/p&gt;
-&lt;p&gt;The fix removes &lt;code&gt;#date_date_format&lt;/code&gt; and &lt;code&gt;#date_time_format&lt;/code&gt; from the &lt;code&gt;getInfo()&lt;/code&gt; return value entirely. Instead, &lt;code&gt;valueCallback()&lt;/code&gt; and &lt;code&gt;processDatetime()&lt;/code&gt; each call &lt;code&gt;DateFormat::loadMultiple(['html_date', 'html_time'])&lt;/code&gt; at the start and set the two properties via &lt;code&gt;$element +=&lt;/code&gt; (the &lt;code&gt;+=&lt;/code&gt; operator preserves any caller-supplied values, keeping the existing override contract). The redundant duplicate &lt;code&gt;DateFormat::load()&lt;/code&gt; calls that previously existed inside the &lt;code&gt;datetime-local&lt;/code&gt; branch of &lt;code&gt;valueCallback()&lt;/code&gt; are also removed, replaced by reuse of the already-loaded &lt;code&gt;$formats&lt;/code&gt; array.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;DatetimeElementFormTest&lt;/code&gt; kernel test was missing a call to &lt;code&gt;installConfig(['system'])&lt;/code&gt;, so it did not have the &lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt; config entities available; this was fixed by adding a &lt;code&gt;setUp()&lt;/code&gt; override that installs both the entity schema and system config before tests run.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
-&lt;li&gt;First commit: May 5, 2026 (6 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 25, 2026 (19 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The review thread had a substantive back-and-forth over whether to add NULL checks when &lt;code&gt;DateFormat::loadMultiple()&lt;/code&gt; returns results. &lt;code&gt;dcam&lt;/code&gt; flagged inconsistent NULL guarding in the MR, &lt;code&gt;godotislate&lt;/code&gt; pressed further and noted that &lt;code&gt;$formats['html_date']&lt;/code&gt; or &lt;code&gt;$formats['html_time']&lt;/code&gt; could theoretically be NULL. &lt;code&gt;alexpott&lt;/code&gt; resolved the debate by pointing out that both &lt;code&gt;html_date&lt;/code&gt; and &lt;code&gt;html_time&lt;/code&gt; are locked system config entities that cannot be deleted, making the NULL guards incorrect rather than merely unnecessary. &lt;code&gt;catch&lt;/code&gt; confirmed this by attempting the removal, observing a test failure in &lt;code&gt;DatetimeElementFormTest&lt;/code&gt;, diagnosing that the test was simply missing &lt;code&gt;installConfig(['system'])&lt;/code&gt;, and fixing the test rather than restoring the guards.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
