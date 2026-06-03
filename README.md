@@ -1,4 +1,4 @@
-**TL;DR:** [624 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [626 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_474 summaries · 20 new this week_
+_476 summaries · 22 new this week_
 
+- [#3593202: Drop the explicit clear of plugin caches in drupal_flush_all_caches()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593202.md)
+- [#3020938: Add view unpublished block content permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md)
 - [#3486503: Add a file parsing cache collector to replace some uses of FileCache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md)
-- [#3592887: AttributeRouteDiscovery does not cleanly handle invalid classes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592887.md)
-- [#3589626: clickLink in kernel tests erroneously prefixes some paths with /](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589626.md)
 
 ### Drupal AI
 

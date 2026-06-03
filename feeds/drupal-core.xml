@@ -5,6 +5,90 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3593202: Drop the explicit clear of plugin caches in drupal_flush_all_caches()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593202.md</link>
+      <guid isPermaLink="false">019e8e98-3130-7426-a51e-3c1ffecd2eb7</guid>
+      <pubDate>Wed, 03 Jun 2026 16:23:30 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +0/−3 · php +0/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/0394ef0b0abcaccb5a71f0d8435ab34beccb9882"&gt;0394ef0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593202"&gt;#3593202&lt;/a&gt; · 3 contributors · 23 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt; function used to call &lt;code&gt;plugin.cache_clearer-&amp;gt;clearCachedDefinitions()&lt;/code&gt; after wiping all cache bins and rebuilding the container. Because the container rebuild already replaces all service instances with fresh ones (discarding any in-memory plugin definition state), that explicit plugin cache clear was redundant work. The three lines have been removed, making the cache-rebuild path slightly faster with no change in correctness. The &lt;code&gt;plugin.cache_clearer&lt;/code&gt; service itself is not removed; it is still used during module and theme install/uninstall, which does not wipe cache bins the same way.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The removed call in &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt; (&lt;code&gt;\Drupal::service('plugin.cache_clearer')-&amp;gt;clearCachedDefinitions()&lt;/code&gt;) originally dates to 2013, when the container was not yet rebuilt on cache clear (the &lt;code&gt;@todo Rebuild the kernel/container&lt;/code&gt; comment in issue &lt;a href="https://www.drupal.org/node/1892462"&gt;#1892462&lt;/a&gt; predates the centralized container invalidation added in &lt;a href="https://www.drupal.org/node/2493665"&gt;#2493665&lt;/a&gt;). Once &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt; gained &lt;code&gt;$kernel-&amp;gt;invalidateContainer()&lt;/code&gt; and &lt;code&gt;$kernel-&amp;gt;rebuildContainer()&lt;/code&gt;, all plugin manager service instances are replaced before the &lt;code&gt;plugin.cache_clearer&lt;/code&gt; line ever runs, so the call clears definitions that no longer exist in the active container. Manual instrumentation by longwave confirmed that by the time the removed call ran in practice, only the entity type manager retained any data, solely because &lt;code&gt;BlockHooks::rebuild()&lt;/code&gt; (invoked earlier via &lt;code&gt;hook_rebuild&lt;/code&gt;) had reloaded it. Two follow-up issues were opened as a result of this investigation: &lt;a href="https://www.drupal.org/node/3593204"&gt;#3593204&lt;/a&gt; to remove &lt;code&gt;BlockHooks::rebuild()&lt;/code&gt; and &lt;a href="https://www.drupal.org/node/3593415"&gt;#3593415&lt;/a&gt; to deprecate the &lt;code&gt;plugin.cache_clearer&lt;/code&gt; service entirely.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 3, 2026 (1 day and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave did runtime instrumentation during the review, confirming empirically that by the time &lt;code&gt;plugin.cache_clearer-&amp;gt;clearCachedDefinitions()&lt;/code&gt; ran inside &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt;, only one plugin manager (the entity type manager, reloaded by &lt;code&gt;BlockHooks::rebuild()&lt;/code&gt;) held any data. longwave also traced the full history of the call back to 2013 and established that the container rebuild introduced in &lt;a href="https://www.drupal.org/node/2493665"&gt;#2493665&lt;/a&gt; had made it redundant. That research directly moved the issue from &amp;quot;questionable&amp;quot; to &amp;quot;safe to drop entirely&amp;quot;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3020938: Add view unpublished block content permission</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md</link>
+      <guid isPermaLink="false">019e8e9a-61da-7621-b06e-105250469844</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 03 Jun 2026 13:49:49 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +33/−6 · php +29/−6 · yml +4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/75becbf693dce3b1731db0b67233d9a6e75bcd98"&gt;75becbf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3020938"&gt;#3020938&lt;/a&gt; · 12 contributors · 45 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A new &lt;code&gt;view unpublished block content&lt;/code&gt; permission has been added to the &lt;code&gt;block_content&lt;/code&gt; module. Previously, viewing an unpublished block (for example a Draft block created through Content Moderation) required either &lt;code&gt;administer block content&lt;/code&gt; or &lt;code&gt;access block library&lt;/code&gt;, both of which grant much broader access than simply viewing. Editors who had only the &lt;code&gt;create and edit custom blocks&lt;/code&gt; permission could place unpublished blocks via Layout Builder but could not view them on the actual page. The new permission allows sites to grant scoped view access to unpublished block content without elevating those users to library or admin roles.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New 'view unpublished block content' permission allows viewing draft block content without requiring 'administer block content' or 'access block library'.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The permission is declared in &lt;code&gt;block_content.permissions.yml&lt;/code&gt;. The access logic in &lt;code&gt;BlockContentAccessControlHandler::checkAccess()&lt;/code&gt; was updated so that the &lt;code&gt;view&lt;/code&gt; operation allows access when the entity is published, or when the account has either &lt;code&gt;access block library&lt;/code&gt; OR the new &lt;code&gt;view unpublished block content&lt;/code&gt; permission (evaluated with an &lt;code&gt;OR&lt;/code&gt; combinator via &lt;code&gt;allowedIfHasPermissions()&lt;/code&gt;). A &lt;code&gt;addCacheableDependency($entity)&lt;/code&gt; call was also added to the view access result so that the published/unpublished state of the entity is correctly reflected in the cache metadata. Tests were updated to cover the new permission case and to correct an existing test-case label (&lt;code&gt;view:unpublished:reusable:admin&lt;/code&gt; renamed to &lt;code&gt;view:unpublished:reusable:library&lt;/code&gt;). Expected unauthorized access messages in REST/JSON:API tests now reflect the two-permission alternative: &lt;code&gt;'access block library' OR 'view unpublished block content'&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No code changes are required. Sites using Content Moderation with block content should review editor roles and consider granting the new &lt;code&gt;view unpublished block content&lt;/code&gt; permission instead of the broader &lt;code&gt;access block library&lt;/code&gt; or &lt;code&gt;administer block content&lt;/code&gt; permissions if the only need is viewing draft blocks.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 17, 2018&lt;/li&gt;
+&lt;li&gt;Committed: June 3, 2026 (7 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jurgenr&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3486503: Add a file parsing cache collector to replace some uses of FileCache</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md</link>
       <guid isPermaLink="false">019e8dbe-48b9-767d-93d9-b2112710984b</guid>
@@ -1002,97 +1086,6 @@ $routeProvider-&amp;gt;serializedRoutes  // protected, but if subclassed
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;gábor hojtsy manually verified the MR by checking out the branch, applying the reverse of the original removal patch, and confirming that only &lt;code&gt;core/themes/default_admin&lt;/code&gt; files were restored while the &lt;code&gt;mailer&lt;/code&gt; module files (which were in the same original patch) correctly remained absent. This manual verification provided the confidence needed to merge quickly.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592341: Fix dot-segment encoding for chained "../" and "./" in generated URLs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592341.md</link>
-      <guid isPermaLink="false">019e6de6-4a43-74cf-a1e9-e8cee434002f</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 28 May 2026 08:15:03 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +33/−6 · php +33/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/eb2964e1c1ce28d279abba09c48cfc8bf5795110"&gt;eb2964e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592341"&gt;#3592341&lt;/a&gt; · 5 contributors · 31 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's routing system maintains its own copy of Symfony's URL generation logic in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt;. That copy contained the same vulnerability described in Symfony CVE-2026-48784: when a route parameter contains chained dot-segments such as &lt;code&gt;../../..&lt;/code&gt; or &lt;code&gt;././.&lt;/code&gt;, the URL generator failed to percent-encode all of them, leaving raw &lt;code&gt;../&lt;/code&gt; or &lt;code&gt;./&lt;/code&gt; sequences in the generated URL. A browser or HTTP client following such a URL would resolve the dot-segments as path traversal. This fix ensures every &lt;code&gt;.&lt;/code&gt; and &lt;code&gt;..&lt;/code&gt; segment is encoded to &lt;code&gt;%2E&lt;/code&gt; and &lt;code&gt;%2E%2E&lt;/code&gt; respectively, regardless of how many are chained. The companion issue &lt;a href="https://www.drupal.org/node/3592421"&gt;#3592421&lt;/a&gt; updated the upstream Symfony packages; this issue fixes Drupal's own forked copy.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Incomplete percent-encoding of chained &lt;code&gt;../&lt;/code&gt; and &lt;code&gt;./&lt;/code&gt; dot-segments in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt; could allow path traversal via crafted route parameters (Symfony CVE-2026-48784).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The old code in &lt;code&gt;UrlGenerator::generateFromRoute()&lt;/code&gt; used &lt;code&gt;strtr($path, ['/../' =&amp;gt; '/%2E%2E/', '/./' =&amp;gt; '/%2E/'])&lt;/code&gt; plus two &lt;code&gt;str_ends_with&lt;/code&gt; checks for trailing &lt;code&gt;/.&lt;/code&gt; and &lt;code&gt;/..&lt;/code&gt;. Because &lt;code&gt;strtr()&lt;/code&gt; performs a single non-overlapping scan, a sequence like &lt;code&gt;/../../..&lt;/code&gt; would only encode some of the segments: the replacement of the first &lt;code&gt;/../&lt;/code&gt; consumed the surrounding slashes, leaving the adjacent &lt;code&gt;../&lt;/code&gt; without leading or trailing slashes to match on the next pass. The test run by &lt;code&gt;smustgrave&lt;/code&gt; confirmed the symptom: expected &lt;code&gt;/test-path/%2E%2E/%2E%2E/%2E%2E/bar&lt;/code&gt; but received &lt;code&gt;/test-path/%2E%2E/../%2E%2E/bar&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix, cherry-picked from Symfony commit &lt;code&gt;4b63c3a3&lt;/code&gt;, replaces the &lt;code&gt;strtr&lt;/code&gt; approach with an explicit segment-by-segment pass: &lt;code&gt;explode('/', $path)&lt;/code&gt;, encode any segment that is exactly &lt;code&gt;.&lt;/code&gt; or &lt;code&gt;..&lt;/code&gt;, then &lt;code&gt;implode('/', $segments)&lt;/code&gt;. This handles any number of consecutive dot-segments and also covers segments at the tail of the path without special-casing. Tests covering all three chained patterns (&lt;code&gt;../../..&lt;/code&gt;, &lt;code&gt;././.&lt;/code&gt;, &lt;code&gt;../././..&lt;/code&gt;) and tail routes were ported directly from the Symfony commit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 27, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 28, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;After the initial MR, &lt;code&gt;smustgrave&lt;/code&gt; asked whether test coverage should be added. &lt;code&gt;znerol&lt;/code&gt; ported the tests from the upstream Symfony commit and pushed them. &lt;code&gt;smustgrave&lt;/code&gt; then ran them locally and caught that the tests actually failed against the existing code, posting the specific mismatch between expected and actual output. That confirmed the real scope of the bug and validated the need for the fix. &lt;code&gt;dww&lt;/code&gt; reviewed the Symfony commit and the MR together and bumped the priority to Major given the CVE origin.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592421: Update Symfony routing and http-foundation versions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592421.md</link>
-      <guid isPermaLink="false">019e6de5-52af-76a9-8a3d-a5aa05c52773</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 28 May 2026 08:04:39 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.5.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +20/−20 · lock +15/−15 · json +5/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9f017a542494411c69ed40ab96f98a81d6f9d88b"&gt;9f017a5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592421"&gt;#3592421&lt;/a&gt; · 5 contributors · 38 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two Symfony security vulnerabilities are addressed by bumping &lt;code&gt;symfony/http-foundation&lt;/code&gt; and &lt;code&gt;symfony/routing&lt;/code&gt; to version &lt;code&gt;^8.0.13&lt;/code&gt; across all supported Drupal branches (10.5.x through main). Sites that run &lt;code&gt;composer audit&lt;/code&gt; before this update will see CVE-2026-48736 and CVE-2026-48784 reported; after updating they will not. Both CVEs were disclosed on 2026-05-26.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; CVE-2026-48736 (SSRF bypass via IPv6 omission in &lt;code&gt;symfony/http-foundation&lt;/code&gt;) and CVE-2026-48784 (URL path traversal via dot-segment encoding in &lt;code&gt;symfony/routing&lt;/code&gt;) patched by requiring both packages at &lt;code&gt;^8.0.13&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;CVE-2026-48736 is in &lt;code&gt;symfony/http-foundation&lt;/code&gt;: &lt;code&gt;IpUtils::PRIVATE_SUBNETS&lt;/code&gt; omitted IPv6 transition address forms (6to4, NAT64, Teredo, IPv4-compatible), allowing an SSRF bypass via &lt;code&gt;NoPrivateNetworkHttpClient&lt;/code&gt;. The fix raises the minimum required version from &lt;code&gt;^8.0&lt;/code&gt; (previously pinned to &lt;code&gt;v8.0.8&lt;/code&gt; in the lockfile) to &lt;code&gt;^8.0.13&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;CVE-2026-48784 is in &lt;code&gt;symfony/routing&lt;/code&gt;: &lt;code&gt;UrlGenerator&lt;/code&gt; dot-segment encoding skipped every other chained &lt;code&gt;../&lt;/code&gt; or &lt;code&gt;./&lt;/code&gt; sequence, potentially collapsing a generated URL off-route under RFC 3986 normalization. The fix raises the minimum from &lt;code&gt;^8.0.12&lt;/code&gt; to &lt;code&gt;^8.0.13&lt;/code&gt;. Note that Drupal ships its own &lt;code&gt;UrlGenerator&lt;/code&gt; subclass, so fully covering CVE-2026-48784 for Drupal also requires the separate fix tracked in &lt;a href="https://www.drupal.org/node/3592341"&gt;#3592341&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;The diff touches &lt;code&gt;core/composer.json&lt;/code&gt;, &lt;code&gt;composer/Metapackage/CoreRecommended/composer.json&lt;/code&gt;, &lt;code&gt;composer/Metapackage/PinnedDevDependencies/composer.json&lt;/code&gt;, and &lt;code&gt;composer.lock&lt;/code&gt;. No PHP source files outside of Composer metadata were changed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 27, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 28, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
