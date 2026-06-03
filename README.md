@@ -1,4 +1,4 @@
-**TL;DR:** [621 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [623 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_471 summaries · 17 new this week_
+_473 summaries · 19 new this week_
 
+- [#3592887: AttributeRouteDiscovery does not cleanly handle invalid classes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592887.md)
+- [#3589626: clickLink in kernel tests erroneously prefixes some paths with /](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589626.md)
 - [#1499532: Respect explicitly set node path alias langcode on save](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md)
-- [#3549601: Allow --directory and @group to work together in run-tests.sh](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549601.md)
-- [#3587564: Move search functionality from node to Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587564.md)
 
 ### Drupal AI
 

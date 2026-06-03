@@ -5,6 +5,85 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3592887: AttributeRouteDiscovery does not cleanly handle invalid classes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592887.md</link>
+      <guid isPermaLink="false">019e8cdf-4804-70e5-8c8f-0ffde12529a7</guid>
+      <pubDate>Wed, 03 Jun 2026 09:35:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +76/−5 · php +74/−5 · dist +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b0d5f3a7aab0c8d03b1a87f436fac5cce6e055f6"&gt;b0d5f3a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592887"&gt;#3592887&lt;/a&gt; · 4 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites running modules that include &amp;quot;compatibility shim&amp;quot; controllers, such as TFA 1.x on Drupal 11.4, were seeing a PHP fatal error during cache clear or &lt;code&gt;drush cr&lt;/code&gt;. The attribute-based route discovery introduced in &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt; scanned every PHP class file in a module and tried to autoload it. If a class had an incompatible method signature relative to its parent, PHP raised a fatal error that was not caught, bringing down the routing system. This fix makes the discovery process skip such classes gracefully instead of crashing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two changes land in &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt;. First, a fast pre-filter: before autoloading a class, the file's raw contents are read and checked with &lt;code&gt;str_contains()&lt;/code&gt; for the strings &lt;code&gt;#[Route&lt;/code&gt; or &lt;code&gt;Routing\Attribute\Route&lt;/code&gt;. Files that match neither string are skipped entirely, avoiding the autoloader for the vast majority of classes. The approach has acknowledged edge cases (a comment containing &lt;code&gt;#[Route&lt;/code&gt; is a false positive) but these are an accepted tradeoff since route discovery results are cached. Second, the &lt;code&gt;class_exists()&lt;/code&gt; call inside &lt;code&gt;createRouteCollection()&lt;/code&gt; is wrapped in a &lt;code&gt;try/catch (\Error)&lt;/code&gt; block so that classes which do pass the string filter but still fail to autoload (e.g., a class extending a parent from a missing module) are silently skipped instead of propagating a fatal error. The catch targets &lt;code&gt;\Error&lt;/code&gt; specifically; the commit comment notes that missing traits only became catchable as &lt;code&gt;\Error&lt;/code&gt; in PHP 8.5, so the test fixture for this case uses a missing parent class instead, which is catchable on all supported PHP versions. Two intentionally invalid test fixtures are added to &lt;code&gt;router_test_directory&lt;/code&gt;: &lt;code&gt;TestInvalidController&lt;/code&gt; (an abstract method on a non-abstract class) and &lt;code&gt;TestMissingDependency&lt;/code&gt; (a &lt;code&gt;#[Route]&lt;/code&gt;-annotated class that extends a class from a non-existent module). Both are excluded from PHPStan. The broader challenge of centralizing fatal-error handling across all attribute discovery subsystems is tracked separately in &lt;a href="https://www.drupal.org/node/3586328"&gt;#3586328&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 30, 2026&lt;/li&gt;
+&lt;li&gt;First commit: June 2, 2026 (2 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: June 3, 2026 (1 day and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave proposed the &lt;code&gt;str_contains()&lt;/code&gt; pre-filter approach after a Slack discussion with godotislate and catch (noted by godotislate in comment &lt;a href="https://www.drupal.org/node/16602879"&gt;#16602879&lt;/a&gt;), then implemented it in MR !15945. cmlara, the issue reporter, tested the MR against TFA's codebase and confirmed the fix resolved the crash, while also flagging the false-positive risk of the string-matching approach and noting that &lt;code&gt;\Throwable&lt;/code&gt; catches the load failure on PHP 8.4.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3589626: clickLink in kernel tests erroneously prefixes some paths with /</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589626.md</link>
+      <guid isPermaLink="false">019e8cdf-f1d7-746b-8229-043b821c60ac</guid>
+      <pubDate>Wed, 03 Jun 2026 08:06:10 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +7/−4 · php +7/−4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b921ffe4e1f546ead1c304b8bd621c289bb4f8c1"&gt;b921ffe&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3589626"&gt;#3589626&lt;/a&gt; · 5 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A bug in &lt;code&gt;HttpKernelUiHelperTrait::drupalGet()&lt;/code&gt; caused &lt;code&gt;clickLink()&lt;/code&gt; in kernel tests to navigate to the wrong URL when the clicked link's &lt;code&gt;href&lt;/code&gt; was a bare query string (for example &lt;code&gt;?page=1&lt;/code&gt;). The old code prepended &lt;code&gt;/&lt;/code&gt; to any path not starting with &lt;code&gt;/&lt;/code&gt;, turning &lt;code&gt;?page=1&lt;/code&gt; into &lt;code&gt;/?page=1&lt;/code&gt; and sending the test to the front page instead of the intended page. The fix teaches &lt;code&gt;drupalGet()&lt;/code&gt; to leave query-string paths alone so they resolve relative to the current page URL as expected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;HttpKernelUiHelperTrait::drupalGet()&lt;/code&gt;, the guard that adds a leading &lt;code&gt;/&lt;/code&gt; to bare relative paths now also checks whether the path starts with &lt;code&gt;?&lt;/code&gt;. The original condition &lt;code&gt;!str_starts_with($path, '/')&lt;/code&gt; was expanded to &lt;code&gt;!str_starts_with($path, '?') &amp;amp;&amp;amp; !str_starts_with($path, '/')&lt;/code&gt;, so paths like &lt;code&gt;?page=1&lt;/code&gt; pass through unchanged and are resolved relative to the current page URL by the underlying Symfony browser client. The &lt;code&gt;@param&lt;/code&gt; docblock for &lt;code&gt;$path&lt;/code&gt; was updated to document this distinction. This trait was introduced in &lt;a href="https://www.drupal.org/node/3582769"&gt;#3582769&lt;/a&gt; and &lt;code&gt;getUrl()&lt;/code&gt; was added in &lt;a href="https://www.drupal.org/node/3583594"&gt;#3583594&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 3, 2026 (22 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;joachim (Chicken)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#1499532: Respect explicitly set node path alias langcode on save</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md</link>
       <guid isPermaLink="false">019e8a2c-0e0d-7599-ac4b-c575880552c2</guid>
@@ -984,151 +1063,6 @@ $routeProvider-&amp;gt;serializedRoutes  // protected, but if subclassed
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;julien tekrane documented in detail a working workaround (switching from &lt;code&gt;drupal/core-recommended&lt;/code&gt; to &lt;code&gt;drupal/core&lt;/code&gt; and adding the explicit constraint) while the fix was in progress. mwebaze pointed out that enabling the native &lt;code&gt;intl&lt;/code&gt; PHP extension neutralises the vulnerability at runtime regardless of which polyfill version is installed, which several site owners found useful. godotislate prepared and tested the MR against main and confirmed cherry-picks to 11.x, 11.4.x, 11.3.x, and 10.6.x all resolved cleanly before the fix was committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3587118: Remove content types from the standard install profile and recipe</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587118.md</link>
-      <guid isPermaLink="false">019e6546-8edd-7184-8833-2c2979aad518</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 26 May 2026 13:53:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 39 files, +114/−875 · php +109/−152 · yml +5/−723&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b1939f63c86fcba0d8ea7393f6667563a8618e1b"&gt;b1939f6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587118"&gt;#3587118&lt;/a&gt; · 4 contributors · 33 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites installed with the Standard profile (or the standard recipe) no longer receive the &amp;quot;Article&amp;quot; and &amp;quot;Basic page&amp;quot; content types out of the box. A fresh Standard install now starts with no node types at all. Existing sites are unaffected; this only changes what a brand-new installation contains. The change is part of the broader effort (&lt;a href="https://www.drupal.org/node/3159848"&gt;#3159848&lt;/a&gt;) to pare the Standard profile down to a generic starting point rather than a use-case-specific demo.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Standard profile and recipe no longer install Article or Basic page content types, and the content_editor role loses the corresponding create/edit/delete permissions on a fresh install.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The four core recipes that composed the Standard content-type setup (&lt;code&gt;article_content_type&lt;/code&gt;, &lt;code&gt;page_content_type&lt;/code&gt;, &lt;code&gt;article_tags&lt;/code&gt;, and &lt;code&gt;article_comment&lt;/code&gt;) are removed from &lt;code&gt;core/recipes/&lt;/code&gt;. Their YAML and PHP files are deleted entirely from that directory. The standard recipe's &lt;code&gt;recipe.yml&lt;/code&gt; no longer lists those four recipes as dependencies, so none of their config is shipped on install.&lt;/p&gt;
-&lt;p&gt;Alongside the content-type removal, the &lt;code&gt;content_editor&lt;/code&gt; role loses the permissions that were specific to those types (&lt;code&gt;create article content&lt;/code&gt;, &lt;code&gt;create page content&lt;/code&gt;, &lt;code&gt;delete article revisions&lt;/code&gt;, etc.), and the Tags vocabulary description is updated from &amp;quot;articles on similar topics&amp;quot; to &amp;quot;content on similar topics&amp;quot; to be type-agnostic.&lt;/p&gt;
-&lt;p&gt;Tests that previously relied on the &lt;code&gt;article&lt;/code&gt; or &lt;code&gt;page&lt;/code&gt; content types being present under Standard now call &lt;code&gt;drupalCreateContentType()&lt;/code&gt; directly to create a local &lt;code&gt;test_content&lt;/code&gt; type. The &lt;code&gt;StandardPerformanceTest&lt;/code&gt; reflects a net reduction of three queries and two cache get/set operations per anonymous front-page request, because the article-specific fields (&lt;code&gt;node__comment&lt;/code&gt;, &lt;code&gt;node__field_image&lt;/code&gt;, &lt;code&gt;node__field_tags&lt;/code&gt;) are no longer joined in and the &lt;code&gt;comment_entity_statistics&lt;/code&gt; query is gone. The four removed recipes survive only as test fixtures under &lt;code&gt;core/tests/fixtures/recipes/&lt;/code&gt; for internal use by recipe infrastructure tests.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;The four core recipes listed below no longer exist in &lt;code&gt;core/recipes/&lt;/code&gt;. Any distribution or custom code that referenced them by name must be updated.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# Before (these references will now fail):
-recipes:
-  - article_content_type
-  - page_content_type
-  - article_tags
-  - article_comment
-
-# After: copy the recipe definitions into your own distribution or module,
-# or create the content types programmatically / via your own recipe.
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No action is needed for existing installed sites. Only fresh Standard installs are affected.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 27, 2026&lt;/li&gt;
-&lt;li&gt;First commit: May 15, 2026 (17 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 26, 2026 (11 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3037156: Modernize locale history functions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037156.md</link>
-      <guid isPermaLink="false">019e6468-dd6e-70bc-8fd8-9f2f1de23fb2</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 26 May 2026 09:52:58 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +430/−144 · php +429/−144 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4b3d35596ffeaeccb34c597c8b6b85152c8077eb"&gt;4b3d355&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt; · 13 contributors · 78 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Three procedural functions that tracked locale translation import history have been deprecated in &lt;code&gt;locale.module&lt;/code&gt; in favor of the new &lt;code&gt;CurrentImportStorage&lt;/code&gt; service. The old approach loaded every row in the &lt;code&gt;locale_file&lt;/code&gt; table into a static cache each time the history was read, and invalidated that entire cache after any single update. On sites with many languages and projects this caused severe performance problems: heddn reported calls to these functions consuming around 96% of execution time, with cron imports taking close to two hours for 8-9 languages. The new service fetches and caches one project/language record at a time and only invalidates individual entries on write, eliminating the full-reload loop. Site owners with large multi-language installations should see a meaningful improvement in translation update cron performance.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Three &lt;code&gt;locale.module&lt;/code&gt; functions deprecated: &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt;, and &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt;; replaced by the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;CurrentImportStorage&lt;/code&gt; service.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; using &lt;code&gt;drupal_static()&lt;/code&gt; with no selectivity, always fetching every row of &lt;code&gt;locale_file&lt;/code&gt;. &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt; then called &lt;code&gt;drupal_static_reset('locale_translation_get_file_history')&lt;/code&gt; after each merge, so a cron run or install with N projects × M languages would reload the full table N×M times.&lt;/p&gt;
-&lt;p&gt;The replacement is &lt;code&gt;CurrentImportStorage&lt;/code&gt;, an &lt;code&gt;@internal&lt;/code&gt; service registered as &lt;code&gt;Drupal\locale\CurrentImportStorage&lt;/code&gt;. Its &lt;code&gt;get(string $project, string $langcode)&lt;/code&gt; method queries one row by project+langcode and stores the result in &lt;code&gt;cache.memory&lt;/code&gt; under the key &lt;code&gt;locale_current_import:{project}:{langcode}&lt;/code&gt; tagged with &lt;code&gt;locale_current_import&lt;/code&gt;. &lt;code&gt;save(CurrentImport $currentImport)&lt;/code&gt; runs a single &lt;code&gt;merge()&lt;/code&gt; and then writes that same cache entry directly, avoiding any invalidation of unrelated records. &lt;code&gt;delete()&lt;/code&gt; runs a filtered &lt;code&gt;DELETE&lt;/code&gt; and then invalidates all entries via the &lt;code&gt;locale_current_import&lt;/code&gt; cache tag. A new &lt;code&gt;getOutdatedImports()&lt;/code&gt; method encapsulates the cron query and &lt;code&gt;last_checked&lt;/code&gt; timestamp update that were previously inlined in &lt;code&gt;LocaleHooks&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The cron implementation was extracted from &lt;code&gt;LocaleHooks&lt;/code&gt; into a dedicated &lt;code&gt;LocaleCronHooks&lt;/code&gt; class so that &lt;code&gt;CurrentImportStorage&lt;/code&gt;, &lt;code&gt;LocaleFetch&lt;/code&gt;, and other dependencies can be properly constructor-injected rather than pulled from the service container procedurally.&lt;/p&gt;
-&lt;p&gt;The typed &lt;code&gt;CurrentImport&lt;/code&gt; value object (also &lt;code&gt;@internal&lt;/code&gt;) replaces the untyped &lt;code&gt;stdClass&lt;/code&gt; that the functions previously passed around. It carries &lt;code&gt;project&lt;/code&gt;, &lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;version&lt;/code&gt;, &lt;code&gt;hash&lt;/code&gt;, &lt;code&gt;timestamp&lt;/code&gt;, and &lt;code&gt;last_checked&lt;/code&gt;, and provides three named constructors: &lt;code&gt;createFromFile(LocaleFile $file)&lt;/code&gt;, &lt;code&gt;createFromSource(object $source)&lt;/code&gt;, and &lt;code&gt;createFromArray(array $result)&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The three deprecated functions (&lt;code&gt;locale_translation_get_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt;, &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt;) still exist in &lt;code&gt;locale.module&lt;/code&gt; emitting &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notices as of drupal:11.4.0 and are removed in drupal:13.0.0. &lt;code&gt;drupal_static_reset('locale_translation_get_file_history')&lt;/code&gt; is likewise deprecated and redirected to &lt;code&gt;cache.memory&lt;/code&gt; tag invalidation. The issue body notes there are zero usages of these functions in contrib. Related work: &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; (converting &lt;code&gt;locale.compare.inc&lt;/code&gt; to a service) was a prerequisite that landed first.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If custom code calls any of the deprecated functions, replace as follows. Note that &lt;code&gt;CurrentImport&lt;/code&gt; and &lt;code&gt;CurrentImportStorage&lt;/code&gt; are marked &lt;code&gt;@internal&lt;/code&gt; and may change in future releases.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before: load all history, then access by project/langcode
-$history = locale_translation_get_file_history();
-$record = $history[$project][$langcode];
-
-// After: fetch one record directly
-$currentImport = \Drupal::service(\Drupal\locale\CurrentImportStorage::class)
-  -&amp;gt;get($project, $langcode);
-// Returns a \Drupal\locale\CurrentImport|null
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-locale_translation_update_file_history($source);
-
-// After:
-\Drupal::service(\Drupal\locale\CurrentImportStorage::class)
-  -&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-locale_translation_file_history_delete($projects, $langcodes);
-
-// After:
-\Drupal::service(\Drupal\locale\CurrentImportStorage::class)
-  -&amp;gt;delete($projects, $langcodes);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-drupal_static_reset('locale_translation_get_file_history');
-
-// After:
-\Drupal::service('cache.memory')
-  -&amp;gt;invalidateTags(['locale_current_import']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 3, 2019&lt;/li&gt;
-&lt;li&gt;First commit: May 23, 2026 (7 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: May 26, 2026 (3 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
-&lt;li&gt;snehalgaikwad (QED42)&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;quadrexdev (DevBranch)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;heddn (comment #25) attached a profiler screenshot showing the three functions consuming approximately 96% of execution time in a profile-based install with 8-9 languages, with cron runs taking close to two hours. This concrete evidence of the performance impact helped justify the scope of the rewrite beyond a simple procedural-to-service refactor.&lt;/p&gt;
-&lt;p&gt;berdir and nicxvan pair-programmed the final design. berdir did live profiling on a real distribution with many languages, documenting the load-all → update → invalidate-all → load-all loop in detail (comment #43), and confirmed that per-record fetching and caching would address the main bottleneck. Multiple intermediate approaches (v1 through v3, across three separate MRs) were opened and discarded as the two worked out where &lt;code&gt;CurrentImportStorage&lt;/code&gt; needed to sit relative to &lt;code&gt;LocaleFile&lt;/code&gt;, the source objects, and the compare/batch subsystems that had been modernized in &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt; just before this issue could proceed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
