@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_471 summaries · 18 new this week_
+_471 summaries · 17 new this week_
 
 - [#1499532: Respect explicitly set node path alias langcode on save](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md)
 - [#3549601: Allow --directory and @group to work together in run-tests.sh](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549601.md)
