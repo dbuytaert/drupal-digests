@@ -1,4 +1,4 @@
-**TL;DR:** [623 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [624 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_473 summaries · 19 new this week_
+_474 summaries · 20 new this week_
 
+- [#3486503: Add a file parsing cache collector to replace some uses of FileCache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md)
 - [#3592887: AttributeRouteDiscovery does not cleanly handle invalid classes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592887.md)
 - [#3589626: clickLink in kernel tests erroneously prefixes some paths with /](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589626.md)
-- [#1499532: Respect explicitly set node path alias langcode on save](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _11 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [172 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_172 rules · 2 new this week_
+_173 rules · 3 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Remove deprecated $sql_query argument from Query::getTables()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php)
+- [Add $yamlCacheCollector arg to LibraryDiscoveryParser and YamlRouteDiscovery...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yamlcachecollector-arg-to-librarydiscoveryparser-and-3486503.php)
 
 
 ## RSS feeds

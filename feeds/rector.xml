@@ -241,6 +241,111 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Add $yamlCacheCollector arg to LibraryDiscoveryParser and YamlRouteDiscovery constructors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e8dc4-5a58-767e-ae47-3644ce830efe.md</link>
+      <guid isPermaLink="false">019e8dc4-5a58-767e-ae47-3644ce830efe</guid>
+      <pubDate>Wed, 03 Jun 2026 13:55:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3486503"&gt;#3486503&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In drupal:11.4.0, &lt;code&gt;LibraryDiscoveryParser&lt;/code&gt; and &lt;code&gt;YamlRouteDiscovery&lt;/code&gt; gained a required &lt;code&gt;$yamlCacheCollector&lt;/code&gt; constructor argument. Omitting it triggers a deprecation warning and will be a fatal error in drupal:12.0.0. This rule adds &lt;code&gt;\Drupal::service('library.parsing_cache')&lt;/code&gt; or &lt;code&gt;\Drupal::service('routing.yaml_cache_collector')&lt;/code&gt; as the missing argument when the pre-deprecation positional argument count is detected.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Asset\LibraryDiscoveryParser($root, $mh, $tm, $swm, $ldf, $epr, $cpm);
+new \Drupal\Core\Routing\YamlRouteDiscovery($moduleHandler, $controllerResolver);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Asset\LibraryDiscoveryParser($root, $mh, $tm, $swm, $ldf, $epr, $cpm, \Drupal::service('library.parsing_cache'));
+new \Drupal\Core\Routing\YamlRouteDiscovery($moduleHandler, $controllerResolver, \Drupal::service('routing.yaml_cache_collector'));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Subclasses of either class whose &lt;code&gt;__construct()&lt;/code&gt; calls &lt;code&gt;parent::__construct()&lt;/code&gt; with the old arg count are not rewritten — those require manual review to determine the correct &lt;code&gt;$yamlCacheCollector&lt;/code&gt; value in the subclass context. Named-argument call sites where &lt;code&gt;yamlCacheCollector:&lt;/code&gt; is already supplied are correctly skipped.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddYamlCacheCollectorArgRector extends AbstractRector
+{
+    // Maps FQCN → [expected positional arg count before the new arg, service name to inject]
+    private const TARGETS = [
+        'Drupal\\Core\\Asset\\LibraryDiscoveryParser' =&amp;gt; [7, 'library.parsing_cache'],
+        'Drupal\\Core\\Routing\\YamlRouteDiscovery'   =&amp;gt; [2, 'routing.yaml_cache_collector'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add the $yamlCacheCollector argument to new LibraryDiscoveryParser() and new YamlRouteDiscovery() calls deprecated in drupal:11.4.0.',
+            [new CodeSample(
+                &amp;quot;new \\Drupal\\Core\\Asset\\LibraryDiscoveryParser(\$root, \$mh, \$tm, \$swm, \$ldf, \$epr, \$cpm);&amp;quot;,
+                &amp;quot;new \\Drupal\\Core\\Asset\\LibraryDiscoveryParser(\$root, \$mh, \$tm, \$swm, \$ldf, \$epr, \$cpm, \\Drupal::service('library.parsing_cache'));&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof New_) {
+            return null;
+        }
+
+        foreach (self::TARGETS as $fqcn =&amp;gt; [$expectedCount, $serviceName]) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;class, $fqcn)) {
+                continue;
+            }
+
+            // Skip if a named 'yamlCacheCollector' argument is already present.
+            foreach ($node-&amp;gt;args as $arg) {
+                if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;name !== null &amp;amp;&amp;amp; $arg-&amp;gt;name-&amp;gt;name === 'yamlCacheCollector') {
+                    return null;
+                }
+            }
+
+            // Only add the argument when the call has exactly the pre-deprecation count.
+            if (count($node-&amp;gt;args) !== $expectedCount) {
+                return null;
+            }
+
+            $serviceCall = new StaticCall(
+                new FullyQualified('Drupal'),
+                'service',
+                [new Arg(new String_($serviceName))],
+            );
+            $node-&amp;gt;args[] = new Arg($serviceCall);
+            return $node;
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddYamlCacheCollectorArgRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Remove deprecated $sql_query argument from Query::getTables()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e8970-46a2-7708-b177-4ba778f34327.md</link>
       <guid isPermaLink="false">019e8970-46a2-7708-b177-4ba778f34327</guid>
@@ -1647,87 +1752,6 @@ final class NodeAccessViewAllNodesRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([NodeAccessViewAllNodesRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add EntityTypeManagerInterface argument to NodePermissions constructor</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0975-13de-70ea-ab65-152b5103e789.md</link>
-      <guid isPermaLink="false">019e0975-13de-70ea-ab65-152b5103e789</guid>
-      <pubDate>Fri, 08 May 2026 21:18:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3092001"&gt;#3092001&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.2.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites &lt;code&gt;new NodePermissions()&lt;/code&gt; (zero-argument form) to &lt;code&gt;new NodePermissions(\Drupal::entityTypeManager())&lt;/code&gt;. Calling &lt;code&gt;NodePermissions::__construct()&lt;/code&gt; without the &lt;code&gt;$entityTypeManager&lt;/code&gt; argument was deprecated in &lt;code&gt;drupal:11.2.0&lt;/code&gt; and will be required in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. Contrib and custom code that instantiates &lt;code&gt;NodePermissions&lt;/code&gt; directly (for example in tests or service decorators) needs this argument added.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\node\NodePermissions()
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\node\NodePermissions(\Drupal::entityTypeManager())
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites zero-argument &lt;code&gt;new NodePermissions()&lt;/code&gt; calls. Code that already passes the entity type manager is unchanged. Code using &lt;code&gt;NodePermissions&lt;/code&gt; as a service (instantiated by the container via &lt;code&gt;ContainerInjectionInterface&lt;/code&gt;) does not need this rewrite.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\New_;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class NodePermissionsConstructorRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Pass EntityTypeManagerInterface to NodePermissions constructor, required since drupal:11.2.0.',
-            [new CodeSample(
-                'new \\Drupal\\node\\NodePermissions()',
-                'new \\Drupal\\node\\NodePermissions(\\Drupal::entityTypeManager())',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof New_) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\node\\NodePermissions')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 0) {
-            return null;
-        }
-        $node-&amp;gt;args = [
-            new Arg(
-                new StaticCall(
-                    new FullyQualified('Drupal'),
-                    'entityTypeManager',
-                )
-            ),
-        ];
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([NodePermissionsConstructorRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
