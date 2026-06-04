@@ -1,4 +1,4 @@
-**TL;DR:** [626 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [627 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -12,6 +12,14 @@ _476 summaries · 22 new this week_
 - [#3020938: Add view unpublished block content permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md)
 - [#3486503: Add a file parsing cache collector to replace some uses of FileCache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md)
 
+### Drupal Canvas
+
+_63 summaries · 1 new this week_
+
+- [#3590572: Indicate translation availability per language in the Canvas language switcher...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590572.md)
+- [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
+- [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
+
 ### Drupal AI
 
 _77 summaries · 0 new this week_
@@ -19,14 +27,6 @@ _77 summaries · 0 new this week_
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
 - [#3588799: [Sprint 8] Canvas content templates as a phase for content-type migrations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588799.md)
-
-### Drupal Canvas
-
-_62 summaries · 0 new this week_
-
-- [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
-- [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
-- [#3576863: Manage Content Templates within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576863.md)
 
 ### Drupal CMS
 
