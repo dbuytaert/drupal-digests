@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_476 summaries · 22 new this week_
+_476 summaries · 20 new this week_
 
 - [#3593202: Drop the explicit clear of plugin caches in drupal_flush_all_caches()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593202.md)
 - [#3020938: Add view unpublished block content permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md)
