@@ -1,4 +1,4 @@
-**TL;DR:** [628 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [630 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_476 summaries · 20 new this week_
+_478 summaries · 22 new this week_
 
+- [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
+- [#3041170: RowPluginBase::render() update docblock and trigger deprecation for old typehint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3041170.md)
 - [#3593202: Drop the explicit clear of plugin caches in drupal_flush_all_caches()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593202.md)
-- [#3020938: Add view unpublished block content permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md)
-- [#3486503: Add a file parsing cache collector to replace some uses of FileCache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md)
 
 ### Drupal Canvas
 
