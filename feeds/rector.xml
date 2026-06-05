@@ -241,6 +241,128 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Add ResultRow type hint to RowPluginBase::render() overrides</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e954f-f773-7048-b696-ba4aa559d801.md</link>
+      <guid isPermaLink="false">019e954f-f773-7048-b696-ba4aa559d801</guid>
+      <pubDate>Fri, 05 Jun 2026 01:05:06 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3041170"&gt;#3041170&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In Drupal 11.4.0, &lt;code&gt;RowPluginBase::render()&lt;/code&gt; triggers a deprecation when &lt;code&gt;$row&lt;/code&gt; is not a &lt;code&gt;\Drupal\views\ResultRow&lt;/code&gt; instance. This rule finds subclasses of &lt;code&gt;RowPluginBase&lt;/code&gt; that override &lt;code&gt;render($row)&lt;/code&gt; without a type hint and adds the &lt;code&gt;ResultRow&lt;/code&gt; type, preventing the deprecation and preparing for the hard type error in Drupal 12.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\row\RowPluginBase;
+
+class MyRowPlugin extends RowPluginBase {
+  public function render($row) {
+    return ['#theme' =&amp;gt; 'my_row'];
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\row\RowPluginBase;
+use Drupal\views\ResultRow;
+
+class MyRowPlugin extends RowPluginBase {
+  public function render(ResultRow $row) {
+    return ['#theme' =&amp;gt; 'my_row'];
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only adds the type hint when the first parameter of &lt;code&gt;render()&lt;/code&gt; has no existing type annotation. Parameters already carrying a non-&lt;code&gt;ResultRow&lt;/code&gt; type (e.g. &lt;code&gt;object&lt;/code&gt;) are skipped to avoid inadvertent changes. The rule does not add or remove &lt;code&gt;use&lt;/code&gt; imports; Rector's auto-import pass handles that when configured.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddResultRowTypeHintToRowPluginRenderRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add ResultRow type hint to $row parameter in RowPluginBase::render() overrides to resolve drupal:11.4.0 deprecation.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Drupal\views\Plugin\views\row\RowPluginBase;
+
+class MyRowPlugin extends RowPluginBase {
+  public function render($row) {
+    return ['#markup' =&amp;gt; 'hello'];
+  }
+}
+CODE_SAMPLE,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+use Drupal\views\Plugin\views\row\RowPluginBase;
+use Drupal\views\ResultRow;
+
+class MyRowPlugin extends RowPluginBase {
+  public function render(ResultRow $row) {
+    return ['#markup' =&amp;gt; 'hello'];
+  }
+}
+CODE_SAMPLE,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof Class_) {
+            return null;
+        }
+        if ($node-&amp;gt;extends === null) {
+            return null;
+        }
+        if (!$this-&amp;gt;isObjectType($node-&amp;gt;extends, new ObjectType('Drupal\\views\\Plugin\\views\\row\\RowPluginBase'))) {
+            return null;
+        }
+        $changed = false;
+        foreach ($node-&amp;gt;stmts as $stmt) {
+            if (!$stmt instanceof ClassMethod) {
+                continue;
+            }
+            if (!$this-&amp;gt;isName($stmt-&amp;gt;name, 'render')) {
+                continue;
+            }
+            if (count($stmt-&amp;gt;params) &amp;lt; 1) {
+                continue;
+            }
+            $param = $stmt-&amp;gt;params[0];
+            // Already typed — skip.
+            if ($param-&amp;gt;type !== null) {
+                continue;
+            }
+            $param-&amp;gt;type = new FullyQualified('Drupal\\views\\ResultRow');
+            $changed = true;
+        }
+        return $changed ? $node : null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddResultRowTypeHintToRowPluginRenderRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Add $yamlCacheCollector arg to LibraryDiscoveryParser and YamlRouteDiscovery constructors</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e8dc4-5a58-767e-ae47-3644ce830efe.md</link>
       <guid isPermaLink="false">019e8dc4-5a58-767e-ae47-3644ce830efe</guid>
@@ -1651,107 +1773,6 @@ return RectorConfig::configure()
         new MethodCallRename('Drupal\\path_alias\\AliasManager', 'pathAliasWhitelistRebuild', 'pathAliasPrefixListRebuild'),
     ]);
 
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace node_access_view_all_nodes() with NodeAccessControlHandler::checkAllGrants()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0983-4992-74cd-83d5-b19583f23363.md</link>
-      <guid isPermaLink="false">019e0983-4992-74cd-83d5-b19583f23363</guid>
-      <pubDate>Fri, 08 May 2026 21:34:19 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3038908"&gt;#3038908&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.3.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;node_access_view_all_nodes()&lt;/code&gt; procedural function with the equivalent OO call &lt;code&gt;\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants($account)&lt;/code&gt;. When no account argument is passed, the rule substitutes &lt;code&gt;\Drupal::currentUser()&lt;/code&gt; to preserve the original default behaviour. Deprecated in drupal:11.3.0 and removed in drupal:12.0.0.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;node_access_view_all_nodes($account);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler('node')-&amp;gt;checkAllGrants($account);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Calls with more than one argument (invalid usage) are skipped. Named-argument calls using &lt;code&gt;account:&lt;/code&gt; are passed through unchanged since the target method shares the same parameter name.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class NodeAccessViewAllNodesRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated node_access_view_all_nodes() with \Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler(\'node\')-&amp;gt;checkAllGrants().',
-            [new CodeSample(
-                'node_access_view_all_nodes($account);',
-                '\Drupal::entityTypeManager()-&amp;gt;getAccessControlHandler(\'node\')-&amp;gt;checkAllGrants($account);',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'node_access_view_all_nodes')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) &amp;gt; 1) {
-            return null;
-        }
-
-        // Build: \Drupal::entityTypeManager()
-        $entityTypeManager = new StaticCall(
-            new FullyQualified('Drupal'),
-            'entityTypeManager',
-        );
-
-        // -&amp;gt;getAccessControlHandler('node')
-        $accessControlHandler = new MethodCall(
-            $entityTypeManager,
-            'getAccessControlHandler',
-            [new Arg(new String_('node'))],
-        );
-
-        // If $account was passed, use it; otherwise fall back to \Drupal::currentUser().
-        if (count($node-&amp;gt;args) === 1) {
-            $accountArg = $node-&amp;gt;args[0];
-        } else {
-            $accountArg = new Arg(new StaticCall(
-                new FullyQualified('Drupal'),
-                'currentUser',
-            ));
-        }
-
-        // -&amp;gt;checkAllGrants($account)
-        return new MethodCall(
-            $accessControlHandler,
-            'checkAllGrants',
-            [$accountArg],
-        );
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([NodeAccessViewAllNodesRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

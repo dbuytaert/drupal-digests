@@ -1,4 +1,4 @@
-**TL;DR:** [630 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [630 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -39,7 +39,7 @@ _77 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [173 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_173 rules · 3 new this week_
+_174 rules · 4 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Add $yamlCacheCollector arg to LibraryDiscoveryParser and YamlRouteDiscovery...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yamlcachecollector-arg-to-librarydiscoveryparser-and-3486503.php)
+- [Add ResultRow type hint to RowPluginBase::render() overrides](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-resultrow-type-hint-to-rowpluginbase-render-overrides-3041170.php)
 
 
 ## RSS feeds
