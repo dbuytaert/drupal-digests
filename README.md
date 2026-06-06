@@ -1,8 +1,16 @@
-**TL;DR:** [631 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [632 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_479 summaries · 15 new this week_
+
+- [#3588276: Remove comment module dependency from standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588276.md)
+- [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
+- [#3041170: RowPluginBase::render() update docblock and trigger deprecation for old typehint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3041170.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _78 summaries · 1 new this week_
 - [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
-
-### Drupal Core
-
-_478 summaries · 14 new this week_
-
-- [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
-- [#3041170: RowPluginBase::render() update docblock and trigger deprecation for old typehint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3041170.md)
-- [#3593202: Drop the explicit clear of plugin caches in drupal_flush_all_caches()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593202.md)
 
 ### Drupal Canvas
 
