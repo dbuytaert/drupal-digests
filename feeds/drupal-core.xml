@@ -5,6 +5,62 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3588490: Don't reset the extension lists in system requirements</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588490.md</link>
+      <guid isPermaLink="false">019e9ea1-6968-74a9-9e68-f48edb23b380</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 06 Jun 2026 18:11:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +13/−7 · php +13/−7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4985bc5af9d5af75738042b731e87f3c201a5c87"&gt;4985bc5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588490"&gt;#3588490&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Every admin page load was silently invalidating the &lt;code&gt;cache_bootstrap&lt;/code&gt; cache bin. &lt;code&gt;SystemRequirementsHooks::checkRequirements()&lt;/code&gt; called &lt;code&gt;reset()&lt;/code&gt; on the module and theme extension lists before reading them, wiping their cached state on each request. Because system requirements are checked on every admin page, this caused constant cache rebuilds and degraded admin performance across the board. The fix adds a way to retrieve a fresh extension list without discarding the cached copy, eliminating the unnecessary invalidation.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New optional &lt;code&gt;bool $skip_cache = FALSE&lt;/code&gt; parameter on &lt;code&gt;ExtensionList::getList()&lt;/code&gt; lets callers retrieve a fresh list without invalidating the cached copy.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was inherited from Drupal 7's &lt;code&gt;system_rebuild_module_data()&lt;/code&gt;, which both built and persisted extension data in one call. That pattern was ported forward and survived into &lt;code&gt;SystemRequirementsHooks::checkRequirements()&lt;/code&gt;, which called &lt;code&gt;$module_extension_list-&amp;gt;reset()&lt;/code&gt; and &lt;code&gt;$theme_extension_list-&amp;gt;reset()&lt;/code&gt; before every call to &lt;code&gt;getList()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ExtensionList::getList()&lt;/code&gt; now accepts an optional &lt;code&gt;bool $skip_cache = FALSE&lt;/code&gt; parameter. When &lt;code&gt;TRUE&lt;/code&gt;, it calls &lt;code&gt;$this-&amp;gt;doList()&lt;/code&gt; directly to bypass the persistent cache, but it still populates &lt;code&gt;$this-&amp;gt;extensions&lt;/code&gt; with the result so that subsequent calls within the same request use the fresh data without another rebuild. The old &lt;code&gt;reset()&lt;/code&gt; approach cleared that property entirely, forcing every downstream caller in the same request to rebuild from scratch.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SystemRequirementsHooks::checkRequirements()&lt;/code&gt; drops its two &lt;code&gt;-&amp;gt;reset()&lt;/code&gt; calls and switches to &lt;code&gt;getList(TRUE)&lt;/code&gt;. &lt;code&gt;AppController::themesPage()&lt;/code&gt; similarly replaces &lt;code&gt;$this-&amp;gt;themeExtensionList-&amp;gt;reset()-&amp;gt;getList()&lt;/code&gt; with &lt;code&gt;$this-&amp;gt;themeExtensionList-&amp;gt;getList(TRUE)&lt;/code&gt;. The related issue &lt;a href="https://www.drupal.org/node/3336621"&gt;#3336621&lt;/a&gt; tracks the broader cost of running &lt;code&gt;hook_requirements()&lt;/code&gt; on all admin pages.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you call &lt;code&gt;ExtensionList::getList()&lt;/code&gt; or chain &lt;code&gt;-&amp;gt;reset()-&amp;gt;getList()&lt;/code&gt; to force a fresh read, switch to the new parameter instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+$extensions = $extensionList-&amp;gt;reset()-&amp;gt;getList();
+
+// After
+$extensions = $extensionList-&amp;gt;getList(skip_cache: TRUE);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Using &lt;code&gt;getList(TRUE)&lt;/code&gt; fetches fresh data while preserving the cached copy for subsequent callers in the same request, unlike &lt;code&gt;reset()&lt;/code&gt; which drops the in-memory cache entirely.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 6, 2026 (1 month and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir pointed out on the MR why the original code &amp;quot;fails so hard right now&amp;quot; (the reset wipes the in-memory cache for all subsequent callers in the request, not just the persistent cache), and also cross-linked &lt;a href="https://www.drupal.org/node/3336621"&gt;#3336621&lt;/a&gt; as a complementary effort to reduce how often requirements hooks run at all. alexpott noted that the new parameter needed type hints. catch traced the pattern back to Drupal 7's &lt;code&gt;system_rebuild_module_data()&lt;/code&gt; to explain how it survived this long.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588276: Remove comment module dependency from standard profile and recipe</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588276.md</link>
       <guid isPermaLink="false">019e9ced-9927-730a-8ef9-1bd17cc92646</guid>
@@ -984,63 +1040,6 @@ $cache-&amp;gt;applyTo($a_render_array);
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3569674: Fix remaining PHPStan missingType.generics errors (level 1)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569674.md</link>
-      <guid isPermaLink="false">019e73df-55b1-773c-9eec-a49a3e36a3fe</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 29 May 2026 10:28:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +33/−155 · php +33/−155&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/938b3f341893c2563a93c756c2a7324a1b3ac900"&gt;938b3f3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569674"&gt;#3569674&lt;/a&gt; · 4 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's PHPStan baseline file previously suppressed 17 &lt;code&gt;missingType.generics&lt;/code&gt; errors across several core interfaces and classes. This change resolves those suppressions by adding proper generic type parameters directly to PHPDoc return-type annotations. No runtime behavior changes. Developers running PHPStan at level 1 or above on contrib or custom modules that implement or extend the affected public interfaces may now encounter new &lt;code&gt;missingType.generics&lt;/code&gt; warnings in their own code, because PHPStan will expect implementing classes to declare matching generic types.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Generic type parameters added to PHPDoc on FormatterInterface (@template T), FieldableEntityInterface::get/getFields/getTranslatableFields, TypedDataInterface::getParent/getRoot, TypedConfigManagerInterface::get/createFromNameAndData, and several concrete classes; implementing code may require matching annotations to satisfy PHPStan.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;phpstan-baseline.php&lt;/code&gt;, 17 &lt;code&gt;missingType.generics&lt;/code&gt; suppression entries are removed across files in &lt;code&gt;Component&lt;/code&gt;, &lt;code&gt;Core&lt;/code&gt;, &lt;code&gt;layout_builder&lt;/code&gt;, &lt;code&gt;views&lt;/code&gt;, and test directories.&lt;/p&gt;
-&lt;p&gt;The affected public interfaces and classes receive explicit generic parameters in their PHPDoc. &lt;code&gt;FormatterInterface&lt;/code&gt; gains a &lt;code&gt;@template T of FieldItemListInterface&lt;/code&gt; declaration; its &lt;code&gt;prepareView()&lt;/code&gt;, &lt;code&gt;view()&lt;/code&gt;, and &lt;code&gt;viewElements()&lt;/code&gt; methods use &lt;code&gt;@phpstan-param T $items&lt;/code&gt;. &lt;code&gt;FieldableEntityInterface::get()&lt;/code&gt; now returns &lt;code&gt;FieldItemListInterface&amp;lt;FieldItemInterface&amp;gt;&lt;/code&gt;, and &lt;code&gt;getFields()&lt;/code&gt;/&lt;code&gt;getTranslatableFields()&lt;/code&gt; return &lt;code&gt;array&amp;lt;string, FieldItemListInterface&amp;lt;FieldItemInterface&amp;gt;&amp;gt;&lt;/code&gt;. &lt;code&gt;TypedConfigManagerInterface::get()&lt;/code&gt; and &lt;code&gt;createFromNameAndData()&lt;/code&gt; return &lt;code&gt;TraversableTypedDataInterface&amp;lt;int|string, TypedDataInterface&amp;gt;&lt;/code&gt;. &lt;code&gt;TypedDataInterface::getParent()&lt;/code&gt; and &lt;code&gt;getRoot()&lt;/code&gt; gain the same parameterization, as do the corresponding methods in &lt;code&gt;TypedData&lt;/code&gt;. &lt;code&gt;FormatterPluginManager::getInstance()&lt;/code&gt;, &lt;code&gt;FieldBlock::getFormatter()&lt;/code&gt; (layout_builder), and &lt;code&gt;views\EntityField::getFormatterInstance()&lt;/code&gt; all return &lt;code&gt;FormatterInterface&amp;lt;FieldItemListInterface&amp;lt;FieldItemInterface&amp;gt;&amp;gt;&lt;/code&gt;. &lt;code&gt;ItemList::$list&lt;/code&gt; is typed &lt;code&gt;array&amp;lt;int, TypedDataInterface&amp;gt;&lt;/code&gt; and &lt;code&gt;getIterator()&lt;/code&gt; returns &lt;code&gt;ArrayIterator&amp;lt;int, TypedDataInterface&amp;gt;&lt;/code&gt;. &lt;code&gt;DirectoryWithMetadataDiscovery::getDirectoryIterator()&lt;/code&gt; returns &lt;code&gt;RecursiveIteratorIterator&amp;lt;SplFileInfo&amp;gt;&lt;/code&gt;, and &lt;code&gt;ParamConversionEnhancer::copyRawVariables()&lt;/code&gt; returns &lt;code&gt;InputBag&amp;lt;string|int|float|bool|null&amp;gt;&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;StaticReflectionClass&lt;/code&gt;'s PHP reflection stubs (&lt;code&gt;getInterfaces()&lt;/code&gt;, &lt;code&gt;getParentClass()&lt;/code&gt;, &lt;code&gt;getTraits()&lt;/code&gt;) instead receive inline &lt;code&gt;// @phpstan-ignore missingType.generics&lt;/code&gt; comments because those methods implement PHP's built-in reflection API and cannot have their signatures changed to carry generic parameters.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you implement or extend any of the following interfaces in a contrib or custom module and run PHPStan, you may now see &lt;code&gt;missingType.generics&lt;/code&gt; errors that were previously suppressed only in core's baseline:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;FormatterInterface&lt;/code&gt; — add a &lt;code&gt;@template&lt;/code&gt; or &lt;code&gt;@extends&lt;/code&gt; annotation, e.g.:&lt;pre&gt;&lt;code class="language-php"&gt;/**
- * @extends \Drupal\Core\Field\FormatterInterface&amp;lt;\Drupal\Core\Field\FieldItemListInterface&amp;lt;\Drupal\Core\Field\FieldItemInterface&amp;gt;&amp;gt;
- */
-class MyFormatter extends FormatterBase { ... }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;TypedDataInterface&lt;/code&gt; / &lt;code&gt;TypedData&lt;/code&gt; — &lt;code&gt;getParent()&lt;/code&gt; and &lt;code&gt;getRoot()&lt;/code&gt; now return &lt;code&gt;TraversableTypedDataInterface&amp;lt;int|string, TypedDataInterface&amp;gt;&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;FieldableEntityInterface&lt;/code&gt; — &lt;code&gt;getFields()&lt;/code&gt; and &lt;code&gt;getTranslatableFields()&lt;/code&gt; now return &lt;code&gt;array&amp;lt;string, FieldItemListInterface&amp;lt;FieldItemInterface&amp;gt;&amp;gt;&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;TypedConfigManagerInterface&lt;/code&gt; — &lt;code&gt;get()&lt;/code&gt; and &lt;code&gt;createFromNameAndData()&lt;/code&gt; now return &lt;code&gt;TraversableTypedDataInterface&amp;lt;int|string, TypedDataInterface&amp;gt;&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;If your module already suppresses &lt;code&gt;missingType.generics&lt;/code&gt; for these methods in its own PHPStan baseline, you can remove those suppressions after adding the proper generic annotations.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 26, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 29, 2026 (4 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
