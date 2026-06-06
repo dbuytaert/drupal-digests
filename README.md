@@ -14,7 +14,7 @@ _78 summaries · 1 new this week_
 
 ### Drupal Core
 
-_478 summaries · 18 new this week_
+_478 summaries · 15 new this week_
 
 - [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
 - [#3041170: RowPluginBase::render() update docblock and trigger deprecation for old typehint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3041170.md)
