@@ -1,4 +1,4 @@
-**TL;DR:** [633 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [638 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -12,6 +12,14 @@ _480 summaries · 16 new this week_
 - [#3588276: Remove comment module dependency from standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588276.md)
 - [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
 
+### Drupal Canvas
+
+_68 summaries · 6 new this week_
+
+- [#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g....](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md)
+- [#3591624: Block validation is broken for any block without a default value for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591624.md)
+- [#3590572: Indicate translation availability per language in the Canvas language switcher...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590572.md)
+
 ### Drupal AI
 
 _78 summaries · 1 new this week_
@@ -19,14 +27,6 @@ _78 summaries · 1 new this week_
 - [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
-
-### Drupal Canvas
-
-_63 summaries · 1 new this week_
-
-- [#3590572: Indicate translation availability per language in the Canvas language switcher...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590572.md)
-- [#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md)
-- [#3587374: Add HostEntityPropSource so content-entity-reference props can resolve to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587374.md)
 
 ### Drupal CMS
 
