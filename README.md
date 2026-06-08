@@ -1,4 +1,4 @@
-**TL;DR:** [644 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [645 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_69 summaries · 7 new this week_
+_70 summaries · 8 new this week_
 
 - [#3591633: Move CLI sync settings to canvas.config.json, enable everything by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591633.md)
 - [#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g....](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md)
@@ -14,7 +14,7 @@ _69 summaries · 7 new this week_
 
 ### Drupal Core
 
-_484 summaries · 18 new this week_
+_484 summaries · 17 new this week_
 
 - [#3132725: "Limit list to selected items" on exposed filters does not filter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md)
 - [#3594092: loadUnchanged() returns an in-memory-modified entity when hook_entity_preload()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594092.md)
