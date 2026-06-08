@@ -1,4 +1,4 @@
-**TL;DR:** [638 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [640 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_480 summaries · 16 new this week_
+_481 summaries · 16 new this week_
 
+- [#3581056: Introduce a OneTimeAuthentication service and deprecate user_pass_rehash](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581056.md)
 - [#3588490: Don't reset the extension lists in system requirements](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588490.md)
 - [#3588276: Remove comment module dependency from standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588276.md)
-- [#3591076: JS translation files should be generated and served from assets://](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591076.md)
+
+### Drupal CMS
+
+_13 summaries · 2 new this week_
+
+- [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
+- [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
+- [#3580694: The project template should always place config outside the web root by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3580694.md)
 
 ### Drupal Canvas
 
@@ -28,18 +36,10 @@ _78 summaries · 1 new this week_
 - [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 - [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
 
-### Drupal CMS
-
-_12 summaries · 1 new this week_
-
-- [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
-- [#3580694: The project template should always place config outside the web root by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3580694.md)
-- [#3579163: Add support for listing paid site templates in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3579163.md)
-
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [174 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_174 rules · 4 new this week_
+_175 rules · 5 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Add ResultRow type hint to RowPluginBase::render() overrides](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-resultrow-type-hint-to-rowpluginbase-render-overrides-3041170.php)
+- [Replace user_pass_rehash/user_pass_reset_url/user_cancel_url with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-pass-rehash-user-pass-reset-url-user-cancel-3581056.php)
 
 
 ## RSS feeds

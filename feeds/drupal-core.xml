@@ -5,6 +5,84 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3581056: Introduce a OneTimeAuthentication service and deprecate user_pass_rehash</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581056.md</link>
+      <guid isPermaLink="false">019ea69d-d720-7701-b4bf-3880a73f1a6c</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 08 Jun 2026 08:11:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +294/−90 · php +293/−90 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a38f1d17600c0fb1cdd83d441adbbdfbac848a3a"&gt;a38f1d1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581056"&gt;#3581056&lt;/a&gt; · 10 contributors · 43 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal 11.4 introduces a new &lt;code&gt;\Drupal\user\OneTimeAuthentication&lt;/code&gt; service that consolidates all one-time login and account-cancellation URL generation into one place. The four procedural functions &lt;code&gt;user_pass_rehash()&lt;/code&gt;, &lt;code&gt;user_pass_reset_url()&lt;/code&gt;, &lt;code&gt;user_cancel_url()&lt;/code&gt;, and &lt;code&gt;user_mail_tokens()&lt;/code&gt; are deprecated and will be removed in Drupal 13.0.0. Custom and contrib code that calls any of those functions will start triggering deprecation notices and must be updated before the Drupal 13 upgrade.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; user_pass_rehash(), user_pass_reset_url(), user_cancel_url(), user_mail_tokens() deprecated in 11.4.0, removed in 13.0.0; UserController::validatePathParameters() and ServerCommand::getOneTimeLoginUrl() deprecated in 11.4.0, removed in 12.0.0&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New final service \Drupal\user\OneTimeAuthentication with generateHmac(), verifyHmac(), generateOneTimeLoginUrl(), and generateCancelConfirmUrl() methods&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;final readonly class OneTimeAuthentication&lt;/code&gt; lives in &lt;code&gt;core/modules/user/src/OneTimeAuthentication.php&lt;/code&gt; and is registered as an autowireable service (&lt;code&gt;Drupal\user\OneTimeAuthentication: ~&lt;/code&gt; in &lt;code&gt;user.services.yml&lt;/code&gt;). It depends on &lt;code&gt;TimeInterface&lt;/code&gt; and &lt;code&gt;LanguageManagerInterface&lt;/code&gt;. Its public non-internal methods are &lt;code&gt;generateHmac()&lt;/code&gt;, &lt;code&gt;verifyHmac()&lt;/code&gt;, &lt;code&gt;generateOneTimeLoginUrl()&lt;/code&gt;, and &lt;code&gt;generateCancelConfirmUrl()&lt;/code&gt;; the &lt;code&gt;tokens()&lt;/code&gt; method is marked &lt;code&gt;@internal&lt;/code&gt; and serves as a drop-in callback for &lt;code&gt;Token::replace()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The procedural functions in &lt;code&gt;user.module&lt;/code&gt; now emit &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; and delegate to the service. &lt;code&gt;user_pass_reset_url()&lt;/code&gt; and &lt;code&gt;user_cancel_url()&lt;/code&gt; are removed in 13.0.0; &lt;code&gt;UserController::validatePathParameters()&lt;/code&gt; (a &lt;code&gt;protected&lt;/code&gt; helper) is deprecated and removed in 12.0.0 because protected methods carry no BC promise. &lt;code&gt;ServerCommand::getOneTimeLoginUrl()&lt;/code&gt; is also deprecated in 11.4.0 with no replacement and removed in 12.0.0; &lt;code&gt;ServerCommand::start()&lt;/code&gt; now calls the service directly.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UserController&lt;/code&gt; gains &lt;code&gt;OneTimeAuthentication&lt;/code&gt; as an optional constructor argument (defaulting to a service-container fallback with a deprecation notice when omitted), and its internal &lt;code&gt;validatePathParameters()&lt;/code&gt; now delegates to &lt;code&gt;verifyHmac()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A key behavioral difference: &lt;code&gt;generateOneTimeLoginUrl()&lt;/code&gt; returns a &lt;code&gt;\Drupal\Core\Url&lt;/code&gt; object, not a string. It accepts an &lt;code&gt;$immediate&lt;/code&gt; bool parameter that selects the &lt;code&gt;user.reset.login&lt;/code&gt; route (previously callers appended &lt;code&gt;/login&lt;/code&gt; to the URL string). The old &lt;code&gt;destination&lt;/code&gt; query-string pattern that was manually concatenated is now handled via &lt;code&gt;$url-&amp;gt;mergeOptions(['query' =&amp;gt; ['destination' =&amp;gt; ...]])&lt;/code&gt; on the returned object.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace calls to deprecated functions with the new service methods. The service is typehintable as &lt;code&gt;\Drupal\user\OneTimeAuthentication&lt;/code&gt; for constructor injection, or retrievable via &lt;code&gt;\Drupal::service(OneTimeAuthentication::class)&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+$hash = user_pass_rehash($account, $timestamp);
+$login_url = user_pass_reset_url($account, $options);         // returns string
+$cancel_url = user_cancel_url($account, $options);            // returns string
+// In token callbacks:
+$token_options = ['callback' =&amp;gt; 'user_mail_tokens', ...];
+// Deprecated method on UserController:
+$valid = $this-&amp;gt;validatePathParameters($user, $timestamp, $hash, $timeout);
+
+// After
+use Drupal\user\OneTimeAuthentication;
+$ota = \Drupal::service(OneTimeAuthentication::class);
+
+$hash      = $ota-&amp;gt;generateHmac($account, $timestamp);
+$login_url = $ota-&amp;gt;generateOneTimeLoginUrl($account, $options)-&amp;gt;toString(); // returns Url, call toString()
+$cancel_url = $ota-&amp;gt;generateCancelConfirmUrl($account, $options)-&amp;gt;toString();
+// For immediate login (replaces appending '/login' to the URL):
+$login_url = $ota-&amp;gt;generateOneTimeLoginUrl($account, $options, immediate: TRUE)-&amp;gt;toString();
+// In token callbacks:
+$token_options = ['callback' =&amp;gt; $ota-&amp;gt;tokens(...), ...];
+// In UserController subclasses (if overriding validatePathParameters):
+$valid = $this-&amp;gt;oneTimeAuthentication-&amp;gt;verifyHmac($user, $timestamp, $hash, $timeout);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note: &lt;code&gt;UserController::validatePathParameters()&lt;/code&gt; is removed in 12.0.0 (not 13.0.0), so subclasses overriding it must migrate sooner.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 8, 2026 (2 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;znerol&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;A substantive design debate ran through the thread on two points. First, &lt;code&gt;berdir&lt;/code&gt; argued against adding a PHP interface to the service because the team does not want to support alternative implementations; this keeps it easier to add new methods without BC concerns. Second, whether to mark the class &lt;code&gt;final&lt;/code&gt; triggered a lengthy discussion referencing a still-open policy issue (&lt;a href="https://www.drupal.org/node/3488476"&gt;#3488476&lt;/a&gt;). &lt;code&gt;alexpott&lt;/code&gt; reviewed the security-critical code paths (confirming &lt;code&gt;hash_equals()&lt;/code&gt; was preserved) and concluded the class should ship as &lt;code&gt;final&lt;/code&gt; to actively discourage extension; &lt;code&gt;catch&lt;/code&gt; agreed for this specific case. &lt;code&gt;nicxvan&lt;/code&gt; and &lt;code&gt;benjifisher&lt;/code&gt; drove several rounds of review covering coding standards, the deprecation timeline for the protected &lt;code&gt;validatePathParameters()&lt;/code&gt; method, and change-record completeness before the committer's sign-off.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588490: Don't reset the extension lists in system requirements</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588490.md</link>
       <guid isPermaLink="false">019e9ea1-6968-74a9-9e68-f48edb23b380</guid>
@@ -1001,46 +1079,6 @@ $cache-&amp;gt;applyTo($a_render_array);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue sat open for three years before &lt;code&gt;smustgrave&lt;/code&gt; opened a merge request implementing &lt;code&gt;AttachmentsInterface&lt;/code&gt; on &lt;code&gt;TextProcessed&lt;/code&gt;. After &lt;code&gt;dcam&lt;/code&gt; reviewed and approved that patch, &lt;code&gt;godotislate&lt;/code&gt; identified a critical gap: the initial implementation added the interface and trait but did not override &lt;code&gt;getAttachments()&lt;/code&gt; to pull attachments from the underlying &lt;code&gt;FilterProcessResult&lt;/code&gt;, meaning the fix did not actually solve the reported problem. &lt;code&gt;godotislate&lt;/code&gt; posted the specific override needed in a comment, &lt;code&gt;a.dmitriiev&lt;/code&gt; then contributed a kernel test using a real filter to cover the corrected behaviour, and &lt;code&gt;godotislate&lt;/code&gt; ultimately committed the combined result.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585716: EntityQuery uses hard-coded langcode in revision-data joins, breaking translatable revisionable entities with custom langcode keys</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585716.md</link>
-      <guid isPermaLink="false">019e7583-bd9f-75f3-8feb-76e9a838854a</guid>
-      <pubDate>Fri, 29 May 2026 18:14:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +26/−1 · php +26/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2da39e65ec2abdfb57b8d0d2bb6923ddbe134b99"&gt;2da39e6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585716"&gt;#3585716&lt;/a&gt; · 3 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;EntityQuery was generating broken SQL for custom entity types that are both translatable and revisionable when the entity type defines a langcode key other than the default &lt;code&gt;langcode&lt;/code&gt; (for example, &lt;code&gt;language&lt;/code&gt;). The JOIN condition on the revision data table always referenced the literal column name &lt;code&gt;langcode&lt;/code&gt;, causing an &amp;quot;Unknown column&amp;quot; SQL error on translation and revision pages. This fix corrects the column name used in those JOIN conditions so it matches the entity type's actual configured langcode key.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug lived in the &lt;code&gt;addJoin()&lt;/code&gt; method of the SQL entity query backend. When building a JOIN condition that filters by language, the code checked whether the table being joined was the entity's data table (&lt;code&gt;getDataTable()&lt;/code&gt;) and, if so, fetched the configured langcode key via &lt;code&gt;$entity_type-&amp;gt;getKey('langcode')&lt;/code&gt;. For all other tables, including the revision data table (&lt;code&gt;getRevisionDataTable()&lt;/code&gt;), it fell back to the hard-coded string &lt;code&gt;'langcode'&lt;/code&gt;. The revision data table, like the data table, stores per-language row data and must also use the entity type's actual langcode key.&lt;/p&gt;
-&lt;p&gt;The fix replaces the single ternary with a &lt;code&gt;match()&lt;/code&gt; expression that maps both &lt;code&gt;getDataTable()&lt;/code&gt; and &lt;code&gt;getRevisionDataTable()&lt;/code&gt; to &lt;code&gt;$entity_type-&amp;gt;getKey('langcode')&lt;/code&gt;, leaving the &lt;code&gt;'langcode'&lt;/code&gt; literal as the &lt;code&gt;default&lt;/code&gt; case for dedicated field tables (which do hard-code that column name).&lt;/p&gt;
-&lt;p&gt;The accompanying test modifies the active definition of &lt;code&gt;entity_test_mulrev&lt;/code&gt; to use &lt;code&gt;'language'&lt;/code&gt; as its langcode key at runtime, issues an &lt;code&gt;allRevisions()&lt;/code&gt; query, and asserts the generated SQL contains &lt;code&gt;&amp;quot;entity_test_mulrev_property_revision&amp;quot;.&amp;quot;language&amp;quot;&lt;/code&gt; in the JOIN condition rather than &lt;code&gt;&amp;quot;entity_test_mulrev_property_revision&amp;quot;.&amp;quot;langcode&amp;quot;&lt;/code&gt;. No public API surface changed; only internal SQL generation logic in the entity query system was corrected.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 29, 2026 (1 month and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lisotton&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

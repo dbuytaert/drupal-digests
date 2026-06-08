@@ -241,6 +241,111 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace user_pass_rehash/user_pass_reset_url/user_cancel_url with OneTimeAuthentication service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019ea6b4-6c02-7390-9b14-702bf164c9f5.md</link>
+      <guid isPermaLink="false">019ea6b4-6c02-7390-9b14-702bf164c9f5</guid>
+      <pubDate>Mon, 08 Jun 2026 10:08:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581056"&gt;#3581056&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Replaces three deprecated global functions from the user module — &lt;code&gt;user_pass_rehash()&lt;/code&gt;, &lt;code&gt;user_pass_reset_url()&lt;/code&gt;, and &lt;code&gt;user_cancel_url()&lt;/code&gt; — with equivalent method calls on &lt;code&gt;\Drupal\user\OneTimeAuthentication&lt;/code&gt; obtained via &lt;code&gt;\Drupal::service()&lt;/code&gt;. The old functions were deprecated in Drupal 11.4.0 and will be removed in 13.0.0. Contrib modules that build password-reset or account-cancellation links call these functions directly and gain an automatic upgrade.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$hash = user_pass_rehash($account, $timestamp);
+$reset = user_pass_reset_url($account);
+$cancel = user_cancel_url($account, $options);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$hash = \Drupal::service(\Drupal\user\OneTimeAuthentication::class)-&amp;gt;generateHmac($account, $timestamp);
+$reset = \Drupal::service(\Drupal\user\OneTimeAuthentication::class)-&amp;gt;generateOneTimeLoginUrl($account)-&amp;gt;toString();
+$cancel = \Drupal::service(\Drupal\user\OneTimeAuthentication::class)-&amp;gt;generateCancelConfirmUrl($account, $options)-&amp;gt;toString();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;user_mail_tokens()&lt;/code&gt; function (deprecated in the same issue) is not handled: it is nearly always used as a string callback value &lt;code&gt;'callback' =&amp;gt; 'user_mail_tokens'&lt;/code&gt; rather than called directly, and its replacement requires a fourth &lt;code&gt;BubbleableMetadata&lt;/code&gt; argument that cannot be safely synthesised. Sites using it as a string callback must update it manually to &lt;code&gt;\Drupal::service(\Drupal\user\OneTimeAuthentication::class)-&amp;gt;tokens(...)&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserOneTimeAuthFunctionsRector extends AbstractRector
+{
+    // Maps deprecated function name =&amp;gt; [new method name, needs -&amp;gt;toString() wrapper]
+    private const FUNCTION_MAP = [
+        'user_pass_rehash'   =&amp;gt; ['generateHmac', false],
+        'user_pass_reset_url' =&amp;gt; ['generateOneTimeLoginUrl', true],
+        'user_cancel_url'    =&amp;gt; ['generateCancelConfirmUrl', true],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user one-time authentication global functions with methods on the OneTimeAuthentication service.',
+            [new CodeSample(
+                'user_pass_rehash($account, $timestamp);',
+                '\\Drupal::service(\\Drupal\\user\\OneTimeAuthentication::class)-&amp;gt;generateHmac($account, $timestamp);',
+            )]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        $funcName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($funcName === null || !array_key_exists($funcName, self::FUNCTION_MAP)) {
+            return null;
+        }
+        [$methodName, $needsToString] = self::FUNCTION_MAP[$funcName];
+
+        // \Drupal::service(\Drupal\user\OneTimeAuthentication::class)
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(
+                new FullyQualified('Drupal\\user\\OneTimeAuthentication'),
+                new Identifier('class')
+            ))]
+        );
+
+        $methodCall = new MethodCall($serviceCall, $methodName, $node-&amp;gt;args);
+
+        if ($needsToString) {
+            return new MethodCall($methodCall, 'toString', []);
+        }
+
+        return $methodCall;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserOneTimeAuthFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Add ResultRow type hint to RowPluginBase::render() overrides</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e954f-f773-7048-b696-ba4aa559d801.md</link>
       <guid isPermaLink="false">019e954f-f773-7048-b696-ba4aa559d801</guid>
@@ -1724,53 +1829,6 @@ use Rector\Renaming\Rector\Name\RenameClassRector;
 return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\\content_translation\\Plugin\\migrate\\source\\I18nQueryTrait' =&amp;gt; 'Drupal\\migrate_drupal\\Plugin\\migrate\\source\\I18nQueryTrait',
-    ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace AliasWhitelist/AliasWhitelistInterface with AliasPrefixList/AliasPrefixListInterface</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/019e0988-790d-7075-b110-0c0ee6a16c81.md</link>
-      <guid isPermaLink="false">019e0988-790d-7075-b110-0c0ee6a16c81</guid>
-      <pubDate>Fri, 08 May 2026 21:39:59 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3151086"&gt;#3151086&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.1.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Renames &lt;code&gt;AliasWhitelist&lt;/code&gt; to &lt;code&gt;AliasPrefixList&lt;/code&gt; and &lt;code&gt;AliasWhitelistInterface&lt;/code&gt; to &lt;code&gt;AliasPrefixListInterface&lt;/code&gt; throughout contrib code, and renames the protected method &lt;code&gt;pathAliasWhitelistRebuild&lt;/code&gt; to &lt;code&gt;pathAliasPrefixListRebuild&lt;/code&gt; on &lt;code&gt;AliasManager&lt;/code&gt; subclasses. These symbols were deprecated in Drupal 11.1 as part of removing whitelist/blacklist terminology from the &lt;code&gt;path_alias&lt;/code&gt; module.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\path_alias\AliasWhitelist;
-use Drupal\path_alias\AliasWhitelistInterface;
-
-$list = new AliasWhitelist(...);
-function build(AliasWhitelistInterface $w): AliasWhitelistInterface {}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\path_alias\AliasPrefixList;
-use Drupal\path_alias\AliasPrefixListInterface;
-
-$list = new AliasPrefixList(...);
-function build(AliasPrefixListInterface $w): AliasPrefixListInterface {}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Renaming\Rector\MethodCall\RenameMethodRector;
-use Rector\Renaming\Rector\Name\RenameClassRector;
-use Rector\Renaming\ValueObject\MethodCallRename;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
-        'Drupal\\path_alias\\AliasWhitelist' =&amp;gt; 'Drupal\\path_alias\\AliasPrefixList',
-        'Drupal\\path_alias\\AliasWhitelistInterface' =&amp;gt; 'Drupal\\path_alias\\AliasPrefixListInterface',
-    ])
-    -&amp;gt;withConfiguredRule(RenameMethodRector::class, [
-        new MethodCallRename('Drupal\\path_alias\\AliasManager', 'pathAliasWhitelistRebuild', 'pathAliasPrefixListRebuild'),
     ]);
 
 &lt;/code&gt;&lt;/pre&gt;
