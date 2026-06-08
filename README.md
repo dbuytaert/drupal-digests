@@ -1,16 +1,24 @@
-**TL;DR:** [642 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [644 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_69 summaries · 7 new this week_
+
+- [#3591633: Move CLI sync settings to canvas.config.json, enable everything by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591633.md)
+- [#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g....](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md)
+- [#3591624: Block validation is broken for any block without a default value for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591624.md)
+
 ### Drupal Core
 
-_483 summaries · 18 new this week_
+_484 summaries · 18 new this week_
 
+- [#3132725: "Limit list to selected items" on exposed filters does not filter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md)
 - [#3594092: loadUnchanged() returns an in-memory-modified entity when hook_entity_preload()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594092.md)
 - [#3592577: Ensure that hook attributes are never parsed from a stale opcache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592577.md)
-- [#3581056: Introduce a OneTimeAuthentication service and deprecate user_pass_rehash](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581056.md)
 
 ### Drupal CMS
 
@@ -19,14 +27,6 @@ _13 summaries · 2 new this week_
 - [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
 - [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
 - [#3580694: The project template should always place config outside the web root by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3580694.md)
-
-### Drupal Canvas
-
-_68 summaries · 6 new this week_
-
-- [#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g....](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md)
-- [#3591624: Block validation is broken for any block without a default value for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591624.md)
-- [#3590572: Indicate translation availability per language in the Canvas language switcher...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590572.md)
 
 ### Drupal AI
 
