@@ -1,4 +1,4 @@
-**TL;DR:** [640 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [642 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_481 summaries · 16 new this week_
+_483 summaries · 18 new this week_
 
+- [#3594092: loadUnchanged() returns an in-memory-modified entity when hook_entity_preload()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594092.md)
+- [#3592577: Ensure that hook attributes are never parsed from a stale opcache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592577.md)
 - [#3581056: Introduce a OneTimeAuthentication service and deprecate user_pass_rehash](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581056.md)
-- [#3588490: Don't reset the extension lists in system requirements](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588490.md)
-- [#3588276: Remove comment module dependency from standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588276.md)
 
 ### Drupal CMS
 
