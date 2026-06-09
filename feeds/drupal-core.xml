@@ -5,6 +5,115 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3453474: CLI entry point in Drupal Core</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md</link>
+      <guid isPermaLink="false">019ea9e1-3805-7520-8ee9-37f10e8eda82</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 08 Jun 2026 21:57:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 45 files, +1439/−150 · php +1394/−144 · yml +31/−1 · lock +4/−1 · json +4/−1 · dist +3 · txt +2/−2 · sh +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/21e3ddfe1d90ac0335a78243bfeba59d237431ab"&gt;21e3ddf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt; · 28 contributors · 145 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 86&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core now ships a fully-featured CLI tool available as &lt;code&gt;vendor/bin/dr&lt;/code&gt;. Out of the box it provides &lt;code&gt;cache:rebuild&lt;/code&gt; (alias &lt;code&gt;cr&lt;/code&gt;), &lt;code&gt;system:cron&lt;/code&gt; (alias &lt;code&gt;cron&lt;/code&gt;), &lt;code&gt;system:status&lt;/code&gt;, &lt;code&gt;recipe:apply&lt;/code&gt;, &lt;code&gt;recipe:info&lt;/code&gt;, and &lt;code&gt;content:export&lt;/code&gt; commands, covering the most common tasks previously requiring Drush. Module developers can add their own commands by placing a class in their module's &lt;code&gt;src/Command/&lt;/code&gt; directory and annotating it with &lt;code&gt;#[AsCommand]&lt;/code&gt;; no service YAML registration is needed. The legacy &lt;code&gt;core/scripts/drupal&lt;/code&gt; entry point still functions, and &lt;code&gt;vendor/bin/dr install&lt;/code&gt; / &lt;code&gt;vendor/bin/dr quick-start&lt;/code&gt; replace the old &lt;code&gt;php core/scripts/drupal install&lt;/code&gt; invocations documented in INSTALL.md and CI scripts.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;BootableCommandTrait::boot()&lt;/code&gt; deprecated in drupal:11.4.0 and removed in drupal:13.0.0; the new CLI bootstraps Drupal automatically.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;vendor/bin/dr&lt;/code&gt; CLI entry point backed by &lt;code&gt;DrupalApplication&lt;/code&gt;; modules auto-discovered via &lt;code&gt;ConsoleCompilerPass&lt;/code&gt; scanning &lt;code&gt;src/Command/&lt;/code&gt; for &lt;code&gt;#[AsCommand]&lt;/code&gt;; built-in commands &lt;code&gt;cache:rebuild&lt;/code&gt;, &lt;code&gt;system:cron&lt;/code&gt;, &lt;code&gt;system:status&lt;/code&gt;, &lt;code&gt;recipe:apply&lt;/code&gt;, &lt;code&gt;recipe:info&lt;/code&gt;, and &lt;code&gt;content:export&lt;/code&gt; added.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The binary is registered in core's &lt;code&gt;composer.json&lt;/code&gt; as &lt;code&gt;scripts/dr&lt;/code&gt;, which makes it available as &lt;code&gt;vendor/bin/dr&lt;/code&gt; after &lt;code&gt;composer install&lt;/code&gt;. The script returns a Symfony Runtime application, which is now an explicit non-dev dependency (&lt;code&gt;symfony/runtime ^8.0&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DrupalApplication&lt;/code&gt; extends Symfony's &lt;code&gt;Application&lt;/code&gt; and provides lazy bootstrap: on first command lookup it instantiates &lt;code&gt;DrupalKernel&lt;/code&gt; with &lt;code&gt;$allow_dumping=FALSE&lt;/code&gt; (to avoid reusing a cached container), boots the site, pushes a request onto the stack, and then loads module-contributed commands via &lt;code&gt;DrupalApplication::addDrupalCommands()&lt;/code&gt;. A global &lt;code&gt;--url&lt;/code&gt; option (also readable from the &lt;code&gt;DRUPAL_URI&lt;/code&gt; environment variable) controls which site is selected in multi-site setups. Commands that do not need a running site (e.g. &lt;code&gt;InstallCommand&lt;/code&gt;, &lt;code&gt;CacheRebuildCommand&lt;/code&gt;) are registered as default commands and run without bootstrapping.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ConsoleCompilerPass&lt;/code&gt; (a new &lt;code&gt;@internal&lt;/code&gt; compiler pass) runs at container compile time. It iterates &lt;code&gt;container.namespaces&lt;/code&gt;, looks inside each module's &lt;code&gt;src/Command/&lt;/code&gt; directory recursively, and registers any class bearing &lt;code&gt;#[AsCommand]&lt;/code&gt; as an autowired, public service tagged &lt;code&gt;console.command&lt;/code&gt;. It also checks the full class hierarchy to skip commands that extend optional third-party base classes (such as Drush commands) whose parents may not be installed. Symfony's own &lt;code&gt;AddConsoleCommandPass&lt;/code&gt; then processes the tagged services into a lazy &lt;code&gt;CommandLoaderInterface&lt;/code&gt; (&lt;code&gt;console.command_loader&lt;/code&gt;). Commands that set their name only via &lt;code&gt;configure()&lt;/code&gt; (without the attribute) are not auto-discovered and must be declared explicitly in a module's &lt;code&gt;*.services.yml&lt;/code&gt; with &lt;code&gt;{ name: console.command }&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DrupalConsoleLogger&lt;/code&gt; (a PSR-3 logger) and &lt;code&gt;ConsoleSubscriber&lt;/code&gt; (a &lt;code&gt;ConsoleEvents::COMMAND&lt;/code&gt; listener) together route Drupal's internal log messages to the console output during command execution, with notices shown at normal verbosity and info/debug messages gated behind &lt;code&gt;-v&lt;/code&gt;/&lt;code&gt;-vvv&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Several existing &lt;code&gt;@internal&lt;/code&gt; commands were refactored as part of this change: &lt;code&gt;ContentExportCommand&lt;/code&gt; moved from &lt;code&gt;Drupal\Core\DefaultContent&lt;/code&gt; to &lt;code&gt;Drupal\Core\DefaultContent\Command&lt;/code&gt;; &lt;code&gt;RecipeCommand&lt;/code&gt; and &lt;code&gt;RecipeInfoCommand&lt;/code&gt; moved from &lt;code&gt;Drupal\Core\Recipe&lt;/code&gt; to &lt;code&gt;Drupal\Core\Recipe\Command&lt;/code&gt;. All three dropped &lt;code&gt;BootableCommandTrait&lt;/code&gt; in favor of constructor-injected services, since &lt;code&gt;DrupalApplication&lt;/code&gt; now handles bootstrapping automatically. &lt;code&gt;QuickStartCommand&lt;/code&gt; was rewritten as an invokable class using &lt;code&gt;#[Argument]&lt;/code&gt; and &lt;code&gt;#[Option]&lt;/code&gt; attributes instead of extending &lt;code&gt;Command&lt;/code&gt;. &lt;code&gt;DrupalKernel::compileContainer()&lt;/code&gt; was updated to also scan components that expose a &lt;code&gt;Command/&lt;/code&gt; directory, ensuring core-level commands are discovered.&lt;/p&gt;
+&lt;p&gt;The full developer API is documented in a new &lt;code&gt;@defgroup console_commands&lt;/code&gt; section in &lt;code&gt;module.api.php&lt;/code&gt;, including both the &lt;code&gt;Command&lt;/code&gt;-extending style and the lighter invokable-class style. Related bootstrap work on Symfony Runtime was tracked in &lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace &lt;code&gt;php core/scripts/drupal&lt;/code&gt; invocations with &lt;code&gt;vendor/bin/dr&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;# Before
+php core/scripts/drupal install standard
+php core/scripts/drupal quick-start --help
+
+# After
+vendor/bin/dr install standard
+vendor/bin/dr quick-start --help
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Commands that use &lt;code&gt;BootableCommandTrait::boot()&lt;/code&gt; must be rewritten to receive their dependencies via constructor injection; &lt;code&gt;DrupalApplication&lt;/code&gt; now boots Drupal automatically before &lt;code&gt;execute()&lt;/code&gt; is called:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+class MyCommand extends Command {
+  use BootableCommandTrait;
+  public function __construct($class_loader) {
+    parent::__construct('my:command');
+    $this-&amp;gt;classLoader = $class_loader;
+  }
+  protected function execute(InputInterface $input, OutputInterface $output): int {
+    $container = $this-&amp;gt;boot()-&amp;gt;getContainer();
+    $service = $container-&amp;gt;get(MyService::class);
+    // ...
+  }
+}
+
+// After — place in src/Command/MyCommand.php
+#[AsCommand(name: 'my:command', description: 'My command.')]
+class MyCommand extends Command {
+  public function __construct(protected readonly MyService $service) {
+    parent::__construct();
+  }
+  protected function execute(InputInterface $input, OutputInterface $output): int {
+    // $this-&amp;gt;service is already available; no manual bootstrap needed.
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code that references the now-moved &lt;code&gt;@internal&lt;/code&gt; classes by their old fully-qualified names must update the namespace:&lt;/p&gt;
+&lt;p&gt;| Old | New |
+|---|---|
+| &lt;code&gt;Drupal\Core\DefaultContent\ContentExportCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\DefaultContent\Command\ContentExportCommand&lt;/code&gt; |
+| &lt;code&gt;Drupal\Core\Recipe\RecipeCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\Recipe\Command\RecipeCommand&lt;/code&gt; |
+| &lt;code&gt;Drupal\Core\Recipe\RecipeInfoCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\Recipe\Command\RecipeInfoCommand&lt;/code&gt; |&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 9, 2024&lt;/li&gt;
+&lt;li&gt;Committed: June 8, 2026 (1 year and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dpi (PreviousNext)&lt;/li&gt;
+&lt;li&gt;chi&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;aaronmchale (The University of Edinburgh)&lt;/li&gt;
+&lt;li&gt;bhanu951&lt;/li&gt;
+&lt;li&gt;greg.1.anderson (Pantheon)&lt;/li&gt;
+&lt;li&gt;moshe weitzman&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;bircher (Nuvole)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;franksj&lt;/li&gt;
+&lt;li&gt;rymo&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;rfay (DDEV)&lt;/li&gt;
+&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;arrow&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;kingdutch (Open Social)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3132725: "Limit list to selected items" on exposed filters does not filter</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md</link>
       <guid isPermaLink="false">019ea839-6e02-7168-bec5-b4b867d73ef6</guid>
@@ -996,56 +1105,6 @@ dependencies:
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, dcam discovered that the original procedural hook implementation for loading the Settings Tray libraries was silently not firing. Investigating why led to the broader finding, confirmed by longwave, that Settings Tray is entirely non-functional in admin themes because &lt;code&gt;default_admin&lt;/code&gt; and Claro both implement &lt;code&gt;hook_preprocess_block&lt;/code&gt; to remove contextual links from all blocks. Longwave traced this back to &lt;a href="https://www.drupal.org/node/2487025"&gt;#2487025&lt;/a&gt;, which removed contextual links from the Seven theme, with Claro and Default Admin later inheriting that behavior. This discovery shifted the resolution from moving the CSS into the &lt;code&gt;settings_tray&lt;/code&gt; module to simply removing it entirely from &lt;code&gt;default_admin&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591509: Remove Migrate Drupal settings from settings.php</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591509.md</link>
-      <guid isPermaLink="false">019e829e-0472-7179-a283-b135cf8261f8</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 01 Jun 2026 08:42:36 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +0/−110 · php +0/−110&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6173c0574de7855ba20c7aeb605802781ffb03ba"&gt;6173c05&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3591509"&gt;#3591509&lt;/a&gt; · 4 contributors · 10 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Five &lt;code&gt;$settings&lt;/code&gt; keys related to Migrate Drupal have been removed from &lt;code&gt;default.settings.php&lt;/code&gt;. These keys were used exclusively by the Migrate Drupal module, which was removed from core in &lt;a href="https://www.drupal.org/node/3572280"&gt;#3572280&lt;/a&gt;. If your &lt;code&gt;settings.php&lt;/code&gt; still defines any of them, they will be silently ignored; you can safely remove them.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Five Migrate Drupal &lt;code&gt;$settings&lt;/code&gt; keys removed from &lt;code&gt;default.settings.php&lt;/code&gt;; any definitions still present in &lt;code&gt;settings.php&lt;/code&gt; are now silently ignored.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit removes two blocks from both &lt;code&gt;core/assets/scaffold/files/default.settings.php&lt;/code&gt; and &lt;code&gt;sites/default/default.settings.php&lt;/code&gt;. The first block was an active assignment, &lt;code&gt;$settings['migrate_node_migrate_type_classic'] = FALSE&lt;/code&gt;, which forced the classic node migration path in the Migrate Drupal upgrade wizard. The second block was a set of commented-out template entries for &lt;code&gt;$settings['migrate_source_connection']&lt;/code&gt;, &lt;code&gt;$settings['migrate_source_version']&lt;/code&gt;, &lt;code&gt;$settings['migrate_file_public_path']&lt;/code&gt;, and &lt;code&gt;$settings['migrate_file_private_path']&lt;/code&gt;, which supplied default values to the &lt;code&gt;/upgrade/credentials&lt;/code&gt; credential form. With &lt;code&gt;migrate_drupal&lt;/code&gt; removed from core (&lt;a href="https://www.drupal.org/node/3572280"&gt;#3572280&lt;/a&gt;), no code in core reads any of these keys, making the settings stubs dead documentation.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your &lt;code&gt;settings.php&lt;/code&gt; still defines any of the following keys from a past D6/D7 migration, they are now unused and can be removed:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$settings['migrate_node_migrate_type_classic'] = FALSE;
-$settings['migrate_source_connection'] = '';
-$settings['migrate_source_version'] = '';
-$settings['migrate_file_public_path'] = '';
-$settings['migrate_file_private_path'] = '';
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 1, 2026 (9 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;avinash.jha (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
