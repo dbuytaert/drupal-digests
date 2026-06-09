@@ -1,8 +1,16 @@
-**TL;DR:** [646 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [648 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_72 summaries · 10 new this week_
+
+- [#3591640: Selects based on enums defined in schema.json not working because id not a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591640.md)
+- [#3583684: Symmetric translations for content entities' component tree fields should allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583684.md)
+- [#3591633: Move CLI sync settings to canvas.config.json, enable everything by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591633.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _485 summaries · 18 new this week_
 - [#3453474: CLI entry point in Drupal Core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md)
 - [#3132725: "Limit list to selected items" on exposed filters does not filter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md)
 - [#3594092: loadUnchanged() returns an in-memory-modified entity when hook_entity_preload()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594092.md)
-
-### Drupal Canvas
-
-_70 summaries · 8 new this week_
-
-- [#3591633: Move CLI sync settings to canvas.config.json, enable everything by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591633.md)
-- [#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g....](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md)
-- [#3591624: Block validation is broken for any block without a default value for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591624.md)
 
 ### Drupal CMS
 
