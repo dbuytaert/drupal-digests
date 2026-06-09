@@ -1,8 +1,16 @@
-**TL;DR:** [651 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [652 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_487 summaries · 17 new this week_
+
+- [#3590050: Deprecate and replace locale_status related functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590050.md)
+- [#3593281: Rename "promoted to front page" to "promoted"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593281.md)
+- [#3453474: CLI entry point in Drupal Core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _74 summaries · 12 new this week_
 - [#3591638: Add a computed `src` field property to the image field type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md)
 - [#3574857: Add client-side transform for entity_reference_autocomplete to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574857.md)
 - [#3591640: Selects based on enums defined in schema.json not working because id not a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591640.md)
-
-### Drupal Core
-
-_486 summaries · 17 new this week_
-
-- [#3593281: Rename "promoted to front page" to "promoted"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593281.md)
-- [#3453474: CLI entry point in Drupal Core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md)
-- [#3132725: "Limit list to selected items" on exposed filters does not filter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md)
 
 ### Drupal CMS
 
@@ -39,7 +39,7 @@ _78 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [175 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_175 rules · 4 new this week_
+_176 rules · 4 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace user_pass_rehash/user_pass_reset_url/user_cancel_url with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-pass-rehash-user-pass-reset-url-user-cancel-3581056.php)
+- [Replace deprecated locale translation status functions with LocaleSource service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-translation-status-functions-with-3590050.php)
 
 
 ## RSS feeds

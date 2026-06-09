@@ -241,6 +241,108 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace deprecated locale translation status functions with LocaleSource service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-translation-status-functions-with-3590050.php</link>
+      <guid isPermaLink="false">019eae2a-cf4d-7161-818a-eb935dc4cd8d</guid>
+      <pubDate>Tue, 09 Jun 2026 20:55:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3590050"&gt;#3590050&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.4 deprecated five global locale translation status functions in favour of the &lt;code&gt;LocaleSource&lt;/code&gt; service. This rule rewrites the four functions whose arguments map 1:1 to the new service methods: &lt;code&gt;locale_translation_get_status()&lt;/code&gt; → &lt;code&gt;loadSources()&lt;/code&gt;, &lt;code&gt;locale_translation_status_save()&lt;/code&gt; → &lt;code&gt;saveSource()&lt;/code&gt;, &lt;code&gt;locale_translation_status_delete_projects()&lt;/code&gt; → &lt;code&gt;deleteSources()&lt;/code&gt;, and &lt;code&gt;locale_translation_clear_status()&lt;/code&gt; → &lt;code&gt;clearSources()&lt;/code&gt;. All are removed in Drupal 13.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;locale_translation_get_status($projects, $langcodes);
+locale_translation_status_save($project, $langcode, $type, $file);
+locale_translation_status_delete_projects($list);
+locale_translation_clear_status();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleSource::class)-&amp;gt;loadSources($projects, $langcodes);
+\Drupal::service(\Drupal\locale\LocaleSource::class)-&amp;gt;saveSource($project, $langcode, $type, $file);
+\Drupal::service(\Drupal\locale\LocaleSource::class)-&amp;gt;deleteSources($list);
+\Drupal::service(\Drupal\locale\LocaleSource::class)-&amp;gt;clearSources();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;locale_translation_status_delete_languages(array $langcodes)&lt;/code&gt; is not rewritten: its replacement &lt;code&gt;deleteSourcesByLanguage(string $langcode)&lt;/code&gt; takes a single language code, so the call site must be manually converted to a &lt;code&gt;foreach&lt;/code&gt; loop.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class DeprecatedLocaleStatusFunctionsRector extends AbstractRector
+{
+    // Maps deprecated global function names to their replacement method names
+    // on \Drupal\locale\LocaleSource (all pass arguments through unchanged).
+    private const array REPLACEMENTS = [
+        'locale_translation_get_status'          =&amp;gt; 'loadSources',
+        'locale_translation_status_save'         =&amp;gt; 'saveSource',
+        'locale_translation_status_delete_projects' =&amp;gt; 'deleteSources',
+        'locale_translation_clear_status'        =&amp;gt; 'clearSources',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale translation status functions with LocaleSource service methods.',
+            [new CodeSample(
+                'locale_translation_get_status($projects, $langcodes);',
+                '\\Drupal::service(\\Drupal\\locale\\LocaleSource::class)-&amp;gt;loadSources($projects, $langcodes);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        $funcName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($funcName === null || !array_key_exists($funcName, self::REPLACEMENTS)) {
+            return null;
+        }
+        $methodName = self::REPLACEMENTS[$funcName];
+
+        // Build \Drupal::service(\Drupal\locale\LocaleSource::class)
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(
+                new FullyQualified('Drupal\\locale\\LocaleSource'),
+                'class',
+            ))],
+        );
+
+        return new MethodCall($serviceCall, $methodName, $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([DeprecatedLocaleStatusFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace user_pass_rehash/user_pass_reset_url/user_cancel_url with OneTimeAuthentication service</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-pass-rehash-user-pass-reset-url-user-cancel-3581056.php</link>
       <guid isPermaLink="false">019ea6b4-6c02-7390-9b14-702bf164c9f5</guid>
@@ -1788,49 +1890,6 @@ final class EditorLoadToEditorEntityLoadRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([EditorLoadToEditorEntityLoadRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated I18nQueryTrait from content_translation with migrate_drupal version</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-i18nquerytrait-from-content-translation-3258581.php</link>
-      <guid isPermaLink="false">019e098e-2d0e-73b1-b0b1-dca20f578fb2</guid>
-      <pubDate>Fri, 08 May 2026 21:46:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3258581"&gt;#3258581&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.2.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces &lt;code&gt;use Drupal\content_translation\Plugin\migrate\source\I18nQueryTrait&lt;/code&gt; with &lt;code&gt;use Drupal\migrate_drupal\Plugin\migrate\source\I18nQueryTrait&lt;/code&gt;. The trait was moved because it is only required for migrate_drupal source plugins, not for &lt;code&gt;content_translation&lt;/code&gt; itself. Using the old location triggers a deprecation notice and will be removed in Drupal 12.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\content_translation\Plugin\migrate\source\I18nQueryTrait;
-
-class BlockCustomTranslation extends DrupalSqlBase {
-  use I18nQueryTrait;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\migrate_drupal\Plugin\migrate\source\I18nQueryTrait;
-
-class BlockCustomTranslation extends DrupalSqlBase {
-  use I18nQueryTrait;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;When the trait is used via a short-name import (&lt;code&gt;use I18nQueryTrait;&lt;/code&gt;), &lt;code&gt;RenameClassRector&lt;/code&gt; rewrites the class-body trait use to the fully qualified new name but leaves the old &lt;code&gt;use&lt;/code&gt; import statement as dead code. The code runs correctly; a separate dead-import removal pass (e.g. PHPStan or PHP-CS-Fixer) can clean it up.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Renaming\Rector\Name\RenameClassRector;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
-        'Drupal\\content_translation\\Plugin\\migrate\\source\\I18nQueryTrait' =&amp;gt; 'Drupal\\migrate_drupal\\Plugin\\migrate\\source\\I18nQueryTrait',
-    ]);
-
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
