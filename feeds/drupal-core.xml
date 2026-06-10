@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md</link>
+      <guid isPermaLink="false">019eb1af-f75a-705d-b50e-0de29e2331c2</guid>
+      <pubDate>Wed, 10 Jun 2026 09:43:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +320/−100 · php +320/−100&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7d3b03497b61712e1c550983302c4cecf51fa2e3"&gt;7d3b034&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593963"&gt;#3593963&lt;/a&gt; · 7 contributors · 41 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites with content types that define roughly 60 or more fields can hit a fatal database error when loading entities, because MySQL and MariaDB enforce a hard limit of 61 tables per JOIN and SQLite has a comparable limit. The error surfaced in Drupal 11.4.x after earlier optimizations consolidated field loading into single queries that JOIN each dedicated field storage table. After this fix, entity loading on sites with large numbers of fields works correctly again regardless of how many fields are defined.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The problem was introduced by &lt;a href="https://www.drupal.org/node/3564689"&gt;#3564689&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3551308"&gt;#3551308&lt;/a&gt;, which changed &lt;code&gt;SqlContentEntityStorage::loadFromDedicatedTables()&lt;/code&gt; to load all single-cardinality fields in one query and all multiple-cardinality fields in another, each using a &lt;code&gt;LEFT JOIN&lt;/code&gt; per field. With ~60 or more fields that use dedicated storage tables, the number of joins exceeds MySQL's documented limit of 61.&lt;/p&gt;
+&lt;p&gt;The fix adds a constant &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE = 25&lt;/code&gt; to &lt;code&gt;SqlContentEntityStorage&lt;/code&gt; and splits both the single-cardinality and multiple-cardinality field lists into chunks before querying. The chunking logic merges the last chunk into the penultimate one, so 26 fields load as a single chunk of 26 (not 25 + 1) and 51 fields load as chunks of 25 and 26. This keeps each query well under database limits while avoiding an excessively small final batch.&lt;/p&gt;
+&lt;p&gt;The inline field-loading code was extracted into two new &lt;code&gt;private&lt;/code&gt; methods, &lt;code&gt;loadSingleCardinalityFields()&lt;/code&gt; and &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt;, which are called in a &lt;code&gt;foreach&lt;/code&gt; loop over the chunks. A &lt;code&gt;$load_shared_table_fields&lt;/code&gt; boolean is passed to &lt;code&gt;loadSingleCardinalityFields()&lt;/code&gt; and is only &lt;code&gt;true&lt;/code&gt; for the first chunk, preventing shared base/revision-data-table fields from being fetched and overwritten on subsequent iterations. A new kernel test &lt;code&gt;testEntityWithManyFieldsLoad()&lt;/code&gt; in &lt;code&gt;SqlContentEntityStorageTest&lt;/code&gt; creates 71 fields on &lt;code&gt;entity_test_rev&lt;/code&gt; and asserts all field values survive a save/load and save/loadRevision cycle for both single and unlimited cardinality.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 10, 2026 (4 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;joachim (Chicken)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3590897: Sidebar toggle is visible and functioning in media library dialog, but shouldn't be there</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md</link>
       <guid isPermaLink="false">019eaf0c-bbd7-7606-8c23-e112ed44937a</guid>
@@ -998,64 +1039,6 @@ $discovery = new YamlRouteDiscovery(
 &lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#1499532: Respect explicitly set node path alias langcode on save</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1499532.md</link>
-      <guid isPermaLink="false">019e8a2c-0e0d-7599-ac4b-c575880552c2</guid>
-      <pubDate>Tue, 02 Jun 2026 20:22:58 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +49/−5 · php +49/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f30d64c5689364b63c6707c51b52e7bfcdaa8d89"&gt;f30d64c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1499532"&gt;#1499532&lt;/a&gt; · 10 contributors · 39 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On multilingual sites, setting a path alias to a specific language (or to language-neutral, &lt;code&gt;LanguageInterface::LANGCODE_NOT_SPECIFIED&lt;/code&gt;) programmatically was silently ignored when saving a node. The alias was always stored with the node translation's language instead. A langcode-only update (same alias text, different language) was also dropped entirely. Both cases are now fixed: the explicitly provided alias langcode is respected on both create and update.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two bugs lived in &lt;code&gt;PathItem::postSave()&lt;/code&gt; inside &lt;code&gt;core/modules/path/src/Plugin/Field/FieldType/PathItem.php&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;First, the langcode selection used the condition &lt;code&gt;($langcode &amp;amp;&amp;amp; $pid) ? $langcode : $this-&amp;gt;getLangcode()&lt;/code&gt;. Because &lt;code&gt;$pid&lt;/code&gt; is absent when creating a new alias, any explicit langcode supplied at node-creation time was always discarded in favour of the entity's own langcode. The fix simplifies this to &lt;code&gt;$langcode ?: $this-&amp;gt;getLangcode()&lt;/code&gt;, so any non-empty explicit langcode wins for both new and existing aliases.&lt;/p&gt;
-&lt;p&gt;Second, the update branch only called &lt;code&gt;$path_alias-&amp;gt;save()&lt;/code&gt; when the alias text changed (&lt;code&gt;$alias != $path_alias-&amp;gt;getAlias()&lt;/code&gt;). A change to the langcode alone was never persisted. The fix introduces a &lt;code&gt;$path_alias_changed&lt;/code&gt; flag that is set when either the alias text or the langcode (&lt;code&gt;$alias_langcode !== $path_alias-&amp;gt;language()-&amp;gt;getId()&lt;/code&gt;) differs from the stored value, and save is triggered when either is true.&lt;/p&gt;
-&lt;p&gt;A third, related fix is in &lt;code&gt;PathDefaultWidget::formElement()&lt;/code&gt;. The hidden &lt;code&gt;langcode&lt;/code&gt; form field previously always forwarded &lt;code&gt;$items[$delta]-&amp;gt;langcode&lt;/code&gt;, which for unsaved items resolved to the entity's langcode and would have overridden any programmatic langcode set before the form was rendered. It now passes &lt;code&gt;NULL&lt;/code&gt; when no &lt;code&gt;$pid&lt;/code&gt; exists yet (new alias), allowing the save logic to apply the explicitly set value instead.&lt;/p&gt;
-&lt;p&gt;New kernel test cases in &lt;code&gt;PathItemTest::testPathItem()&lt;/code&gt; cover: setting &lt;code&gt;langcode&lt;/code&gt; to &lt;code&gt;LANGCODE_NOT_SPECIFIED&lt;/code&gt; on a saved node's path field and re-saving (verifies the language-neutral alias is stored and the language-specific alias is gone), and creating a new node with &lt;code&gt;LANGCODE_NOT_SPECIFIED&lt;/code&gt; in the path data (verifies the alias is created language-neutral from the start).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No API changes. If your code was previously working around this bug by manually editing the path alias after node save, that workaround can be removed. For example, code like:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before: workaround needed because langcode was ignored on save
-$node-&amp;gt;path-&amp;gt;langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
-$node-&amp;gt;save();
-// Then manually fix the stored alias…
-$alias = $alias_storage-&amp;gt;load($pid);
-$alias-&amp;gt;set('langcode', LanguageInterface::LANGCODE_NOT_SPECIFIED);
-$alias-&amp;gt;save();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;can now be simplified to:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// After: langcode is respected on save
-$node-&amp;gt;path-&amp;gt;langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
-$node-&amp;gt;save();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 25, 2012&lt;/li&gt;
-&lt;li&gt;Committed: June 2, 2026 (14 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;q0rban&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;joelpittet picked up this 13-year-old issue after smustgrave flagged it as a daily BSI target, noting that the original patch referenced &lt;code&gt;$node-&amp;gt;path['language']&lt;/code&gt;, which had long since become &lt;code&gt;$node-&amp;gt;path-&amp;gt;langcode&lt;/code&gt; in modern Drupal. joelpittet opened MR !15411, rewrote the issue summary to the standard template, and disclosed in the thread that they used AI as an assistive tool while remaining the human reviewer: they questioned the extra &lt;code&gt;$path_alias_changed&lt;/code&gt; flag and ran the tests both with and without the fix to confirm the red/green results before submitting. smustgrave independently verified the fix by running a &lt;code&gt;drush php:eval&lt;/code&gt; snippet against a fresh install with two languages and confirmed the alias langcode changed from &lt;code&gt;en&lt;/code&gt; to &lt;code&gt;und&lt;/code&gt; with the patch applied.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

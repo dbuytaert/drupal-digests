@@ -1,4 +1,4 @@
-**TL;DR:** [656 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [657 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_490 summaries · 19 new this week_
+_491 summaries · 18 new this week_
 
+- [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
 - [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
 - [#3592497: Buttons are not rendered on the bottom of the page for Node create/edit for](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592497.md)
-- [#3590364: Part 2 of Consolidate, refactor, remove and untangle Claro's CSS from Default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590364.md)
 
 ### Drupal Canvas
 
