@@ -1,4 +1,4 @@
-**TL;DR:** [652 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [655 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_487 summaries · 17 new this week_
+_490 summaries · 19 new this week_
 
-- [#3590050: Deprecate and replace locale_status related functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590050.md)
-- [#3593281: Rename "promoted to front page" to "promoted"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593281.md)
-- [#3453474: CLI entry point in Drupal Core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md)
+- [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
+- [#3592497: Buttons are not rendered on the bottom of the page for Node create/edit for](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592497.md)
+- [#3590364: Part 2 of Consolidate, refactor, remove and untangle Claro's CSS from Default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590364.md)
 
 ### Drupal Canvas
 
