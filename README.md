@@ -1,4 +1,4 @@
-**TL;DR:** [655 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [656 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -22,7 +22,7 @@ _74 summaries · 12 new this week_
 
 ### Drupal CMS
 
-_13 summaries · 2 new this week_
+_14 summaries · 3 new this week_
 
 - [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
 - [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
