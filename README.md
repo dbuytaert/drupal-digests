@@ -1,24 +1,24 @@
-**TL;DR:** [657 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [658 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_75 summaries · 13 new this week_
+
+- [#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md)
+- [#3591638: Add a computed `src` field property to the image field type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md)
+- [#3574857: Add client-side transform for entity_reference_autocomplete to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574857.md)
+
 ### Drupal Core
 
-_491 summaries · 17 new this week_
+_491 summaries · 15 new this week_
 
 - [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
 - [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
 - [#3592497: Buttons are not rendered on the bottom of the page for Node create/edit for](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592497.md)
-
-### Drupal Canvas
-
-_74 summaries · 12 new this week_
-
-- [#3591638: Add a computed `src` field property to the image field type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md)
-- [#3574857: Add client-side transform for entity_reference_autocomplete to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574857.md)
-- [#3591640: Selects based on enums defined in schema.json not working because id not a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591640.md)
 
 ### Drupal CMS
 
