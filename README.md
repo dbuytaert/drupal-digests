@@ -14,7 +14,7 @@ _15 summaries · 4 new this week_
 
 ### Drupal Canvas
 
-_75 summaries · 13 new this week_
+_75 summaries · 12 new this week_
 
 - [#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md)
 - [#3591638: Add a computed `src` field property to the image field type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md)
