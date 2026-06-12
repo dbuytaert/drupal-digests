@@ -1,8 +1,16 @@
-**TL;DR:** [660 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [661 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_79 summaries · 2 new this week_
+
+- [#3595519: Depend on core recipe for image media type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md)
+- [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
+- [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
 
 ### Drupal Canvas
 
@@ -27,14 +35,6 @@ _491 summaries · 13 new this week_
 - [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
 - [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
 - [#3592497: Buttons are not rendered on the bottom of the page for Node create/edit for](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592497.md)
-
-### Drupal AI
-
-_78 summaries · 1 new this week_
-
-- [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
-- [#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md)
-- [#3588808: [Sprint 8] Add Phase 1.5 (content model setup) using content_type and taxonomy...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588808.md)
 
 
 ## Rector rules
