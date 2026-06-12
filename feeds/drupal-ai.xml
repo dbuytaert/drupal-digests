@@ -5,6 +5,64 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md</link>
+      <guid isPermaLink="false">019ebbfc-5f7c-7555-a343-8f871a7f10e7</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 12 Jun 2026 09:56:36 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +856/−449 · php +851/−449 · neon +4 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/66d9d6f7bc5d6be729186874a9655378da24c2bb"&gt;66d9d6f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586397"&gt;#3586397&lt;/a&gt; · 4 contributors · 23 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Validations module previously used a plain dropdown for selecting a specific AI provider and model in each validation rule, with no way to fall back to the site's configured default provider. This made it impossible to create portable recipes or shared configurations without hardcoding a provider. Each of the four AI FieldValidationRule plugins now uses the AI module's reusable &lt;code&gt;ai_provider_configuration&lt;/code&gt; form element, which surfaces a &amp;quot;Default&amp;quot; option that automatically falls back to whichever provider the site administrator has configured as the default for the relevant operation type. Existing saved rule configurations using a hardcoded &lt;code&gt;provider__model&lt;/code&gt; string continue to work without any data migration.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new public abstract base classes: &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt; for rule plugins and &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; for constraint validators, intended for custom AI validation rule implementations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two new abstract base classes consolidate the shared code that was previously duplicated across each plugin. &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt; (in &lt;code&gt;src/AiConstraintFieldValidationRuleBase.php&lt;/code&gt;) extends &lt;code&gt;ConstraintFieldValidationRuleBase&lt;/code&gt; and centralizes &lt;code&gt;ai.provider&lt;/code&gt; service injection, plus the helpers &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; (decodes a stored &lt;code&gt;provider__model&lt;/code&gt; string into the structured array the &lt;code&gt;ai_provider_configuration&lt;/code&gt; element expects as &lt;code&gt;#default_value&lt;/code&gt;) and &lt;code&gt;extractStoredModel()&lt;/code&gt; (normalizes the submitted element value back into a &lt;code&gt;provider__model&lt;/code&gt; string or empty string). Subclasses implement the abstract &lt;code&gt;getOperationType()&lt;/code&gt; method and may override &lt;code&gt;getModelConfigKey()&lt;/code&gt; to preserve legacy config key names: &lt;code&gt;AiTextConstraintFieldValidationRule&lt;/code&gt; and &lt;code&gt;AiImageConstraintFieldValidationRule&lt;/code&gt; store under &lt;code&gt;provider&lt;/code&gt;, while &lt;code&gt;AiImageClassificationConstraintFieldValidationRule&lt;/code&gt; and &lt;code&gt;AiObjectDetectionConstraintFieldValidationRule&lt;/code&gt; use &lt;code&gt;model&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; (in &lt;code&gt;src/AiConstraintValidatorBase.php&lt;/code&gt;) extends &lt;code&gt;ConstraintValidator&lt;/code&gt; and provides three shared helpers used by all four validators: &lt;code&gt;resolveProviderOption()&lt;/code&gt; resolves the stored &lt;code&gt;provider__model&lt;/code&gt; option or falls back to &lt;code&gt;getDefaultProviderForOperationType()&lt;/code&gt; on the &lt;code&gt;ai.provider&lt;/code&gt; plugin manager; &lt;code&gt;loadImageFile()&lt;/code&gt; loads a file entity by ID with consistent violation handling; &lt;code&gt;runBooleanChat()&lt;/code&gt; encapsulates the XTRUE/XFALSE prompt protocol; and &lt;code&gt;labelMatchesFinder()&lt;/code&gt; applies the exact/contains/substring matching strategies. A previously missed gap was fixed during review: &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt; was still reading &lt;code&gt;$constraint-&amp;gt;model&lt;/code&gt; directly instead of calling &lt;code&gt;resolveProviderOption()&lt;/code&gt;, meaning it could not fall back to the configured default. It now matches the other three validators.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;hook_form_FORM_ID_alter()&lt;/code&gt; in &lt;code&gt;ai_validations.module&lt;/code&gt; (with submit handler &lt;code&gt;_ai_validations_sync_rule_to_collection()&lt;/code&gt;) works around a latent &lt;code&gt;field_validation&lt;/code&gt; bug exposed when the AJAX-driven &lt;code&gt;ai_provider_configuration&lt;/code&gt; element is present: serialization during the AJAX round-trip causes the form controller's plugin instance to diverge from the rule set's plugin collection, silently dropping edits on final save. The workaround uses &lt;code&gt;ReflectionProperty&lt;/code&gt; to push the form's modified instance back into the collection before &lt;code&gt;save()&lt;/code&gt;. A &lt;code&gt;@todo&lt;/code&gt; links to the upstream issue &lt;a href="https://www.drupal.org/node/3587461"&gt;#3587461&lt;/a&gt; for removal once the bug is fixed there.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Developers who have subclassed any of the four rule plugins directly should update their extends clause to use the new base class (or &lt;code&gt;ConstraintFieldValidationRuleBase&lt;/code&gt; if the AI-specific helpers are not needed). The stored configuration format (&lt;code&gt;provider__model&lt;/code&gt; string, or empty string for &amp;quot;Default&amp;quot;) is unchanged, so no data migration is required.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (example for a custom plugin extending one of the AI rule plugins):
+class MyCustomAiRule extends AiTextConstraintFieldValidationRule { ... }
+
+// After (extend the new shared base directly if you need provider config support):
+class MyCustomAiRule extends AiConstraintFieldValidationRuleBase {
+  protected function getOperationType(): string {
+    return 'chat'; // return the relevant operation type
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: June 12, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex&lt;/li&gt;
+&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, &lt;code&gt;abhisekmazumdar&lt;/code&gt; noticed that &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt; had been left out of the &lt;code&gt;resolveProviderOption()&lt;/code&gt; migration: it was still reading &lt;code&gt;$constraint-&amp;gt;model&lt;/code&gt; directly, meaning object detection rules could not fall back to the site's default provider even after the other three validators were updated. &lt;code&gt;abhisekmazumdar&lt;/code&gt; added the fix alongside a clarifying doc comment explaining why &lt;code&gt;$strictConfigSchema = FALSE&lt;/code&gt; was set in the test class. &lt;code&gt;ahmad-khalil-imagex&lt;/code&gt; also added substantial functional JavaScript test coverage after &lt;code&gt;a.dmitriiev&lt;/code&gt; requested it, including a detailed account in comment #12 of an AJAX ordering gotcha: the provider select fires a rebuild that wipes sibling field values, so the helper &lt;code&gt;primeRuleFormFields()&lt;/code&gt; must populate required fields before the provider is selected.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3595519: Depend on core recipe for image media type</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md</link>
       <guid isPermaLink="false">019ebb2c-0f4a-72e1-afca-6f526c592cf9</guid>
@@ -843,51 +901,6 @@ drush cr
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;unqunq opened the initial MR (!31) with a working prototype demonstrated via animated GIF. bbruno reviewed the JS and MDX editor integration and left detailed comments. ahmad khader addressed the review and additionally fixed three independently discovered edge cases: the &amp;quot;Load Document&amp;quot; button remaining visible when switching to diff/source mode (solved with a &lt;code&gt;MutationObserver&lt;/code&gt; checking for the &lt;code&gt;toolbarTitleMode&lt;/code&gt; class), the button appearing first in the toolbar after switching back to rich-text mode (fixed by re-positioning with &lt;code&gt;toolbar.insertBefore(button, toolbar.lastElementChild)&lt;/code&gt;), and the tooltip style not matching native Radix UI tooltips (fixed by a custom DOM tooltip using the same CSS custom properties as the MDX editor's &lt;code&gt;_tooltipContent&lt;/code&gt; class). robloach updated the patch against AI 1.4.x and merged.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575412: Create an Automator for Document Loader</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3575412.md</link>
-      <guid isPermaLink="false">019deea4-677f-75d5-87f5-bdb06476ed13</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sun, 03 May 2026 08:46:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +2507/−53 · php +2326/−53 · md +94 · yml +83 · txt +3 · json +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/document_loader/-/commit/0b49a4984ebe9e0afd5adc16f738c6e28696d6b2"&gt;0b49a49&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575412"&gt;#3575412&lt;/a&gt; · 5 contributors · 29 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A new &lt;code&gt;document_loader_automator&lt;/code&gt; submodule integrates Document Loader with the AI Automators module, letting site builders automatically extract content from files, media, links, or URL-bearing text fields and write it into a destination field without needing any AI provider. Extraction runs on entity save, cron, or batch. Eight destination field types are supported: &lt;code&gt;string&lt;/code&gt;, &lt;code&gt;string_long&lt;/code&gt;, &lt;code&gt;text&lt;/code&gt;, &lt;code&gt;text_long&lt;/code&gt;, &lt;code&gt;text_with_summary&lt;/code&gt;, &lt;code&gt;json&lt;/code&gt;, &lt;code&gt;json_native&lt;/code&gt;, and &lt;code&gt;json_native_binary&lt;/code&gt;. For formatted text destination fields, a specific text format can be pinned in the automator's advanced settings, which avoids permission failures when cron runs as the anonymous user.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document_loader_automator&lt;/code&gt; submodule with eight &lt;code&gt;AiAutomatorType&lt;/code&gt; plugins; new &lt;code&gt;InputResolverTrait&lt;/code&gt; in &lt;code&gt;Drupal\document_loader\Trait\&lt;/code&gt; and &lt;code&gt;DocumentLoaderManager::getAvailableOutputFormats()&lt;/code&gt; public method added to the core &lt;code&gt;document_loader&lt;/code&gt; module.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;All eight plugins extend &lt;code&gt;DocumentLoaderAutomatorBase&lt;/code&gt;, which extends the AI Automators &lt;code&gt;ExternalBase&lt;/code&gt; class. Using &lt;code&gt;ExternalBase&lt;/code&gt; suppresses the LLM provider and model configuration fields that standard automators display, so no AI module dependency is needed at runtime. The &lt;code&gt;generate()&lt;/code&gt; method iterates each item on the source field, calls &lt;code&gt;resolveInputData()&lt;/code&gt; to produce a &lt;code&gt;['file_input' =&amp;gt; ...]&lt;/code&gt; or &lt;code&gt;['url' =&amp;gt; ...]&lt;/code&gt; dispatch array (dispatching on the source field type: &lt;code&gt;file&lt;/code&gt;/&lt;code&gt;image&lt;/code&gt;, &lt;code&gt;entity_reference&lt;/code&gt; for media, &lt;code&gt;link&lt;/code&gt;, or any of the text variants), then passes that to &lt;code&gt;DocumentLoaderManager::loadFromData()&lt;/code&gt;. The &lt;code&gt;storeValues()&lt;/code&gt; method handles plain fields with a direct &lt;code&gt;entity-&amp;gt;set()&lt;/code&gt; and formatted text fields (&lt;code&gt;text&lt;/code&gt;, &lt;code&gt;text_long&lt;/code&gt;, &lt;code&gt;text_with_summary&lt;/code&gt;) by appending a &lt;code&gt;format&lt;/code&gt; column via either a configured &lt;code&gt;automator_use_text_format&lt;/code&gt; value or &lt;code&gt;GeneralHelper::calculateTextFormat()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;DocumentLoaderJson&lt;/code&gt; overrides &lt;code&gt;generate()&lt;/code&gt; to force &lt;code&gt;output_format&lt;/code&gt; to &lt;code&gt;'json'&lt;/code&gt; regardless of the configured value, and overrides &lt;code&gt;storeValues()&lt;/code&gt; to wrap any content that is not already valid JSON as &lt;code&gt;{&amp;quot;content&amp;quot;: &amp;quot;...&amp;quot;}&lt;/code&gt;. &lt;code&gt;DocumentLoaderJsonNative&lt;/code&gt; and &lt;code&gt;DocumentLoaderJsonNativeBinary&lt;/code&gt; extend &lt;code&gt;DocumentLoaderJson&lt;/code&gt; unchanged, targeting the &lt;code&gt;json_native&lt;/code&gt; and &lt;code&gt;json_native_binary&lt;/code&gt; field types respectively.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;extraFormFields()&lt;/code&gt; method populates the output format select by calling &lt;code&gt;DocumentLoaderManager::getAvailableOutputFormats()&lt;/code&gt;, a new public method that collects &lt;code&gt;output_types&lt;/code&gt; from all installed loader plugin definitions and returns a sorted, deduplicated list. This means any newly installed loader plugin that supports a new output type appears automatically in the automator configuration form. Source resolution logic is centralised in &lt;code&gt;InputResolverTrait&lt;/code&gt; (in &lt;code&gt;Drupal\document_loader\Trait\&lt;/code&gt;), which is shared between &lt;code&gt;DocumentLoaderAutomatorBase&lt;/code&gt; and the existing &lt;code&gt;DocumentLoaderAction&lt;/code&gt; class, removing previously duplicated inline implementations.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 3, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;unqunq (DigitalTrotter)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was originally closed by &lt;code&gt;unqunq&lt;/code&gt; after deciding that a Field Widget Actions integration was a better fit. &lt;code&gt;marcus_johansson&lt;/code&gt; reopened it with a concrete argument: multiple contrib modules (Unstructured, ai_simple_pdf_to_text, convertapi) were each writing their own version of the same Document Loader automator, and known production users including a Fortune 500 deployment were already running similar patterns; centralising one canonical implementation in Document Loader would eliminate duplication and simplify the dependency tree for the broader AI module ecosystem. &lt;code&gt;robloach&lt;/code&gt; reviewed the resulting MR and identified two gaps: the text format selector and &lt;code&gt;storeValues()&lt;/code&gt; format logic covered &lt;code&gt;text_long&lt;/code&gt; and &lt;code&gt;text_with_summary&lt;/code&gt; but not the base &lt;code&gt;text&lt;/code&gt; field type, and raised a config schema question about arbitrary loader option keys. &lt;code&gt;ahmad khader&lt;/code&gt; addressed both: added &lt;code&gt;text&lt;/code&gt; to all format-aware checks and confirmed that the &lt;code&gt;plugin_config&lt;/code&gt; schema's &lt;code&gt;type: ignore&lt;/code&gt; sequence made the arbitrary keys safe.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
