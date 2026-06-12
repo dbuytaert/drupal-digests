@@ -1,8 +1,16 @@
-**TL;DR:** [662 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [663 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_492 summaries · 14 new this week_
+
+- [#3585891: Deprecate Validating CSRF tokens with the 'rest' key in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585891.md)
+- [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
+- [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
 
 ### Drupal AI
 
@@ -28,18 +36,10 @@ _15 summaries · 3 new this week_
 - [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
 - [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
 
-### Drupal Core
-
-_491 summaries · 13 new this week_
-
-- [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
-- [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
-- [#3592497: Buttons are not rendered on the bottom of the page for Node create/edit for](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592497.md)
-
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [176 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_176 rules · 2 new this week_
+_177 rules · 3 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
-- [Replace deprecated locale translation status functions with LocaleSource service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-translation-status-functions-with-3590050.php)
+- [Replace CsrfTokenGenerator::get('rest') with TOKEN_KEY constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-csrftokengenerator-get-rest-with-token-key-constant-3585891.php)
 
 
 ## RSS feeds
