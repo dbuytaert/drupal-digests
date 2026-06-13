@@ -1,4 +1,4 @@
-**TL;DR:** [663 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [664 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_492 summaries · 14 new this week_
+_493 summaries · 15 new this week_
 
+- [#3599842: guzzlehttp/psr7 needs to be updated to >2.10.2 to fix 2 security issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599842.md)
 - [#3585891: Deprecate Validating CSRF tokens with the 'rest' key in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585891.md)
 - [#3593963: Field loading can hit the MySQL 61 table join limit if there are ~60 fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593963.md)
-- [#3590897: Sidebar toggle is visible and functioning in media library dialog, but...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590897.md)
 
 ### Drupal AI
 
