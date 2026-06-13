@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_493 summaries · 14 new this week_
+_493 summaries · 13 new this week_
 
 - [#3599842: guzzlehttp/psr7 needs to be updated to >2.10.2 to fix 2 security issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599842.md)
 - [#3585891: Deprecate Validating CSRF tokens with the 'rest' key in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585891.md)
