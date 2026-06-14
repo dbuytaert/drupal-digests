@@ -1,4 +1,4 @@
-**TL;DR:** [665 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [666 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_494 summaries · 14 new this week_
+_495 summaries · 15 new this week_
 
+- [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
 - [#3408420: Deleting a workflow can lead to the deletion of unaffected views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md)
 - [#3599842: guzzlehttp/psr7 needs to be updated to >2.10.2 to fix 2 security issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599842.md)
-- [#3585891: Deprecate Validating CSRF tokens with the 'rest' key in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585891.md)
 
 ### Drupal AI
 

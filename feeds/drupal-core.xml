@@ -5,6 +5,50 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md</link>
+      <guid isPermaLink="false">019ec566-e9b6-71b0-973d-4c1aa6b629a4</guid>
+      <pubDate>Sun, 14 Jun 2026 09:00:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +3/−22 · php +3/−22&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/39c17921261cdce2c61c2094bf70c2160de89966"&gt;39c1792&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3400181"&gt;#3400181&lt;/a&gt; · 7 contributors · 21 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A regression in &lt;code&gt;TypedConfigManager&lt;/code&gt; caused config schema definitions to be stored incorrectly in the in-memory cache when the double-bracket (&lt;code&gt;||&lt;/code&gt;) composite type syntax was used. Once the cache was polluted by a call to &lt;code&gt;getDefinition()&lt;/code&gt;, subsequent typed config lookups for the same type could resolve against the wrong (incomplete) definition, leading to silent schema mismatches. This bug was severe enough that at least one contributed module (Canvas) had to override the &lt;code&gt;config.typed&lt;/code&gt; service entirely to work around it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was introduced by &lt;a href="https://www.drupal.org/node/2663410"&gt;#2663410&lt;/a&gt;. &lt;code&gt;TypedConfigManager::getDefinitionWithReplacements()&lt;/code&gt; handles a special edge case where a schema type uses the &lt;code&gt;||&lt;/code&gt; separator (e.g. &lt;code&gt;wrapping.test.double_brackets.*||test.double_brackets.cat.dog&lt;/code&gt;). When this edge case fires, the method processes the composite type and then unconditionally wrote the result to &lt;code&gt;$this-&amp;gt;definitions[$type]&lt;/code&gt;. The problem: &lt;code&gt;getDefinition()&lt;/code&gt; calls &lt;code&gt;getDefinitionWithReplacements()&lt;/code&gt; without passing any &lt;code&gt;$replacements&lt;/code&gt;, so this unconditional write stored an un-replaced, incomplete definition in the cache. Any subsequent call that did pass replacements would then hit the stale cache entry and skip the replacement logic entirely.&lt;/p&gt;
+&lt;p&gt;The fix in &lt;code&gt;TypedConfigManager.php&lt;/code&gt; adds a single guard: &lt;code&gt;if (!empty($replacements)) { $this-&amp;gt;definitions[$type] = $definition; }&lt;/code&gt;. Only calls that actually performed replacements are now allowed to populate the cache entry. Three &lt;code&gt;clearCachedDefinitions()&lt;/code&gt; workaround calls in &lt;code&gt;ConfigSchemaTest::testConfigSaveWithWrappingSchemaDoubleBrackets()&lt;/code&gt;, each accompanied by a &lt;code&gt;@todo Remove in #3400181&lt;/code&gt; annotation, are removed as a direct consequence.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 8, 2023&lt;/li&gt;
+&lt;li&gt;Committed: June 14, 2026 (2 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;huzooka (Munyu)&lt;/li&gt;
+&lt;li&gt;dimilias (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;herved (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;wim leers filed the issue in November 2023 and identified both the regressing commit (&lt;a href="https://www.drupal.org/node/2663410"&gt;#2663410&lt;/a&gt;) and the exact code path responsible. Over a year and a half later, huzooka submitted the MR after the Canvas project (&lt;a href="https://www.drupal.org/node/3568264"&gt;#3568264&lt;/a&gt;) ran into the bug in a real-world schema and had to override the core service as a workaround. huzooka's comment in the MR noted that removing the existing &lt;code&gt;clearCachedDefinitions()&lt;/code&gt; calls from the test was sufficient test coverage, a point claudiu.cristea seconded, sparing the need for new test authorship.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3408420: Deleting a workflow can lead to the deletion of unaffected views</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md</link>
       <guid isPermaLink="false">019ec3a8-0e87-747f-9900-325c87dc1cce</guid>
@@ -967,51 +1011,6 @@ public function render(\Drupal\views\ResultRow $row) { ... }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;longwave did runtime instrumentation during the review, confirming empirically that by the time &lt;code&gt;plugin.cache_clearer-&amp;gt;clearCachedDefinitions()&lt;/code&gt; ran inside &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt;, only one plugin manager (the entity type manager, reloaded by &lt;code&gt;BlockHooks::rebuild()&lt;/code&gt;) held any data. longwave also traced the full history of the call back to 2013 and established that the container rebuild introduced in &lt;a href="https://www.drupal.org/node/2493665"&gt;#2493665&lt;/a&gt; had made it redundant. That research directly moved the issue from &amp;quot;questionable&amp;quot; to &amp;quot;safe to drop entirely&amp;quot;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3020938: Add view unpublished block content permission</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3020938.md</link>
-      <guid isPermaLink="false">019e8e9a-61da-7621-b06e-105250469844</guid>
-      <category>Site owners</category>
-      <pubDate>Wed, 03 Jun 2026 13:49:49 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +33/−6 · php +29/−6 · yml +4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/75becbf693dce3b1731db0b67233d9a6e75bcd98"&gt;75becbf&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3020938"&gt;#3020938&lt;/a&gt; · 12 contributors · 45 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A new &lt;code&gt;view unpublished block content&lt;/code&gt; permission has been added to the &lt;code&gt;block_content&lt;/code&gt; module. Previously, viewing an unpublished block (for example a Draft block created through Content Moderation) required either &lt;code&gt;administer block content&lt;/code&gt; or &lt;code&gt;access block library&lt;/code&gt;, both of which grant much broader access than simply viewing. Editors who had only the &lt;code&gt;create and edit custom blocks&lt;/code&gt; permission could place unpublished blocks via Layout Builder but could not view them on the actual page. The new permission allows sites to grant scoped view access to unpublished block content without elevating those users to library or admin roles.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New 'view unpublished block content' permission allows viewing draft block content without requiring 'administer block content' or 'access block library'.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The permission is declared in &lt;code&gt;block_content.permissions.yml&lt;/code&gt;. The access logic in &lt;code&gt;BlockContentAccessControlHandler::checkAccess()&lt;/code&gt; was updated so that the &lt;code&gt;view&lt;/code&gt; operation allows access when the entity is published, or when the account has either &lt;code&gt;access block library&lt;/code&gt; OR the new &lt;code&gt;view unpublished block content&lt;/code&gt; permission (evaluated with an &lt;code&gt;OR&lt;/code&gt; combinator via &lt;code&gt;allowedIfHasPermissions()&lt;/code&gt;). A &lt;code&gt;addCacheableDependency($entity)&lt;/code&gt; call was also added to the view access result so that the published/unpublished state of the entity is correctly reflected in the cache metadata. Tests were updated to cover the new permission case and to correct an existing test-case label (&lt;code&gt;view:unpublished:reusable:admin&lt;/code&gt; renamed to &lt;code&gt;view:unpublished:reusable:library&lt;/code&gt;). Expected unauthorized access messages in REST/JSON:API tests now reflect the two-permission alternative: &lt;code&gt;'access block library' OR 'view unpublished block content'&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No code changes are required. Sites using Content Moderation with block content should review editor roles and consider granting the new &lt;code&gt;view unpublished block content&lt;/code&gt; permission instead of the broader &lt;code&gt;access block library&lt;/code&gt; or &lt;code&gt;administer block content&lt;/code&gt; permissions if the only need is viewing draft blocks.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 17, 2018&lt;/li&gt;
-&lt;li&gt;Committed: June 3, 2026 (7 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;jurgenr&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
