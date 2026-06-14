@@ -5,6 +5,38 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3408420: Deleting a workflow can lead to the deletion of unaffected views</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md</link>
+      <guid isPermaLink="false">019ec3a8-0e87-747f-9900-325c87dc1cce</guid>
+      <pubDate>Sat, 13 Jun 2026 21:26:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3408420"&gt;#3408420&lt;/a&gt; · 4 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Deleting a workflow could silently delete views and other configuration entities that had no real dependency on the workflow. The same underlying defect could also cause a user role to lose a permission when an unrelated field was removed from a content type with Layout Builder enabled. Both symptoms were caused by a dependency-ordering bug in the configuration system that made config entities get processed in the wrong sequence during a cascading deletion. The fix ensures that the dependency processing order is preserved correctly, so only configuration that genuinely depends on the deleted item is affected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The defect was in &lt;code&gt;ConfigManager::findConfigEntityDependenciesAsEntities()&lt;/code&gt;. That method calls &lt;code&gt;findConfigEntityDependencies()&lt;/code&gt; to get an ordered list of config names (ordered so that dependents come before their dependencies), then loads the corresponding entities using &lt;code&gt;EntityStorageInterface::loadMultiple()&lt;/code&gt; grouped by entity type. The problem: &lt;code&gt;loadMultiple()&lt;/code&gt; returns entities sorted by their own storage order, not by the dependency order. This silently reordered the returned entity list. &lt;code&gt;getConfigEntitiesToChangeOnDependencyRemoval()&lt;/code&gt; processes the list from the end, relying on the ordering to ensure a dependency is processed before any entity that depends on it. When the order was wrong, a role could be processed before an entity view display it depended on. Because that display appeared to be in the removal list, the system incorrectly stripped the role's permission.&lt;/p&gt;
+&lt;p&gt;The fix pre-populates the result array with keys in the correct dependency order using &lt;code&gt;array_fill_keys(array_keys($dependencies), NULL)&lt;/code&gt;, then fills in each loaded entity by its config dependency name (&lt;code&gt;$loaded_entity-&amp;gt;getConfigDependencyName()&lt;/code&gt;). A final &lt;code&gt;array_filter()&lt;/code&gt; removes any entries that were not loaded. This preserves the order from &lt;code&gt;findConfigEntityDependencies()&lt;/code&gt; regardless of how &lt;code&gt;loadMultiple()&lt;/code&gt; sorts entities internally.&lt;/p&gt;
+&lt;p&gt;The fix was applied in the related issue &lt;a href="https://www.drupal.org/node/3504368"&gt;#3504368&lt;/a&gt; and committed to 10.5.x, 11.1.x, and 11.x. Issue &lt;a href="https://www.drupal.org/node/3408420"&gt;#3408420&lt;/a&gt; was subsequently closed because the same ordering fix resolved the workflow-deletion-deletes-views scenario.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 13, 2023&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The root cause proved elusive: the alphabetical name of a contributing module changed which config objects were in the static cache on first load versus subsequent loads, altering the order &lt;code&gt;findConfigEntityDependencies()&lt;/code&gt; returned, which meant the bug was not reliably reproducible in a clean install. godotislate isolated the mechanism by tracing the list order through &lt;code&gt;findConfigEntityDependenciesAsEntities()&lt;/code&gt; and identifying how grouping by entity type for &lt;code&gt;loadMultiple()&lt;/code&gt; destroyed the dependency order. godotislate then proposed and implemented the fix in MR 11141, while dpagini confirmed the fix resolved the original project issue.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3599842: guzzlehttp/psr7 needs to be updated to &gt;2.10.2 to fix 2 security issues</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599842.md</link>
       <guid isPermaLink="false">019ec03f-91a1-72f3-bca7-8b8daddf70ee</guid>
@@ -980,89 +1012,6 @@ public function render(\Drupal\views\ResultRow $row) { ... }
 &lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
 &lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3486503: Add a file parsing cache collector to replace some uses of FileCache</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3486503.md</link>
-      <guid isPermaLink="false">019e8dbe-48b9-767d-93d9-b2112710984b</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 03 Jun 2026 11:17:08 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +344/−121 · php +327/−119 · yml +17/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/0be9248e5c064dca444337f9d4ff4c203d10799d"&gt;0be9248&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3486503"&gt;#3486503&lt;/a&gt; · 7 contributors · 96 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 24&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A new database-backed cache bin, &lt;code&gt;cache.file_parsing&lt;/code&gt;, is introduced to store the results of YAML file parsing across cache clears. Unlike the existing &lt;code&gt;FileCache&lt;/code&gt; (APCu), this bin is intentionally excluded from the cache-clear tag system, so its contents survive &lt;code&gt;drush cr&lt;/code&gt; and the UI cache-clear form. Invalidation happens via file modification time checks instead. Library definition parsing (&lt;code&gt;*.libraries.yml&lt;/code&gt;) and route YAML discovery now use this persistent cache, reducing redundant file reads and freeing APCu for higher-frequency data. Sites with multiple web heads or mixed CLI and web processes will benefit most, since APCu is process-local while the new bin is database-backed and shared.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;LibraryDiscoveryParser::__construct()&lt;/code&gt; and &lt;code&gt;YamlRouteDiscovery::__construct()&lt;/code&gt; require a new &lt;code&gt;$yamlCacheCollector&lt;/code&gt; argument; omitting it is deprecated in drupal:11.4.0 and will be required in drupal:12.0.0.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;FileParsingCacheCollectorBase&lt;/code&gt;, &lt;code&gt;YamlCacheCollector&lt;/code&gt;, and &lt;code&gt;YamlCacheCollectorDiscovery&lt;/code&gt; classes provide a reusable, persistent file-parse caching layer backed by the new &lt;code&gt;cache.file_parsing&lt;/code&gt; bin.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix introduces an abstract &lt;code&gt;FileParsingCacheCollectorBase&lt;/code&gt; class in &lt;code&gt;Drupal\Core\Utility&lt;/code&gt;, extending &lt;code&gt;CacheCollector&lt;/code&gt;. Each cache item stores an array keyed by absolute file path, where each entry holds the file's &lt;code&gt;mtime&lt;/code&gt; and the parsed result. On &lt;code&gt;::get($key)&lt;/code&gt; the collector loads the whole item lazily with one cache read, then validates &lt;code&gt;filemtime()&lt;/code&gt; per file before returning the stored data; a mtime mismatch falls through to &lt;code&gt;::resolveCacheMiss()&lt;/code&gt; which re-parses the file. The &lt;code&gt;::updateCache()&lt;/code&gt; override adds garbage collection: any file entry whose stored mtime is older than 90 days and whose file no longer exists is removed before the parent writes back. &lt;code&gt;CacheCollector::destruct()&lt;/code&gt; now also calls &lt;code&gt;$this-&amp;gt;reset()&lt;/code&gt; after &lt;code&gt;updateCache()&lt;/code&gt; to release the in-memory storage.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;YamlCacheCollector&lt;/code&gt; (in &lt;code&gt;Drupal\Core\Utility&lt;/code&gt;) is the concrete subclass that implements &lt;code&gt;::parseFile()&lt;/code&gt; via &lt;code&gt;Yaml::decode()&lt;/code&gt;. &lt;code&gt;YamlCacheCollectorDiscovery&lt;/code&gt; (in &lt;code&gt;Drupal\Core\Discovery&lt;/code&gt;) subclasses &lt;code&gt;YamlDiscovery&lt;/code&gt; and accepts a &lt;code&gt;CacheCollectorInterface&lt;/code&gt;; it overrides &lt;code&gt;::findAll()&lt;/code&gt; and &lt;code&gt;::decode()&lt;/code&gt; to delegate file reads to the collector, then calls &lt;code&gt;::destruct()&lt;/code&gt; when discovery finishes to release memory immediately.&lt;/p&gt;
-&lt;p&gt;Two services are wired in &lt;code&gt;core.services.yml&lt;/code&gt;: &lt;code&gt;library.parsing_cache&lt;/code&gt; (a &lt;code&gt;YamlCacheCollector&lt;/code&gt; backed by &lt;code&gt;cache.file_parsing&lt;/code&gt;, tagged &lt;code&gt;needs_destruction&lt;/code&gt;) feeds into &lt;code&gt;library.discovery.parser&lt;/code&gt;, and &lt;code&gt;router.yaml_cache_collector&lt;/code&gt; feeds into &lt;code&gt;router.builder.yaml&lt;/code&gt; which now uses &lt;code&gt;YamlCacheCollectorDiscovery&lt;/code&gt; instead of bare &lt;code&gt;YamlDiscovery&lt;/code&gt;. The &lt;code&gt;cache.file_parsing&lt;/code&gt; bin is defined without the &lt;code&gt;cache.bin&lt;/code&gt; service tag so standard cache invalidation logic skips it entirely.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;LibraryDiscoveryParser::__construct()&lt;/code&gt; gains a new optional &lt;code&gt;?YamlCacheCollector $yamlCacheCollector&lt;/code&gt; argument and also converts its property declarations to constructor promotion. &lt;code&gt;YamlRouteDiscovery::__construct()&lt;/code&gt; gains an optional &lt;code&gt;?CacheCollectorInterface $yamlCacheCollector&lt;/code&gt; argument. Both emit an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; if the argument is omitted, noting the argument will be required in 12.0.0. The second commit (&lt;code&gt;5768a3d2&lt;/code&gt;) moves &lt;code&gt;YamlCacheCollectorTest&lt;/code&gt; from &lt;code&gt;Drupal\Tests\Core\Cache&lt;/code&gt; to &lt;code&gt;Drupal\Tests\Core\Utility&lt;/code&gt; to match the class location.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you directly instantiate &lt;code&gt;LibraryDiscoveryParser&lt;/code&gt; or &lt;code&gt;YamlRouteDiscovery&lt;/code&gt;, pass a &lt;code&gt;YamlCacheCollector&lt;/code&gt; as the final constructor argument to avoid the deprecation warning:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Utility\YamlCacheCollector;
-
-// For library discovery:
-$yaml_cache_collector = new YamlCacheCollector(
-  'library.parsing_cache',
-  $cache_file_parsing_backend, // the cache.file_parsing service
-  $lock,
-  $time,
-);
-$parser = new LibraryDiscoveryParser(
-  $root, $module_handler, $theme_manager, $stream_wrapper_manager,
-  $libraries_directory_file_finder, $extension_path_resolver,
-  $component_plugin_manager,
-  $yaml_cache_collector,  // new required argument in 12.0.0
-);
-
-// For route discovery:
-$yaml_cache_collector = new YamlCacheCollector(
-  'router.parsing_cache',
-  $cache_file_parsing_backend,
-  $lock,
-  $time,
-);
-$discovery = new YamlRouteDiscovery(
-  $module_handler,
-  $controller_resolver,
-  $yaml_cache_collector,  // new required argument in 12.0.0
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you inject these classes as services, Drupal's service container will supply the argument automatically once you update your service definition to match the new signature.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 9, 2024&lt;/li&gt;
-&lt;li&gt;Committed: June 3, 2026 (1 year and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan&lt;/li&gt;
-&lt;li&gt;daffie (Finalist)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During the first (abandoned) implementation attempt in late 2024, alexpott raised the concern about the &lt;code&gt;InstallerExistingSettingsTest&lt;/code&gt; table-creation expectation that had been added to prevent cache pollution during early install phases. catch worked through the issue and concluded that the new bin's mtime-based invalidation makes it safe to create the table in that early installer state, unlike the regular cache backends the test was originally guarding against. alexpott and catch also discussed the database connection handling: after reviewing @daffie's concern about &lt;code&gt;::isActiveConnection()&lt;/code&gt; vs &lt;code&gt;::getConnectionInfo()&lt;/code&gt;, they agreed to use &lt;code&gt;getConnectionInfo('default')&lt;/code&gt; to check availability and then &lt;code&gt;getConnection('default', 'default')&lt;/code&gt; for explicit key and target, since the class can create database tables and there was evidence FileCache is called by &lt;code&gt;run-tests.sh&lt;/code&gt; when rendering test results.&lt;/p&gt;
-&lt;p&gt;In the second (successful) attempt, berdir raised through a Slack thread that the per-file database approach added roughly 1700 database queries on a typical setup, and that for small YAML files the database lookups were slower than re-parsing. That observation was a key factor in the redesign: rather than one database query per file (the first MR's approach), the final implementation uses the &lt;code&gt;CacheCollector&lt;/code&gt; pattern so all files for a given discovery type are stored in a single cache item, resulting in one database read and one write per collector lifetime.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
