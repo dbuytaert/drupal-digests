@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_495 summaries · 15 new this week_
+_495 summaries · 14 new this week_
 
 - [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
 - [#3408420: Deleting a workflow can lead to the deletion of unaffected views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md)
@@ -30,7 +30,7 @@ _76 summaries · 8 new this week_
 
 ### Drupal CMS
 
-_15 summaries · 3 new this week_
+_15 summaries · 2 new this week_
 
 - [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
 - [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_177 rules · 3 new this week_
+_177 rules · 2 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
