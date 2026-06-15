@@ -1,4 +1,4 @@
-**TL;DR:** [666 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [668 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_495 summaries · 12 new this week_
+_497 summaries · 13 new this week_
 
+- [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
+- [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
 - [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
-- [#3408420: Deleting a workflow can lead to the deletion of unaffected views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md)
-- [#3599842: guzzlehttp/psr7 needs to be updated to >2.10.2 to fix 2 security issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599842.md)
 
 ### Drupal AI
 
@@ -22,7 +22,7 @@ _80 summaries · 2 new this week_
 
 ### Drupal Canvas
 
-_76 summaries · 8 new this week_
+_76 summaries · 7 new this week_
 
 - [#3589076: Detect conflicts for Page entities during the handling of auto-saves/pending...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589076.md)
 - [#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md)
