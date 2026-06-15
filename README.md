@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_495 summaries · 14 new this week_
+_495 summaries · 12 new this week_
 
 - [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
 - [#3408420: Deleting a workflow can lead to the deletion of unaffected views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3408420.md)
