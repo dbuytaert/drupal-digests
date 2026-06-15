@@ -1,8 +1,16 @@
-**TL;DR:** [668 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [669 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_77 summaries · 7 new this week_
+
+- [#3591584: Publishing a canvas_page via auto-save API drops all non-default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591584.md)
+- [#3589076: Detect conflicts for Page entities during the handling of auto-saves/pending...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589076.md)
+- [#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _80 summaries · 2 new this week_
 - [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
 - [#3595519: Depend on core recipe for image media type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md)
 - [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
-
-### Drupal Canvas
-
-_76 summaries · 7 new this week_
-
-- [#3589076: Detect conflicts for Page entities during the handling of auto-saves/pending...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589076.md)
-- [#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md)
-- [#3591638: Add a computed `src` field property to the image field type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md)
 
 ### Drupal CMS
 
