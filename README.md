@@ -14,7 +14,7 @@ _77 summaries · 3 new this week_
 
 ### Drupal Core
 
-_497 summaries · 11 new this week_
+_497 summaries · 10 new this week_
 
 - [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
 - [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_177 rules · 2 new this week_
+_177 rules · 1 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
