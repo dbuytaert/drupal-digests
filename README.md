@@ -14,7 +14,7 @@ _77 summaries · 7 new this week_
 
 ### Drupal Core
 
-_497 summaries · 13 new this week_
+_497 summaries · 12 new this week_
 
 - [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
 - [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
