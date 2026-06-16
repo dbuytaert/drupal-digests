@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_77 summaries · 7 new this week_
+_77 summaries · 5 new this week_
 
 - [#3591584: Publishing a canvas_page via auto-save API drops all non-default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591584.md)
 - [#3589076: Detect conflicts for Page entities during the handling of auto-saves/pending...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589076.md)
