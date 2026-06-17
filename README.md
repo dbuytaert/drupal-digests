@@ -1,4 +1,4 @@
-**TL;DR:** [674 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [675 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_81 summaries · 7 new this week_
+_82 summaries · 8 new this week_
 
+- [#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md)
 - [#3590948: Add TMGMT translation integration for content entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590948.md)
 - [#3591684: UI Exception / 500 Error when triggering Preview on Content Templates causes...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591684.md)
-- [#3591584: Publishing a canvas_page via auto-save API drops all non-default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591584.md)
 
 ### Drupal CMS
 

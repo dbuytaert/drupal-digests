@@ -5,6 +5,70 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference` props' selection UI — single-target-bundle references only</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md</link>
+      <guid isPermaLink="false">019ed4fb-21d8-707e-9038-b5aadfeccc1f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 17 Jun 2026 09:04:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 41 files, +2985/−205 · php +2392/−167 · yml +593/−38&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3585354"&gt;#3585354&lt;/a&gt; · 3 contributors · 23 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The payload delivered to JS code components for &lt;code&gt;content-entity-reference&lt;/code&gt; props is restructured. Instead of a flat dictionary keyed by field names joined with a &lt;code&gt;$&lt;/code&gt; separator (e.g., &lt;code&gt;uid$name&lt;/code&gt;), each resolved entity now arrives as a nested object that mirrors the reference structure, with a &lt;code&gt;__type&lt;/code&gt; key set to the entity's bundle. Reference expressions produce nested sub-objects rather than compound flat keys. Code components that destructure the old flat payload will need to update to the new nested shape. Two new internal HTTP API endpoints also land to power the upcoming entity reference selection UI.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt; (public static) and &lt;code&gt;JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR&lt;/code&gt; are removed; the runtime payload for &lt;code&gt;content-entity-reference&lt;/code&gt; props changes from a flat &lt;code&gt;$&lt;/code&gt;-keyed dict to a nested object with a &lt;code&gt;__type&lt;/code&gt; bundle key.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The public static method &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt; and the constant &lt;code&gt;JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR&lt;/code&gt; (&lt;code&gt;'$'&lt;/code&gt;) are removed. Their replacement is the private &lt;code&gt;JsComponent::buildReferencePayload()&lt;/code&gt;, which takes the resolved entity wrapped in an &lt;code&gt;EvaluationResult&lt;/code&gt; and the list of &lt;code&gt;EntityFieldBasedPropExpressionInterface&lt;/code&gt; instances declared for the prop. It groups reference expressions by their referencer field, evaluates each group by recursing into the referenced entity, and assembles a nested object. Every entity object in the result carries &lt;code&gt;__type&lt;/code&gt; set to &lt;code&gt;$entity-&amp;gt;bundle()&lt;/code&gt;. Scalar and object-prop leaves are hoisted directly onto the entity object using &lt;code&gt;getDeveloperFacingKey()&lt;/code&gt; rather than the old &lt;code&gt;$&lt;/code&gt;-joined compound keys. The cacheability of every traversed entity is composed into the returned &lt;code&gt;EvaluationResult&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;JavaScriptComponent&lt;/code&gt; gains &lt;code&gt;expandEntityFields()&lt;/code&gt; and &lt;code&gt;coalesceEntityFields()&lt;/code&gt; (both &lt;code&gt;private static&lt;/code&gt;), implementing the expand/coalesce contract from ADR &lt;a href="https://www.drupal.org/node/0005"&gt;#0005&lt;/a&gt;. Before the &lt;code&gt;dataDependencies&lt;/code&gt; object is sent to the client, &lt;code&gt;expandEntityFields()&lt;/code&gt; unpacks stored &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt; entries into per-property atomic leaf strings via &lt;code&gt;Coalescer::expand()&lt;/code&gt;. On save, &lt;code&gt;coalesceEntityFields()&lt;/code&gt; re-groups the leaf strings the client returns into &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt; form via &lt;code&gt;Coalescer::coalesce()&lt;/code&gt;, keeping the client from needing to understand expression merging.&lt;/p&gt;
+&lt;p&gt;Five new config-schema validation constraints enforce the invariants the selection UI requires: &lt;code&gt;EntityFieldExpressionsMustBeIdempotent&lt;/code&gt; (a stored expression must reproduce exactly after an expand/coalesce round trip via &lt;code&gt;Coalescer&lt;/code&gt;), &lt;code&gt;EntityFieldExpressionsSameFieldMustBeCoalesced&lt;/code&gt; (multiple expressions on the same host entity field must be stored as a single &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt;), &lt;code&gt;EntityFieldExpressionMustNotTargetInternalProperty&lt;/code&gt; (blocks non-computed internal fields and field properties, matching the same rule applied by &lt;code&gt;ApiUiContentEntityReferenceControllers::buildFieldEntry()&lt;/code&gt;), &lt;code&gt;MultiValuedFieldNotSupported&lt;/code&gt; (temporary, rejects fields with cardinality other than 1), and &lt;code&gt;MultiTargetBundleReferenceNotSupported&lt;/code&gt; (temporary, rejects reference fields that target more than one bundle). Both temporary constraints carry a &lt;code&gt;@todo&lt;/code&gt; referencing their respective follow-up issues.&lt;/p&gt;
+&lt;p&gt;The two new HTTP endpoints live in &lt;code&gt;ApiUiContentEntityReferenceControllers&lt;/code&gt;, which is marked &lt;code&gt;@internal&lt;/code&gt;. &lt;code&gt;listContentEntityTypes()&lt;/code&gt; iterates all content entity type definitions, creates an unsaved stub per bundle, runs &lt;code&gt;view&lt;/code&gt; access against the stub, and returns only bundles the current user can view. &lt;code&gt;listFields()&lt;/code&gt; returns per-field descriptors: each entry includes the field name, label, pickable field properties with pre-built expression strings, and for reference fields a &lt;code&gt;targetBundles&lt;/code&gt; map and a &lt;code&gt;hasChildren&lt;/code&gt; flag. An optional &lt;code&gt;?parent=[expression]&lt;/code&gt; query parameter chains the response onto an existing reference path so the UI can lazily expand reference fields without constructing expression strings. Stubs are normalized before the access check (users activated, files given a &lt;code&gt;public://&lt;/code&gt; URI, other content entities published) to avoid false denials from handlers that require a valid entity state.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Removed from JsComponent — delete any code referencing these:
+// JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR  (was '$')
+// JsComponent::generateKeyForExpression($expression)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-js"&gt;// Old payload shape (flat, $ separator):
+// content-entity-reference prop resolved to:
+// { label: &amp;quot;My Title&amp;quot;, uid$name: &amp;quot;Author&amp;quot; }
+
+// New payload shape (nested objects, __type key):
+// { __type: &amp;quot;article&amp;quot;, label: &amp;quot;My Title&amp;quot;, uid: { __type: &amp;quot;user&amp;quot;, name: &amp;quot;Author&amp;quot; } }
+
+// Update component code from:
+const { label, uid$name } = payload;
+
+// To:
+const { __type, label, uid } = payload;
+const { name } = uid;   // uid is now a nested object
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3590948: Add TMGMT translation integration for content entities</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590948.md</link>
       <guid isPermaLink="false">019ed427-67ad-73a8-a8cf-19cac05cf97a</guid>
@@ -797,52 +861,6 @@ $this-&amp;gt;uiCommandQueue-&amp;gt;add(new OpenLinkCommand($url, $title));
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585327: Add HTTP API endpoint for canvasData.v0 to support useSiteData() in Workbench</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585327.md</link>
-      <guid isPermaLink="false">019e2e37-20c1-7045-84f7-fcc795dad7fb</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 15 May 2026 21:40:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +299/−6 · php +115 · js +98/−6 · yml +85 · json +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/3753845c9a34aa42c8106f09ac591688fe6a2912"&gt;3753845&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3585327"&gt;#3585327&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas module now exposes a new HTTP API endpoint, &lt;code&gt;GET /canvas/api/v0/site-data&lt;/code&gt;, that returns the site-level &lt;code&gt;canvasData.v0&lt;/code&gt; payload (base URL, branding, theme assets, and JSON:API settings). Previously, this data was only available when Drupal rendered a full page with the relevant asset libraries attached, which meant Canvas Workbench running as a local Vite dev server had no way to call &lt;code&gt;getSiteData()&lt;/code&gt; with live site data. With this change, the &lt;code&gt;@drupal-canvas/vite-plugin&lt;/code&gt; fetches the endpoint at build start using an OAuth Bearer token and injects the response into &lt;code&gt;window.drupalSettings.canvasData.v0&lt;/code&gt; before any component code runs, so the existing &lt;code&gt;getSiteData()&lt;/code&gt; function works in Workbench without modification. The scope is intentionally limited to site-level data; page-level data (breadcrumbs, page title, main entity) is deferred to a follow-up issue.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New HTTP endpoint GET /canvas/api/v0/site-data returns the site-level canvasData.v0 payload (baseUrl, branding, themeAssets, jsonapiSettings), authenticated via Canvas OAuth.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new route &lt;code&gt;canvas.api.site_data&lt;/code&gt; is registered at &lt;code&gt;GET /canvas/api/v0/site-data&lt;/code&gt; in &lt;code&gt;canvas.routing.yml&lt;/code&gt; with the same access requirements as other read-only Canvas API routes: &lt;code&gt;_canvas_authentication_required: TRUE&lt;/code&gt;, &lt;code&gt;_canvas_ui_access: 'TRUE'&lt;/code&gt;, and &lt;code&gt;canvas_external_api: true&lt;/code&gt;. The controller &lt;code&gt;Drupal\canvas\Controller\SiteDataController&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) calls the four &lt;code&gt;CodeComponentDataProvider&lt;/code&gt; methods already used by &lt;code&gt;ComponentSourceHooks::jsSettingsAlter()&lt;/code&gt; (&lt;code&gt;getCanvasDataThemeAssetsV0&lt;/code&gt;, &lt;code&gt;getCanvasDataJsonApiSettingsV0&lt;/code&gt;, &lt;code&gt;getCanvasDataBrandingV0&lt;/code&gt;, &lt;code&gt;getCanvasDataBaseUrlV0&lt;/code&gt;) and merges them via &lt;code&gt;NestedArray::mergeDeep&lt;/code&gt;. It returns a &lt;code&gt;CacheableJsonResponse&lt;/code&gt; with cache contexts for &lt;code&gt;url.site&lt;/code&gt; and dependencies on &lt;code&gt;system.site&lt;/code&gt;, &lt;code&gt;system.theme&lt;/code&gt;, &lt;code&gt;system.theme.global&lt;/code&gt;, and the active theme's settings config.&lt;/p&gt;
-&lt;p&gt;OAuth coverage is added by appending &lt;code&gt;canvas.api.site_data&lt;/code&gt; to the &lt;code&gt;$named_routes&lt;/code&gt; array in &lt;code&gt;CanvasOauthAuthenticationProvider::applies()&lt;/code&gt;, which explicitly enumerates routes; without this the OAuth provider would not authenticate requests to the new route.&lt;/p&gt;
-&lt;p&gt;On the TypeScript side, &lt;code&gt;@drupal-canvas/vite-plugin&lt;/code&gt; gains a &lt;code&gt;buildStart()&lt;/code&gt; hook that reads an access token (first from the &lt;code&gt;CANVAS_ACCESS_TOKEN&lt;/code&gt; environment variable, then from the token store via &lt;code&gt;getTokenEntry()&lt;/code&gt; from &lt;code&gt;@drupal-canvas/auth&lt;/code&gt;). If a valid token is found, it fetches the endpoint and caches the response in &lt;code&gt;canvasApiData&lt;/code&gt;. The &lt;code&gt;transformIndexHtml&lt;/code&gt; hook then merges &lt;code&gt;canvasApiData&lt;/code&gt; into the &lt;code&gt;canvasData.v0&lt;/code&gt; object, resolving relative theme asset paths (logo and favicon URLs starting with &lt;code&gt;/&lt;/code&gt;) to absolute URLs by prepending the site base URL. When &lt;code&gt;canvasApiData&lt;/code&gt; is present, the static &lt;code&gt;jsonapiPrefix&lt;/code&gt; option and &lt;code&gt;CANVAS_JSONAPI_PREFIX&lt;/code&gt; env var are no longer used, since &lt;code&gt;jsonapiSettings&lt;/code&gt; comes from the API response. The endpoint shape is also added to the module's OpenAPI spec.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 16, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 15, 2026 (29 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;effulgentsia suggested narrowing the scope to site data only, pointing out that page data is more complex because it requires knowing which page is being requested and should usually be mocked in Workbench rather than fetched live. mglaman accepted the scope reduction and reworked the implementation accordingly, with the page-data endpoint deferred to a follow-up.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
