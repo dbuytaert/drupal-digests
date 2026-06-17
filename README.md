@@ -1,4 +1,4 @@
-**TL;DR:** [672 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [674 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_80 summaries · 6 new this week_
+_81 summaries · 7 new this week_
 
+- [#3590948: Add TMGMT translation integration for content entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590948.md)
 - [#3591684: UI Exception / 500 Error when triggering Preview on Content Templates causes...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591684.md)
 - [#3591584: Publishing a canvas_page via auto-save API drops all non-default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591584.md)
-- [#3589076: Detect conflicts for Page entities during the handling of auto-saves/pending...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589076.md)
+
+### Drupal CMS
+
+_16 summaries · 2 new this week_
+
+- [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
+- [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
+- [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
 
 ### Drupal Core
 
@@ -27,14 +35,6 @@ _80 summaries · 2 new this week_
 - [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
 - [#3595519: Depend on core recipe for image media type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md)
 - [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
-
-### Drupal CMS
-
-_15 summaries · 2 new this week_
-
-- [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
-- [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
-- [#3591375: Automatically copy font and color CSS files to Drupal root if a site template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591375.md)
 
 
 ## Rector rules
