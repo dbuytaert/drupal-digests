@@ -1,4 +1,4 @@
-**TL;DR:** [675 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [676 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_82 summaries · 8 new this week_
+_83 summaries · 9 new this week_
 
 - [#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md)
 - [#3590948: Add TMGMT translation integration for content entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590948.md)
@@ -22,7 +22,7 @@ _16 summaries · 2 new this week_
 
 ### Drupal Core
 
-_497 summaries · 7 new this week_
+_497 summaries · 6 new this week_
 
 - [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
 - [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
