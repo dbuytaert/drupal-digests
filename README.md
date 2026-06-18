@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_84 summaries · 10 new this week_
+_84 summaries · 9 new this week_
 
 - [#3585355: `content-entity-reference` prop selection UI: a "Typed Data browser" to let a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585355.md)
 - [#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md)
@@ -14,7 +14,7 @@ _84 summaries · 10 new this week_
 
 ### Drupal CMS
 
-_16 summaries · 2 new this week_
+_16 summaries · 1 new this week_
 
 - [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
 - [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
