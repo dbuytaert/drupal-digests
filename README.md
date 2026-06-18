@@ -1,4 +1,4 @@
-**TL;DR:** [677 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [679 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_84 summaries · 9 new this week_
+_86 summaries · 11 new this week_
 
+- [#3552924: [PP-1] When rendering content templates' linked prop sources (entity fields,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552924.md)
+- [#3583379: `Evaluator` must respect the referencing entity's language when evaluating a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583379.md)
 - [#3585355: `content-entity-reference` prop selection UI: a "Typed Data browser" to let a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585355.md)
-- [#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md)
-- [#3590948: Add TMGMT translation integration for content entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590948.md)
 
 ### Drupal CMS
 
