@@ -1,16 +1,24 @@
-**TL;DR:** [681 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [684 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_499 summaries · 8 new this week_
+
+- [#3597406: [regression] DrupalApplication (for `dr`) needs to support DRUPAL_DEV_SITE_PATH...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3597406.md)
+- [#3601433: Fix local_status deprecation by clearing source in a post update](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3601433.md)
+- [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
+
 ### Drupal Canvas
 
-_87 summaries · 12 new this week_
+_88 summaries · 12 new this week_
 
+- [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
 - [#3591678: Coalesce reference fields whose values are consumed only through nested objects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591678.md)
 - [#3552924: [PP-1] When rendering content templates' linked prop sources (entity fields,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552924.md)
-- [#3583379: `Evaluator` must respect the referencing entity's language when evaluating a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583379.md)
 
 ### Drupal AI
 
@@ -27,14 +35,6 @@ _16 summaries · 1 new this week_
 - [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
 - [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
 - [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
-
-### Drupal Core
-
-_497 summaries · 6 new this week_
-
-- [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
-- [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
-- [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
 
 
 ## Rector rules
