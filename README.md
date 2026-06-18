@@ -1,4 +1,4 @@
-**TL;DR:** [679 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [681 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_86 summaries · 11 new this week_
+_87 summaries · 12 new this week_
 
+- [#3591678: Coalesce reference fields whose values are consumed only through nested objects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591678.md)
 - [#3552924: [PP-1] When rendering content templates' linked prop sources (entity fields,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3552924.md)
 - [#3583379: `Evaluator` must respect the referencing entity's language when evaluating a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583379.md)
-- [#3585355: `content-entity-reference` prop selection UI: a "Typed Data browser" to let a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585355.md)
+
+### Drupal AI
+
+_81 summaries · 3 new this week_
+
+- [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
+- [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
+- [#3595519: Depend on core recipe for image media type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md)
 
 ### Drupal CMS
 
@@ -27,14 +35,6 @@ _497 summaries · 6 new this week_
 - [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
 - [#3524377: Allow to skip OOP hooks and services for modules that are not installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524377.md)
 - [#3400181: [regression] calling TypedConfigManager::getDefinition() causes cache pollution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3400181.md)
-
-### Drupal AI
-
-_80 summaries · 2 new this week_
-
-- [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
-- [#3595519: Depend on core recipe for image media type](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595519.md)
-- [#3355087: Support for non-bundle entity types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md)
 
 
 ## Rector rules
