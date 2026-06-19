@@ -1,8 +1,16 @@
-**TL;DR:** [686 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [688 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_501 summaries · 10 new this week_
+
+- [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
+- [#3585723: #date_year_range does not support years < 1000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md)
+- [#3597406: [regression] DrupalApplication (for `dr`) needs to support DRUPAL_DEV_SITE_PATH...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3597406.md)
 
 ### Drupal Canvas
 
@@ -12,17 +20,9 @@ _90 summaries · 14 new this week_
 - [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
 - [#3591678: Coalesce reference fields whose values are consumed only through nested objects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591678.md)
 
-### Drupal Core
-
-_499 summaries · 8 new this week_
-
-- [#3597406: [regression] DrupalApplication (for `dr`) needs to support DRUPAL_DEV_SITE_PATH...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3597406.md)
-- [#3601433: Fix local_status deprecation by clearing source in a post update](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3601433.md)
-- [#3590350: WorkspacePublisher doesn't roll back when a PHP Error is thrown during...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590350.md)
-
 ### Drupal AI
 
-_81 summaries · 2 new this week_
+_81 summaries · 1 new this week_
 
 - [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
 - [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
