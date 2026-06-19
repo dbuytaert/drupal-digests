@@ -1,8 +1,16 @@
-**TL;DR:** [688 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [689 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_91 summaries · 15 new this week_
+
+- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
+- [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
+- [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _501 summaries · 10 new this week_
 - [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
 - [#3585723: #date_year_range does not support years < 1000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md)
 - [#3597406: [regression] DrupalApplication (for `dr`) needs to support DRUPAL_DEV_SITE_PATH...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3597406.md)
-
-### Drupal Canvas
-
-_90 summaries · 14 new this week_
-
-- [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
-- [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
-- [#3591678: Coalesce reference fields whose values are consumed only through nested objects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591678.md)
 
 ### Drupal AI
 

@@ -5,6 +5,40 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591702: Fatal error (AssertionError on dev env) when a component instance's image references a deleted file</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md</link>
+      <guid isPermaLink="false">019ee0cd-d86a-7063-a17f-2ca86f99114b</guid>
+      <pubDate>Fri, 19 Jun 2026 14:01:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591702"&gt;#3591702&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Opening a Canvas editor page that contains a component with an image prop pointing at a deleted file no longer produces a 500 error. Previously, the editor would fatal with an &lt;code&gt;AssertionError&lt;/code&gt; and log repeated failures whenever a referenced file or media entity had been removed, for example after a content reset or partial re-import. After this fix, the affected component renders without its image and the rest of the page continues to load normally. The empty render is also correctly cache-tagged so it is automatically invalidated if the deleted entity is ever restored.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt;, which evaluates an image prop expression into a URL and then asserts &lt;code&gt;\is_string($url-&amp;gt;value)&lt;/code&gt;. When the referenced file had been deleted, &lt;code&gt;Evaluator::evaluate()&lt;/code&gt; returned a &lt;code&gt;GeneratedUrl&lt;/code&gt; whose &lt;code&gt;value&lt;/code&gt; was &lt;code&gt;NULL&lt;/code&gt;: the field item existed (so the &lt;code&gt;is_required&lt;/code&gt; guard in &lt;code&gt;Evaluator&lt;/code&gt; did not fire), but the entity no longer loaded. That &lt;code&gt;NULL&lt;/code&gt; flowed directly into the &lt;code&gt;assert()&lt;/code&gt;, fataling on any environment with assertions enabled.&lt;/p&gt;
+&lt;p&gt;The fix adds an explicit &lt;code&gt;NULL&lt;/code&gt; check before the assertion in &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt;. When &lt;code&gt;$url-&amp;gt;value === NULL&lt;/code&gt; and the prop expression implements &lt;code&gt;ReferencePropExpressionInterface&lt;/code&gt;, the method resolves the raw &lt;code&gt;EntityReference&lt;/code&gt; typed-data property, delegates to the new &lt;code&gt;TypedDataHelper::getDeletedReferencedEntityCacheability()&lt;/code&gt; helper, attaches the resulting cache tags to the partially-built &lt;code&gt;GeneratedUrl&lt;/code&gt;, and returns early without touching the &lt;code&gt;assert()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The deleted-entity cacheability logic that previously lived inline in &lt;code&gt;Evaluator&lt;/code&gt; (with a comment about it being &amp;quot;imperfect&amp;quot;) was extracted into the new public static method &lt;code&gt;TypedDataHelper::getDeletedReferencedEntityCacheability(EntityReference $reference): CacheableDependencyInterface&lt;/code&gt;. Both call sites, &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt; and &lt;code&gt;Evaluator&lt;/code&gt;, now use this single helper. The cache tag produced is &lt;code&gt;entity_type_id:id&lt;/code&gt;, which is the default for most entity types per &lt;code&gt;EntityBase::getCacheTagsToInvalidate()&lt;/code&gt;; the code notes this is imperfect for entity types that override that method. A new kernel test &lt;code&gt;ComputedUrlWithQueryStringTest::testHandlesBrokenReference()&lt;/code&gt; verifies that accessing &lt;code&gt;src_with_alternate_widths&lt;/code&gt; on a field item whose file has been deleted returns an empty &lt;code&gt;GeneratedUrl&lt;/code&gt; carrying the deleted file's cache tags, without throwing.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3587587: [META] Review of changes and Conflict resolution</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md</link>
       <guid isPermaLink="false">019edf42-f61c-703c-80cb-0caf8e0f508e</guid>
@@ -806,46 +840,6 @@ CANVAS_INCLUDE_REGIONS
 &lt;li&gt;jibran (Morpht)&lt;/li&gt;
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3590572: Indicate translation availability per language in the Canvas language switcher dropdown</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3590572.md</link>
-      <guid isPermaLink="false">019e91df-7f19-70a1-b42c-beb15718852a</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 03 Jun 2026 14:41:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +99/−5 · js +46/−4 · yml +25 · css +17 · php +11/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3590572"&gt;#3590572&lt;/a&gt; · 5 contributors · 7 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Site editors and content authors using the Canvas editor on multilingual Drupal sites will now see a checkmark icon next to each language in the Canvas language switcher dropdown that has a dedicated translation for the current entity. Languages without a translation show no indicator, making it immediately clear that selecting them will display a default-language fallback rather than a dedicated translation. The goal is not to hide untranslated languages (since other referenced entities may still render differently), but to communicate translation state clearly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;translations.available&lt;/code&gt; array of language codes added to the &lt;code&gt;ApiLayoutController::get()&lt;/code&gt; JSON response.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ApiLayoutController::get()&lt;/code&gt; method is extended to append a &lt;code&gt;translations&lt;/code&gt; key to its JSON response. It calls &lt;code&gt;getTranslationLanguages()&lt;/code&gt; on the entity (guarded by &lt;code&gt;method_exists&lt;/code&gt; to safely handle non-translatable entity types), extracts language codes with &lt;code&gt;array_keys()&lt;/code&gt;, and returns them as &lt;code&gt;translations.available&lt;/code&gt; (an array of language code strings). The OpenAPI spec in &lt;code&gt;openapi.yaml&lt;/code&gt; is updated to document the new &lt;code&gt;translations&lt;/code&gt; object, which is added to both the path-level response schema and the reusable component schema.&lt;/p&gt;
-&lt;p&gt;On the frontend, &lt;code&gt;LayoutModelSliceState&lt;/code&gt; in &lt;code&gt;layoutModelSlice.ts&lt;/code&gt; gains a &lt;code&gt;translations&lt;/code&gt; field typed as &lt;code&gt;Record&amp;lt;string, any&amp;gt;&lt;/code&gt;, with a new &lt;code&gt;selectTranslations&lt;/code&gt; selector. The &lt;code&gt;setInitialLayoutModel&lt;/code&gt; reducer stores the translations payload from the API response. The &lt;code&gt;LanguageSelect&lt;/code&gt; component reads this via &lt;code&gt;useAppSelector(selectTranslations)&lt;/code&gt; and, for each language option, renders a &lt;code&gt;CheckIcon&lt;/code&gt; (from &lt;code&gt;@radix-ui/react-icons&lt;/code&gt;) in a fixed-width container when the language code appears in &lt;code&gt;translations.available&lt;/code&gt;. A &lt;code&gt;data-canvas-has-translation=&amp;quot;true&amp;quot;&lt;/code&gt; attribute is also set on the language name text element for Playwright test targeting; the new end-to-end test assertions verify that translated languages (English, French) carry this attribute while untranslated ones (Spanish) do not. The &lt;code&gt;filterLayoutForPost&lt;/code&gt; helper in the PHP test base is updated to strip &lt;code&gt;translations&lt;/code&gt; from POST payloads, and kernel tests assert that the &lt;code&gt;translations.available&lt;/code&gt; array is present in GET responses.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 18, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;tedbow noted in a review comment that the parent issue &lt;a href="https://www.drupal.org/node/3585452"&gt;#3585452&lt;/a&gt; (Create a preview mode for non-default languages) needs to be committed before this work can land, flagging a hard dependency between the two issues.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
