@@ -1,8 +1,16 @@
-**TL;DR:** [689 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [690 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_502 summaries · 10 new this week_
+
+- [#3594332: Add a user:login command to generate a one-time login link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594332.md)
+- [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
+- [#3585723: #date_year_range does not support years < 1000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _91 summaries · 15 new this week_
 - [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
 - [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
 - [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
-
-### Drupal Core
-
-_501 summaries · 10 new this week_
-
-- [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
-- [#3585723: #date_year_range does not support years < 1000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md)
-- [#3597406: [regression] DrupalApplication (for `dr`) needs to support DRUPAL_DEV_SITE_PATH...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3597406.md)
 
 ### Drupal AI
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_177 rules · 1 new this week_
+_177 rules · 0 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)
