@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_502 summaries · 9 new this week_
+_502 summaries · 8 new this week_
 
 - [#3594332: Add a user:login command to generate a one-time login link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594332.md)
 - [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
