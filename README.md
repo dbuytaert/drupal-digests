@@ -1,24 +1,24 @@
-**TL;DR:** [691 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [692 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_92 summaries · 16 new this week_
+
+- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
+- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
+- [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
+
 ### Drupal Core
 
-_503 summaries · 8 new this week_
+_503 summaries · 6 new this week_
 
 - [#3586760: Use composite key Upsert queries in core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586760.md)
 - [#3594332: Add a user:login command to generate a one-time login link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594332.md)
 - [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
-
-### Drupal Canvas
-
-_91 summaries · 15 new this week_
-
-- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
-- [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
-- [#3591699: Entity-reference component inputs (e.g. image src) are exposed as translatable,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591699.md)
 
 ### Drupal AI
 

@@ -5,6 +5,52 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3585970: UI changes for detection of conflicts caused by external updates to underlying entity of auto-save entry</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md</link>
+      <guid isPermaLink="false">019ef127-565f-70a9-8bd8-05ba65fdfa5f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 22 Jun 2026 19:29:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +861/−81 · js +803/−80 · css +58/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3585970"&gt;#3585970&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas's &amp;quot;Review changes&amp;quot; panel now surfaces conflict indicators when an auto-save entry conflicts with an external update to its underlying entity. A yellow banner at the top of the panel counts active conflicts and offers a &amp;quot;Resolve N conflict(s)&amp;quot; call-to-action button. Each conflicted row replaces its normal entity-type icon with a red triangle warning icon, disables its checkbox, and shows a &amp;quot;Resolve conflict&amp;quot; option in the row's dropdown menu instead of &amp;quot;View changes.&amp;quot; Conflicted rows are automatically excluded from select-all, and any row that becomes conflicted while already selected is silently deselected. This conflict UX is currently gated behind the &lt;code&gt;canvas_dev_mode&lt;/code&gt; module (dev mode flag) while the full conflict resolution workflow is built out in a follow-on issue.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ConflictBanner&lt;/code&gt; component and &lt;code&gt;isConflictUxEnabled()&lt;/code&gt; utility added to the Canvas React frontend; &lt;code&gt;PublishReview&lt;/code&gt; accepts new optional &lt;code&gt;conflictCount&lt;/code&gt; and &lt;code&gt;onResolveConflict&lt;/code&gt; props.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;/canvas/api/v0/auto-saves/pending&lt;/code&gt; endpoint can now return HTTP 409 with a &lt;code&gt;{ data, errors }&lt;/code&gt; envelope alongside the normal flat 200 shape. A new &lt;code&gt;applyConflictStateFromResponse()&lt;/code&gt; function in &lt;code&gt;pendingChangesApi&lt;/code&gt; normalizes both shapes: it iterates the &lt;code&gt;errors&lt;/code&gt; array, indexes entries by &lt;code&gt;meta.api_auto_save_key&lt;/code&gt; (falling back to &lt;code&gt;source.pointer&lt;/code&gt;), and marks each matching &lt;code&gt;PendingChange&lt;/code&gt; with &lt;code&gt;hasConflict: true&lt;/code&gt; and a &lt;code&gt;conflict_id&lt;/code&gt; string only when the error carries &lt;code&gt;CONFLICT_CODE.DETECTED&lt;/code&gt; (new enum value &lt;code&gt;4&lt;/code&gt;). Non-resolvable codes (&lt;code&gt;UNEXPECTED = 1&lt;/code&gt;, &lt;code&gt;EXPECTED = 2&lt;/code&gt;) do not set &lt;code&gt;hasConflict&lt;/code&gt;. The RTK Query &lt;code&gt;getAllPendingChanges&lt;/code&gt; endpoint now passes &lt;code&gt;validateStatus&lt;/code&gt; to accept 409 as a valid response, and &lt;code&gt;transformResponse&lt;/code&gt; delegates to &lt;code&gt;applyConflictStateFromResponse&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The new &lt;code&gt;isConflictUxEnabled()&lt;/code&gt; utility in &lt;code&gt;@/features/conflict/conflictUtils&lt;/code&gt; reads &lt;code&gt;getCanvasSettings()?.devMode&lt;/code&gt; as a feature flag; all conflict-specific rendering is conditional on this flag at runtime. &lt;code&gt;ConflictBanner&lt;/code&gt; is a standalone React component (with its own CSS module) that renders null when &lt;code&gt;conflictCount&lt;/code&gt; is zero, shows a pluralised conflict count headline and subtext, and exposes an &lt;code&gt;onResolveClick&lt;/code&gt; callback and a &lt;code&gt;disabled&lt;/code&gt; prop for the CTA button.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ChangeRow&lt;/code&gt; now computes &lt;code&gt;hasConflict = conflictUxEnabled &amp;amp;&amp;amp; !!change.hasConflict&lt;/code&gt; and swaps the &lt;code&gt;ChangeIcon&lt;/code&gt; for a &lt;code&gt;ExclamationTriangleIcon&lt;/code&gt; (testid &lt;code&gt;change-conflict-icon&lt;/code&gt;), disables the checkbox, and gates the &amp;quot;View changes&amp;quot; menu item behind &lt;code&gt;!hasConflict&lt;/code&gt; while injecting a &amp;quot;Resolve conflict&amp;quot; item when &lt;code&gt;hasConflict&lt;/code&gt; and &lt;code&gt;onResolveConflict&lt;/code&gt; are both present. &lt;code&gt;ChangeGroup&lt;/code&gt; and &lt;code&gt;PublishReview&lt;/code&gt; both derive a &lt;code&gt;selectableChanges&lt;/code&gt; list by filtering out conflicted entries when the flag is on, and feed that subset to selection state and the select-all checkbox. A &lt;code&gt;useEffect&lt;/code&gt; in &lt;code&gt;PublishReview&lt;/code&gt; watches &lt;code&gt;changes&lt;/code&gt; for newly conflicted pointers and removes them from &lt;code&gt;selectedChanges&lt;/code&gt;. The &lt;code&gt;onResolveConflict&lt;/code&gt; handler in &lt;code&gt;UnpublishedChanges&lt;/code&gt; currently calls &lt;code&gt;refetch()&lt;/code&gt; as a placeholder; the full resolution UI is tracked in issue &lt;a href="https://www.drupal.org/node/3591601"&gt;#3591601&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;f.mazeikis&lt;/li&gt;
+&lt;li&gt;ravi.maniyar.123&lt;/li&gt;
+&lt;li&gt;mark dodgson&lt;/li&gt;
+&lt;li&gt;justafish (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;f.mazeikis renamed the issue mid-thread to scope it specifically to conflict detection UI rather than resolution, and noted the work is split across two MRs: the React frontend changes in MR !945 and a separate forthcoming PHP/OpenAPI backend MR on a separate branch.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591702: Fatal error (AssertionError on dev env) when a component instance's image references a deleted file</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md</link>
       <guid isPermaLink="false">019ee0cd-d86a-7063-a17f-2ca86f99114b</guid>
@@ -806,39 +852,6 @@ CANVAS_INCLUDE_REGIONS
 &lt;ul&gt;
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591624: Block validation is broken for any block without a default value for `label_display`</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591624.md</link>
-      <guid isPermaLink="false">019ea23d-fc8a-7775-bb75-a45d888b5058</guid>
-      <pubDate>Fri, 05 Jun 2026 09:34:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591624"&gt;#3591624&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A critical bug in the Canvas module caused block validation to fail for any block plugin that did not provide a default value for &lt;code&gt;label_display&lt;/code&gt; in its configuration. This meant such blocks were incorrectly excluded from the Canvas component library and could not be used as Canvas components. The bug was introduced by the stricter block validation added in MR #781 and was breaking all Drupal CMS CI pipelines. Sites using Canvas with block plugins that rely on the inherited default for &lt;code&gt;label_display&lt;/code&gt; were affected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was introduced in &lt;code&gt;BlockComponentDiscovery::checkRequirements()&lt;/code&gt; when MR #781 added stricter block settings validation. That method constructs a dummy config array to pass to &lt;code&gt;TypedConfigManagerInterface::createFromNameAndData()&lt;/code&gt; for the &lt;code&gt;block.settings.*&lt;/code&gt; schema, so it can validate the block plugin's default configuration. The dummy array included &lt;code&gt;'label_display' =&amp;gt; FALSE&lt;/code&gt; (a PHP boolean), but the &lt;code&gt;block.settings.*&lt;/code&gt; config schema requires &lt;code&gt;label_display&lt;/code&gt; to be the string &lt;code&gt;'0'&lt;/code&gt; (representing &amp;quot;hidden&amp;quot;) rather than a boolean. Passing &lt;code&gt;FALSE&lt;/code&gt; produced a type violation, causing the validation to report errors for every block that did not explicitly override &lt;code&gt;label_display&lt;/code&gt; in &lt;code&gt;defaultConfiguration()&lt;/code&gt;. The correct value &lt;code&gt;'0'&lt;/code&gt; was already used elsewhere in the same file at the point where real component metadata is built (line 169 of &lt;code&gt;BlockComponentDiscovery.php&lt;/code&gt;). The fix brings the dummy config in &lt;code&gt;checkRequirements()&lt;/code&gt; in line with that existing correct usage by changing &lt;code&gt;'label_display' =&amp;gt; FALSE&lt;/code&gt; to &lt;code&gt;'label_display' =&amp;gt; '0'&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 4, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;jibran (Morpht)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
