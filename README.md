@@ -1,4 +1,4 @@
-**TL;DR:** [690 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [691 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_502 summaries · 7 new this week_
+_503 summaries · 8 new this week_
 
+- [#3586760: Use composite key Upsert queries in core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586760.md)
 - [#3594332: Add a user:login command to generate a one-time login link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594332.md)
 - [#3593233: Cloning an aggregate entity query shares its aggregate conditions with the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593233.md)
-- [#3585723: #date_year_range does not support years < 1000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md)
 
 ### Drupal Canvas
 
