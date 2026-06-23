@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_92 summaries · 16 new this week_
+_92 summaries · 15 new this week_
 
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
 - [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
