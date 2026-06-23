@@ -5,6 +5,46 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591704: Only show default-language entities when reviewing auto-saved (pending) changes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md</link>
+      <guid isPermaLink="false">019ef497-25d1-714f-bb6e-617f7f61ac2c</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 23 Jun 2026 10:13:49 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591704"&gt;#3591704&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On multilingual Canvas sites, the pending-changes review list now shows one row per entity (its default-language version) instead of one row per translation. Acting on a non-default-translation row was already broken: discarding it would delete the default language instead, and publishing a subset of translations would corrupt the unselected ones. Collapsing to a single default-language row per entity prevents editors from hitting those broken paths until langcode-aware endpoints are added in a follow-up (&lt;a href="https://www.drupal.org/node/3591703"&gt;#3591703&lt;/a&gt;). A separate bug where Canvas with the metatag module installed could recurse infinitely when reconstructing a draft entity is also fixed in this commit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;canvas.auto_save.entity_memory_cache&lt;/code&gt; service added to &lt;code&gt;canvas.services.yml&lt;/code&gt;; existing auto-save entries written before this update lack &lt;code&gt;is_default_translation&lt;/code&gt; and are treated as default-translation entries (safe fallback).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ApiAutoSaveController&lt;/code&gt; GET handler now filters the pending-changes list with &lt;code&gt;array_filter&lt;/code&gt; to drop any entry where &lt;code&gt;is_default_translation&lt;/code&gt; is falsy before building the response.&lt;/p&gt;
+&lt;p&gt;To support that filter, &lt;code&gt;AutoSaveManager::saveEntity()&lt;/code&gt; now writes a new &lt;code&gt;is_default_translation&lt;/code&gt; boolean alongside the existing &lt;code&gt;langcode&lt;/code&gt; key when persisting an auto-save entry. Storing it at write time (when the real entity object is available) avoids an expensive &lt;code&gt;loadUnchanged()&lt;/code&gt; call at read time, since whether a given langcode is the default is entity-specific and cannot be determined from the langcode string alone. A &lt;code&gt;@phpstan-type AutoSaveEntry&lt;/code&gt; type alias documents the full shape of these stored arrays.&lt;/p&gt;
+&lt;p&gt;Entity reconstruction was extracted from &lt;code&gt;getAutoSaveEntity()&lt;/code&gt; and &lt;code&gt;getAllAutoSaveList()&lt;/code&gt; into a new private &lt;code&gt;createEntityFromAutoSaveEntry()&lt;/code&gt; method. This method calls &lt;code&gt;enforceIsNew(FALSE)&lt;/code&gt; and, for revisionable entities, &lt;code&gt;updateLoadedRevisionId()&lt;/code&gt;, removing duplicated post-reconstruction code from &lt;code&gt;ApiLayoutController&lt;/code&gt; and &lt;code&gt;EntityFormController&lt;/code&gt;. It also calls &lt;code&gt;ContentEntityBase::setDefaultTranslationEnforced()&lt;/code&gt; when the entity is translatable, using the new &lt;code&gt;is_default_translation&lt;/code&gt; flag (defaulting to &lt;code&gt;TRUE&lt;/code&gt; for older entries that predate the field).&lt;/p&gt;
+&lt;p&gt;The infinite-recursion fix changes the constructor-injected &lt;code&gt;$cache&lt;/code&gt; from &lt;code&gt;cache.static&lt;/code&gt; (a serializing backend) to a new &lt;code&gt;canvas.auto_save.entity_memory_cache&lt;/code&gt; service backed by &lt;code&gt;LruMemoryCache&lt;/code&gt;. Serializing a live entity object triggers &lt;code&gt;__sleep()&lt;/code&gt;, which causes metatag's computed field to evaluate the &lt;code&gt;[current-page:title]&lt;/code&gt; token, which calls &lt;code&gt;ApiLayoutController::getLabel()&lt;/code&gt;, which calls &lt;code&gt;getAutoSaveEntity()&lt;/code&gt; again. The LRU cache stores the object reference directly without serialization, breaking the cycle. The cache is bounded to 100 entries to be safe in long-running server processes such as FrankenPHP or RoadRunner workers.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585970: UI changes for detection of conflicts caused by external updates to underlying entity of auto-save entry</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md</link>
       <guid isPermaLink="false">019ef127-565f-70a9-8bd8-05ba65fdfa5f</guid>
@@ -819,39 +859,6 @@ CANVAS_INCLUDE_REGIONS
 &lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
 &lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591628: On Drupal 11.3, Components are not regenerated when configuration changes (e.g. creating a media type)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591628.md</link>
-      <guid isPermaLink="false">019ea23b-bbbc-7128-8f70-7c665c1014df</guid>
-      <pubDate>Sat, 06 Jun 2026 11:17:03 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591628"&gt;#3591628&lt;/a&gt; · 2 contributors · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On Drupal 11.3+, Canvas Components were not regenerated when site configuration changed (for example, adding a new media type) unless a full cache rebuild was performed first. This meant that widgets expected to reflect the new configuration (such as the media library selector on an image prop) would remain stale until &lt;code&gt;drush cr&lt;/code&gt; was run. The fix resolves the issue for fresh installs and any install sequence where &lt;code&gt;canvas_stark&lt;/code&gt; is installed before Canvas has been used for the first time.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Since Drupal 11.3, &lt;code&gt;ThemeInstaller&lt;/code&gt; calls &lt;code&gt;DrupalKernel::updateThemes()&lt;/code&gt; when a theme is installed or uninstalled, which rebuilds the entire service container. Canvas's module install hook installs &lt;code&gt;canvas_stark&lt;/code&gt; partway through, triggering that container rebuild. After that point, the &lt;code&gt;ComponentSourceHooks&lt;/code&gt; service object — and all services it had injected, including &lt;code&gt;ComponentSourceManager&lt;/code&gt; and &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt; — are orphaned instances pointing at the pre-rebuild container. Any prop shapes written to the orphaned &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt; are lost because its &lt;code&gt;::destruct()&lt;/code&gt; is never called; the live container's repository starts cold, so Components are never persistently generated.&lt;/p&gt;
-&lt;p&gt;The fix injects &lt;code&gt;DrupalKernelInterface&lt;/code&gt; into &lt;code&gt;ComponentSourceHooks&lt;/code&gt; using &lt;code&gt;#[Autowire(service: 'kernel')]&lt;/code&gt;. In the module install hook path (&lt;code&gt;hook_install&lt;/code&gt;), instead of calling &lt;code&gt;$this-&amp;gt;rebuild()&lt;/code&gt; (which uses the stale injected &lt;code&gt;$this-&amp;gt;componentSourceManager&lt;/code&gt;), the code now calls &lt;code&gt;$this-&amp;gt;kernel-&amp;gt;getContainer()-&amp;gt;get(ComponentSourceManager::class)&lt;/code&gt; to obtain the live post-rebuild instance, then calls &lt;code&gt;generateComponents()&lt;/code&gt; on that. This ensures prop shapes land in the cache that belongs to the live container and will actually outlive the request.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 5, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

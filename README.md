@@ -1,8 +1,16 @@
-**TL;DR:** [694 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [695 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_93 summaries · 16 new this week_
+
+- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
+- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
+- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _505 summaries · 8 new this week_
 - [#3552669: Error when fetching all query results as class instances](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552669.md)
 - [#3496328: Use a hash of the cache data for CacheCollector race condition detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3496328.md)
 - [#3586760: Use composite key Upsert queries in core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586760.md)
-
-### Drupal Canvas
-
-_92 summaries · 15 new this week_
-
-- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
-- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
-- [#3587587: [META] Review of changes and Conflict resolution](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md)
 
 ### Drupal AI
 
