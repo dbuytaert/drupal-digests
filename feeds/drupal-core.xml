@@ -5,6 +5,127 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3552669: Error when fetching all query results as class instances</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3552669.md</link>
+      <guid isPermaLink="false">019ef3c3-3e0a-72ae-8cda-f92d5b653a97</guid>
+      <pubDate>Tue, 23 Jun 2026 09:10:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +40/−1 · php +40/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/eeb5c183295dc435d7f1dade4dab3f80285d7f64"&gt;eeb5c18&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3552669"&gt;#3552669&lt;/a&gt; · 8 contributors · 43 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Calling &lt;code&gt;fetchAll()&lt;/code&gt; on a database query result when the fetch mode was set to a custom class (either via the &lt;code&gt;fetch&lt;/code&gt; query option or via &lt;code&gt;setFetchMode(FetchAs::ClassObject, ...)&lt;/code&gt;) threw a &lt;code&gt;TypeError&lt;/code&gt; at runtime: &lt;code&gt;PDOStatement::fetchAll(): Argument #2 must be of type string, int given&lt;/code&gt;. This is now fixed, and query results are correctly returned as instances of the requested class.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug lived in &lt;code&gt;PdoResult::fetchAll()&lt;/code&gt;. Its original implementation used a null-coalescing chain to resolve the second argument passed to &lt;code&gt;clientFetchAll()&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;clientFetchAll($mode, $fetchOptions['column'] ?? $fetchOptions['class'] ?? NULL, ...)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;StatementBase&lt;/code&gt; initialises &lt;code&gt;$fetchOptions['column']&lt;/code&gt; to integer &lt;code&gt;0&lt;/code&gt; by default. Because &lt;code&gt;0&lt;/code&gt; is not &lt;code&gt;null&lt;/code&gt;, the &lt;code&gt;??&lt;/code&gt; operator short-circuits and the class name stored in &lt;code&gt;$fetchOptions['class']&lt;/code&gt; is never reached. &lt;code&gt;clientFetchAll&lt;/code&gt; therefore received &lt;code&gt;0&lt;/code&gt; (an integer) instead of a class-name string, triggering the &lt;code&gt;TypeError&lt;/code&gt; from PDO.&lt;/p&gt;
+&lt;p&gt;The fix replaces the coalescing chain with a &lt;code&gt;match&lt;/code&gt; expression keyed on the active &lt;code&gt;FetchAs&lt;/code&gt; enum case:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;return $this-&amp;gt;clientFetchAll($mode, ...match ($mode) {
+  FetchAs::Column =&amp;gt; [$fetchOptions['column'] ?? NULL],
+  FetchAs::ClassObject =&amp;gt; [
+    $fetchOptions['class'] ?? NULL,
+    $fetchOptions['constructor_args'] ?? NULL,
+  ],
+  default =&amp;gt; [],
+});
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This ensures each fetch mode receives only its own relevant arguments, regardless of whatever default values are present in &lt;code&gt;$fetchOptions&lt;/code&gt;. Two new kernel tests were added to &lt;code&gt;FetchTest&lt;/code&gt;: &lt;code&gt;testQueryFetchAllAsClassInstances&lt;/code&gt; (covering the &lt;code&gt;fetch&lt;/code&gt; query option path) and &lt;code&gt;testQueryFetchAllAsFetchModeClassInstances&lt;/code&gt; (covering &lt;code&gt;setFetchMode&lt;/code&gt; with constructor arguments). The change was also backported to &lt;code&gt;11.x&lt;/code&gt; and &lt;code&gt;11.4.x&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 16, 2025&lt;/li&gt;
+&lt;li&gt;Committed: June 23, 2026 (8 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pjotr.savitski&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;rhezios&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;dpi (PreviousNext)&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue went through two distinct implementation approaches before landing. The original submitter (pjotr.savitski) identified the root cause and proposed a fix in &lt;code&gt;StatementBase::setFetchMode()&lt;/code&gt; that would explicitly null out the &lt;code&gt;column&lt;/code&gt; key when switching to &lt;code&gt;ClassObject&lt;/code&gt; mode. A second contributor (rhezios) noted that this second approach broke cases with constructor arguments and instead implemented the first proposed option (nulling the column) in a separate MR. Then alexpott suggested moving the fix entirely to &lt;code&gt;PdoResult::fetchAll()&lt;/code&gt; as a more robust and centralised solution. dpi picked up that suggestion, implemented it, and noted in the thread that the Entity Hierarchy module had already encountered the same breakage as a downstream consequence of &lt;a href="https://www.drupal.org/node/3522561"&gt;#3522561&lt;/a&gt;. mondrake reviewed and requested minor test consistency improvements, which dpi addressed before the patch was committed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3496328: Use a hash of the cache data for CacheCollector race condition detection</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3496328.md</link>
+      <guid isPermaLink="false">019ef3c4-91ed-72e2-b866-b3212ee84c01</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 23 Jun 2026 08:20:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +349/−94 · php +349/−94&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/35cf89bd9f78e9292149cd57f508b4201ea755e6"&gt;35cf89b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3496328"&gt;#3496328&lt;/a&gt; · 4 contributors · 33 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;CacheCollector&lt;/code&gt;'s race condition detection no longer relies on millisecond-precision cache creation timestamps. Instead, it stores a copy of the cache data as it was loaded at the start of the request and computes a content fingerprint at write time to detect whether another process changed the entry in the interim. Two concurrent writes that happen within the same millisecond are now reliably distinguished. &lt;code&gt;State::setMultiple()&lt;/code&gt; is also reworked to acquire the collector lock before writing to the key-value store and immediately publish the new value to cache within that lock, closing a related race window in &lt;code&gt;State&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CacheCollector::$cacheCreated&lt;/code&gt; (protected) removed on &lt;code&gt;main&lt;/code&gt; and deprecated on &lt;code&gt;11.x&lt;/code&gt;; replaced by &lt;code&gt;$loadedData&lt;/code&gt; (nullable array) and the new protected &lt;code&gt;fingerprint(array): string&lt;/code&gt; method.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;CacheCollector::$cacheCreated&lt;/code&gt; deprecated on &lt;code&gt;11.x&lt;/code&gt;; subclasses that reference it should switch to &lt;code&gt;$loadedData&lt;/code&gt; or rely on the built-in fingerprint comparison in &lt;code&gt;updateCache()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The protected &lt;code&gt;$cacheCreated&lt;/code&gt; unix-timestamp property is removed from &lt;code&gt;CacheCollector&lt;/code&gt; and replaced with &lt;code&gt;$loadedData&lt;/code&gt;, a nullable array that &lt;code&gt;lazyLoadCache()&lt;/code&gt; populates with a copy of the cache entry's &lt;code&gt;data&lt;/code&gt; array when the entry exists. PHP's copy-on-write semantics mean this copy only costs extra memory if the data is subsequently modified, making the approach cheap for read-heavy requests.&lt;/p&gt;
+&lt;p&gt;A new protected &lt;code&gt;fingerprint(array $data): string&lt;/code&gt; method hashes its argument with &lt;code&gt;hash('xxh128', serialize($data))&lt;/code&gt;. In &lt;code&gt;updateCache()&lt;/code&gt;, the fingerprint of &lt;code&gt;$loadedData&lt;/code&gt; is compared against the fingerprint of the cache item's current content. If they match, no other request has touched the entry and the write proceeds; if they differ (or if the data was invalidated during the request), the method backs out rather than overwriting a concurrent request's work. The fingerprint is computed lazily and only when there are actually keys to persist, so purely read-only requests pay no serialization or hashing cost.&lt;/p&gt;
+&lt;p&gt;Lock acquisition in &lt;code&gt;updateCache()&lt;/code&gt; is now decoupled from the safety check: the lock is still attempted to prevent stampedes, but the write decision is governed by the content fingerprint, not by whether the lock was held. When a &lt;code&gt;State::setMultiple()&lt;/code&gt; call cannot acquire the lock, it immediately writes an empty tombstone cache item (acting as a signal to concurrent requests) and waits up to one second before retrying the lock. &lt;code&gt;State::set()&lt;/code&gt; now delegates to &lt;code&gt;setMultiple()&lt;/code&gt; instead of calling &lt;code&gt;parent::set()&lt;/code&gt; directly.&lt;/p&gt;
+&lt;p&gt;The test helper &lt;code&gt;setCacheCreated(int)&lt;/code&gt; in the test stub is replaced by &lt;code&gt;setLoadedData(array)&lt;/code&gt;. New parameterized unit tests cover concurrent-write scenarios including same-millisecond writes that previously defeated the timestamp comparison. On &lt;code&gt;11.x&lt;/code&gt;, &lt;code&gt;$cacheCreated&lt;/code&gt; is restored with a deprecation notice to give subclasses a migration path; on &lt;code&gt;main&lt;/code&gt; it is removed entirely.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Subclasses of &lt;code&gt;CacheCollector&lt;/code&gt; that read or write the protected &lt;code&gt;$cacheCreated&lt;/code&gt; property must update. On &lt;code&gt;11.x&lt;/code&gt; the property is deprecated; on &lt;code&gt;main&lt;/code&gt; it is removed.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (broken on main, deprecated on 11.x):
+$this-&amp;gt;cacheCreated = $cache-&amp;gt;created;
+if ($this-&amp;gt;cacheCreated !== $otherCreated) { ... }
+
+// After: rely on the new fingerprint-based detection in updateCache().
+// If you need to track whether the cache was loaded, check $this-&amp;gt;cacheLoaded
+// or compare against $this-&amp;gt;loadedData instead.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Test code that called &lt;code&gt;setCacheCreated(int)&lt;/code&gt; on the test stub must be updated to call &lt;code&gt;setLoadedData(array)&lt;/code&gt; with the data array instead of the timestamp.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 28, 2024&lt;/li&gt;
+&lt;li&gt;Committed: June 23, 2026 (1 year and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;spokje&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave revived the issue after it sat idle for months. Their first approach (MR!15932) replaced the timestamp with a random token written alongside each cache entry, but they quickly realized that a content hash requires no extra storage at all and is therefore simpler. In the discussion that followed, catch raised the memory cost of keeping a full copy of the data. longwave pointed to PHP's copy-on-write behavior, demonstrating with a live snippet that the copy only allocates additional memory when one of the arrays is actually modified, making the approach essentially free for the common read-heavy case. That observation settled the design. Later, alexpott noticed that subclasses of the &lt;code&gt;canvas&lt;/code&gt; module check &lt;code&gt;$this-&amp;gt;cacheCreated&lt;/code&gt; in &lt;code&gt;lazyLoadCache()&lt;/code&gt;, and catch responded by adding a deprecation for the property on &lt;code&gt;11.x&lt;/code&gt; (MR!16122) while removing it outright on &lt;code&gt;main&lt;/code&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586760: Use composite key Upsert queries in core</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586760.md</link>
       <guid isPermaLink="false">019eeecc-c5b8-77b9-83f6-e31b075513d7</guid>
@@ -843,159 +964,6 @@ $localeSource-&amp;gt;clearSources();
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Reviewer macsim noted that multiple translatable strings had been renamed and that a Change Record was needed so translation teams on localize.drupal.org would be aware of the fallback risk. gábor hojtsy then created the change record (https://www.drupal.org/node/3593641) based on the list macsim compiled in the thread.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3453474: CLI entry point in Drupal Core</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3453474.md</link>
-      <guid isPermaLink="false">019ea9e1-3805-7520-8ee9-37f10e8eda82</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 08 Jun 2026 21:57:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 45 files, +1439/−150 · php +1394/−144 · yml +31/−1 · lock +4/−1 · json +4/−1 · dist +3 · txt +2/−2 · sh +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/21e3ddfe1d90ac0335a78243bfeba59d237431ab"&gt;21e3ddf&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3453474"&gt;#3453474&lt;/a&gt; · 28 contributors · 145 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 86&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core now ships a fully-featured CLI tool available as &lt;code&gt;vendor/bin/dr&lt;/code&gt;. Out of the box it provides &lt;code&gt;cache:rebuild&lt;/code&gt; (alias &lt;code&gt;cr&lt;/code&gt;), &lt;code&gt;system:cron&lt;/code&gt; (alias &lt;code&gt;cron&lt;/code&gt;), &lt;code&gt;system:status&lt;/code&gt;, &lt;code&gt;recipe:apply&lt;/code&gt;, &lt;code&gt;recipe:info&lt;/code&gt;, and &lt;code&gt;content:export&lt;/code&gt; commands, covering the most common tasks previously requiring Drush. Module developers can add their own commands by placing a class in their module's &lt;code&gt;src/Command/&lt;/code&gt; directory and annotating it with &lt;code&gt;#[AsCommand]&lt;/code&gt;; no service YAML registration is needed. The legacy &lt;code&gt;core/scripts/drupal&lt;/code&gt; entry point still functions, and &lt;code&gt;vendor/bin/dr install&lt;/code&gt; / &lt;code&gt;vendor/bin/dr quick-start&lt;/code&gt; replace the old &lt;code&gt;php core/scripts/drupal install&lt;/code&gt; invocations documented in INSTALL.md and CI scripts.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;BootableCommandTrait::boot()&lt;/code&gt; deprecated in drupal:11.4.0 and removed in drupal:13.0.0; the new CLI bootstraps Drupal automatically.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;vendor/bin/dr&lt;/code&gt; CLI entry point backed by &lt;code&gt;DrupalApplication&lt;/code&gt;; modules auto-discovered via &lt;code&gt;ConsoleCompilerPass&lt;/code&gt; scanning &lt;code&gt;src/Command/&lt;/code&gt; for &lt;code&gt;#[AsCommand]&lt;/code&gt;; built-in commands &lt;code&gt;cache:rebuild&lt;/code&gt;, &lt;code&gt;system:cron&lt;/code&gt;, &lt;code&gt;system:status&lt;/code&gt;, &lt;code&gt;recipe:apply&lt;/code&gt;, &lt;code&gt;recipe:info&lt;/code&gt;, and &lt;code&gt;content:export&lt;/code&gt; added.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The binary is registered in core's &lt;code&gt;composer.json&lt;/code&gt; as &lt;code&gt;scripts/dr&lt;/code&gt;, which makes it available as &lt;code&gt;vendor/bin/dr&lt;/code&gt; after &lt;code&gt;composer install&lt;/code&gt;. The script returns a Symfony Runtime application, which is now an explicit non-dev dependency (&lt;code&gt;symfony/runtime ^8.0&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;DrupalApplication&lt;/code&gt; extends Symfony's &lt;code&gt;Application&lt;/code&gt; and provides lazy bootstrap: on first command lookup it instantiates &lt;code&gt;DrupalKernel&lt;/code&gt; with &lt;code&gt;$allow_dumping=FALSE&lt;/code&gt; (to avoid reusing a cached container), boots the site, pushes a request onto the stack, and then loads module-contributed commands via &lt;code&gt;DrupalApplication::addDrupalCommands()&lt;/code&gt;. A global &lt;code&gt;--url&lt;/code&gt; option (also readable from the &lt;code&gt;DRUPAL_URI&lt;/code&gt; environment variable) controls which site is selected in multi-site setups. Commands that do not need a running site (e.g. &lt;code&gt;InstallCommand&lt;/code&gt;, &lt;code&gt;CacheRebuildCommand&lt;/code&gt;) are registered as default commands and run without bootstrapping.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ConsoleCompilerPass&lt;/code&gt; (a new &lt;code&gt;@internal&lt;/code&gt; compiler pass) runs at container compile time. It iterates &lt;code&gt;container.namespaces&lt;/code&gt;, looks inside each module's &lt;code&gt;src/Command/&lt;/code&gt; directory recursively, and registers any class bearing &lt;code&gt;#[AsCommand]&lt;/code&gt; as an autowired, public service tagged &lt;code&gt;console.command&lt;/code&gt;. It also checks the full class hierarchy to skip commands that extend optional third-party base classes (such as Drush commands) whose parents may not be installed. Symfony's own &lt;code&gt;AddConsoleCommandPass&lt;/code&gt; then processes the tagged services into a lazy &lt;code&gt;CommandLoaderInterface&lt;/code&gt; (&lt;code&gt;console.command_loader&lt;/code&gt;). Commands that set their name only via &lt;code&gt;configure()&lt;/code&gt; (without the attribute) are not auto-discovered and must be declared explicitly in a module's &lt;code&gt;*.services.yml&lt;/code&gt; with &lt;code&gt;{ name: console.command }&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;DrupalConsoleLogger&lt;/code&gt; (a PSR-3 logger) and &lt;code&gt;ConsoleSubscriber&lt;/code&gt; (a &lt;code&gt;ConsoleEvents::COMMAND&lt;/code&gt; listener) together route Drupal's internal log messages to the console output during command execution, with notices shown at normal verbosity and info/debug messages gated behind &lt;code&gt;-v&lt;/code&gt;/&lt;code&gt;-vvv&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Several existing &lt;code&gt;@internal&lt;/code&gt; commands were refactored as part of this change: &lt;code&gt;ContentExportCommand&lt;/code&gt; moved from &lt;code&gt;Drupal\Core\DefaultContent&lt;/code&gt; to &lt;code&gt;Drupal\Core\DefaultContent\Command&lt;/code&gt;; &lt;code&gt;RecipeCommand&lt;/code&gt; and &lt;code&gt;RecipeInfoCommand&lt;/code&gt; moved from &lt;code&gt;Drupal\Core\Recipe&lt;/code&gt; to &lt;code&gt;Drupal\Core\Recipe\Command&lt;/code&gt;. All three dropped &lt;code&gt;BootableCommandTrait&lt;/code&gt; in favor of constructor-injected services, since &lt;code&gt;DrupalApplication&lt;/code&gt; now handles bootstrapping automatically. &lt;code&gt;QuickStartCommand&lt;/code&gt; was rewritten as an invokable class using &lt;code&gt;#[Argument]&lt;/code&gt; and &lt;code&gt;#[Option]&lt;/code&gt; attributes instead of extending &lt;code&gt;Command&lt;/code&gt;. &lt;code&gt;DrupalKernel::compileContainer()&lt;/code&gt; was updated to also scan components that expose a &lt;code&gt;Command/&lt;/code&gt; directory, ensuring core-level commands are discovered.&lt;/p&gt;
-&lt;p&gt;The full developer API is documented in a new &lt;code&gt;@defgroup console_commands&lt;/code&gt; section in &lt;code&gt;module.api.php&lt;/code&gt;, including both the &lt;code&gt;Command&lt;/code&gt;-extending style and the lighter invokable-class style. Related bootstrap work on Symfony Runtime was tracked in &lt;a href="https://www.drupal.org/node/3313404"&gt;#3313404&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace &lt;code&gt;php core/scripts/drupal&lt;/code&gt; invocations with &lt;code&gt;vendor/bin/dr&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;# Before
-php core/scripts/drupal install standard
-php core/scripts/drupal quick-start --help
-
-# After
-vendor/bin/dr install standard
-vendor/bin/dr quick-start --help
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Commands that use &lt;code&gt;BootableCommandTrait::boot()&lt;/code&gt; must be rewritten to receive their dependencies via constructor injection; &lt;code&gt;DrupalApplication&lt;/code&gt; now boots Drupal automatically before &lt;code&gt;execute()&lt;/code&gt; is called:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-class MyCommand extends Command {
-  use BootableCommandTrait;
-  public function __construct($class_loader) {
-    parent::__construct('my:command');
-    $this-&amp;gt;classLoader = $class_loader;
-  }
-  protected function execute(InputInterface $input, OutputInterface $output): int {
-    $container = $this-&amp;gt;boot()-&amp;gt;getContainer();
-    $service = $container-&amp;gt;get(MyService::class);
-    // ...
-  }
-}
-
-// After — place in src/Command/MyCommand.php
-#[AsCommand(name: 'my:command', description: 'My command.')]
-class MyCommand extends Command {
-  public function __construct(protected readonly MyService $service) {
-    parent::__construct();
-  }
-  protected function execute(InputInterface $input, OutputInterface $output): int {
-    // $this-&amp;gt;service is already available; no manual bootstrap needed.
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that references the now-moved &lt;code&gt;@internal&lt;/code&gt; classes by their old fully-qualified names must update the namespace:&lt;/p&gt;
-&lt;p&gt;| Old | New |
-|---|---|
-| &lt;code&gt;Drupal\Core\DefaultContent\ContentExportCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\DefaultContent\Command\ContentExportCommand&lt;/code&gt; |
-| &lt;code&gt;Drupal\Core\Recipe\RecipeCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\Recipe\Command\RecipeCommand&lt;/code&gt; |
-| &lt;code&gt;Drupal\Core\Recipe\RecipeInfoCommand&lt;/code&gt; | &lt;code&gt;Drupal\Core\Recipe\Command\RecipeInfoCommand&lt;/code&gt; |&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 9, 2024&lt;/li&gt;
-&lt;li&gt;Committed: June 8, 2026 (1 year and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dpi (PreviousNext)&lt;/li&gt;
-&lt;li&gt;chi&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;aaronmchale (The University of Edinburgh)&lt;/li&gt;
-&lt;li&gt;bhanu951&lt;/li&gt;
-&lt;li&gt;greg.1.anderson (Pantheon)&lt;/li&gt;
-&lt;li&gt;moshe weitzman&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;bircher (Nuvole)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;franksj&lt;/li&gt;
-&lt;li&gt;rymo&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;rfay (DDEV)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;arrow&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;kingdutch (Open Social)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3132725: "Limit list to selected items" on exposed filters does not filter</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3132725.md</link>
-      <guid isPermaLink="false">019ea839-6e02-7168-bec5-b4b867d73ef6</guid>
-      <pubDate>Mon, 08 Jun 2026 13:58:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +43/−2 · php +43/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f7c6fbe7b4cc19f653734882b0f5b62b8975e0a1"&gt;f7c6fbe&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3132725"&gt;#3132725&lt;/a&gt; · 11 contributors · 51 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;Limit list to selected items&amp;quot; checkbox on exposed &lt;code&gt;in_operator&lt;/code&gt; Views filters (such as Content type) has never functioned correctly. When that option was checked and the exposed filter's default &amp;quot;- Any -&amp;quot; selection was in effect, the result set was not limited to nodes matching the pre-selected filter values. The fix makes the option work as advertised: with &amp;quot;Limit list to selected items&amp;quot; enabled and &amp;quot;- Any -&amp;quot; selected, only records matching the configured filter values are returned.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was a key-name mismatch in &lt;code&gt;InOperator::acceptExposedInput()&lt;/code&gt;. The method guarded its &amp;quot;return TRUE when 'All' is selected and reduce is active&amp;quot; code path with &lt;code&gt;!empty($this-&amp;gt;options['expose']['limit'])&lt;/code&gt;, but the expose form stores this option under the key &lt;code&gt;'reduce'&lt;/code&gt; (set in &lt;code&gt;buildExposeForm()&lt;/code&gt; as &lt;code&gt;$form['expose']['reduce']&lt;/code&gt;). Because no key named &lt;code&gt;'limit'&lt;/code&gt; ever exists in the expose options, the condition always evaluated to false and the block was never entered, leaving &amp;quot;All&amp;quot; input unhandled by the reduce logic. The fix is a one-character key rename from &lt;code&gt;'limit'&lt;/code&gt; to &lt;code&gt;'reduce'&lt;/code&gt; in that condition. A kernel test was added to &lt;code&gt;FilterInOperatorTest::testFilterExposedReduce()&lt;/code&gt; that configures the &lt;code&gt;age&lt;/code&gt; filter on the &lt;code&gt;test_view&lt;/code&gt; with &lt;code&gt;reduce =&amp;gt; TRUE&lt;/code&gt; and &lt;code&gt;value&lt;/code&gt; restricted to two ages, then asserts the result set contains only matching rows.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 30, 2020&lt;/li&gt;
-&lt;li&gt;Committed: June 8, 2026 (6 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;devad&lt;/li&gt;
-&lt;li&gt;dww&lt;/li&gt;
-&lt;li&gt;steyep&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;carlos romero (hiberus)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;steyep identified the exact mismatch in a 2022 comment, pointing to the &lt;code&gt;'reduce'&lt;/code&gt; key in the form definition versus &lt;code&gt;'limit'&lt;/code&gt; in &lt;code&gt;acceptExposedInput()&lt;/code&gt;, and provided a &lt;code&gt;hook_views_pre_build()&lt;/code&gt; workaround. That analysis directly informed the eventual one-line fix. contributor dww, who noted he was independently affected by the bug, confirmed the MR worked and prompted the test to be converted from a unit test to a kernel test by pointing to &lt;code&gt;FilterInOperatorTest&lt;/code&gt; as the right home. smustgrave carried out the conversion, and dww ran it locally to verify the failure-then-pass behavior before marking it RTBC.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
