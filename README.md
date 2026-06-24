@@ -1,8 +1,16 @@
-**TL;DR:** [701 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [702 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [177 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_511 summaries · 14 new this week_
+
+- [#3592037: Settings::get() should not trigger a deprecation for settings with no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592037.md)
+- [#3594202: Deprecate the Telephone module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594202.md)
+- [#3302988: Make CssOptimizer::loadFile() protected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3302988.md)
 
 ### Drupal AI
 
@@ -12,17 +20,9 @@ _82 summaries · 2 new this week_
 - [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
 - [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
 
-### Drupal Core
-
-_510 summaries · 13 new this week_
-
-- [#3594202: Deprecate the Telephone module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594202.md)
-- [#3302988: Make CssOptimizer::loadFile() protected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3302988.md)
-- [#3599680: Consolidate, merge, and refactor Gin's CSS variable's into Admin theme's...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599680.md)
-
 ### Drupal Canvas
 
-_93 summaries · 12 new this week_
+_93 summaries · 11 new this week_
 
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
