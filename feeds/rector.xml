@@ -241,6 +241,92 @@ return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRec
 </description>
     </item>
     <item>
+      <title>Replace deprecated locale submit callbacks with service method calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php</link>
+      <guid isPermaLink="false">019efa8f-2d46-701a-b713-1dde64e4cbd6</guid>
+      <pubDate>Wed, 24 Jun 2026 16:55:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595084"&gt;#3595084&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites direct calls to three deprecated &lt;code&gt;locale.module&lt;/code&gt; procedural functions — &lt;code&gt;locale_system_set_config_langcodes()&lt;/code&gt;, &lt;code&gt;locale_form_language_admin_add_form_alter_submit()&lt;/code&gt;, and &lt;code&gt;locale_form_language_admin_edit_form_alter_submit()&lt;/code&gt; — to their respective service-based replacements. The first delegates to &lt;code&gt;locale.config_manager&lt;/code&gt;, while the latter two delegate to &lt;code&gt;Drupal\locale\Hook\LocaleFormHooks&lt;/code&gt;. All three were deprecated in Drupal 11.5.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;locale_system_set_config_langcodes();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('locale.config_manager')-&amp;gt;updateDefaultConfigLangcodes();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not rewrite string-literal callback references such as &lt;code&gt;$form['#submit'][] = 'locale_form_language_admin_add_form_alter_submit'&lt;/code&gt;; those must be updated manually to a service-based callable.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class LocaleDeprecatedCallbacksRector extends AbstractRector
+{
+    // Maps deprecated function name =&amp;gt; [service_id, replacement_method]
+    private const REPLACEMENTS = [
+        'locale_system_set_config_langcodes' =&amp;gt; ['locale.config_manager', 'updateDefaultConfigLangcodes'],
+        'locale_form_language_admin_add_form_alter_submit' =&amp;gt; ['Drupal\\locale\\Hook\\LocaleFormHooks', 'formLanguageAdminAddFormAlterSubmit'],
+        'locale_form_language_admin_edit_form_alter_submit' =&amp;gt; ['Drupal\\locale\\Hook\\LocaleFormHooks', 'formLanguageAdminEditFormAlterSubmit'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale procedural submit callbacks with service method calls.',
+            [new CodeSample(
+                'locale_system_set_config_langcodes();',
+                &amp;quot;\\Drupal::service('locale.config_manager')-&amp;gt;updateDefaultConfigLangcodes();&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        $name = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($name === null || !isset(self::REPLACEMENTS[$name])) {
+            return null;
+        }
+        [$serviceId, $method] = self::REPLACEMENTS[$name];
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new String_($serviceId))],
+        );
+        return new MethodCall($serviceCall, $method, $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([LocaleDeprecatedCallbacksRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace CsrfTokenGenerator::get('rest') with TOKEN_KEY constant</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-csrftokengenerator-get-rest-with-token-key-constant-3585891.php</link>
       <guid isPermaLink="false">019ebd9e-0f1f-7340-8781-ff0f4e2850d9</guid>
@@ -1833,83 +1919,6 @@ return RectorConfig::configure()
         'Drupal\Core\Entity\Query\Sql\pgsql\Condition' =&amp;gt; 'Drupal\pgsql\EntityQuery\Condition',
         'Drupal\Core\Entity\Query\Sql\pgsql\QueryFactory' =&amp;gt; 'Drupal\pgsql\EntityQuery\QueryFactory',
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace PluginBase::isConfigurable() with instanceof ConfigurableInterface</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php</link>
-      <guid isPermaLink="false">019e0999-a599-779d-9a88-6d535b28fa7c</guid>
-      <pubDate>Fri, 08 May 2026 21:58:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3459533"&gt;#3459533&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.1.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;PluginBase::isConfigurable()&lt;/code&gt; with an equivalent &lt;code&gt;instanceof \Drupal\Component\Plugin\ConfigurableInterface&lt;/code&gt; expression. The method was deprecated in Drupal 11.1 and will be removed in 12.0; the &lt;code&gt;instanceof&lt;/code&gt; check is semantically identical and works directly on any expression typed as &lt;code&gt;PluginBase&lt;/code&gt; or a subclass.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$plugin-&amp;gt;isConfigurable();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$plugin instanceof \Drupal\Component\Plugin\ConfigurableInterface;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites calls where the receiver is statically typed as &lt;code&gt;Drupal\Component\Plugin\PluginBase&lt;/code&gt; or a subclass. Calls on untyped variables or variables typed only as an interface (e.g., a custom plugin interface that does not extend &lt;code&gt;PluginBase&lt;/code&gt;) are skipped; those should be migrated manually.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\Instanceof_;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Name\FullyQualified;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplacePluginBaseIsConfigurableRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated PluginBase::isConfigurable() with instanceof ConfigurableInterface check.',
-            [new CodeSample(
-                '$plugin-&amp;gt;isConfigurable();',
-                '$plugin instanceof \Drupal\Component\Plugin\ConfigurableInterface;',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [MethodCall::class];
-    }
-
-    /** @param MethodCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'isConfigurable')) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\\Component\\Plugin\\PluginBase'))) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 0) {
-            return null;
-        }
-        return new Instanceof_(
-            $node-&amp;gt;var,
-            new FullyQualified('Drupal\\Component\\Plugin\\ConfigurableInterface'),
-        );
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplacePluginBaseIsConfigurableRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
