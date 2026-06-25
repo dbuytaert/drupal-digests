@@ -14,7 +14,7 @@ _513 summaries · 16 new this week_
 
 ### Drupal AI
 
-_82 summaries · 2 new this week_
+_82 summaries · 1 new this week_
 
 - [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
 - [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
@@ -22,7 +22,7 @@ _82 summaries · 2 new this week_
 
 ### Drupal Canvas
 
-_94 summaries · 8 new this week_
+_94 summaries · 7 new this week_
 
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
