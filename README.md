@@ -1,8 +1,16 @@
-**TL;DR:** [707 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [708 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_83 summaries · 2 new this week_
+
+- [#3593019: Add ImageToImage possibilities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md)
+- [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
+- [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
 
 ### Drupal Core
 
@@ -12,17 +20,9 @@ _513 summaries · 14 new this week_
 - [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
 - [#3592037: Settings::get() should not trigger a deprecation for settings with no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592037.md)
 
-### Drupal AI
-
-_82 summaries · 1 new this week_
-
-- [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
-- [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
-- [#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md)
-
 ### Drupal Canvas
 
-_96 summaries · 8 new this week_
+_96 summaries · 6 new this week_
 
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
