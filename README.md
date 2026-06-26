@@ -1,4 +1,4 @@
-**TL;DR:** [705 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [707 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_513 summaries · 16 new this week_
+_513 summaries · 14 new this week_
 
 - [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
 - [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
@@ -22,7 +22,7 @@ _82 summaries · 1 new this week_
 
 ### Drupal Canvas
 
-_94 summaries · 7 new this week_
+_96 summaries · 8 new this week_
 
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
