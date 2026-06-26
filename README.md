@@ -22,7 +22,7 @@ _513 summaries · 12 new this week_
 
 ### Drupal Canvas
 
-_96 summaries · 6 new this week_
+_96 summaries · 5 new this week_
 
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
