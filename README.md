@@ -14,7 +14,7 @@ _83 summaries · 2 new this week_
 
 ### Drupal Core
 
-_513 summaries · 12 new this week_
+_513 summaries · 11 new this week_
 
 - [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
 - [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
