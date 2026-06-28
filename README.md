@@ -1,8 +1,16 @@
-**TL;DR:** [708 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [709 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_514 summaries · 12 new this week_
+
+- [#3585894: LLM harm reduction in Drupal core contribution, AGENTS.md guidelines](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585894.md)
+- [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
+- [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _83 summaries · 2 new this week_
 - [#3593019: Add ImageToImage possibilities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md)
 - [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
 - [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
-
-### Drupal Core
-
-_513 summaries · 11 new this week_
-
-- [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
-- [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
-- [#3592037: Settings::get() should not trigger a deprecation for settings with no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592037.md)
 
 ### Drupal Canvas
 
