@@ -1,8 +1,16 @@
-**TL;DR:** [710 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [711 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_515 summaries · 12 new this week_
+
+- [#3606969: Content translation column group settings only show up once there are base...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606969.md)
+- [#3585894: LLM harm reduction in Drupal core contribution, AGENTS.md guidelines](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585894.md)
+- [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
 
 ### Drupal CMS
 
@@ -11,14 +19,6 @@ _17 summaries · 1 new this week_
 - [#3591409: Unable to add components to any Canvas pages in any site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591409.md)
 - [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
 - [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
-
-### Drupal Core
-
-_514 summaries · 12 new this week_
-
-- [#3585894: LLM harm reduction in Drupal core contribution, AGENTS.md guidelines](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585894.md)
-- [#3587758: [PP-1] Labels for accent color choices on settings form are hidden from...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587758.md)
-- [#3072557: Plugin ID menu_link_content was not found in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3072557.md)
 
 ### Drupal AI
 
