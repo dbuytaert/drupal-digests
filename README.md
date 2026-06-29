@@ -1,8 +1,16 @@
-**TL;DR:** [709 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [710 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_17 summaries · 1 new this week_
+
+- [#3591409: Unable to add components to any Canvas pages in any site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591409.md)
+- [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
+- [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
 
 ### Drupal Core
 
@@ -27,14 +35,6 @@ _96 summaries · 5 new this week_
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
 - [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
-
-### Drupal CMS
-
-_16 summaries · 0 new this week_
-
-- [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
-- [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
-- [#3499319: Reponsive images should use sizes attribute for container-width sensitive image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3499319.md)
 
 
 ## Rector rules
