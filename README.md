@@ -1,16 +1,24 @@
-**TL;DR:** [713 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [715 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_97 summaries · 5 new this week_
+
+- [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
+- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
+- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
+
 ### Drupal Core
 
-_517 summaries · 14 new this week_
+_518 summaries · 13 new this week_
 
+- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
 - [#3600644: Pull up attributes from block plugins if the render array has no type or theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600644.md)
 - [#3600889: Remove some minor constraints from core-recommended](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600889.md)
-- [#3606969: Content translation column group settings only show up once there are base...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606969.md)
 
 ### Drupal CMS
 
@@ -27,14 +35,6 @@ _83 summaries · 2 new this week_
 - [#3593019: Add ImageToImage possibilities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md)
 - [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
 - [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
-
-### Drupal Canvas
-
-_96 summaries · 4 new this week_
-
-- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
-- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
-- [#3591702: Fatal error (AssertionError on dev env) when a component instance's image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md)
 
 
 ## Rector rules
