@@ -1,24 +1,24 @@
-**TL;DR:** [715 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [716 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_519 summaries · 14 new this week_
+
+- [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
+- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
+- [#3600644: Pull up attributes from block plugins if the render array has no type or theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600644.md)
+
 ### Drupal Canvas
 
-_97 summaries · 5 new this week_
+_97 summaries · 4 new this week_
 
 - [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
 - [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 - [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
-
-### Drupal Core
-
-_518 summaries · 13 new this week_
-
-- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
-- [#3600644: Pull up attributes from block plugins if the render array has no type or theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600644.md)
-- [#3600889: Remove some minor constraints from core-recommended](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600889.md)
 
 ### Drupal CMS
 
