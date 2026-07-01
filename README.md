@@ -1,12 +1,20 @@
-**TL;DR:** [716 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [719 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_86 summaries · 4 new this week_
+
+- [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
+- [#3595515: Add AI Text Classification field validation rule (mirror of AI Image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md)
+- [#3600885: Add an "AI moderation" field validation constraint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600885.md)
+
 ### Drupal Core
 
-_519 summaries · 8 new this week_
+_519 summaries · 6 new this week_
 
 - [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
 - [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
@@ -27,14 +35,6 @@ _17 summaries · 1 new this week_
 - [#3591409: Unable to add components to any Canvas pages in any site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591409.md)
 - [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
 - [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
-
-### Drupal AI
-
-_83 summaries · 1 new this week_
-
-- [#3593019: Add ImageToImage possibilities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md)
-- [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
-- [#3604032: Add static_list completion providers to example prompt argument configs and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md)
 
 
 ## Rector rules

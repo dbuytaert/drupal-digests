@@ -5,6 +5,144 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3600886: Add an "AI audio" field validation constraint (speech-to-text)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md</link>
+      <guid isPermaLink="false">019f1e97-f1a5-7321-87fc-9a21e63e7dd8</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 01 Jul 2026 13:24:05 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +328/−8 · php +322/−7 · md +6/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/94e5c2d366644cd804cf587902f9fbdaca3e7d38"&gt;94e5c2d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3600886"&gt;#3600886&lt;/a&gt; · 2 contributors · 11 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_validations&lt;/code&gt; module gains a seventh field validation rule: &lt;strong&gt;AI audio constraint&lt;/strong&gt;. Site builders can now attach this rule to a File field that accepts audio uploads. When an editor saves a node, the constraint first transcribes the uploaded audio through a configurable speech-to-text provider, then evaluates that transcript with a separate chat provider using the same &lt;code&gt;XTRUE&lt;/code&gt;/&lt;code&gt;XFALSE&lt;/code&gt; prompt protocol the existing text and image constraints already use. If the chat provider returns &lt;code&gt;XFALSE&lt;/code&gt;, the node is rejected and the configured error message is shown.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;transcribeAudio()&lt;/code&gt; and &lt;code&gt;buildProviderDefaultValue(string $configKey)&lt;/code&gt; helpers on &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; and &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt;; &lt;code&gt;loadImageFile()&lt;/code&gt; renamed to &lt;code&gt;loadFile()&lt;/code&gt; on &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three new files implement the feature: &lt;code&gt;AiAudioConstraintFieldValidationRule&lt;/code&gt; (the &lt;code&gt;@FieldValidationRule&lt;/code&gt; plugin with id &lt;code&gt;ai_audio_constraint_rule&lt;/code&gt;), &lt;code&gt;AiAudioConstraint&lt;/code&gt; (the Symfony &lt;code&gt;@Constraint&lt;/code&gt; with id &lt;code&gt;AiAudioPrompt&lt;/code&gt;), and &lt;code&gt;AiAudioConstraintValidator&lt;/code&gt; (the validator). The validator resolves both provider options, calls &lt;code&gt;transcribeAudio()&lt;/code&gt; to get a string, then passes it straight into &lt;code&gt;runBooleanChat()&lt;/code&gt; to obtain a boolean verdict.&lt;/p&gt;
+&lt;p&gt;Two base-class changes support the new plugin and clean up the existing ones. In &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt;, the private logic formerly in &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; was extracted into a new &lt;code&gt;buildProviderDefaultValue(string $configKey)&lt;/code&gt; method. &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; now delegates to it, so subclasses that need a second provider selector (as &lt;code&gt;AiAudioConstraintFieldValidationRule&lt;/code&gt; does for its &lt;code&gt;chat_provider&lt;/code&gt; key) can call &lt;code&gt;buildProviderDefaultValue()&lt;/code&gt; with any config key without duplicating the decode logic. In &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt;, &lt;code&gt;loadImageFile()&lt;/code&gt; was renamed to &lt;code&gt;loadFile()&lt;/code&gt; to reflect that it handles any file type, and a new &lt;code&gt;transcribeAudio(mixed $data, string $option)&lt;/code&gt; helper was added alongside the existing &lt;code&gt;loadFile()&lt;/code&gt; and &lt;code&gt;runBooleanChat()&lt;/code&gt; helpers. All three existing image-constraint validators (&lt;code&gt;AiImageConstraintValidator&lt;/code&gt;, &lt;code&gt;AiImageClassificationConstraintValidator&lt;/code&gt;, &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt;) were updated to call &lt;code&gt;loadFile()&lt;/code&gt; instead of &lt;code&gt;loadImageFile()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom validators that extend &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; and call &lt;code&gt;loadImageFile()&lt;/code&gt; must rename the call to &lt;code&gt;loadFile()&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+$file = $this-&amp;gt;loadImageFile($data);
+
+// After
+$file = $this-&amp;gt;loadFile($data);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 15, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 1, 2026 (16 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;abhisekmazumdar documented two design choices beyond the original plan in comment &lt;a href="https://www.drupal.org/node/16647960"&gt;#16647960&lt;/a&gt;: exposing two independent &lt;code&gt;ai_provider_configuration&lt;/code&gt; selectors (speech-to-text and chat) rather than a single one, because the two operation types are commonly served by different providers, and adding &lt;code&gt;transcribeAudio()&lt;/code&gt; to the shared base class rather than scoping it to the new validator alone, so future constraints can reuse it without duplication. marcus_johansson reviewed the patch, suggested one minor refinement, and marked it ready to commit.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3595515: Add AI Text Classification field validation rule (mirror of AI Image Classification)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md</link>
+      <guid isPermaLink="false">019f1e99-dea4-761d-983e-af8b9d45bd2f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 01 Jul 2026 13:01:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−0 · php +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/c0270a88b9bf70128e9087c099578d5caa0e7fc8"&gt;c0270a8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595515"&gt;#3595515&lt;/a&gt; · 2 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_validations&lt;/code&gt; module now ships a fifth field validation rule: &lt;strong&gt;AI text classification constraint&lt;/strong&gt;. Site owners can attach it to any text or string field and configure an AI provider model, a classification tag to block (e.g. &amp;quot;spam&amp;quot;), a matching strategy (exact, contains, or case-insensitive contains), a minimum confidence threshold (0–1), a &amp;quot;model not available&amp;quot; behavior (skip or fail), and a custom error message. When a content form is submitted, the validator sends the field value to the chosen AI provider's text-classification operation and adds a violation if the returned label matches the configured tag at or above the confidence threshold. This mirrors the behavior of the existing AI image classification rule.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;AiTextClassificationConstraint&lt;/code&gt;, &lt;code&gt;AiTextClassificationConstraintValidator&lt;/code&gt;, and &lt;code&gt;AiTextClassificationConstraintFieldValidationRule&lt;/code&gt; plugin classes; &lt;code&gt;resolveProviderOption()&lt;/code&gt; in &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; gains an optional &lt;code&gt;$violateOnMissing&lt;/code&gt; bool parameter (default &lt;code&gt;TRUE&lt;/code&gt;, fully backward-compatible).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three new plugin files implement the feature. &lt;code&gt;AiTextClassificationConstraintFieldValidationRule&lt;/code&gt; (plugin id &lt;code&gt;ai_text_classification_constraint_rule&lt;/code&gt;) extends &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt; and exposes the config form; it returns &lt;code&gt;'AiTextClassification'&lt;/code&gt; from &lt;code&gt;getConstraintName()&lt;/code&gt;. &lt;code&gt;AiTextClassificationConstraint&lt;/code&gt; is the Symfony &lt;code&gt;@Constraint&lt;/code&gt; class (id &lt;code&gt;AiTextClassification&lt;/code&gt;) holding properties &lt;code&gt;message&lt;/code&gt;, &lt;code&gt;model&lt;/code&gt;, &lt;code&gt;tag&lt;/code&gt;, &lt;code&gt;finder&lt;/code&gt;, &lt;code&gt;minimum&lt;/code&gt;, and &lt;code&gt;na&lt;/code&gt;. &lt;code&gt;AiTextClassificationConstraintValidator&lt;/code&gt; extends &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt;; its &lt;code&gt;validate()&lt;/code&gt; method wraps the field value in &lt;code&gt;TextClassificationInput&lt;/code&gt;, calls &lt;code&gt;$provider-&amp;gt;textClassification($input, $model)&lt;/code&gt;, and iterates the normalized result through the shared &lt;code&gt;labelMatchesFinder()&lt;/code&gt; / confidence comparison logic inherited from the base class.&lt;/p&gt;
+&lt;p&gt;During development a bug was found: when no &lt;code&gt;text_classification&lt;/code&gt; provider was configured and the rule was set to &lt;code&gt;na: skip&lt;/code&gt;, the validator was still raising a violation because &lt;code&gt;resolveProviderOption()&lt;/code&gt; in &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; unconditionally called &lt;code&gt;addViolation()&lt;/code&gt; on a missing provider. The fix adds a &lt;code&gt;$violateOnMissing&lt;/code&gt; boolean parameter (default &lt;code&gt;TRUE&lt;/code&gt;) to &lt;code&gt;resolveProviderOption()&lt;/code&gt;; the text classification validator passes &lt;code&gt;$constraint-&amp;gt;na !== 'skip'&lt;/code&gt; so the violation is suppressed when graceful degradation is requested.&lt;/p&gt;
+&lt;p&gt;Test coverage is provided by a new &lt;code&gt;AiTextClassificationConstraintValidatorTest&lt;/code&gt; Kernel test. Because &lt;code&gt;AiProviderPluginManager&lt;/code&gt; is declared &lt;code&gt;final&lt;/code&gt; and cannot be mocked directly, a helper testing module (&lt;code&gt;ai_validations_test&lt;/code&gt;) was added, containing &lt;code&gt;ClassifierTestProvider&lt;/code&gt; (extending &lt;code&gt;EchoProvider&lt;/code&gt;) whose &lt;code&gt;textClassification()&lt;/code&gt; output is driven by Drupal state. This lets the Kernel test exercise every branch: match above threshold, match below threshold, label mismatch, contains-finder, empty value short-circuit, missing model with &lt;code&gt;na: fail&lt;/code&gt;, provider exception with &lt;code&gt;na: fail&lt;/code&gt;, and provider exception with &lt;code&gt;na: skip&lt;/code&gt;. A FunctionalJavascript test case was also added to assert the selected model persists correctly through the config form save cycle.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 10, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 1, 2026 (20 days and 5 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During MR review, abhisekmazumdar discovered a runtime bug: with &lt;code&gt;na&lt;/code&gt; set to &lt;code&gt;skip&lt;/code&gt;, the validator still raised a violation when no provider was found, because the shared &lt;code&gt;resolveProviderOption()&lt;/code&gt; helper always called &lt;code&gt;addViolation()&lt;/code&gt;. They described the root cause in a comment and fixed it by adding a &lt;code&gt;$violateOnMissing&lt;/code&gt; parameter to &lt;code&gt;resolveProviderOption()&lt;/code&gt; so callers can suppress the violation when graceful degradation is configured. They also documented why a Unit test was not viable (the &lt;code&gt;final&lt;/code&gt; &lt;code&gt;AiProviderPluginManager&lt;/code&gt;) and why they introduced the &lt;code&gt;ai_validations_test&lt;/code&gt; helper module instead.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3600885: Add an "AI moderation" field validation constraint</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600885.md</link>
+      <guid isPermaLink="false">019f1e98-e7f7-70a4-a779-f01e0b8d4a58</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 01 Jul 2026 13:01:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +25/−2 · php +25/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/6abd71b4cc894d241537e7edb3a74dfe75fb24fe"&gt;6abd71b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3600885"&gt;#3600885&lt;/a&gt; · 2 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_validations&lt;/code&gt; module gains a fifth field validation rule: &amp;quot;AI moderation constraint.&amp;quot; Site builders can attach it to any text field and it will call the AI module's native &lt;code&gt;moderation()&lt;/code&gt; operation on form save, blocking submission when the provider flags the content as harmful. The rule's configuration lets you choose a provider and model, optionally restrict failures to specific moderation categories (e.g. &lt;code&gt;hate,violence,sexual&lt;/code&gt;), and set a confidence threshold for those categories. If the moderation provider throws an exception, the error is logged and the field fails validation rather than crashing the site.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_moderation_constraint_rule&lt;/code&gt; field validation rule plugin that screens text fields using the AI module's &lt;code&gt;moderation()&lt;/code&gt; operation type.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three new classes implement the constraint following the existing plugin pattern. &lt;code&gt;AiModerationConstraintFieldValidationRule&lt;/code&gt; (plugin id &lt;code&gt;ai_moderation_constraint_rule&lt;/code&gt;) provides the admin config form with an &lt;code&gt;ai_provider_configuration&lt;/code&gt; element for provider/model selection, a free-text &lt;code&gt;categories&lt;/code&gt; field (comma-separated, blank means any flagged category triggers a violation), and a &lt;code&gt;threshold&lt;/code&gt; float field (0–1, default 0.5) applied when specific categories are configured. &lt;code&gt;AiModerationConstraint&lt;/code&gt; is the constraint data class holding &lt;code&gt;$categories&lt;/code&gt;, &lt;code&gt;$provider&lt;/code&gt;, and &lt;code&gt;$threshold&lt;/code&gt;. &lt;code&gt;AiModerationConstraintValidator&lt;/code&gt; resolves the provider, skips empty/null values using &lt;code&gt;$data === NULL || (string) $data === ''&lt;/code&gt; (fixing a prior &lt;code&gt;empty()&lt;/code&gt; false-negative on &lt;code&gt;0&lt;/code&gt;), then calls &lt;code&gt;$provider-&amp;gt;moderation(new ModerationInput($data), $model)-&amp;gt;getNormalized()&lt;/code&gt;. If &lt;code&gt;isFlagged()&lt;/code&gt; is true and no category filter is set, a violation is added immediately. With categories configured, the validator reads scores from &lt;code&gt;getInformation()&lt;/code&gt; and adds a violation only when a watched category's score is numeric and exceeds the configured threshold. Provider exceptions are caught, logged via the &lt;code&gt;ai_validations&lt;/code&gt; logger channel, and treated as a violation.&lt;/p&gt;
+&lt;p&gt;A separate fix in &lt;code&gt;AiConstraintValidatorBase::runBooleanChat()&lt;/code&gt; wraps the &lt;code&gt;$provider-&amp;gt;chat()&lt;/code&gt; call in a try/catch that returns &lt;code&gt;FALSE&lt;/code&gt; on any exception. Previously, providers that reject inputs via their own safety filter (before returning a response) would throw an uncaught exception and produce a 500 page; all three existing chat-based validators (text prompt, image prompt, audio) are affected by this fix.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 15, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 1, 2026 (16 days and 5 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;abhisekmazumdar contributed the implementation and noted a deliberate design choice in a comment: the original issue proposed a confidence threshold, but &lt;code&gt;getInformation()&lt;/code&gt; returns provider-dependent structures (floats on OpenAI, different shapes elsewhere), so a cross-provider numeric threshold was initially skipped. After review rounds with marcus_johansson, the threshold was re-added with proper &lt;code&gt;is_numeric()&lt;/code&gt; guarding so it only applies when the value is a comparable float. abhisekmazumdar also caught and fixed a separate fatal-error bug in &lt;code&gt;runBooleanChat()&lt;/code&gt; while preparing a demo, which was rolled into the same branch.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3593019: Add ImageToImage possibilities</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md</link>
       <guid isPermaLink="false">019f03fb-cfe4-77f4-aa01-76e56cf45678</guid>
@@ -752,122 +890,6 @@ use gitlab_api tools       # restrict access: true — grants write operations t
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, a.dmitriiev observed that the GitLab access token used for a project must have at least the &amp;quot;Developer&amp;quot; role in GitLab; a &amp;quot;Guest&amp;quot;-scoped token returns access denied even with the correct API scopes. a.dmitriiev also recommended that the ECA actions be declared as Tool API plugins so they are available to agents, a suggestion marcus_johansson incorporated before marking the issue ready for review.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588768: [Sprint 2] Replace LLM menu/site-config agents with deterministic scripts</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588768.md</link>
-      <guid isPermaLink="false">019e2d65-d5f0-7256-a9d8-08c13a55a72f</guid>
-      <pubDate>Mon, 11 May 2026 22:48:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +343/−20 · sh +277 · md +46/−17 · json +17 · js +3/−3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/a919b62489a396737832fa1bd73f939dd64ed7bc"&gt;a919b62&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588768"&gt;#3588768&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Phase 6 of the &lt;code&gt;migrate-site&lt;/code&gt; skill previously dispatched two LLM-driven subagents (&lt;code&gt;menu-builder&lt;/code&gt; and &lt;code&gt;site-configurator&lt;/code&gt;) to fill Drupal admin forms. Because all required data (site name, slogan, front page, logo, menu structure) is already present in migration artifacts, no LLM inference was needed. Recorded cost was roughly 88 minutes wall-clock for a task that scripting can finish in under 5 minutes. Phase 6 now invokes two deterministic bash scripts instead: &lt;code&gt;scripts/configure-site.sh&lt;/code&gt; and &lt;code&gt;scripts/create-menus.sh&lt;/code&gt;. The LLM agents are retained only as documented emergency fallbacks. Both scripts exit with status 0 always; any item that cannot be processed is appended to &lt;code&gt;docs/migration/blocked.md&lt;/code&gt; for manual follow-up.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;SKILL.md&lt;/code&gt; Phase 6 section was rewritten to invoke &lt;code&gt;bash scripts/configure-site.sh&lt;/code&gt; then &lt;code&gt;bash scripts/create-menus.sh&lt;/code&gt; in sequence rather than spawning LLM agent tool calls.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;scripts/configure-site.sh&lt;/code&gt; reads &lt;code&gt;Site name:&lt;/code&gt;, &lt;code&gt;Slogan:&lt;/code&gt;, and &lt;code&gt;Front page:&lt;/code&gt; headings from &lt;code&gt;docs/migration/plan.md&lt;/code&gt; using &lt;code&gt;grep&lt;/code&gt;/&lt;code&gt;sed&lt;/code&gt;, then calls shared helpers to submit the Acquia site-settings form at &lt;code&gt;/admin/config/system/site-settings&lt;/code&gt;. CSS selectors are read at runtime from a new reference file &lt;code&gt;.claude/skills/migrate-site/references/drupal-admin-selectors.json&lt;/code&gt;, so a change to the Drupal admin theme requires updating only that one file.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;scripts/create-menus.sh&lt;/code&gt; reads &lt;code&gt;docs/migration/menu-map.json&lt;/code&gt; (a structured JSON file emitted by Phase 1's site-analyzer; schema documented in &lt;code&gt;references/menu-map-schema.md&lt;/code&gt;). For each menu it fetches existing items via &lt;code&gt;GET /api/menu_items/&amp;lt;menu&amp;gt;&lt;/code&gt; and skips any &lt;code&gt;(label, url)&lt;/code&gt; pair already present, making the script idempotent. New items are submitted via the Drupal admin form at &lt;code&gt;/admin/structure/menu/manage/&amp;lt;menu&amp;gt;/add&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Both scripts source &lt;code&gt;scripts/acquia-browser-helpers.sh&lt;/code&gt;, which provides three functions: &lt;code&gt;acquia_session_warmup&lt;/code&gt; (opens the persistent &lt;code&gt;.canvas-browser/&lt;/code&gt; profile and confirms authentication), &lt;code&gt;acquia_form_post&lt;/code&gt; (opens a URL, fills CSS-selector-addressed fields, clicks submit, and returns the final URL), and &lt;code&gt;acquia_classify_redirect&lt;/code&gt; (categorizes the post-submit URL as &lt;code&gt;success&lt;/code&gt;, &lt;code&gt;sso-waf&lt;/code&gt;, or &lt;code&gt;unknown&lt;/code&gt;). The &lt;code&gt;success&lt;/code&gt; pattern matches &lt;code&gt;/admin/structure/menu/item/&amp;lt;id&amp;gt;/edit&lt;/code&gt;; SSO/WAF matches &lt;code&gt;id.acquia.com&lt;/code&gt;, &lt;code&gt;source.acquia.com&lt;/code&gt;, or a &lt;code&gt;simplesamlphp&lt;/code&gt; path. Each script retries once on non-success before writing a structured entry to &lt;code&gt;blocked.md&lt;/code&gt; and continuing.&lt;/p&gt;
-&lt;p&gt;Both scripts support a &lt;code&gt;--dry-run&lt;/code&gt; flag. A shell-injection fix in the existing test helper swapped &lt;code&gt;execSync&lt;/code&gt; for &lt;code&gt;execFileSync&lt;/code&gt; when invoking &lt;code&gt;acquia_classify_redirect&lt;/code&gt; from the Vitest suite. Two new test files were added under &lt;code&gt;tests/scripts/&lt;/code&gt;: prose-sanity assertions (scripts exist and are executable, &lt;code&gt;SKILL.md&lt;/code&gt; Phase 6 references them, &lt;code&gt;menu-builder&lt;/code&gt;/&lt;code&gt;site-configurator&lt;/code&gt; are demoted to fallback) and unit tests for the redirect classifier covering all three outcome categories.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No upgrade steps are needed for existing Drupal installations. If you maintain a fork of &lt;code&gt;canvas_ai_migrations&lt;/code&gt; and customized the Phase 6 agent-dispatch logic in &lt;code&gt;SKILL.md&lt;/code&gt;, reconcile against the new script-based invocation:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;# Phase 6 now calls scripts, not agents:
-bash scripts/configure-site.sh
-bash scripts/create-menus.sh
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Ensure Phase 1 (&lt;code&gt;site-analyzer&lt;/code&gt;) emits &lt;code&gt;docs/migration/menu-map.json&lt;/code&gt; in the shape documented in &lt;code&gt;references/menu-map-schema.md&lt;/code&gt; (keyed by menu machine name, items with &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;url&lt;/code&gt;, optional &lt;code&gt;parent&lt;/code&gt; and &lt;code&gt;weight&lt;/code&gt;). If your admin theme changes Drupal form selectors, update &lt;code&gt;.claude/skills/migrate-site/references/drupal-admin-selectors.json&lt;/code&gt; rather than editing the scripts directly.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 11, 2026 (5 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588773: [Sprint 2] Replace browser menu automation with menu:administer API (blocked)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588773.md</link>
-      <guid isPermaLink="false">019e2d64-911f-73ee-8dfb-202ef9f41d28</guid>
-      <pubDate>Mon, 11 May 2026 22:48:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +12/−0 · md +12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/2b12f91af79cd5bd0de10f4e5e7cf86e172d3c5c"&gt;2b12f91&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588773"&gt;#3588773&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; menu-builder agent (Phase 6) now uses a hybrid approach for menu creation: it reads existing menu state via the Acquia Source OAuth read API before performing any writes, making Phase 6 re-runs idempotent. Writes still go through browser automation against the Drupal admin UI because the upstream &lt;code&gt;menu:administer&lt;/code&gt; write endpoints are not yet available. A vitest prose-sanity test suite was added to lock in this documented pattern.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;An empirical probe on 2026-05-01 confirmed that the &lt;code&gt;menu:administer&lt;/code&gt; OAuth scope mints valid tokens and &lt;code&gt;GET /api/menu_items/&amp;lt;menu&amp;gt;&lt;/code&gt; returns HTTP 200, but &lt;code&gt;POST /api/menu_items/main&lt;/code&gt; returns 405 (&lt;code&gt;Allow: GET, HEAD&lt;/code&gt;) and &lt;code&gt;POST /api/menu_link_content/menu_link_content&lt;/code&gt; returns 404. Write endpoints are not shipped on the current Acquia Source release, so a full API-first replacement of browser automation remains blocked.&lt;/p&gt;
-&lt;p&gt;The resolution codifies a hybrid pattern in &lt;code&gt;.claude/agents/menu-builder.md&lt;/code&gt; under a new &lt;code&gt;HYBRID PATTERN&lt;/code&gt; section. Before each write, the agent calls &lt;code&gt;GET /api/menu_items/&amp;lt;menu&amp;gt;&lt;/code&gt; and skips any item whose &lt;code&gt;(label, url)&lt;/code&gt; tuple is already present in the response. An in-memory set tracks the same tuples within a single Phase 6 dispatch to prevent duplicates even when &lt;code&gt;menu-map.json&lt;/code&gt; lists an item under multiple menus. Actual writes still go through &lt;code&gt;scripts/create-menus.sh&lt;/code&gt; browser automation against &lt;code&gt;/admin/structure/menu/manage/&amp;lt;menu&amp;gt;&lt;/code&gt; (introduced in &lt;a href="https://www.drupal.org/node/3588768"&gt;#3588768&lt;/a&gt;). The hybrid does not replace the deterministic script; it adds an idempotency lookup that the script performs before each write.&lt;/p&gt;
-&lt;p&gt;A companion Vitest file (&lt;code&gt;2b12f91a&lt;/code&gt;) adds five prose-sanity assertions that verify the &lt;code&gt;HYBRID PATTERN&lt;/code&gt; block is present in &lt;code&gt;menu-builder.md&lt;/code&gt;, that all three menu bundle endpoints are named, that the &lt;code&gt;(label, url)&lt;/code&gt; deduplication tuple is documented, that browser automation is still referenced for writes, and that the 2026-05-11 verification date is recorded. The Phase 0.5 preflight (Sprint 1 &lt;a href="https://www.drupal.org/node/3588763"&gt;#3588763&lt;/a&gt;) is expected to re-probe POST support on each new Acquia Source release; when write endpoints land, the hybrid prose will be rewritten to API-first.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 11, 2026 (5 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588762: [Sprint 1] Compaction loses critical facts — propose gotchas.md artifact</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588762.md</link>
-      <guid isPermaLink="false">019e2d68-0972-73c3-ab42-b7e9dd463050</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 11 May 2026 15:03:25 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +52/−0 · md +52&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/d031b00c6cfb700295b0dc02b01d9d016fef6e61"&gt;d031b00&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588762"&gt;#3588762&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Long AI migration sessions that trigger context compaction were causing the agent to lose hard-won technical facts: correct &lt;code&gt;canvas:upload&lt;/code&gt; syntax, runtime API quirks, Acquia Platform gotchas. After compaction, the agent would re-discover and re-debug the same issues from scratch. This change introduces a persistent &lt;code&gt;gotchas.md&lt;/code&gt; artifact and a formal Session Start preflight protocol so that accumulated knowledge survives compaction boundaries.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Session Start&lt;/code&gt; preflight protocol and &lt;code&gt;Compaction Protocol&lt;/code&gt; section in &lt;code&gt;SKILL.md&lt;/code&gt;; new versioned template at &lt;code&gt;.claude/skills/migrate-site/references/gotchas.md&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two new sections are added to &lt;code&gt;SKILL.md&lt;/code&gt;. The &lt;strong&gt;Session Start&lt;/strong&gt; preflight runs before Phase 0 and after every compaction: (1) it copies &lt;code&gt;.claude/skills/migrate-site/references/gotchas.md&lt;/code&gt; to &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; if the runtime copy does not yet exist, or preserves the existing runtime copy if the session is resumed; (2) it reads the runtime copy fully into working context; (3) it pre-loads tool schemas via &lt;code&gt;ToolSearch select:&amp;lt;tool_name&amp;gt;&lt;/code&gt; so schemas like &lt;code&gt;mcp__chrome-devtools__*&lt;/code&gt; are available without reactive re-loading; (4) it runs an orphan safeguard that detects a &lt;code&gt;migration_completed&lt;/code&gt; event in &lt;code&gt;state.jsonl&lt;/code&gt; without a passing &lt;code&gt;09-migration-complete-checklist.json&lt;/code&gt; and marks the migration &lt;code&gt;RECOVERY_REQUIRED&lt;/code&gt;, dispatching &lt;code&gt;artifact-checker&lt;/code&gt; with &lt;code&gt;mode: session-start&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;strong&gt;Compaction Protocol&lt;/strong&gt; section requires that any compaction summary embed the full, verbatim contents of &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; inside a &lt;code&gt;HARD-WON FACTS (preserve verbatim)&lt;/code&gt; delimited block. This redundantly preserves the facts in the compaction artifact itself. After compaction, the Session Start procedure is re-executed before the prior phase resumes.&lt;/p&gt;
-&lt;p&gt;The new template file at &lt;code&gt;.claude/skills/migrate-site/references/gotchas.md&lt;/code&gt; ships pre-populated with four sections: Canvas CLI (e.g., &lt;code&gt;canvas:upload&lt;/code&gt; runs no validation before upload; &lt;code&gt;canvas:download&lt;/code&gt; overwrites local edits silently), Runtime (e.g., &lt;code&gt;getNodePath()&lt;/code&gt; returns the truthy string &lt;code&gt;'#'&lt;/code&gt;; Tailwind directives only work in &lt;code&gt;global.css&lt;/code&gt;), Acquia Platform (e.g., menu JSON:API responses are CDN-cached; media style URLs return thumbnails rather than originals), and OAuth scope vs. endpoint mismatches (e.g., &lt;code&gt;canvas_oauth:menu_link_content&lt;/code&gt; mints a token but &lt;code&gt;POST /jsonapi/menu_link_content&lt;/code&gt; is 404 on Acquia Source). The runtime copy under &lt;code&gt;docs/migration/&lt;/code&gt; is the per-migration working memory; the skill-dir file is the versioned template. Phase 0.5 (verify-scopes preflight) appends session-discovered mismatches to the runtime copy only.&lt;/p&gt;
-&lt;p&gt;A Vitest test suite (commit &lt;code&gt;d031b00c&lt;/code&gt;) validates that the template file exists with the four required sections and at least one bullet per section, and that &lt;code&gt;SKILL.md&lt;/code&gt; contains the Session Start and Compaction Protocol blocks with the expected prose patterns.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No changes to existing site or developer code are required. For maintainers of the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; skill: the new session initialization contract means any custom orchestrator that wraps &lt;code&gt;SKILL.md&lt;/code&gt; must execute the four Session Start steps before dispatching agents. The runtime artifact layout gains a new file:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;docs/migration/gotchas.md   ← runtime working copy, seeded from template
-.claude/skills/migrate-site/references/gotchas.md   ← versioned template (do not append here)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;When a new gotcha is discovered during a session, append it to &lt;code&gt;docs/migration/gotchas.md&lt;/code&gt; (the runtime copy), never to the template.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 11, 2026 (4 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
