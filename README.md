@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_519 summaries · 11 new this week_
+_519 summaries · 8 new this week_
 
 - [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
 - [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
@@ -30,7 +30,7 @@ _17 summaries · 1 new this week_
 
 ### Drupal AI
 
-_83 summaries · 2 new this week_
+_83 summaries · 1 new this week_
 
 - [#3593019: Add ImageToImage possibilities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md)
 - [#3590873: Dall-E 3 has been deprecated and should be removed as default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3590873.md)
