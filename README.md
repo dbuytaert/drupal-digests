@@ -1,8 +1,16 @@
-**TL;DR:** [719 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [720 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_520 summaries · 7 new this week_
+
+- [#3584793: Use PHP attributes for form route discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584793.md)
+- [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
+- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _86 summaries · 4 new this week_
 - [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
 - [#3595515: Add AI Text Classification field validation rule (mirror of AI Image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md)
 - [#3600885: Add an "AI moderation" field validation constraint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600885.md)
-
-### Drupal Core
-
-_519 summaries · 6 new this week_
-
-- [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
-- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
-- [#3600644: Pull up attributes from block plugins if the render array has no type or theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600644.md)
 
 ### Drupal Canvas
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_178 rules · 1 new this week_
+_178 rules · 0 new this week_
 
 - [Replace views_entity_field_label() with EntityFieldManager::getFieldLabels()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php)
 - [Remove deprecated $long parameter from FilterInterface::tips()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php)

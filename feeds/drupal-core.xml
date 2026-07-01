@@ -5,6 +5,76 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3584793: Use PHP attributes for form route discovery</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584793.md</link>
+      <guid isPermaLink="false">019f1f68-d884-7412-84a1-7ca8368f3608</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 01 Jul 2026 18:19:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +433/−84 · php +432/−75 · txt +1/−1 · yml +0/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5bc84e84f587de6614ca85f4094d6eafd442487a"&gt;5bc84e8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584793"&gt;#3584793&lt;/a&gt; · 3 contributors · 35 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Module developers can now declare form routes using a &lt;code&gt;#[Route]&lt;/code&gt; PHP attribute placed directly on a form class, instead of writing a corresponding entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file. This extends the attribute-based route discovery introduced for controllers in &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt; to cover Drupal forms as well. The same standard Symfony &lt;code&gt;Route&lt;/code&gt; attribute is reused; no separate attribute class is needed. &lt;code&gt;SiteInformationForm&lt;/code&gt; in the system module was converted as the first real-world example.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Module developers can place &lt;code&gt;#[Route]&lt;/code&gt; directly on &lt;code&gt;FormInterface&lt;/code&gt; classes in the &lt;code&gt;Form&lt;/code&gt; namespace to declare routes, replacing equivalent YAML entries in &lt;code&gt;*.routing.yml&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AttributeRouteDiscovery::collectRoutes()&lt;/code&gt; now iterates over both &lt;code&gt;Controller&lt;/code&gt; and &lt;code&gt;Form&lt;/code&gt; subdirectories for every registered namespace. Files containing &lt;code&gt;#[Route]&lt;/code&gt; in the &lt;code&gt;Form&lt;/code&gt; tree are handled by a new &lt;code&gt;createFormRouteCollection()&lt;/code&gt; method rather than the existing &lt;code&gt;createControllerRouteCollection()&lt;/code&gt;. The form path checks that the reflected class implements &lt;code&gt;FormInterface&lt;/code&gt;; classes in the &lt;code&gt;Form&lt;/code&gt; namespace that do not implement it are silently skipped. When the interface is implemented, the route default &lt;code&gt;_form&lt;/code&gt; is set to the fully-qualified class name (matching the YAML convention) and the class-level attribute is registered as a route. Route attributes on individual methods of a form class are explicitly unsupported: an &lt;code&gt;\AssertionError&lt;/code&gt; is thrown in assert mode with a descriptive message. When exactly one route is registered for a form class, the class name itself is added as a route alias.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;getReflectionClass()&lt;/code&gt; helper was extracted to centralize class existence and abstraction checks; it returns &lt;code&gt;NULL&lt;/code&gt; and swallows &lt;code&gt;\Error&lt;/code&gt; when a class cannot be loaded due to a missing parent, interface, or trait. A pre-existing bug in the invokable-controller path was also fixed: the condition &lt;code&gt;$class-&amp;gt;hasMethod('__invoke') === 0&lt;/code&gt; (a boolean compared to an integer, always &lt;code&gt;FALSE&lt;/code&gt;) was corrected to &lt;code&gt;$collection-&amp;gt;count() === 0 &amp;amp;&amp;amp; $class-&amp;gt;hasMethod('__invoke')&lt;/code&gt;. &lt;code&gt;configureRoute()&lt;/code&gt; was removed; the &lt;code&gt;_controller&lt;/code&gt; default is now set directly on the attribute object before &lt;code&gt;addRoute()&lt;/code&gt; is called. The &lt;code&gt;addRoute()&lt;/code&gt; &lt;code&gt;$method&lt;/code&gt; parameter is now nullable to accommodate form routes, which are class-level rather than method-level.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To migrate an existing YAML form route to an attribute, remove the YAML entry and add &lt;code&gt;#[Route]&lt;/code&gt; to the form class. Example from &lt;code&gt;SiteInformationForm&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Before&lt;/strong&gt; (&lt;code&gt;system.routing.yml&lt;/code&gt;):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;system.site_information_settings:
+  path: '/admin/config/system/site-information'
+  defaults:
+    _form: '\Drupal\system\Form\SiteInformationForm'
+    _title: 'Basic site settings'
+  requirements:
+    _permission: 'administer site configuration'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;After&lt;/strong&gt; (&lt;code&gt;SiteInformationForm.php&lt;/code&gt;):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route(
+  path: '/admin/config/system/site-information',
+  name: 'system.site_information_settings',
+  requirements: [
+    '_permission' =&amp;gt; 'administer site configuration',
+  ],
+  defaults: ['_title' =&amp;gt; new TranslatableMarkup('Basic site settings')],
+)]
+class SiteInformationForm extends ConfigFormBase { ... }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The form class must implement &lt;code&gt;FormInterface&lt;/code&gt; and must reside in a &lt;code&gt;Form&lt;/code&gt; subdirectory/namespace of a registered module namespace. Route attributes on methods inside the form class are not supported and will throw an &lt;code&gt;\AssertionError&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 14, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 1, 2026 (2 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;niklan&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;godotislate initially proposed a dedicated &lt;code&gt;FormRoute&lt;/code&gt; attribute that extended the Symfony &lt;code&gt;Route&lt;/code&gt; attribute, to keep form and controller discovery separate. After longwave suggested reusing the plain &lt;code&gt;#[Route]&lt;/code&gt; attribute and detecting form classes internally via &lt;code&gt;FormInterface&lt;/code&gt;, godotislate agreed immediately, dropped &lt;code&gt;FormRoute&lt;/code&gt;, and rebuilt the implementation around &lt;code&gt;FormInterface&lt;/code&gt; detection. That exchange directly shaped the final DX of the feature.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591974: Update import paths for CKEditor 5 v48</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md</link>
       <guid isPermaLink="false">019f196f-0b04-7693-92a3-b365679484ae</guid>
@@ -936,49 +1006,6 @@ public function getQuery(): QueryInterface {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;amateescu discovered the bug while reviewing &lt;a href="https://www.drupal.org/node/2875033"&gt;#2875033&lt;/a&gt; and noted it is the &amp;quot;sister issue&amp;quot; to &lt;a href="https://www.drupal.org/node/1829942"&gt;#1829942&lt;/a&gt;, which they had filed 14 years earlier about non-aggregate query cloning. During MR review, godotislate raised questions about the approach, which led amateescu to add &lt;code&gt;setQuery()&lt;/code&gt; and &lt;code&gt;getQuery()&lt;/code&gt; formally to &lt;code&gt;ConditionAggregateInterface&lt;/code&gt; rather than relying on duck-typing through &lt;code&gt;ConditionFundamentals&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585723: #date_year_range does not support years &lt; 1000</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585723.md</link>
-      <guid isPermaLink="false">019ee009-71f3-70a2-a383-eb557d868538</guid>
-      <pubDate>Fri, 19 Jun 2026 12:01:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +89/−2 · php +89/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4fd9a4ddd561b6f16f40cb669a651b6afaf4bc85"&gt;4fd9a4d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585723"&gt;#3585723&lt;/a&gt; · 5 contributors · 21 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;#date_year_range&lt;/code&gt; form property on date elements silently ignored any absolute year value with fewer than four digits (0 through 999), substituting the current year instead. So a range like &lt;code&gt;0:2050&lt;/code&gt; or &lt;code&gt;500:1500&lt;/code&gt; would behave as if the minimum were the current year. This is now corrected: absolute years from 0 to 9999 all work as expected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was a too-strict regular expression in &lt;code&gt;DateElementBase::datetimeRangeYears()&lt;/code&gt;. The absolute-year pattern was &lt;code&gt;@^[0-9]{4}@&lt;/code&gt;, which requires exactly four digits. Any value with fewer digits (0, 1, 500, 999) failed that match and fell through to the relative-offset branch (&lt;code&gt;@[\+|\-][0-9]{1,4}@&lt;/code&gt;). Because bare short values like &lt;code&gt;0&lt;/code&gt; also fail the relative pattern, the method silently fell back to &lt;code&gt;$this_year&lt;/code&gt;, producing the wrong result with no warning.&lt;/p&gt;
-&lt;p&gt;The fix changes the pattern to &lt;code&gt;@^[0-9]{1,4}@&lt;/code&gt;, accepting one to four digits as an absolute year. The updated comment clarifies that current-year-relative notation requires an explicit &lt;code&gt;+&lt;/code&gt; or &lt;code&gt;-&lt;/code&gt; prefix (e.g. &lt;code&gt;+0&lt;/code&gt; for the current year, not &lt;code&gt;0&lt;/code&gt;), and notes that years BC (negative absolute years) remain unsupported due to the sign-prefix ambiguity.&lt;/p&gt;
-&lt;p&gt;A new unit test class &lt;code&gt;DateElementBaseTest&lt;/code&gt; (in &lt;code&gt;core/tests/Drupal/Tests/Core/Datetime/Element/&lt;/code&gt;) covers 14 data-driven cases: standard four-digit ranges, years below 1000, year zero, single-digit years, mixed absolute and relative bounds, and both-relative ranges.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your code passes a &lt;code&gt;#date_year_range&lt;/code&gt; value with an absolute year below 1000, you no longer need any workaround. Review any range strings that used a bare &lt;code&gt;0&lt;/code&gt; intending to mean &amp;quot;current year&amp;quot;: they now mean year 0 (1 BCE in the proleptic Gregorian calendar). Use &lt;code&gt;+0&lt;/code&gt; if you want the current year as the boundary.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 19, 2026 (2 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
-&lt;li&gt;gwenweb (WebstanZ)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;gwenweb, a first-time Drupal core contributor, joined the MR opened by anybody and added the missing unit test class together with a typo fix that had been causing CI spell-check failures. After feedback from anybody about phpcs violations and a missing &lt;code&gt;@group&lt;/code&gt; annotation, gwenweb updated the MR to use PHP 8 &lt;code&gt;#[Group]&lt;/code&gt; and &lt;code&gt;#[DataProvider]&lt;/code&gt; attributes, switched to &lt;code&gt;createStub()&lt;/code&gt; for PHPUnit 12 compatibility, and fixed code-style issues, getting all 38 CI jobs to pass. anybody then added more test-case combinations before tstoeckler reviewed and approved for merge.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
