@@ -1,24 +1,24 @@
-**TL;DR:** [723 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [725 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_98 summaries · 4 new this week_
-
-- [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
-- [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
-- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
-
 ### Drupal Core
 
-_522 summaries · 9 new this week_
+_523 summaries · 10 new this week_
 
+- [#3594199: Remove the Telephone module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594199.md)
 - [#3605551: Allow install profiles to be automatically uninstalled](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605551.md)
 - [#3569137: Ensure TRUNCATE ::execute() method returns void](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569137.md)
-- [#3584793: Use PHP attributes for form route discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584793.md)
+
+### Drupal Canvas
+
+_99 summaries · 5 new this week_
+
+- [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
+- [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
+- [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
 
 ### Drupal AI
 
