@@ -1,8 +1,16 @@
-**TL;DR:** [722 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [723 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_98 summaries · 4 new this week_
+
+- [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
+- [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
+- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _86 summaries · 4 new this week_
 - [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
 - [#3595515: Add AI Text Classification field validation rule (mirror of AI Image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md)
 - [#3600885: Add an "AI moderation" field validation constraint](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600885.md)
-
-### Drupal Canvas
-
-_97 summaries · 4 new this week_
-
-- [#3584136: Canvas AI - fix deprecated Image import, unsupported package handling,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md)
-- [#3591704: Only show default-language entities when reviewing auto-saved (pending) changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591704.md)
-- [#3585970: UI changes for detection of conflicts caused by external updates to underlying...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md)
 
 ### Drupal CMS
 

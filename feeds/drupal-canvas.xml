@@ -5,6 +5,65 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3587526: Prevention of publishing on Conflict in Canvas UI</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md</link>
+      <guid isPermaLink="false">019f2324-296f-771c-a94b-b7e676cede46</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 02 Jul 2026 12:21:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +203/−20 · php +197/−19 · yml +5/−1 · js +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3587526"&gt;#3587526&lt;/a&gt; · 2 contributors · 8 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas module now actively prevents publishing entities that have unresolved conflicts detected in the auto-save layer. When the &lt;code&gt;canvas_dev_cd&lt;/code&gt; feature-flag module is enabled, selecting and submitting conflicted items for publishing is rejected by the server with an HTTP 409 response, rather than silently allowing the operation to proceed. Items that were already selected before a conflict is detected are automatically unselected in the UI, and a &amp;quot;Resolve conflict&amp;quot; option appears in the per-item dropdown menu.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;AutoSaveEntityConflictConstraint&lt;/code&gt; validation constraint class and &lt;code&gt;AutoSaveManager::getUnresolvedConflictForEntity()&lt;/code&gt; method for detecting unresolved auto-save conflicts on Page entities; &lt;code&gt;AUTO_SAVE_CONFLICT_KEY&lt;/code&gt; constant moved from &lt;code&gt;ApiAutoSaveController&lt;/code&gt; to &lt;code&gt;AutoSaveManager&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The enforcement is split across the GET and POST sides of &lt;code&gt;ApiAutoSaveController&lt;/code&gt;. On GET, conflict data was already included in the response when &lt;code&gt;canvas_dev_cd&lt;/code&gt; is enabled. The MR extends this to the POST (publish) path: &lt;code&gt;getPublishableAutoSaves()&lt;/code&gt; and &lt;code&gt;getAllAutoSaveList()&lt;/code&gt; are now called with &lt;code&gt;with_conflicts: $conflict_detection_dev_mode&lt;/code&gt; instead of hardcoded &lt;code&gt;FALSE&lt;/code&gt;, and a new early-exit check in &lt;code&gt;post()&lt;/code&gt; returns HTTP 409 with per-item error details if any selected auto-save entry carries a &lt;code&gt;conflict_id&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Per-entity validation during the publish loop now routes through a new private method &lt;code&gt;getConflictAwareContentEntityViolations()&lt;/code&gt;. For &lt;code&gt;Page&lt;/code&gt; entities in conflict-detection mode this method suppresses Drupal core's &lt;code&gt;EntityChangedConstraint&lt;/code&gt; violation (which would otherwise block publishing a resolved conflict) and replaces it with the new &lt;code&gt;AutoSaveEntityConflictConstraint&lt;/code&gt; marker constraint when an unresolved conflict is present. &lt;code&gt;AutoSaveEntityConflictConstraint&lt;/code&gt; extends &lt;code&gt;EntityChangedConstraint&lt;/code&gt; and carries the conflict ID as a violation parameter. &lt;code&gt;ApiExceptionSubscriber::violationToJsonApiStyleErrorObject()&lt;/code&gt; recognises this marker and injects the &lt;code&gt;conflict_id&lt;/code&gt; and the &lt;code&gt;ItemEntityUpdatedExternally&lt;/code&gt; error code into the JSON:API-style error meta.&lt;/p&gt;
+&lt;p&gt;Supporting changes: &lt;code&gt;AUTO_SAVE_CONFLICT_KEY&lt;/code&gt; (&lt;code&gt;'conflict_id'&lt;/code&gt;) is moved from &lt;code&gt;ApiAutoSaveController&lt;/code&gt; to &lt;code&gt;AutoSaveManager&lt;/code&gt; as the single canonical location; a new &lt;code&gt;getUnresolvedConflictForEntity(Page)&lt;/code&gt; method is added to &lt;code&gt;AutoSaveManager&lt;/code&gt;; &lt;code&gt;ensureEntityIsValid()&lt;/code&gt; is promoted from a static to an instance method so it can delegate to &lt;code&gt;getConflictAwareContentEntityViolations()&lt;/code&gt;; &lt;code&gt;EntityConstraintViolationList::findByCodes()&lt;/code&gt; is overridden to avoid a &lt;code&gt;TypeError&lt;/code&gt; caused by the parent's &lt;code&gt;new static($violations)&lt;/code&gt; call not matching the subclass constructor signature; and &lt;code&gt;ApiControllerBase::validateExpectedAutoSaves()&lt;/code&gt; now returns HTTP 409 instead of 422 when the violation set contains the &lt;code&gt;ItemEntityUpdatedExternally&lt;/code&gt; error code. The OpenAPI spec gains a &lt;code&gt;409&lt;/code&gt; entry on the publish endpoint and a &lt;code&gt;422&lt;/code&gt; description.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No upgrade steps are required for existing sites. The conflict-blocking behaviour is gated entirely behind the &lt;code&gt;canvas_dev_cd&lt;/code&gt; feature-flag module and is inactive when that module is absent.&lt;/p&gt;
+&lt;p&gt;Integrators calling the Canvas publish API (&lt;code&gt;POST /canvas/api/v0/auto-saves&lt;/code&gt;) should now handle &lt;code&gt;409 Conflict&lt;/code&gt; in addition to &lt;code&gt;422 Unprocessable Entity&lt;/code&gt;. A 409 response means one or more of the submitted auto-save keys has an unresolved conflict; the body follows the same JSON:API error structure and includes &lt;code&gt;conflict_id&lt;/code&gt; in each error's &lt;code&gt;meta&lt;/code&gt; object:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;errors&amp;quot;: [
+    {
+      &amp;quot;detail&amp;quot;: &amp;quot;The entity has been updated externally.&amp;quot;,
+      &amp;quot;source&amp;quot;: { &amp;quot;pointer&amp;quot;: &amp;quot;&amp;lt;auto-save-key&amp;gt;&amp;quot; },
+      &amp;quot;code&amp;quot;: 409,
+      &amp;quot;meta&amp;quot;: {
+        &amp;quot;entity_type&amp;quot;: &amp;quot;canvas_page&amp;quot;,
+        &amp;quot;entity_id&amp;quot;: &amp;quot;2&amp;quot;,
+        &amp;quot;label&amp;quot;: &amp;quot;Page 2&amp;quot;,
+        &amp;quot;conflict_id&amp;quot;: &amp;quot;&amp;lt;revision-id&amp;gt;&amp;quot;,
+        &amp;quot;api_auto_save_key&amp;quot;: &amp;quot;&amp;lt;auto-save-key&amp;gt;&amp;quot;
+      }
+    }
+  ]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mark dodgson&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3584136: Canvas AI - fix deprecated Image import, unsupported package handling, prop/slot name collision,   hardcoded error messages, and add slots support</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3584136.md</link>
       <guid isPermaLink="false">019f1894-73c3-71a8-98e5-fda682bb3c23</guid>
@@ -819,46 +878,6 @@ const { name } = uid;   // uid is now a nested object
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;li&gt;isholgueras (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583684: Symmetric translations for content entities' component tree fields should allow only translatable keys in `inputs` to be overridden</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583684.md</link>
-      <guid isPermaLink="false">019eac83-95e4-728b-b4a0-1ce746ca06c7</guid>
-      <pubDate>Tue, 09 Jun 2026 12:28:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +60/−0 · md +60&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3583684"&gt;#3583684&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas now correctly handles symmetric content translation for content entities with component tree fields. Previously, saving a non-default-language translation that omitted non-translatable component inputs (such as &lt;code&gt;cta1href&lt;/code&gt; or &lt;code&gt;attributes&lt;/code&gt; in an SDC hero component) caused a &lt;code&gt;LogicException&lt;/code&gt; or &lt;code&gt;EntityStorageException&lt;/code&gt; about required properties. The module now stores all inputs on every translation row and synchronizes non-translatable input values from the default translation automatically at write time, so translators and developers do not need to duplicate non-translatable data in each translation.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Drupal's &lt;code&gt;content_translation.synchronizer&lt;/code&gt; (&lt;code&gt;FieldTranslationSynchronizerInterface&lt;/code&gt;) handles synchronizing non-translatable field column groups, including Canvas's &lt;code&gt;tree&lt;/code&gt; group (&lt;code&gt;uuid&lt;/code&gt;, &lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt;, &lt;code&gt;component_id&lt;/code&gt;, &lt;code&gt;component_version&lt;/code&gt;). Non-translatable keys inside the &lt;code&gt;inputs&lt;/code&gt; JSON blob property of &lt;code&gt;ComponentTreeItem&lt;/code&gt; are not a column group and therefore fall outside that mechanism, causing &lt;code&gt;ComponentTreeItem::preSave()&lt;/code&gt; to throw because required inputs were absent.&lt;/p&gt;
-&lt;p&gt;The fix introduces &lt;code&gt;ComponentTreeFieldSymmetricalTranslationSynchronizer&lt;/code&gt;, registered in &lt;code&gt;CanvasServiceProvider&lt;/code&gt; as a Symfony service decorator on &lt;code&gt;content_translation.synchronizer&lt;/code&gt;. After the standard column-group sync, the decorator's &lt;code&gt;synchronizeComponentInstanceInputs()&lt;/code&gt; iterates every component tree field in symmetric mode (tree synced, inputs translatable), determines translatable keys via &lt;code&gt;ComponentInputs::getTranslatableInputKeys()&lt;/code&gt; (which calls &lt;code&gt;ComponentInputs::resolveConfigSchemaMapping()&lt;/code&gt; to read config schema translatability markers), then writes &lt;code&gt;array_merge(target_inputs, non_translatable_from_default)&lt;/code&gt; back to each non-default translation's field item. This ensures non-translatable inputs from the default translation always win while preserving the translation's own translatable values.&lt;/p&gt;
-&lt;p&gt;A special case handles net-new component instances added to the default translation: because the target translation has no prior inputs for that instance (core's &lt;code&gt;createMergedItem()&lt;/code&gt; may have placed inputs from a different component instance at that delta), the decorator uses the default translation's full input set instead of the (incorrect) target inputs. Rendering, JSON:API, and the &lt;code&gt;inputs_resolved&lt;/code&gt; computed property all read &lt;code&gt;inputs&lt;/code&gt; identically for any translation with no merge logic at read time. MR !1219 adds ADR #12 to &lt;code&gt;docs/adr/&lt;/code&gt; documenting this write-time synchronization architecture and its tradeoffs (including that translatable inputs on newly added component instances are intentionally left empty in non-default translations, requiring manual translator input).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;In comment #17, wim leers raised questions about the fundamentals of the MR approach after reviewing, which prompted a synchronous chat with tedbow that produced a simplified implementation plan. Earlier (comment #9), wim leers flagged that the parallel config-entity translation issue (&lt;a href="https://www.drupal.org/node/3582478"&gt;#3582478&lt;/a&gt;) should provide a centralized API for determining translatable inputs so the logic would not need to be duplicated for content and config entity cases.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
