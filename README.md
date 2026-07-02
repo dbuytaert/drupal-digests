@@ -1,4 +1,4 @@
-**TL;DR:** [720 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [722 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_520 summaries · 7 new this week_
+_522 summaries · 9 new this week_
 
+- [#3605551: Allow install profiles to be automatically uninstalled](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605551.md)
+- [#3569137: Ensure TRUNCATE ::execute() method returns void](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569137.md)
 - [#3584793: Use PHP attributes for form route discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584793.md)
-- [#3591974: Update import paths for CKEditor 5 v48](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md)
-- [#3387100: Missing config schema for core.base_field_override.*.*.*...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md)
 
 ### Drupal AI
 
