@@ -14,7 +14,7 @@ _523 summaries · 10 new this week_
 
 ### Drupal Canvas
 
-_99 summaries · 5 new this week_
+_99 summaries · 3 new this week_
 
 - [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
 - [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
