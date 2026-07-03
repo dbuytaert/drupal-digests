@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3575644: `Regex` constraint on `string_long` field type intended to convey semantics causes "JIT stack limit reached" on long strings; make this pattern a no-op since it allows _anything_</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md</link>
+      <guid isPermaLink="false">019f2791-302e-72bd-92b9-9672f2b5f563</guid>
+      <pubDate>Fri, 03 Jul 2026 09:32:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3575644"&gt;#3575644&lt;/a&gt; · 2 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites using the Canvas module would see a &amp;quot;This value is not valid.&amp;quot; error when saving content with a &lt;code&gt;string_long&lt;/code&gt; field (plain long text) containing more than roughly 15,000 characters. The error gave no useful indication of the cause. This fix eliminates that failure: long multiline text in &lt;code&gt;string_long&lt;/code&gt; fields now saves without validation errors.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Canvas overrides &lt;code&gt;StringLongItem&lt;/code&gt; via &lt;code&gt;StringLongItemOverride&lt;/code&gt; and attaches a &lt;code&gt;Regex&lt;/code&gt; constraint with the pattern &lt;code&gt;/(.|\\r?\\n)*/&lt;/code&gt; to the field's &lt;code&gt;value&lt;/code&gt; property. The pattern was not meant for validation; it exists purely as a semantic marker so &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt; can identify multi-line string component props by comparing constraint values against field property constraints.&lt;/p&gt;
+&lt;p&gt;The problem is that the alternating group &lt;code&gt;(.|\\r?\\n)&lt;/code&gt; under a greedy &lt;code&gt;*&lt;/code&gt; quantifier causes PHP's PCRE JIT engine to exhaust its stack on strings longer than roughly 15,000 characters, returning &lt;code&gt;PREG_JIT_STACKLIMIT_ERROR&lt;/code&gt; (code 6). Symfony's &lt;code&gt;RegexValidator&lt;/code&gt; treats any &lt;code&gt;preg_match()&lt;/code&gt; failure as a non-match and adds a violation, producing the opaque error message.&lt;/p&gt;
+&lt;p&gt;The fix cannot simply replace the pattern, because changing it byte-for-byte would break the constraint-comparison logic in &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt;. Instead, a new &lt;code&gt;JitSafeRegexValidator&lt;/code&gt; class extends Symfony's &lt;code&gt;RegexValidator&lt;/code&gt; and early-returns without calling &lt;code&gt;preg_match()&lt;/code&gt; when the constraint pattern is exactly &lt;code&gt;JsonSchemaType::patternToPcre('(.|\r?\n)*')&lt;/code&gt;. This validator is registered in &lt;code&gt;CanvasServiceProvider&lt;/code&gt; under the key &lt;code&gt;'\\' . RegexValidator::class&lt;/code&gt; (with a leading backslash) because Drupal's &lt;code&gt;ConstraintValidatorFactory&lt;/code&gt; resolves validators by class name and &lt;code&gt;RegexConstraint::validatedBy()&lt;/code&gt; returns the fully qualified name with that prefix. The service is registered as non-shared, matching the requirement for all constraint validators. &lt;code&gt;StringLongItemOverride&lt;/code&gt; is updated to derive the pattern through &lt;code&gt;JsonSchemaType::patternToPcre()&lt;/code&gt; rather than a hardcoded string literal, so the two sides remain byte-identical.&lt;/p&gt;
+&lt;p&gt;A kernel test &lt;code&gt;StringLongItemOverrideTest::testLongMultilineValueIsValid()&lt;/code&gt; reproduces the original failure by validating an 80,000-character multiline string on a &lt;code&gt;string_long&lt;/code&gt; field and asserting zero violations. A &lt;code&gt;@todo&lt;/code&gt; in &lt;code&gt;JitSafeRegexValidator&lt;/code&gt; marks it for removal once multi-line prop matching is reworked to avoid needing a matches-everything Regex marker altogether (tracked separately).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;barakgalili&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;danrod (OPTASY)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;barakgalili filed the issue with a clear root-cause diagnosis and a working reproduction. wim leers noted that the initial proposed fix (replacing the pattern with &lt;code&gt;/.*\/s&lt;/code&gt;) would lose the semantic meaning the pattern was meant to convey, so a different approach was needed. barakgalili returned with a revised patch using &lt;code&gt;/[\\s\\S]*/&lt;/code&gt; and added a kernel test. The landed fix went further still, keeping the original pattern intact and instead introducing &lt;code&gt;JitSafeRegexValidator&lt;/code&gt; to skip evaluation entirely.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591760: Canvas should mark multi-line string props on SDCs and code components as translatable</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md</link>
       <guid isPermaLink="false">019f23f4-6913-718c-ac3c-52f21c770b10</guid>
@@ -831,54 +872,6 @@ const { name } = uid;   // uid is now a nested object
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3574857: Add client-side transform for entity_reference_autocomplete to ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3574857.md</link>
-      <guid isPermaLink="false">019ead57-a785-7290-9216-2350dadc2dc3</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 09 Jun 2026 14:01:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +386/−6 · js +374/−5 · php +7/−1 · yml +4 · md +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3574857"&gt;#3574857&lt;/a&gt; · 9 contributors · 42 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas editor now supports the &lt;code&gt;entity_reference_autocomplete&lt;/code&gt; field widget when used as a component prop. Previously, selecting an entity via the autocomplete field would not produce a usable value in the Canvas prop system. With this change, the widget is registered as supported and the selected autocomplete value is correctly transformed into a numeric entity ID before being stored.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;entityAutocompleteTargetId&lt;/code&gt; client-side transform registered in Canvas; available for use in custom Canvas field widget integrations.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;On the PHP side, &lt;code&gt;ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()&lt;/code&gt; gains an entry for &lt;code&gt;entity_reference_autocomplete&lt;/code&gt; with two transforms: &lt;code&gt;mainProperty&lt;/code&gt; (pointing to &lt;code&gt;target_id&lt;/code&gt;) and the new &lt;code&gt;entityAutocompleteTargetId&lt;/code&gt;. The &lt;code&gt;FieldWidgetSupportTest&lt;/code&gt; completion metric advances from 15/28 to 16/28.&lt;/p&gt;
-&lt;p&gt;On the JavaScript side, a new &lt;code&gt;entityAutocompleteTargetId&lt;/code&gt; transformer is added in &lt;code&gt;ui/src/utils/transforms.ts&lt;/code&gt;. It extracts the numeric ID from Drupal's autocomplete display format (&lt;code&gt;&amp;quot;Label (id)&amp;quot;&lt;/code&gt;) using &lt;code&gt;ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)\s*$/&lt;/code&gt;, which mirrors &lt;code&gt;\Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput&lt;/code&gt;. For comma-separated tags-mode input (multiple references in a single field), a quote-aware &lt;code&gt;splitAutocompleteValues&lt;/code&gt; function mirrors &lt;code&gt;Drupal.autocomplete.splitValues&lt;/code&gt; so labels containing commas (e.g. &lt;code&gt;&amp;quot;Hello, world&amp;quot; (3)&lt;/code&gt;) are handled correctly. The transform is idempotent: if the value is already a bare ID (because the transform ran on a prior commit cycle), it passes through unchanged rather than being dropped. Invalid entries that do not match the autocomplete pattern also pass through as bare IDs so that a single bad entry does not discard the entire selection; server-side validation surfaces the actual error.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;shouldSkipPropValidation&lt;/code&gt; in &lt;code&gt;componentFieldValidation&lt;/code&gt; is extended to skip client-side JSON schema validation for props whose schema type is &lt;code&gt;object&lt;/code&gt; or &lt;code&gt;array&lt;/code&gt; of objects, because their source shape differs from the resolved value and cannot be validated client-side. A new &lt;code&gt;canvas.transform.entityAutocompleteTargetId&lt;/code&gt; Drupal library is declared in &lt;code&gt;canvas.libraries.yml&lt;/code&gt;. This work follows the same pattern used for &lt;code&gt;daterange_default&lt;/code&gt; in &lt;a href="https://www.drupal.org/node/3522130"&gt;#3522130&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 20, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;jibran&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;wim leers opened the issue and reviewed the first MR promptly, pointing out that the initial unit tests only verified array wiring and did not test any actual transform behavior, and specifying the shape of coverage needed. After scott falconer reworked the MR with a real client-side parser and behavior-focused tests, wim leers approved but then identified two further problems via inline MR notes: the non-trivial regex had no explanation, and one test case appeared to document an expected hard failure in production. scott falconer addressed both by adding a plain-English comment on &lt;code&gt;ENTITY_AUTOCOMPLETE_MATCH&lt;/code&gt; with &lt;code&gt;@see&lt;/code&gt; references to core, and by changing the transform to return &lt;code&gt;null&lt;/code&gt; for invalid input rather than passing the raw label through. A subsequent manual testing attempt by penyaskito surfaced a failure that turned out to be caused by a separate regression (&lt;a href="https://www.drupal.org/node/3588884"&gt;#3588884&lt;/a&gt;) rather than this MR, and after that regression was resolved the MR was cleared for merge.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
