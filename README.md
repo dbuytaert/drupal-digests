@@ -1,8 +1,16 @@
-**TL;DR:** [728 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [729 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_526 summaries · 13 new this week_
+
+- [#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md)
+- [#3608069: Restore (but don't apply) deprecated recipes to 11.4.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md)
+- [#3600697: Attribute route discovery does not handle arrays for JSON:API contrib modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600697.md)
 
 ### Drupal Canvas
 
@@ -12,17 +20,9 @@ _100 summaries · 4 new this week_
 - [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
 - [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
 
-### Drupal Core
-
-_525 summaries · 12 new this week_
-
-- [#3608069: Restore (but don't apply) deprecated recipes to 11.4.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md)
-- [#3600697: Attribute route discovery does not handle arrays for JSON:API contrib modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600697.md)
-- [#3594199: Remove the Telephone module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594199.md)
-
 ### Drupal AI
 
-_86 summaries · 4 new this week_
+_86 summaries · 3 new this week_
 
 - [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
 - [#3595515: Add AI Text Classification field validation rule (mirror of AI Image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md)

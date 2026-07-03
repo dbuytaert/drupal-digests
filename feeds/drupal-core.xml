@@ -5,6 +5,50 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md</link>
+      <guid isPermaLink="false">019f284e-2354-77ce-9883-89d5e06ee7d0</guid>
+      <pubDate>Fri, 03 Jul 2026 13:15:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +29/−27 · php +29/−27&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c6b410288686450ccbf4fd8e56ef682e977bb335"&gt;c6b4102&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607938"&gt;#3607938&lt;/a&gt; · 8 contributors · 24 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A critical regression introduced in Drupal 11.4 caused entity loading to generate catastrophically large SQL queries when an entity type had more than one unlimited-cardinality (dedicated table) field. Loading a single entity with several well-populated multi-value fields could produce millions of result rows via Cartesian multiplication, exhausting PHP memory and causing 502 errors and high CPU load regardless of how high the memory limit was set. This fix eliminates the Cartesian explosion by loading each multi-cardinality field in its own separate query instead of grouping them together.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was a chunking optimization in &lt;code&gt;SqlContentEntityStorage::loadFromDedicatedTables()&lt;/code&gt;, introduced alongside the related 61-table JOIN limit fix (&lt;a href="https://www.drupal.org/node/3593963"&gt;#3593963&lt;/a&gt;). When an entity had more than &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE&lt;/code&gt; unlimited-cardinality fields, those fields were grouped into chunks and each chunk was passed to &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; together. That method builds a single SELECT by joining each field's dedicated table to the base entity table. Joining N multi-value field tables in one query produces a Cartesian product: rows from &lt;code&gt;field_a&lt;/code&gt; (5 values) × &lt;code&gt;field_b&lt;/code&gt; (10 values) × &lt;code&gt;field_c&lt;/code&gt; (4 values) = 200 rows instead of 19. On real content the multiplication was far worse; one confirmed case produced ~19.5 million rows per language per entity load.&lt;/p&gt;
+&lt;p&gt;The fix removes the chunking loop entirely. &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; now iterates over &lt;code&gt;$multiple_cardinality_fields&lt;/code&gt; one field at a time, calling &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; with a single-element array on each iteration. This trades fewer queries for a guaranteed linear row count. Simultaneously, the join type inside &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; was changed from &lt;code&gt;leftJoin&lt;/code&gt; to &lt;code&gt;join&lt;/code&gt; (INNER JOIN) for both the translatable and non-translatable code paths. A LEFT JOIN was unnecessary here because an entity that has no rows for a given dedicated field simply produces no result in that field's individual query; an INNER JOIN is correct and slightly more efficient.&lt;/p&gt;
+&lt;p&gt;The performance test fixtures reflect the new query shape: what was previously one multi-field LEFT OUTER JOIN query becomes N separate INNER JOIN queries, one per unlimited-cardinality field. Query counts in the Umami and standard performance tests increased accordingly (e.g., warm-cache node page rose from 56 to 65 queries). A follow-up issue &lt;a href="https://www.drupal.org/node/3608184"&gt;#3608184&lt;/a&gt; was opened to explore loading multiple fields without Cartesian multiplication (e.g., via UNION), which could recover some of that query count increase.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 3, 2026 (1 day and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jviitamaki&lt;/li&gt;
+&lt;li&gt;thefancywizard&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;kulturmensch&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Several contributors quickly confirmed the severity before the fix was merged. &lt;code&gt;thefancywizard&lt;/code&gt; reported that a node with 8 populated unlimited-cardinality fields generated a 14×13×11×8×7×6×3×2 = 4 million row query that took 134 seconds instead of ~235 ms, causing 502 errors and 800% CPU on their search pages, blocking an 11.4 production deployment entirely. &lt;code&gt;kulturmensch&lt;/code&gt; tested MR !16200 against a real bilingual production site where one node had a theoretical Cartesian product of ~19.6 million rows per language; after the fix that node loaded in 0.56 seconds at 55 MB peak memory, and full sitemap generation of over 1,000 items completed successfully in under 30 seconds.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3608069: Restore (but don't apply) deprecated recipes to 11.4.x</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md</link>
       <guid isPermaLink="false">019f278e-3d41-754d-bc7f-c6e1406bf2d1</guid>
@@ -939,51 +983,6 @@ class MyCssOptimizer extends CssOptimizer {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;berdir opened the issue and merge request immediately after spotting failures in the &lt;code&gt;entity_reference_revisions&lt;/code&gt; test suite, identifying the exact trigger as simultaneously changing the default-revision flag and field values on an existing revision. catch commented that reverting first and re-opening &lt;a href="https://www.drupal.org/node/3554579"&gt;#3554579&lt;/a&gt; for a corrected attempt was the right path, and sketched two potential approaches: either deprecating the mixed-operation pattern (if detectable) or accounting for it within the optimization itself.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591520: Fix format of some deprecation messages </title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591520.md</link>
-      <guid isPermaLink="false">019ef568-57f8-72c0-a01b-27033ebfeb43</guid>
-      <pubDate>Tue, 23 Jun 2026 14:25:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 22 files, +35/−35 · php +35/−35&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/af90abb928bfda586017e26efffa9095f143642e"&gt;af90abb&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3591520"&gt;#3591520&lt;/a&gt; · 7 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Several deprecation and exception messages in Drupal core were missing the &lt;code&gt;()&lt;/code&gt; suffix on function and method names, and one message was also missing a leading space, producing malformed strings like &lt;code&gt;&amp;quot;__FUNCTION__is deprecated&amp;quot;&lt;/code&gt;. These have been corrected across multiple modules so that all &lt;code&gt;@trigger_error&lt;/code&gt; deprecation notices and &lt;code&gt;BadMethodCallException&lt;/code&gt; messages follow the standard PHP convention of including &lt;code&gt;()&lt;/code&gt; after the callable name.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The problem was found while reviewing deprecation messages consumed by automated tooling such as Rector and the Drupal update bot. Three categories of mistakes were fixed in the same commit:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;code&gt;__FUNCTION__ . 'is deprecated&lt;/code&gt; (missing both &lt;code&gt;()&lt;/code&gt; and a space before &amp;quot;is&amp;quot;) in &lt;code&gt;locale.module&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;__FUNCTION__ . ' is deprecated&lt;/code&gt; and &lt;code&gt;__METHOD__ . ' is deprecated&lt;/code&gt; (space present but no &lt;code&gt;()&lt;/code&gt;) throughout the codebase.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;__METHOD__ . ' is not allowed'&lt;/code&gt; in &lt;code&gt;BadMethodCallException&lt;/code&gt; throws inside &lt;code&gt;CheckpointStorage&lt;/code&gt; and &lt;code&gt;ReadOnlyStorage&lt;/code&gt;.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;Affected files span &lt;code&gt;core/modules/config&lt;/code&gt; (&lt;code&gt;CheckpointStorage&lt;/code&gt;, &lt;code&gt;ReadOnlyStorage&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/Entity&lt;/code&gt; (&lt;code&gt;EntityType&lt;/code&gt;, &lt;code&gt;SqlContentEntityStorage&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/ImageToolkit&lt;/code&gt; (&lt;code&gt;ImageToolkitOperationBase&lt;/code&gt;, &lt;code&gt;ImageToolkitOperationManager&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/Recipe&lt;/code&gt; (&lt;code&gt;RecipeRunner&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/Routing&lt;/code&gt; (&lt;code&gt;RouteBuilder&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/Theme&lt;/code&gt; (&lt;code&gt;ThemeAccessCheck&lt;/code&gt;), &lt;code&gt;core/lib/Drupal/Core/Utility&lt;/code&gt; (&lt;code&gt;Error&lt;/code&gt;), and the &lt;code&gt;file&lt;/code&gt;, &lt;code&gt;locale&lt;/code&gt;, &lt;code&gt;taxonomy&lt;/code&gt;, &lt;code&gt;user&lt;/code&gt;, and &lt;code&gt;views&lt;/code&gt; modules. Corresponding test assertions (&lt;code&gt;expectUserDeprecationMessage&lt;/code&gt;, &lt;code&gt;assertEquals&lt;/code&gt; on exception text) were updated to match the corrected strings.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 23, 2026 (1 month and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;bbrala (SWIS)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During the review, dcam ran targeted &lt;code&gt;grep&lt;/code&gt; searches against both &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt; branches and found five additional instances of missing-space that the original MR had not addressed, prompting a fix. Later, quietone expanded the grep patterns to also cover &lt;code&gt;__CLASS__&lt;/code&gt; usages and ran a shell script against both fix branches to confirm no further occurrences remained before the final RTBC.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
