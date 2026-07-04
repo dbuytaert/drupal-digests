@@ -46,3 +46,17 @@ use Rector\Config\RectorConfig;
 //   php vendor/bin/rector process web/modules/custom --config rector-type-declarations.php
 // Or target your module's tests directory:
 //   php vendor/bin/rector process web/modules/custom/mymodule/tests --config rector-type-declarations.php
+
+return RectorConfig::configure()
+  ->withPreparedSets(typeDeclarations: true)
+  ->withSkip([
+    // Skip fixture files which are intentionally unparseable
+    '*/*ixture*/*',
+    // Skip Doctrine annotation directories
+    '*/Annotation/Doctrine/*',
+  ])
+  ->withImportNames(
+    importDocBlockNames: false,
+    importShortClasses: false,
+    removeUnusedImports: false,
+  );

@@ -27,7 +27,16 @@ declare(strict_types=1);
  *   function returned, so any surrounding code that uses the return
  *   value requires manual refactoring. Named-argument and unpacked-
  *   argument forms of drupal_static_reset() are also left for manual
- *   review.
+ *   review. The rewrite also drops one transitional behavior: through
+ *   the 11.x/12.x cycle, the deprecated drupal_static_reset() path
+ *   still resets the legacy drupal_static() entries that the deprecated
+ *   file_get_file_references() repopulates, while the replacement only
+ *   invalidates the file_references cache tag. The tag invalidation is
+ *   core's prescribed replacement, but codebases that still call
+ *   file_get_file_references() should migrate those call sites to
+ *   FileReferenceResolver::getReferences() before (or together with)
+ *   applying this rule, otherwise the old static cache is no longer
+ *   reset.
  *
  * @see https://www.drupal.org/node/1452100
  * @deprecated drupal:11.4.0

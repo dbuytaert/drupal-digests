@@ -29,3 +29,7 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()->withRules([RenameClassRector::class])->withConfiguredRule(RenameClassRector::class, [
+    'Drupal\migrate_drupal\Plugin\migrate\source\d8\Config' => 'Drupal\migrate\Plugin\migrate\source\ConfigEntity',
+]);

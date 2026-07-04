@@ -30,3 +30,9 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\migrate_drupal\\Plugin\\migrate\\source\\ContentEntity' => 'Drupal\\migrate\\Plugin\\migrate\\source\\ContentEntity',
+        'Drupal\\migrate_drupal\\Plugin\\migrate\\source\\ContentEntityDeriver' => 'Drupal\\migrate\\Plugin\\migrate\\source\\ContentEntityDeriver',
+    ]);

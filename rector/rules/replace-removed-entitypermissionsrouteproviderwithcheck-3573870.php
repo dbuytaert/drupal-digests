@@ -59,3 +59,8 @@ use Rector\Renaming\Rector\Name\RenameClassRector;
  * @see https://www.drupal.org/node/3384745
  * @see https://www.drupal.org/project/drupal/issues/3573870
  */
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\user\\Entity\\EntityPermissionsRouteProviderWithCheck'
+            => 'Drupal\\user\\Entity\\EntityPermissionsRouteProvider',
+    ]);

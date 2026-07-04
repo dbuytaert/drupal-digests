@@ -76,3 +76,18 @@ use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromAssignsRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictConstructorRector;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromStrictSetUpRector;
 use Rector\Config\RectorConfig;
+
+return RectorConfig::configure()
+    ->withPreparedSets(typeDeclarations: true)
+    ->withSkip([
+        TypedPropertyFromCreateMockAssignRector::class,
+        TypedPropertyFromDocblockSetUpDefinedRector::class,
+        TypedPropertyFromAssignsRector::class,
+        TypedPropertyFromStrictConstructorRector::class,
+        TypedPropertyFromStrictSetUpRector::class,
+    ])
+    ->withImportNames(
+        importDocBlockNames: false,
+        importShortClasses: false,
+        removeUnusedImports: false,
+    );

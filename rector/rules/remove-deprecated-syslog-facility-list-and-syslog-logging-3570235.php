@@ -44,3 +44,9 @@ use Rector\Config\RectorConfig;
 //
 // @see https://www.drupal.org/node/3566774
 // @see https://www.drupal.org/project/drupal/issues/3570235
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RemoveFuncCallRector::class, [
+        'syslog_facility_list',
+        'syslog_logging_settings_submit',
+    ]);

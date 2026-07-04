@@ -38,3 +38,11 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\Transform\Rector\ConstFetch\ConstFetchToClassConstFetchRector;
 use Rector\Transform\ValueObject\ConstFetchToClassConstFetch;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(ConstFetchToClassConstFetchRector::class, [
+        new ConstFetchToClassConstFetch('JSONAPI_FILTER_AMONG_ALL', 'Drupal\\jsonapi\\JsonApiFilter', 'AMONG_ALL'),
+        new ConstFetchToClassConstFetch('JSONAPI_FILTER_AMONG_PUBLISHED', 'Drupal\\jsonapi\\JsonApiFilter', 'AMONG_PUBLISHED'),
+        new ConstFetchToClassConstFetch('JSONAPI_FILTER_AMONG_ENABLED', 'Drupal\\jsonapi\\JsonApiFilter', 'AMONG_ENABLED'),
+        new ConstFetchToClassConstFetch('JSONAPI_FILTER_AMONG_OWN', 'Drupal\\jsonapi\\JsonApiFilter', 'AMONG_OWN'),
+    ]);

@@ -53,3 +53,14 @@ use Rector\Renaming\Rector\Name\RenameClassRector;
  * @see https://www.drupal.org/node/3527501
  * @see https://www.drupal.org/project/drupal/issues/3571874
  */
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\block_content\\Access\\AccessGroupAnd'
+            => 'Drupal\\Core\\Access\\AccessGroupAnd',
+        'Drupal\\block_content\\Access\\DependentAccessInterface'
+            => 'Drupal\\Core\\Access\\DependentAccessInterface',
+        'Drupal\\block_content\\Access\\RefinableDependentAccessInterface'
+            => 'Drupal\\Core\\Access\\RefinableDependentAccessInterface',
+        'Drupal\\block_content\\Access\\RefinableDependentAccessTrait'
+            => 'Drupal\\Core\\Access\\RefinableDependentAccessTrait',
+    ]);

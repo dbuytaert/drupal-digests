@@ -33,3 +33,9 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Removing\Rector\Class_\RemoveTraitUseRector;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RemoveTraitUseRector::class, [
+        'Drupal\\Tests\\PhpUnitCompatibilityTrait',
+    ])
+    ->withImportNames(importNames: false, removeUnusedImports: true);

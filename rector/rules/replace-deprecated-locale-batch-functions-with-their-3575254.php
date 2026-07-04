@@ -30,3 +30,9 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\FuncCall\RenameFunctionRector;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameFunctionRector::class, [
+        'locale_config_batch_refresh_name' => 'locale_config_batch_update_config_translations',
+        'locale_config_batch_set_config_langcodes' => 'locale_config_batch_update_default_config_langcodes',
+    ]);

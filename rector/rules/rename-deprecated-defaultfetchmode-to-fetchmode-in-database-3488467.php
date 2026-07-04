@@ -36,3 +36,9 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\PropertyFetch\RenamePropertyRector;
 use Rector\Renaming\ValueObject\RenameProperty;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenamePropertyRector::class, [
+        new RenameProperty('Drupal\Core\Database\StatementPrefetchIterator', 'defaultFetchMode', 'fetchMode'),
+        new RenameProperty('Drupal\Core\Database\StatementWrapperIterator', 'defaultFetchMode', 'fetchMode'),
+    ]);

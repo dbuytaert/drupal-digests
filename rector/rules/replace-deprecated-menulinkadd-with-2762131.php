@@ -32,3 +32,8 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\menu_ui\\Plugin\\Menu\\LocalAction\\MenuLinkAdd' => 'Drupal\\Core\\Menu\\LocalActionWithDestination',
+    ]);

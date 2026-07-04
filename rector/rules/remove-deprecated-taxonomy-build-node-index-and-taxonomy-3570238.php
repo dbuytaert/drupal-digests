@@ -46,3 +46,9 @@ use Rector\Config\RectorConfig;
 //
 // @see https://www.drupal.org/node/3566774
 // @see https://www.drupal.org/project/drupal/issues/3570238
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RemoveFuncCallRector::class, [
+        'taxonomy_build_node_index',
+        'taxonomy_delete_node_index',
+    ]);

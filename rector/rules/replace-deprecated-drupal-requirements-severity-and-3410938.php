@@ -40,3 +40,20 @@ use Rector\Transform\Rector\FuncCall\FuncCallToStaticCallRector;
 use Rector\Transform\Rector\MethodCall\MethodCallToStaticCallRector;
 use Rector\Transform\ValueObject\FuncCallToStaticCall;
 use Rector\Transform\ValueObject\MethodCallToStaticCall;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(FuncCallToStaticCallRector::class, [
+        new FuncCallToStaticCall(
+            'drupal_requirements_severity',
+            'Drupal\Core\Extension\Requirement\RequirementSeverity',
+            'maxSeverityFromRequirements'
+        ),
+    ])
+    ->withConfiguredRule(MethodCallToStaticCallRector::class, [
+        new MethodCallToStaticCall(
+            'Drupal\system\SystemManager',
+            'getMaxSeverity',
+            'Drupal\Core\Extension\Requirement\RequirementSeverity',
+            'maxSeverityFromRequirements'
+        ),
+    ]);

@@ -4,74 +4,89 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 
-require_once __DIR__ . '/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php';
-require_once __DIR__ . '/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php';
+// Not included (standalone configs, run separately):
+//   rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php
+//   rules/rename-nodesearch-to-searchnode-from-search-node-module-3587564.php
+//   rules/rename-deprecated-pgsql-entity-query-classes-to-new-module-3488572.php
+//   rules/replace-deprecated-i18nquerytrait-from-content-translation-3258581.php
+//   rules/replace-aliaswhitelist-aliaswhitelistinterface-with-3151086.php
+//   rules/replace-deprecated-menulinkadd-with-2762131.php
+//   rules/replace-testrequirementstrait-with-drupaltestcasetrait-3573954.php
+//   rules/replace-cachebackendinterface-invalidateall-with-deleteall-3498947.php
+//   rules/replace-deprecated-userauthenticationcontroller-with-3530640.php
+//   rules/remove-deprecated-phpunitcompatibilitytrait-from-test-3582118.php
+//   rules/replace-deprecated-file-system-settings-submit-with-3534092.php
+//   rules/replace-removed-mysql-pgsql-sqlite-driver-query-subclass-3525077.php
+//   rules/replace-deprecated-jsonapi-filter-among-constants-with-3495600.php
+//   rules/rename-deprecated-defaultfetchmode-to-fetchmode-in-database-3488467.php
+//   rules/replace-deprecated-locale-translation-default-server-3477277.php
+//   rules/replace-deprecated-locale-batch-functions-with-their-3575254.php
+//   rules/rename-stopproceduralhookscan-attribute-to-3495943.php
+//   rules/replace-deprecated-statementprefetchiterator-fetchcolumn-3490200.php
+//   rules/replace-deprecated-drupal-requirements-severity-and-3410938.php
+//   rules/replace-deprecated-d8-config-migrate-source-with-3506605.php
+//   rules/replace-deprecated-migrate-drupal-contententity-source-3498915.php
+//   rules/replace-deprecated-menu-link-content-migrate-process-3560075.php
+//   rules/add-void-return-type-hints-to-phpunit-test-methods-3562361.php
+//   rules/remove-deprecated-block-theme-initialize-calls-3566782.php
+//   rules/remove-deprecated-syslog-facility-list-and-syslog-logging-3570235.php
+//   rules/remove-deprecated-taxonomy-build-node-index-and-taxonomy-3570238.php
+//   rules/replace-removed-block-content-access-class-aliases-with-3571874.php
+//   rules/replace-removed-entitypermissionsrouteproviderwithcheck-3573870.php
+//   rules/add-php-type-declarations-to-module-and-test-code-via-rector-3584406.php
+
 require_once __DIR__ . '/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php';
 require_once __DIR__ . '/rules/replace-csrftokengenerator-get-rest-with-token-key-constant-3585891.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-translation-status-functions-with-3590050.php';
 require_once __DIR__ . '/rules/replace-user-pass-rehash-user-pass-reset-url-user-cancel-3581056.php';
 require_once __DIR__ . '/rules/add-resultrow-type-hint-to-rowpluginbase-render-overrides-3041170.php';
 require_once __DIR__ . '/rules/add-yamlcachecollector-arg-to-librarydiscoveryparser-and-3486503.php';
-require_once __DIR__ . '/rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php';
-require_once __DIR__ . '/rules/rename-nodesearch-to-searchnode-from-search-node-module-3587564.php';
 require_once __DIR__ . '/rules/replace-locale-translation-update-file-history-and-locale-3037156.php';
 require_once __DIR__ . '/rules/replace-drupal-static-reset-file-get-file-references-keys-1452100.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-batch-procedural-functions-with-3581303.php';
+require_once __DIR__ . '/rules/add-constructor-to-symfony-constraint-subclasses-for-named-3555534.php';
 require_once __DIR__ . '/rules/replace-check-markup-with-processed-text-render-array-455724.php';
 require_once __DIR__ . '/rules/replace-nodeviewcontroller-with-entityviewcontroller-3589630.php';
 require_once __DIR__ . '/rules/add-fileurlgenerator-argument-to-responsiveimageformatter-3064751.php';
 require_once __DIR__ . '/rules/replace-getdrupalroot-with-this-root-in-drupal-test-classes-3589047.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-compare-inc-functions-with-3037031.php';
+require_once __DIR__ . '/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php';
+require_once __DIR__ . '/rules/replace-views-entity-field-label-with-entityfieldmanager-3069442.php';
 require_once __DIR__ . '/rules/replace-deprecated-node-add-body-field-with-createbodyfield-3489266.php';
-require_once __DIR__ . '/rules/rename-deprecated-pgsql-entity-query-classes-to-new-module-3488572.php';
 require_once __DIR__ . '/rules/replace-pluginbase-isconfigurable-with-instanceof-3459533.php';
 require_once __DIR__ . '/rules/replace-editor-load-with-editor-load-3447794.php';
-require_once __DIR__ . '/rules/replace-deprecated-i18nquerytrait-from-content-translation-3258581.php';
-require_once __DIR__ . '/rules/replace-aliaswhitelist-aliaswhitelistinterface-with-3151086.php';
 require_once __DIR__ . '/rules/replace-node-access-view-all-nodes-with-3038908.php';
 require_once __DIR__ . '/rules/add-entitytypemanagerinterface-argument-to-nodepermissions-3092001.php';
 require_once __DIR__ . '/rules/replace-node-access-grants-with-nodegrantshelper-2473041.php';
-require_once __DIR__ . '/rules/replace-deprecated-menulinkadd-with-2762131.php';
 require_once __DIR__ . '/rules/replace-comment-uri-with-comment-permalink-2010202.php';
 require_once __DIR__ . '/rules/remove-deprecated-module-handler-controller-resolver-args-3311365.php';
-require_once __DIR__ . '/rules/replace-testrequirementstrait-with-drupaltestcasetrait-3573954.php';
 require_once __DIR__ . '/rules/replace-entitytypeinterface-getoriginalclass-with-3557461.php';
 require_once __DIR__ . '/rules/replace-deprecated-hide-and-show-with-printed-assignment-2258355.php';
 require_once __DIR__ . '/rules/remove-deprecated-settings-state-cache-assignment-3436954.php';
-require_once __DIR__ . '/rules/replace-cachebackendinterface-invalidateall-with-deleteall-3498947.php';
 require_once __DIR__ . '/rules/remove-options-bc-layer-parameter-from-symfony-constraint-3569096.php';
 require_once __DIR__ . '/rules/replace-integer-access-values-with-booleans-in-render-arrays-3526250.php';
-require_once __DIR__ . '/rules/replace-deprecated-userauthenticationcontroller-with-3530640.php';
 require_once __DIR__ . '/rules/replace-deprecated-node-access-rebuild-and-node-access-3533299.php';
-require_once __DIR__ . '/rules/remove-deprecated-phpunitcompatibilitytrait-from-test-3582118.php';
 require_once __DIR__ . '/rules/remove-deprecated-toolkit-argument-from-3559481.php';
+require_once __DIR__ . '/rules/add-runtestsinseparateprocesses-to-concrete-drupal-kernel-3546029.php';
 require_once __DIR__ . '/rules/remove-deprecated-arguments-from-commentlinkbuilder-3544308.php';
-require_once __DIR__ . '/rules/replace-deprecated-file-system-settings-submit-with-3534092.php';
-require_once __DIR__ . '/rules/replace-removed-mysql-pgsql-sqlite-driver-query-subclass-3525077.php';
-require_once __DIR__ . '/rules/replace-deprecated-jsonapi-filter-among-constants-with-3495600.php';
-require_once __DIR__ . '/rules/rename-deprecated-defaultfetchmode-to-fetchmode-in-database-3488467.php';
-require_once __DIR__ . '/rules/replace-deprecated-locale-translation-default-server-3477277.php';
+require_once __DIR__ . '/rules/rename-resourceresponsevalidator-namespace-from-jsonapi-to-3472008.php';
 require_once __DIR__ . '/rules/remove-deprecated-modulehandlerinterface-writecache-and-3442009.php';
 require_once __DIR__ . '/rules/add-timeinterface-time-argument-to-plugin-constructor-3395986.php';
 require_once __DIR__ . '/rules/remove-deprecated-trusted-data-concept-from-drupal-config-3347842.php';
 require_once __DIR__ . '/rules/remove-source-module-from-migratesource-attribute-drupal-11-3009349.php';
 require_once __DIR__ . '/rules/rename-hook-ranking-to-hook-node-search-ranking-1019966.php';
-require_once __DIR__ . '/rules/replace-deprecated-locale-batch-functions-with-their-3575254.php';
-require_once __DIR__ . '/rules/rename-stopproceduralhookscan-attribute-to-3495943.php';
-require_once __DIR__ . '/rules/replace-deprecated-statementprefetchiterator-fetchcolumn-3490200.php';
-require_once __DIR__ . '/rules/replace-deprecated-drupal-requirements-severity-and-3410938.php';
+require_once __DIR__ . '/rules/replace-group-legacy-annotation-with-ignoredeprecations-3417066.php';
 require_once __DIR__ . '/rules/add-moduleextensionlist-to-nodeviewsdata-subclass-3449181.php';
 require_once __DIR__ . '/rules/replace-deprecated-template-preprocess-calls-with-service-3501136.php';
 require_once __DIR__ . '/rules/replace-views-add-contextual-links-with-2571679.php';
 require_once __DIR__ . '/rules/replace-deprecated-filter-procedural-functions-with-2536594.php';
 require_once __DIR__ . '/rules/replace-deprecated-twig-extension-and-twig-render-template-1685492.php';
 require_once __DIR__ . '/rules/remove-deprecated-installschema-system-sequences-calls-for-3335756.php';
-require_once __DIR__ . '/rules/replace-deprecated-d8-config-migrate-source-with-3506605.php';
 require_once __DIR__ . '/rules/replace-deprecated-root-argument-in-connection-3506931.php';
 require_once __DIR__ . '/rules/replace-drupal-disabled-optional-required-with-3538660.php';
+require_once __DIR__ . '/rules/replace-deprecated-system-performance-css-gzip-js-gzip-3184242.php';
 require_once __DIR__ . '/rules/replace-navigation-message-theme-hook-with-navigation-3502993.php';
 require_once __DIR__ . '/rules/replace-deprecated-field-purge-batch-with-fieldpurger-2907780.php';
-require_once __DIR__ . '/rules/replace-deprecated-system-performance-css-gzip-js-gzip-3184242.php';
 require_once __DIR__ . '/rules/replace-deprecated-language-module-procedural-functions-3574727.php';
 require_once __DIR__ . '/rules/rename-helpsearch-to-searchhelpsearch-in-search-help-sub-3581109.php';
 require_once __DIR__ . '/rules/add-settings-argument-to-new-htaccesswriter-calls-360057.php';
@@ -87,7 +102,6 @@ require_once __DIR__ . '/rules/replace-deprecated-filter-procedural-functions-wi
 require_once __DIR__ . '/rules/add-formbuilder-argument-to-nodepreviewcontroller-construct-3339905.php';
 require_once __DIR__ . '/rules/add-fileurlgeneratorinterface-argument-to-3366561.php';
 require_once __DIR__ . '/rules/replace-deprecated-nodestorage-revisionids-and-3396062.php';
-require_once __DIR__ . '/rules/replace-group-legacy-annotation-with-ignoredeprecations-3417066.php';
 require_once __DIR__ . '/rules/remove-deprecated-updater-postinstall-postinstalltasks-3417136.php';
 require_once __DIR__ . '/rules/replace-deprecated-movepointerto-with-getdriver-mouseover-3421202.php';
 require_once __DIR__ . '/rules/replace-addcacheddiscovery-method-call-with-plugin-manager-3432827.php';
@@ -96,17 +110,16 @@ require_once __DIR__ . '/rules/replace-deprecated-sql-getmigrationpluginmanager-
 require_once __DIR__ . '/rules/convert-drupalget-headers-to-associative-array-format-3440169.php';
 require_once __DIR__ . '/rules/replace-empty-string-description-with-null-in-3448457.php';
 require_once __DIR__ . '/rules/remove-addtoassertioncount-1-workaround-from-setup-in-3468204.php';
-require_once __DIR__ . '/rules/rename-resourceresponsevalidator-namespace-from-jsonapi-to-3472008.php';
 require_once __DIR__ . '/rules/remove-overrides-of-deprecated-handlerbase-3485084.php';
 require_once __DIR__ . '/rules/replace-drupal-common-theme-with-themecommonelements-3488176.php';
 require_once __DIR__ . '/rules/replace-deprecated-views-field-default-views-data-and-views-3489415.php';
 require_once __DIR__ . '/rules/convert-runtime-only-hook-requirements-to-hook-runtime-3490841.php';
 require_once __DIR__ . '/rules/rename-hook-requirements-alter-implementations-to-hook-3490846.php';
-require_once __DIR__ . '/rules/replace-deprecated-migrate-drupal-contententity-source-3498915.php';
 require_once __DIR__ . '/rules/replace-file-get-content-headers-with-fileinterface-3494126.php';
 require_once __DIR__ . '/rules/replace-entity-test-create-bundle-and-entity-test-delete-3495966.php';
 require_once __DIR__ . '/rules/remove-aliasmanager-setcachekey-and-writecache-calls-3496369.php';
 require_once __DIR__ . '/rules/replace-deprecated-reciperunner-installmodule-with-3498026.php';
+require_once __DIR__ . '/rules/add-native-return-types-to-cachetagschecksuminterface-and-3584766.php';
 require_once __DIR__ . '/rules/replace-locale-translate-get-interface-translation-files-3577671.php';
 require_once __DIR__ . '/rules/remove-deprecated-cachetagchecksumcount-3511123.php';
 require_once __DIR__ . '/rules/replace-deprecated-usersession-name-property-read-with-3513856.php';
@@ -126,24 +139,19 @@ require_once __DIR__ . '/rules/replace-node-type-get-description-with-nodetypein
 require_once __DIR__ . '/rules/replace-deprecated-file-managed-file-submit-with-3534089.php';
 require_once __DIR__ . '/rules/replace-deprecated-modulehandler-loadallincludes-with-3536431.php';
 require_once __DIR__ . '/rules/replace-deprecated-constants-with-nodepreviewmode-enum-in-3538277.php';
-require_once __DIR__ . '/rules/add-runtestsinseparateprocesses-to-concrete-drupal-kernel-3546029.php';
 require_once __DIR__ . '/rules/remove-hasnamedarguments-from-symfony-constraint-3569092.php';
 require_once __DIR__ . '/rules/replace-deprecated-workspaces-association-service-with-3551446.php';
 require_once __DIR__ . '/rules/replace-deprecated-tostringtrait-with-direct-tostring-method-3548957.php';
 require_once __DIR__ . '/rules/replace-deprecated-expectdeprecation-with-phpunit-11-3550268.php';
 require_once __DIR__ . '/rules/replace-item-attributes-with-attributes-in-image-render-3554447.php';
-require_once __DIR__ . '/rules/add-constructor-to-symfony-constraint-subclasses-for-named-3555534.php';
 require_once __DIR__ . '/rules/add-string-type-hint-to-getbundleinfo-in-3557135.php';
 require_once __DIR__ . '/rules/guard-getpropertydefinition-calls-where-argument-comes-from-3557372.php';
-require_once __DIR__ . '/rules/replace-deprecated-menu-link-content-migrate-process-3560075.php';
 require_once __DIR__ . '/rules/replace-deprecated-dblog-procedural-functions-with-3560398.php';
 require_once __DIR__ . '/rules/replace-uploadedfileconstraint-options-array-with-named-3561135.php';
-require_once __DIR__ . '/rules/add-void-return-type-hints-to-phpunit-test-methods-3562361.php';
 require_once __DIR__ . '/rules/remove-deprecated-cachepluginbase-getrowcachekeys-and-3564937.php';
 require_once __DIR__ . '/rules/replace-deprecated-entity-type-integer-id-helpers-with-3566801.php';
 require_once __DIR__ . '/rules/replace-deprecated-views-pluginmanager-and-views-3566424.php';
 require_once __DIR__ . '/rules/remove-deprecated-automated-cron-settings-submit-calls-and-3566768.php';
-require_once __DIR__ . '/rules/remove-deprecated-block-theme-initialize-calls-3566782.php';
 require_once __DIR__ . '/rules/replace-deprecated-ckeditor5-procedural-functions-with-3566792.php';
 require_once __DIR__ . '/rules/replace-deprecated-contact-module-procedural-submit-3566888.php';
 require_once __DIR__ . '/rules/replace-field-ui-form-manage-field-form-submit-with-3567163.php';
@@ -152,8 +160,6 @@ require_once __DIR__ . '/rules/replace-contextual-links-to-id-and-contextual-id-
 require_once __DIR__ . '/rules/replace-deprecated-media-filter-format-edit-form-validate-3568124.php';
 require_once __DIR__ . '/rules/replace-deprecated-editor-filter-xss-with-element-editor-3568144.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-translation-inc-functions-with-3569328.php';
-require_once __DIR__ . '/rules/remove-deprecated-syslog-facility-list-and-syslog-logging-3570235.php';
-require_once __DIR__ . '/rules/remove-deprecated-taxonomy-build-node-index-and-taxonomy-3570238.php';
 require_once __DIR__ . '/rules/replace-deprecated-media-library-module-underscore-3570839.php';
 require_once __DIR__ . '/rules/replace-deprecated-editor-image-upload-settings-form-with-3570917.php';
 require_once __DIR__ . '/rules/add-object-type-hint-to-execute-in-executableinterface-3570920.php';
@@ -164,11 +170,8 @@ require_once __DIR__ . '/rules/replace-deprecated-entity-original-magic-property
 require_once __DIR__ . '/rules/replace-removed-template-preprocess-layout-with-3571382.php';
 require_once __DIR__ . '/rules/replace-deprecated-menu-ui-module-procedural-functions-with-3571400.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-settings-translation-path-config-3571593.php';
-require_once __DIR__ . '/rules/replace-removed-block-content-access-class-aliases-with-3571874.php';
 require_once __DIR__ . '/rules/replace-deprecated-views-procedural-functions-with-oo-3572243.php';
-require_once __DIR__ . '/rules/add-native-return-types-to-cachetagschecksuminterface-and-3584766.php';
 require_once __DIR__ . '/rules/replace-deprecated-locale-fetch-procedural-functions-with-3572339.php';
-require_once __DIR__ . '/rules/replace-removed-entitypermissionsrouteproviderwithcheck-3573870.php';
 require_once __DIR__ . '/rules/replace-deprecated-theme-get-setting-and-system-default-3573896.php';
 require_once __DIR__ . '/rules/replace-removed-image-filter-keyword-and-responsive-image-3574424.php';
 require_once __DIR__ . '/rules/replace-removed-requirement-constants-with-3575841.php';
@@ -181,8 +184,7 @@ require_once __DIR__ . '/rules/replace-removed-filesysteminterface-exists-consta
 require_once __DIR__ . '/rules/replace-constraintviolation-type-hints-with-3578694.php';
 require_once __DIR__ . '/rules/convert-expectation-less-phpunit-createmock-calls-to-3579905.php';
 require_once __DIR__ . '/rules/replace-deprecated-user-form-process-password-confirm-with-3582106.php';
-require_once __DIR__ . '/rules/add-php-type-declarations-to-module-and-test-code-via-rector-3584406.php';
 
 return RectorConfig::configure()
     ->withFileExtensions(['php', 'engine', 'inc', 'install', 'module', 'profile', 'theme'])
-    ->withRules([ViewsEntityFieldLabelRector::class, RemoveFilterTipsLongParamRector::class, LocaleDeprecatedCallbacksRector::class, CsrfTokenGetRestKeyRector::class, DeprecatedLocaleStatusFunctionsRector::class, ReplaceUserOneTimeAuthFunctionsRector::class, AddResultRowTypeHintToRowPluginRenderRector::class, AddYamlCacheCollectorArgRector::class, LocaleTranslationHistoryFunctionsRector::class, ReplaceDrupalStaticResetFileReferencesRector::class, ReplaceLocaleBatchProceduralFunctionsRector::class, CheckMarkupToProcessedTextRector::class, ReplaceNodeViewControllerRector::class, AddFileUrlGeneratorToResponsiveImageFormatterRector::class, GetDrupalRootToRootPropertyRector::class, LocaleCompareIncToServiceRector::class, DeprecateNodeAddBodyFieldRector::class, ReplacePluginBaseIsConfigurableRector::class, EditorLoadToEditorEntityLoadRector::class, NodeAccessViewAllNodesRector::class, NodePermissionsConstructorRector::class, NodeAccessGrantsFuncCallRector::class, CommentUriToPermalinkRector::class, RemoveRouteBuilderDeprecatedArgsRector::class, GetOriginalClassToGetDecoratedClassesRector::class, HideShowFunctionToHashPrintedRector::class, RemoveStateCacheSettingRector::class, RemoveOptionsArgFromConstraintConstructorRector::class, ReplaceNonBoolAccessRector::class, NodeAccessRebuildFunctionsRector::class, RemoveToolkitArgFromImageToolkitOperationConstructorRector::class, CommentLinkBuilderConstructorRector::class, RemoveModuleHandlerDeprecatedMethodsRector::class, AddTimeInterfaceToPluginConstructorsRector::class, RemoveTrustedDataConceptRector::class, RemoveSourceModuleFromMigrateSourceAttributeRector::class, RenameHookRankingRector::class, NodeViewsDataModuleExtensionListRector::class, DeprecatedTemplatePreprocesCallsRector::class, ViewsAddContextualLinksRector::class, FilterFormatFunctionsToServiceRector::class, TwigEngineFunctionsRector::class, RemoveInstallSchemaSystemSequencesRector::class, RemoveRootFromCreateConnectionOptionsFromUrlRector::class, CommentPreviewModeRector::class, NavigationMessageThemeToComponentRector::class, FieldPurgeBatchRector::class, SystemPerformanceGzipToCompressRector::class, LanguageModuleFunctionDeprecationsRector::class, RenameHelpSearchToSearchHelpSearchRector::class, HtaccessWriterSettingsArgumentRector::class, SystemSortThemesRector::class, MenuActiveTrailPathMatcherRector::class, RemoveTemplatePreprocessCallRector::class, BlockContentSelectionExtendsRector::class, SystemRegionFunctionsRector::class, RemoveLinkWidgetValidateTitleElementRector::class, AddEventDispatcherToJsonApiConstructorRector::class, BlockContentTestBaseStringToArrayRector::class, DeprecatedFilterFunctionsRector::class, NodePreviewControllerConstructorRector::class, AddFileUrlGeneratorToAttachmentsProcessorRector::class, NodeStorageDeprecatedMethodsRector::class, GroupLegacyToIgnoreDeprecationsRector::class, RemoveUpdaterPostInstallMethodsRector::class, MovePointerToMouseOverRector::class, ReplaceAddCachedDiscoveryMethodCallRector::class, AlphadecimalToIntNullOrEmptyRector::class, MigrateSqlGetMigrationPluginManagerRector::class, DrupalGetHeadersAssocArrayRector::class, EntityFormModeEmptyDescriptionToNullRector::class, RemoveAddToAssertionCountFromSetUpRector::class, RenameResourceResponseValidatorRector::class, RemoveDefineExtraOptionsOverrideRector::class, ReplaceDrupalCommonThemeRector::class, ViewsFieldDefaultViewsDataRector::class, ConvertHookRequirementsRuntimeRector::class, HookRequirementsAlterRenameRector::class, FileGetContentHeadersRector::class, EntityTestBundleFunctionsRector::class, RemoveAliasManagerCacheMethodCallsRector::class, RecipeRunnerInstallModuleRector::class, LocaleTranslateGetInterfaceTranslationFilesRector::class, RemoveCacheTagChecksumAssertionsRector::class, UserSessionNamePropertyToGetAccountNameRector::class, SessionSuperGlobalToRequestSessionRector::class, ViewsBlockItemsPerPageNoneToNullRector::class, RemoveDeprecatedUpdateManagerFuncCallsRector::class, RemoveRendererAddCacheableDependencyNonObjectRector::class, AddComponentPluginManagerToThemeInstallerRector::class, RemoveModuleHandlerAddModuleCallsRector::class, FixContentEntityStorageBaseGetSignatureRector::class, ViewsConfigUpdaterClassResolverToServiceRector::class, FileSystemBasenameToNativeRector::class, NodeMassUpdateToNodeBulkUpdateRector::class, TaxonomyTermPageVariableToViewModeRector::class, RemoveBlockContentAddBodyFieldRector::class, NodeTypeGetDescriptionRector::class, FileManagedFileSubmitRector::class, LoadAllIncludesRector::class, NodeSetPreviewModeRector::class, AddRunTestsInSeparateProcessesAttributeRector::class, RemoveHasNamedArgumentsAttributeRector::class, WorkspacesAssociationToTrackerRector::class, RemoveDrupalToStringTraitRector::class, ReplaceExpectDeprecationRector::class, ReplaceItemAttributesWithAttributesRector::class, AddSymfonyConstraintConstructorRector::class, AddStringTypeToGetBundleInfoRector::class, GuardGetPropertyDefinitionNullArgRector::class, ReplaceDblogProceduralFunctionsRector::class, UploadedFileConstraintArrayOptionsToNamedArgsRector::class, RemoveViewsRowCacheKeysRector::class, UseEntityTypeHasIntegerIdRector::class, ViewsPluginHandlerManagerRector::class, RemoveAutomatedCronSettingsSubmitHandlerRector::class, ReplaceCkeditor5ProceduralFunctionsRector::class, ReplaceContactDeprecatedFunctionsRector::class, ReplaceFieldUiFormManageFieldFormSubmitRector::class, DeprecatedImageFunctionsRector::class, ReplaceContextualProceduralFunctionsRector::class, MediaFilterFormatEditFormValidateRector::class, EditorFilterXssRector::class, ReplaceLocaleTranslationIncFunctionsRector::class, ReplaceDeprecatedMediaLibraryFunctionsRector::class, ReplaceEditorImageUploadSettingsFormRector::class, AddObjectTypeToExecuteMethodRector::class, AddLabelKeyParamToCategorizingPluginManagerRector::class, ReplaceDialogClassOptionRector::class, ReplaceLibraryDiscoveryClassRector::class, EntityOriginalPropertyToMethodRector::class, ReplaceTemplatePreprossLayoutRector::class, ReplaceDeprecatedMenuUiFunctionsRector::class, ReplaceLocaleTranslationPathConfigRector::class, ReplaceDeprecatedViewsFunctionsRector::class, AddCacheTagsChecksumReturnTypesRector::class, ReplaceLocaleFetchFunctionsRector::class, ReplaceThemeGetSettingRector::class, ReplaceRemovedImageResponsiveImageFunctionsRector::class, ReplaceRequirementConstantsRector::class, RemoveCacheExpireOverrideRector::class, ReplaceSessionManagerDeleteRector::class, AddTwigImplementationReturnTypesRector::class, AddSupportAwareSectionStorageInterfaceRector::class, RemoveMigrationDependenciesExpandArgRector::class, ReplaceFileExistsConstantsRector::class, ConstraintViolationToInterfaceRector::class, CreateMockToCreateStubRector::class, ReplaceUserFormProcessPasswordConfirmRector::class]);
+    ->withRules([LocaleDeprecatedCallbacksRector::class, CsrfTokenGetRestKeyRector::class, DeprecatedLocaleStatusFunctionsRector::class, ReplaceUserOneTimeAuthFunctionsRector::class, AddResultRowTypeHintToRowPluginRenderRector::class, AddYamlCacheCollectorArgRector::class, LocaleTranslationHistoryFunctionsRector::class, ReplaceDrupalStaticResetFileReferencesRector::class, ReplaceLocaleBatchProceduralFunctionsRector::class, AddSymfonyConstraintConstructorRector::class, CheckMarkupToProcessedTextRector::class, ReplaceNodeViewControllerRector::class, AddFileUrlGeneratorToResponsiveImageFormatterRector::class, GetDrupalRootToRootPropertyRector::class, LocaleCompareIncToServiceRector::class, RemoveFilterTipsLongParamRector::class, ViewsEntityFieldLabelRector::class, DeprecateNodeAddBodyFieldRector::class, ReplacePluginBaseIsConfigurableRector::class, EditorLoadToEditorEntityLoadRector::class, NodeAccessViewAllNodesRector::class, NodePermissionsConstructorRector::class, NodeAccessGrantsFuncCallRector::class, CommentUriToPermalinkRector::class, RemoveRouteBuilderDeprecatedArgsRector::class, GetOriginalClassToGetDecoratedClassesRector::class, HideShowFunctionToHashPrintedRector::class, RemoveStateCacheSettingRector::class, RemoveOptionsArgFromConstraintConstructorRector::class, ReplaceNonBoolAccessRector::class, NodeAccessRebuildFunctionsRector::class, RemoveToolkitArgFromImageToolkitOperationConstructorRector::class, AddRunTestsInSeparateProcessesAttributeRector::class, CommentLinkBuilderConstructorRector::class, RenameResourceResponseValidatorRector::class, RemoveModuleHandlerDeprecatedMethodsRector::class, AddTimeInterfaceToPluginConstructorsRector::class, RemoveTrustedDataConceptRector::class, RemoveSourceModuleFromMigrateSourceAttributeRector::class, RenameHookRankingRector::class, GroupLegacyToIgnoreDeprecationsRector::class, NodeViewsDataModuleExtensionListRector::class, DeprecatedTemplatePreprocesCallsRector::class, ViewsAddContextualLinksRector::class, FilterFormatFunctionsToServiceRector::class, TwigEngineFunctionsRector::class, RemoveInstallSchemaSystemSequencesRector::class, RemoveRootFromCreateConnectionOptionsFromUrlRector::class, CommentPreviewModeRector::class, SystemPerformanceGzipToCompressRector::class, NavigationMessageThemeToComponentRector::class, FieldPurgeBatchRector::class, LanguageModuleFunctionDeprecationsRector::class, RenameHelpSearchToSearchHelpSearchRector::class, HtaccessWriterSettingsArgumentRector::class, SystemSortThemesRector::class, MenuActiveTrailPathMatcherRector::class, RemoveTemplatePreprocessCallRector::class, BlockContentSelectionExtendsRector::class, SystemRegionFunctionsRector::class, RemoveLinkWidgetValidateTitleElementRector::class, AddEventDispatcherToJsonApiConstructorRector::class, BlockContentTestBaseStringToArrayRector::class, DeprecatedFilterFunctionsRector::class, NodePreviewControllerConstructorRector::class, AddFileUrlGeneratorToAttachmentsProcessorRector::class, NodeStorageDeprecatedMethodsRector::class, RemoveUpdaterPostInstallMethodsRector::class, MovePointerToMouseOverRector::class, ReplaceAddCachedDiscoveryMethodCallRector::class, AlphadecimalToIntNullOrEmptyRector::class, MigrateSqlGetMigrationPluginManagerRector::class, DrupalGetHeadersAssocArrayRector::class, EntityFormModeEmptyDescriptionToNullRector::class, RemoveAddToAssertionCountFromSetUpRector::class, RemoveDefineExtraOptionsOverrideRector::class, ReplaceDrupalCommonThemeRector::class, ViewsFieldDefaultViewsDataRector::class, ConvertHookRequirementsRuntimeRector::class, HookRequirementsAlterRenameRector::class, FileGetContentHeadersRector::class, EntityTestBundleFunctionsRector::class, RemoveAliasManagerCacheMethodCallsRector::class, RecipeRunnerInstallModuleRector::class, AddCacheTagsChecksumReturnTypesRector::class, LocaleTranslateGetInterfaceTranslationFilesRector::class, RemoveCacheTagChecksumAssertionsRector::class, UserSessionNamePropertyToGetAccountNameRector::class, SessionSuperGlobalToRequestSessionRector::class, ViewsBlockItemsPerPageNoneToNullRector::class, RemoveDeprecatedUpdateManagerFuncCallsRector::class, RemoveRendererAddCacheableDependencyNonObjectRector::class, AddComponentPluginManagerToThemeInstallerRector::class, RemoveModuleHandlerAddModuleCallsRector::class, FixContentEntityStorageBaseGetSignatureRector::class, ViewsConfigUpdaterClassResolverToServiceRector::class, FileSystemBasenameToNativeRector::class, NodeMassUpdateToNodeBulkUpdateRector::class, TaxonomyTermPageVariableToViewModeRector::class, RemoveBlockContentAddBodyFieldRector::class, NodeTypeGetDescriptionRector::class, FileManagedFileSubmitRector::class, LoadAllIncludesRector::class, NodeSetPreviewModeRector::class, RemoveHasNamedArgumentsAttributeRector::class, WorkspacesAssociationToTrackerRector::class, RemoveDrupalToStringTraitRector::class, ReplaceExpectDeprecationRector::class, ReplaceItemAttributesWithAttributesRector::class, AddStringTypeToGetBundleInfoRector::class, GuardGetPropertyDefinitionNullArgRector::class, ReplaceDblogProceduralFunctionsRector::class, UploadedFileConstraintArrayOptionsToNamedArgsRector::class, RemoveViewsRowCacheKeysRector::class, UseEntityTypeHasIntegerIdRector::class, ViewsPluginHandlerManagerRector::class, RemoveAutomatedCronSettingsSubmitHandlerRector::class, ReplaceCkeditor5ProceduralFunctionsRector::class, ReplaceContactDeprecatedFunctionsRector::class, ReplaceFieldUiFormManageFieldFormSubmitRector::class, DeprecatedImageFunctionsRector::class, ReplaceContextualProceduralFunctionsRector::class, MediaFilterFormatEditFormValidateRector::class, EditorFilterXssRector::class, ReplaceLocaleTranslationIncFunctionsRector::class, ReplaceDeprecatedMediaLibraryFunctionsRector::class, ReplaceEditorImageUploadSettingsFormRector::class, AddObjectTypeToExecuteMethodRector::class, AddLabelKeyParamToCategorizingPluginManagerRector::class, ReplaceDialogClassOptionRector::class, ReplaceLibraryDiscoveryClassRector::class, EntityOriginalPropertyToMethodRector::class, ReplaceTemplatePreprossLayoutRector::class, ReplaceDeprecatedMenuUiFunctionsRector::class, ReplaceLocaleTranslationPathConfigRector::class, ReplaceDeprecatedViewsFunctionsRector::class, ReplaceLocaleFetchFunctionsRector::class, ReplaceThemeGetSettingRector::class, ReplaceRemovedImageResponsiveImageFunctionsRector::class, ReplaceRequirementConstantsRector::class, RemoveCacheExpireOverrideRector::class, ReplaceSessionManagerDeleteRector::class, AddTwigImplementationReturnTypesRector::class, AddSupportAwareSectionStorageInterfaceRector::class, RemoveMigrationDependenciesExpandArgRector::class, ReplaceFileExistsConstantsRector::class, ConstraintViolationToInterfaceRector::class, CreateMockToCreateStubRector::class, ReplaceUserFormProcessPasswordConfirmRector::class]);

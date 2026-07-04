@@ -36,3 +36,12 @@ use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\MethodCall\RenameMethodRector;
 use Rector\Renaming\Rector\Name\RenameClassRector;
 use Rector\Renaming\ValueObject\MethodCallRename;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\path_alias\\AliasWhitelist' => 'Drupal\\path_alias\\AliasPrefixList',
+        'Drupal\\path_alias\\AliasWhitelistInterface' => 'Drupal\\path_alias\\AliasPrefixListInterface',
+    ])
+    ->withConfiguredRule(RenameMethodRector::class, [
+        new MethodCallRename('Drupal\\path_alias\\AliasManager', 'pathAliasWhitelistRebuild', 'pathAliasPrefixListRebuild'),
+    ]);

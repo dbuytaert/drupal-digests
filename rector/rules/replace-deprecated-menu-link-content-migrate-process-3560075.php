@@ -39,3 +39,11 @@ use Rector\Renaming\Rector\Name\RenameClassRector;
 // Replaces deprecated migrate process plugin classes from menu_link_content
 // module with their replacements in the migrate module, as introduced in
 // Drupal 11.4.0. See https://www.drupal.org/node/3572239
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\menu_link_content\\Plugin\\migrate\\process\\LinkOptions'
+            => 'Drupal\\migrate\\Plugin\\migrate\\process\\LinkOptions',
+        'Drupal\\menu_link_content\\Plugin\\migrate\\process\\LinkUri'
+            => 'Drupal\\migrate\\Plugin\\migrate\\process\\LinkUri',
+    ]);

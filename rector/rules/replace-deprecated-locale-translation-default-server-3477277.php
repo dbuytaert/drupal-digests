@@ -27,3 +27,12 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\Transform\Rector\ConstFetch\ConstFetchToClassConstFetchRector;
 use Rector\Transform\ValueObject\ConstFetchToClassConstFetch;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(ConstFetchToClassConstFetchRector::class, [
+        new ConstFetchToClassConstFetch(
+            'LOCALE_TRANSLATION_DEFAULT_SERVER_PATTERN',
+            'Drupal',
+            'TRANSLATION_DEFAULT_SERVER_PATTERN'
+        ),
+    ]);

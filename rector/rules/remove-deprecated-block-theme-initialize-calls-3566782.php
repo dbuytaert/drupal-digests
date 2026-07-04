@@ -46,3 +46,5 @@ use Rector\Removing\Rector\FuncCall\RemoveFuncCallRector;
  * @see https://www.drupal.org/node/3566783
  * @see https://www.drupal.org/project/drupal/issues/3566782
  */
+return RectorConfig::configure()
+    ->withConfiguredRule(RemoveFuncCallRector::class, ['block_theme_initialize']);

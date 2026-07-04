@@ -33,3 +33,8 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\node\\Plugin\\Search\\NodeSearch' => 'Drupal\\search_node\\Plugin\\Search\\SearchNode',
+    ]);

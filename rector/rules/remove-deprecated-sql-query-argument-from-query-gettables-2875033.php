@@ -34,3 +34,8 @@ declare(strict_types=1);
 use Rector\Arguments\Rector\MethodCall\RemoveMethodCallParamRector;
 use Rector\Arguments\ValueObject\RemoveMethodCallParam;
 use Rector\Config\RectorConfig;
+
+return RectorConfig::configure()
+    ->withConfiguredRule(RemoveMethodCallParamRector::class, [
+        new RemoveMethodCallParam('Drupal\Core\Entity\Query\Sql\Query', 'getTables', 0),
+    ]);
