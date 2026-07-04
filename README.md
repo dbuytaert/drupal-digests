@@ -1,4 +1,4 @@
-**TL;DR:** [729 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [730 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_526 summaries · 13 new this week_
+_527 summaries · 14 new this week_
 
 - [#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md)
 - [#3608069: Restore (but don't apply) deprecated recipes to 11.4.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md)
