@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_527 summaries · 12 new this week_
+_527 summaries · 10 new this week_
 
 - [#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md)
 - [#3608069: Restore (but don't apply) deprecated recipes to 11.4.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md)
