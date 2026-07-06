@@ -30,7 +30,7 @@ _86 summaries · 3 new this week_
 
 ### Drupal CMS
 
-_17 summaries · 1 new this week_
+_17 summaries · 0 new this week_
 
 - [#3591409: Unable to add components to any Canvas pages in any site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591409.md)
 - [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
