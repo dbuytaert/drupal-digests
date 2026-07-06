@@ -5,6 +5,129 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3564112: Cache rebuild triggers file_get_contents Permission denied in theme node_modules despite file_scan_ignore_directories</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md</link>
+      <guid isPermaLink="false">019f3960-08c3-7412-8275-683743489a24</guid>
+      <category>Site owners</category>
+      <pubDate>Mon, 06 Jul 2026 21:00:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +118/−10 · php +108/−10 · yml +10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7e0c9a2e38711c4c542fd09658572792380e3e78"&gt;7e0c9a2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3564112"&gt;#3564112&lt;/a&gt; · 7 contributors · 41 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Since Drupal 11.3 introduced OOP hook scanning for themes, cache rebuilds on sites with a &lt;code&gt;node_modules/&lt;/code&gt; directory inside a custom theme began emitting large numbers of &lt;code&gt;file_get_contents() Permission denied&lt;/code&gt; warnings and could slow down dramatically. This happened because the new hook-collector classes did not respect the &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting. The fix makes &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; honour that setting, so directories listed there are skipped during hook discovery just as they already were during file and extension scanning.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting now also controls which directories are skipped during hook-discovery scanning in &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;, not only file API and extension scanning.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The 11.3 addition of &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; and &lt;code&gt;HookCollectorPass&lt;/code&gt; each contain a &lt;code&gt;filterIterator()&lt;/code&gt; method that decides which directories to recurse into when scanning an extension for hook implementations. Those methods had a hardcoded exclusion list (&lt;code&gt;['tests', 'js', 'css']&lt;/code&gt; for modules; &lt;code&gt;['tests', 'js', 'css', 'templates']&lt;/code&gt; for themes) but did not consult &lt;code&gt;Settings::get('file_scan_ignore_directories')&lt;/code&gt;. As a result, &lt;code&gt;node_modules/&lt;/code&gt; trees inside theme directories were fully traversed, triggering &lt;code&gt;StaticReflectionParser::parse()&lt;/code&gt; to attempt &lt;code&gt;file_get_contents()&lt;/code&gt; on every file it encountered, many of which were unreadable directories on the developer's system.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;Settings::get('file_scan_ignore_directories', [])&lt;/code&gt; inside &lt;code&gt;filterIterator()&lt;/code&gt; in both &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;, merging the result into the hardcoded exclusion array. The comment block for &lt;code&gt;$settings['file_scan_ignore_directories']&lt;/code&gt; in &lt;code&gt;default.settings.php&lt;/code&gt; was also updated to document that the setting now governs hook-discovery scanning in addition to the file API and extension discovery. Tests covering both the module-hook and theme-hook cases were added under &lt;code&gt;core/modules/system/tests/modules/HookCollector/&lt;/code&gt; and &lt;code&gt;core/modules/system/tests/themes/HookCollector/&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 19, 2025&lt;/li&gt;
+&lt;li&gt;Committed: July 6, 2026 (6 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dotoree&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;richard.thomas&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The thread had a brief but substantive design debate. berdir's initial read-through suggested the fix should happen higher in the call stack and should respect the scan setting rather than only hardcoding directory names. nicxvan later floated the idea of simply hardcoding &lt;code&gt;node_modules&lt;/code&gt; and &lt;code&gt;bower_components&lt;/code&gt; rather than reusing &lt;code&gt;file_scan_ignore_directories&lt;/code&gt;, reasoning the two concerns were distinct. richard.thomas pushed back by quoting the existing &lt;code&gt;default.settings.php&lt;/code&gt; documentation, which already describes the setting as preventing &amp;quot;recursive scanning of directories looking for extensions,&amp;quot; arguing the intent was identical. nicxvan agreed, and the approach of reading the setting at runtime was kept. The &lt;code&gt;default.settings.php&lt;/code&gt; comment was then revised to make the broadened scope explicit.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3608374: Data for non-revisionable/non-translatable/no-dedicated-field-tables entity types such as file is loaded twice</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608374.md</link>
+      <guid isPermaLink="false">019f395e-bc0a-7265-a278-4ecb59e99a01</guid>
+      <pubDate>Mon, 06 Jul 2026 20:54:46 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +11/−12 · php +11/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/978748dd040eeb68150631af6fbfe033ea5b6227"&gt;978748d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608374"&gt;#3608374&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When loading entity types such as &lt;code&gt;file&lt;/code&gt; that have no revision table, no data table, and no dedicated field tables, Drupal was issuing a redundant SQL query against the base table on every entity load. The extra query produced identical data to one already fired by &lt;code&gt;getFromStorage()&lt;/code&gt;, so nothing useful came from it. This fix eliminates that query, cutting database load for content pages that reference files. Performance tests for the Umami demo profile show warm-cache query counts dropping by 5 queries per page request.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;SqlContentEntityStorage::loadFromDedicatedTables()&lt;/code&gt;, the method builds a list of field &amp;quot;chunks&amp;quot; to fetch from dedicated and shared tables. When the count of single-cardinality fields does not exceed &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE&lt;/code&gt;, the old &lt;code&gt;else&lt;/code&gt; branch unconditionally set &lt;code&gt;$chunks = [$single_cardinality_fields]&lt;/code&gt;, even when &lt;code&gt;$single_cardinality_fields&lt;/code&gt; was empty and the entity type had no &lt;code&gt;$this-&amp;gt;dataTable&lt;/code&gt;, &lt;code&gt;$this-&amp;gt;revisionTable&lt;/code&gt;, or &lt;code&gt;$this-&amp;gt;revisionDataTable&lt;/code&gt;. This produced a &lt;code&gt;$chunks&lt;/code&gt; value of &lt;code&gt;[0 =&amp;gt; []]&lt;/code&gt;, which caused the &lt;code&gt;foreach&lt;/code&gt; loop to execute once with an empty fields list. That in turn triggered a &lt;code&gt;SELECT *&lt;/code&gt; against the base table (e.g. &lt;code&gt;file_managed&lt;/code&gt;) that duplicated the query already issued by &lt;code&gt;buildQuery()&lt;/code&gt; in &lt;code&gt;getFromStorage()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix initializes &lt;code&gt;$chunks = []&lt;/code&gt; before the conditional, then changes the &lt;code&gt;else&lt;/code&gt; to an &lt;code&gt;elseif&lt;/code&gt; that only creates the single-element chunk array when there is actually something to load: non-empty &lt;code&gt;$single_cardinality_fields&lt;/code&gt;, or at least one of &lt;code&gt;$this-&amp;gt;dataTable&lt;/code&gt;, &lt;code&gt;$this-&amp;gt;revisionTable&lt;/code&gt;, or &lt;code&gt;$this-&amp;gt;revisionDataTable&lt;/code&gt;. With none of those present, the loop is skipped entirely and the redundant base-table query is never issued.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 6, 2026 (2 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir discovered the double query while profiling performance tests and noted the fix eliminates 12 to 14 queries on cold and cool caches in their own test setup. catch observed that the saving approaches a 10% query reduction on the lighter pages in the Umami performance suite.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3588547: Don't invalidate the entire fast backend on persistent backend cache misses</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588547.md</link>
+      <guid isPermaLink="false">019f395f-632e-77d6-bc67-65740b7c1ad4</guid>
+      <pubDate>Mon, 06 Jul 2026 19:23:02 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +73/−12 · php +73/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4f3e6a284a744f596389f81e06996364bd39bb2c"&gt;4f3e6a2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588547"&gt;#3588547&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites using &lt;code&gt;ChainedFastBackend&lt;/code&gt; (typically APCu as the fast layer in front of a database or Redis persistent layer) will see fewer unnecessary APCu invalidations when cache items are written. Previously, every &lt;code&gt;set()&lt;/code&gt; or &lt;code&gt;setMultiple()&lt;/code&gt; call caused the entire fast backend to be marked outdated, forcing subsequent reads to fall back to the persistent backend even when those reads had nothing to do with the items just written. Now, the invalidation only happens when the item being set already existed in the persistent backend, i.e. when it is truly being updated rather than freshly added. During cold cache warmup, where many new items are written in rapid succession, this eliminates a cascade of full-bin invalidations that was making the fast backend effectively useless until warming completed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The key mechanism in &lt;code&gt;ChainedFastBackend&lt;/code&gt; is a &amp;quot;last write timestamp&amp;quot; stored in the consistent backend. When &lt;code&gt;markAsOutdated()&lt;/code&gt; is called, it bumps that timestamp, causing &lt;code&gt;getMultiple()&lt;/code&gt; to treat all APCu hits as stale if they were written before the new timestamp. This timestamp approach is intentionally coarse: it invalidates the whole fast bin rather than individual entries.&lt;/p&gt;
+&lt;p&gt;Previously, &lt;code&gt;set()&lt;/code&gt; and &lt;code&gt;setMultiple()&lt;/code&gt; always called &lt;code&gt;markAsOutdated()&lt;/code&gt; unconditionally after writing to the consistent backend. The fix changes both methods to first call &lt;code&gt;consistentBackend-&amp;gt;get()&lt;/code&gt; (or &lt;code&gt;getMultiple()&lt;/code&gt; for the plural form) to check whether the item already exists. If the item is found, &lt;code&gt;markAsOutdated()&lt;/code&gt; is called as before because existing fast-backend copies of that item are now stale. If the item is not found, no invalidation is needed: the fast backend cannot hold a stale copy of something it has never seen. The comment in the diff acknowledges a narrow race window where another process might write the same key between the &lt;code&gt;get()&lt;/code&gt; check and the &lt;code&gt;set()&lt;/code&gt;, but notes that such a process would also have received an empty &lt;code&gt;get()&lt;/code&gt; result and would therefore not trigger invalidation either, keeping the risk of divergent state extremely low.&lt;/p&gt;
+&lt;p&gt;Unit tests in &lt;code&gt;ChainedFastBackendTest&lt;/code&gt; were split from a single &lt;code&gt;testSet()&lt;/code&gt; into &lt;code&gt;testSetEmptyConsistent()&lt;/code&gt; (verifying that four writes to new keys produce no &lt;code&gt;markAsOutdated()&lt;/code&gt; call and exactly four &lt;code&gt;get()&lt;/code&gt; checks on the consistent backend) and &lt;code&gt;testSetFullConsistent()&lt;/code&gt; (verifying that writes to pre-existing keys still trigger invalidation).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 6, 2026 (2 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md</link>
       <guid isPermaLink="false">019f284e-2354-77ce-9883-89d5e06ee7d0</guid>
@@ -823,166 +946,6 @@ dependencies:
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;dcam&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3302988: Make CssOptimizer::loadFile() protected</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3302988.md</link>
-      <guid isPermaLink="false">019ef8e9-bbad-7112-aede-7e0f7266f301</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 24 Jun 2026 07:37:49 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−5 · php +1/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a486ad9148c360b3105cc5f2619efffb613c60e8"&gt;a486ad9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3302988"&gt;#3302988&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;CssOptimizer::loadFile()&lt;/code&gt; has been changed from &lt;code&gt;public&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt;. The method was only ever made public so that the &lt;code&gt;color&lt;/code&gt; module could call it directly; since &lt;code&gt;color&lt;/code&gt; module is being removed from core (see &lt;a href="https://www.drupal.org/node/3270899"&gt;#3270899&lt;/a&gt;), there is no remaining reason for the public visibility. Any contrib or custom code that calls &lt;code&gt;CssOptimizer::loadFile()&lt;/code&gt; directly will break on Drupal main/12.x.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CssOptimizer::loadFile()&lt;/code&gt; visibility reduced from &lt;code&gt;public&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt;; direct callers outside the class hierarchy will get a fatal error.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The sole justification for &lt;code&gt;public&lt;/code&gt; visibility was documented in a now-removed doc comment: &amp;quot;the only reason this method is public is so color.module can call it; it is not on the &lt;code&gt;AssetOptimizerInterface&lt;/code&gt;, so any future refactoring can make it protected.&amp;quot; With the color module removal tracked in &lt;a href="https://www.drupal.org/node/3270899"&gt;#3270899&lt;/a&gt;, that justification is gone. The fix in &lt;code&gt;CssOptimizer.php&lt;/code&gt; is a one-line visibility change from &lt;code&gt;public&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt; on &lt;code&gt;loadFile()&lt;/code&gt;, with the explanatory note stripped from the docblock. The method has never been part of &lt;code&gt;AssetOptimizerInterface&lt;/code&gt; and &lt;code&gt;CssOptimizer&lt;/code&gt; carries no &lt;code&gt;@internal&lt;/code&gt; annotation, so callers outside the class hierarchy (contrib modules calling &lt;code&gt;$optimizer-&amp;gt;loadFile(...)&lt;/code&gt;) are directly affected.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any contrib or custom code calling &lt;code&gt;CssOptimizer::loadFile()&lt;/code&gt; directly must be updated. Since &lt;code&gt;loadFile()&lt;/code&gt; is not on &lt;code&gt;AssetOptimizerInterface&lt;/code&gt;, there is no interface-compatible replacement. Callers should instead work through the public API exposed by &lt;code&gt;AssetOptimizerInterface&lt;/code&gt;, or subclass &lt;code&gt;CssOptimizer&lt;/code&gt; and call the method from within the subclass.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (no longer works on Drupal 12.x):
-/** @var \Drupal\Core\Asset\CssOptimizer $optimizer */
-$contents = $optimizer-&amp;gt;loadFile($file, $optimize, $reset_base_path);
-
-// After: extend CssOptimizer and call from within the subclass:
-class MyCssOptimizer extends CssOptimizer {
-  public function myMethod(string $file): string {
-    return $this-&amp;gt;loadFile($file);
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 10, 2022&lt;/li&gt;
-&lt;li&gt;Committed: June 24, 2026 (3 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;rpayanm&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;mdranove&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue sat dormant for nearly three years after its initial filing. mdranove revived it by grepping a large local codebase for direct &lt;code&gt;CssAssetOptimizer&lt;/code&gt; calls, finding no contrib usages, filing a companion issue against the standalone &lt;code&gt;color&lt;/code&gt; project (&lt;a href="https://www.drupal.org/node/3590780"&gt;#3590780&lt;/a&gt;), and opening MR !15785 against &lt;code&gt;main&lt;/code&gt;. smustgrave independently confirmed the finding by searching &lt;code&gt;git.drupalcode.org&lt;/code&gt; for &lt;code&gt;CssOptimizer::loadFile(&lt;/code&gt; across contrib, noting that only color module forks and a single comment in &lt;code&gt;advagg&lt;/code&gt; appeared. catch then requested a change record before merging, which mdranove added.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3599680: Consolidate, merge, and refactor Gin's CSS variable's into Admin theme's original variables.</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3599680.md</link>
-      <guid isPermaLink="false">019ef8e8-3d00-71be-94ed-0d8c52ac3023</guid>
-      <category>Front-end developers</category>
-      <pubDate>Wed, 24 Jun 2026 06:44:45 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 100 files, +3005/−2798 · css +3005/−2798&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c3639bbc10a851b2241aa2c6cc2a82825d5ecdd7"&gt;c3639bb&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3599680"&gt;#3599680&lt;/a&gt; · 6 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;default_admin&lt;/code&gt; admin theme (the Gin contrib theme brought into core) has replaced its tangled dual CSS custom-property systems with a single, documented &lt;code&gt;--admin-*&lt;/code&gt; token namespace. The old &lt;code&gt;--gin-*&lt;/code&gt; properties are gone. The change also fixes a class of dark-mode bugs where surfaces were hardcoded to white and did not adapt to dark mode.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The entire &lt;code&gt;--gin-*&lt;/code&gt; CSS custom property surface is removed from the &lt;code&gt;default_admin&lt;/code&gt; theme; all tokens are now in the &lt;code&gt;--admin-*&lt;/code&gt; namespace with no deprecation aliases.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The theme previously carried two overlapping token systems inherited from its Seven → Claro → Gin lineage: a Claro layer (&lt;code&gt;--color-*&lt;/code&gt;, &lt;code&gt;--space-*&lt;/code&gt;, &lt;code&gt;--font-size-*&lt;/code&gt;, &lt;code&gt;--input-*&lt;/code&gt;) and a Gin layer (&lt;code&gt;--gin-*&lt;/code&gt;) that cross-referenced each other with duplicated and conflicting values. This change consolidates everything into one &lt;code&gt;--admin-*&lt;/code&gt; namespace organised in three tiers: primitive ramps (gray/blue/red scales, not for direct component use), semantic tokens (the public API components consume: text, surfaces, borders, status families, focus, links), and component tokens (per-component values seeded from the semantic layer).&lt;/p&gt;
-&lt;p&gt;The monolithic &lt;code&gt;css/base/variables.pcss.css&lt;/code&gt; is split into category files under &lt;code&gt;css/_variables/&lt;/code&gt;: &lt;code&gt;variables-color.pcss.css&lt;/code&gt;, &lt;code&gt;variables-color-accent.pcss.css&lt;/code&gt;, &lt;code&gt;variables-spacing.pcss.css&lt;/code&gt;, &lt;code&gt;variables-typography.pcss.css&lt;/code&gt;, &lt;code&gt;variables-misc.pcss.css&lt;/code&gt;, and &lt;code&gt;variables-components.pcss.css&lt;/code&gt;. The color token families are &lt;code&gt;--admin-color-gray-*&lt;/code&gt;, &lt;code&gt;--admin-color-blue-*&lt;/code&gt;, and &lt;code&gt;--admin-color-red-*&lt;/code&gt; primitive ramps; semantic roles like &lt;code&gt;--admin-color-text&lt;/code&gt;, &lt;code&gt;--admin-color-bg-surface&lt;/code&gt;, &lt;code&gt;--admin-color-border&lt;/code&gt;, &lt;code&gt;--admin-color-error&lt;/code&gt;, &lt;code&gt;--admin-color-focus&lt;/code&gt;; and accent tokens generated via &lt;code&gt;color-mix(in lch)&lt;/code&gt; from &lt;code&gt;--accent-base&lt;/code&gt;. Spacing is &lt;code&gt;--admin-space-{3xs…3xl}&lt;/code&gt; plus a density-aware &lt;code&gt;--admin-space-density-*&lt;/code&gt; scale controlled by &lt;code&gt;[data-gin-layout-density]&lt;/code&gt;. Layout geometry is namespaced to &lt;code&gt;--admin-theme-*&lt;/code&gt; to avoid collisions with core navigation's &lt;code&gt;--admin-toolbar-*&lt;/code&gt; tokens.&lt;/p&gt;
-&lt;p&gt;Dark mode is now expressed with a single &lt;code&gt;light-dark()&lt;/code&gt; declaration per token instead of a separate &lt;code&gt;.gin--dark-mode&lt;/code&gt; override block. The accent ramp scoped to &lt;code&gt;[data-gin-accent]&lt;/code&gt; also uses &lt;code&gt;light-dark()&lt;/code&gt;, eliminating the former &lt;code&gt;.gin--dark-mode [data-gin-accent]&lt;/code&gt; block entirely. This is what fixed the dark-mode surface bugs: surfaces that previously held a hardcoded white now resolve through &lt;code&gt;light-dark(white, #2a2a2d)&lt;/code&gt; or similar pairs. The &lt;code&gt;color-scheme&lt;/code&gt; property drives which half resolves. Component stylesheets were rerouted off raw primitive values and onto the semantic tokens. Dead custom properties were pruned; cross-module contracts were retained.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any custom CSS in contrib modules, sub-themes, or site-level stylesheets that references &lt;code&gt;--gin-*&lt;/code&gt; CSS custom properties must be updated to the new &lt;code&gt;--admin-*&lt;/code&gt; equivalents. There are no deprecation aliases; the old names are simply gone. Common migrations:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-css"&gt;/* OLD → NEW */
---gin-color-primary         → --admin-color-primary
---gin-bg-app                → --admin-color-bg          (defined in variables-color-accent.pcss.css)
---gin-border-s              → --admin-radius-xs
---gin-border-m              → --admin-radius-s
---gin-spacing-xs            → --admin-space-xs
---gin-spacing-s             → --admin-space-s
---gin-spacing-m             → --admin-space-m
---gin-spacing-density-m     → --admin-space-density-m
---gin-font-size-xs          → --admin-font-size-xs
---gin-transition-fast       → --admin-transition        (was misnamed; 0.3s is now --admin-transition-slow)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The source-of-truth definitions are in &lt;code&gt;core/themes/default_admin/css/_variables/*.pcss.css&lt;/code&gt;. Always edit the &lt;code&gt;.pcss.css&lt;/code&gt; sources, not the compiled &lt;code&gt;.css&lt;/code&gt; files.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 12, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 24, 2026 (11 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;li&gt;bernardm28&lt;/li&gt;
-&lt;li&gt;dharizza (Evolving Web)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, dharizza caught two visible regressions: sidebar action-link icons appearing bolder than on main, and a Delete button showing text in blue instead of red. mherchel confirmed both were real bugs introduced by the refactor, pushed fixes (including a &lt;code&gt;libraries.yml&lt;/code&gt; change requiring a cache clear to test), and dharizza verified the fixes resolved both issues and also corrected a pre-existing padding/tabs-border regression from main.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3605262: Database write optimizations result in inconsistent data in data and revision tables</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605262.md</link>
-      <guid isPermaLink="false">019ef567-7875-71c1-99e4-97e484b13a22</guid>
-      <pubDate>Tue, 23 Jun 2026 14:34:04 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +22/−27 · php +22/−27&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a3e92473065edb96725712666a1c7b6a018f554c"&gt;a3e9247&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3605262"&gt;#3605262&lt;/a&gt; · 3 contributors · 10 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A critical data-integrity regression introduced by the database write optimizations in &lt;a href="https://www.drupal.org/node/3554579"&gt;#3554579&lt;/a&gt; has been reverted. When an existing pending revision was promoted to the default revision while field values were also changed in the same save call, the revision table was not updated, leaving it out of sync with the base table. This could cause silent data loss or inconsistency for sites using Content Moderation, Workspaces, or any contributed module that promotes revisions and modifies fields simultaneously. The fix reverts the optimization in &lt;code&gt;SqlContentEntityStorage::saveToDedicatedTables()&lt;/code&gt; and adds a targeted regression test. The original issue (&lt;a href="https://www.drupal.org/node/3554579"&gt;#3554579&lt;/a&gt;) has been re-opened to attempt a corrected optimization.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The optimization in &lt;a href="https://www.drupal.org/node/3554579"&gt;#3554579&lt;/a&gt; introduced three local variables in &lt;code&gt;saveToDedicatedTables()&lt;/code&gt;: &lt;code&gt;$save_to_base_table&lt;/code&gt;, &lt;code&gt;$enforce_save_to_base_table&lt;/code&gt;, and &lt;code&gt;$save_to_revision_table&lt;/code&gt;. The intent was to skip the revision-table write when promoting a pending revision to default (because only the base table was assumed to need updating). However, the condition set &lt;code&gt;$save_to_revision_table = false&lt;/code&gt; whenever &lt;code&gt;$enforce_save_to_base_table&lt;/code&gt; was true, regardless of whether field values had also changed. When field values did change in the same operation, those new values were written only to the base table, leaving the revision table holding stale data.&lt;/p&gt;
-&lt;p&gt;The revert removes all three variables and restores simpler, always-write logic: the base table is written when &lt;code&gt;$entity-&amp;gt;isDefaultRevision()&lt;/code&gt; returns true; the revision table is written whenever &lt;code&gt;$this-&amp;gt;entityType-&amp;gt;isRevisionable()&lt;/code&gt; returns true. The skip-on-no-change guard is simplified to: skip only when not a new revision, the default-revision flag has not changed (&lt;code&gt;$entity-&amp;gt;isDefaultRevision() === $original-&amp;gt;isDefaultRevision()&lt;/code&gt;), and &lt;code&gt;hasFieldValueChanged()&lt;/code&gt; returns false.&lt;/p&gt;
-&lt;p&gt;The regression test added to &lt;code&gt;testFieldEntityRevisionWrite()&lt;/code&gt; exercises the precise failing scenario: saving a pending revision with a new value (&lt;code&gt;baz&lt;/code&gt;), then loading by both &lt;code&gt;loadUnchanged()&lt;/code&gt; and &lt;code&gt;loadRevision()&lt;/code&gt; to confirm both the base and revision tables reflect the new value.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 21, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 23, 2026 (2 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir opened the issue and merge request immediately after spotting failures in the &lt;code&gt;entity_reference_revisions&lt;/code&gt; test suite, identifying the exact trigger as simultaneously changing the default-revision flag and field values on an existing revision. catch commented that reverting first and re-opening &lt;a href="https://www.drupal.org/node/3554579"&gt;#3554579&lt;/a&gt; for a corrected attempt was the right path, and sketched two potential approaches: either deprecating the mixed-operation pattern (if detectable) or accounting for it within the optimization itself.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

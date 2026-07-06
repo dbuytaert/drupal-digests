@@ -1,4 +1,4 @@
-**TL;DR:** [730 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [733 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_527 summaries · 10 new this week_
+_530 summaries · 13 new this week_
 
-- [#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md)
-- [#3608069: Restore (but don't apply) deprecated recipes to 11.4.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md)
-- [#3600697: Attribute route discovery does not handle arrays for JSON:API contrib modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600697.md)
+- [#3564112: Cache rebuild triggers file_get_contents Permission denied in theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md)
+- [#3608374: Data for non-revisionable/non-translatable/no-dedicated-field-tables entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608374.md)
+- [#3588547: Don't invalidate the entire fast backend on persistent backend cache misses](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588547.md)
 
 ### Drupal Canvas
 
