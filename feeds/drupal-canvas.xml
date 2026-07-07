@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591601: Rudimentary conflict resolution UI</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591601.md</link>
+      <guid isPermaLink="false">019f3d80-24b9-71e7-8f30-6db206b3e878</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 07 Jul 2026 16:28:07 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591601"&gt;#3591601&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas module now includes a rudimentary conflict resolution interface. When an auto-saved page has a conflict with a version published externally, editors can open a dedicated side-by-side comparison screen showing the &amp;quot;Published version&amp;quot; and &amp;quot;New version&amp;quot; (auto-save) of each conflicted page. They select which version to keep, click &amp;quot;Resolve conflict,&amp;quot; and the module either discards the auto-save (published version wins) or records the resolution via API (auto-save wins). Multiple conflicts are presented as a paginated queue (&amp;quot;Review 1 of 2&amp;quot;), and after all conflicts are resolved a completion screen confirms that everything is up to date. The feature is currently gated behind the &lt;code&gt;devConflictDetectionMode&lt;/code&gt; Canvas setting.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;PATCH /canvas/api/v0/content/auto-save/:entityType/:entityId&lt;/code&gt; payload field &lt;code&gt;resolved_conflict_id&lt;/code&gt; and four-outcome &lt;code&gt;ConflictResolutionOutcomeEnum&lt;/code&gt; for the server-side conflict resolution handler.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two new frontend routes are registered in &lt;code&gt;AppRoutes&lt;/code&gt;: &lt;code&gt;/conflict/:entityType/:entityId&lt;/code&gt; renders &lt;code&gt;ConflictResolutionPage&lt;/code&gt; inside &lt;code&gt;UiShell&lt;/code&gt;, and &lt;code&gt;/conflict&lt;/code&gt; renders the same component without an entity param to show the &amp;quot;all resolved&amp;quot; state. A companion set of preview routes (&lt;code&gt;/conflict-preview/:entityType/:entityId&lt;/code&gt; and an optional &lt;code&gt;/:width&lt;/code&gt; variant) renders &lt;code&gt;ConflictPreview&lt;/code&gt;, a stripped-down iframe component that fetches layout HTML via &lt;code&gt;useGetConflictPageLayoutQuery&lt;/code&gt; with a &lt;code&gt;?version=published&lt;/code&gt; search param to toggle between the published and auto-save renders. &lt;code&gt;Topbar&lt;/code&gt; was updated to treat &lt;code&gt;/conflict-preview&lt;/code&gt; as a preview context so the toolbar renders correctly.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ConflictResolutionPage&lt;/code&gt; drives the resolution flow. On mount it reads the live pending-changes list, snapshots the initial conflict queue with &lt;code&gt;getConflictQueue&lt;/code&gt; and &lt;code&gt;findConflictIndex&lt;/code&gt; (from &lt;code&gt;conflictComparison.ts&lt;/code&gt;), and holds that snapshot stable while live data refreshes. Each conflict entry shows a two-column &lt;code&gt;PageConflictComparisonView&lt;/code&gt; with &amp;quot;Visual&amp;quot; and &amp;quot;Text&amp;quot; tabs. Choosing &amp;quot;Published version&amp;quot; calls &lt;code&gt;useDiscardPendingChangeMutation&lt;/code&gt; (a DELETE on &lt;code&gt;/canvas/api/v0/auto-saves/:entityType/:entityId&lt;/code&gt;). Choosing &amp;quot;New version&amp;quot; calls &lt;code&gt;useUpdateContentMutation&lt;/code&gt; (a PATCH on &lt;code&gt;/canvas/api/v0/content/auto-save/:entityType/:entityId&lt;/code&gt;) with &lt;code&gt;{ resolved_conflict_id: conflict_id }&lt;/code&gt;. Either path invalidates &lt;code&gt;Layout&lt;/code&gt; and &lt;code&gt;Content&lt;/code&gt; RTK Query tags and refetches pending changes. Resolution errors surface as a dismissible toast rather than replacing the comparison view.&lt;/p&gt;
+&lt;p&gt;On the PHP side, &lt;code&gt;ConflictResolutionOutcomeEnum&lt;/code&gt; models the four outcomes of the PATCH endpoint: &lt;code&gt;Resolved&lt;/code&gt; (204), &lt;code&gt;NoAutoSaveItem&lt;/code&gt; (404), &lt;code&gt;NoActiveConflict&lt;/code&gt; (422), and &lt;code&gt;ConflictMismatch&lt;/code&gt; (409). A &lt;code&gt;ConflictMismatch&lt;/code&gt; response includes the current &lt;code&gt;conflict_id&lt;/code&gt; in its &lt;code&gt;meta&lt;/code&gt; payload so the client can detect a race condition and retry.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PublishReview&lt;/code&gt; gained an optional &lt;code&gt;open&lt;/code&gt; prop for controlled open state. When provided, the component defers open/close decisions to the caller and omits its own &lt;code&gt;setInternalOpen&lt;/code&gt; call. &lt;code&gt;UnpublishedChanges&lt;/code&gt; manages this state and handles a new &lt;code&gt;?reviewChanges=1&lt;/code&gt; query param: on mount it opens the review panel, refetches changes, and replaces the URL to strip the param. &lt;code&gt;onResolveConflict&lt;/code&gt; in &lt;code&gt;UnpublishedChanges&lt;/code&gt; now calls &lt;code&gt;navigate(getConflictRouteForChange(change))&lt;/code&gt; instead of a bare &lt;code&gt;refetch()&lt;/code&gt;. The pending-changes API type for &lt;code&gt;PendingResponse.data&lt;/code&gt; was tightened to &lt;code&gt;Record&amp;lt;string, { data_hash?: string }&amp;gt;&lt;/code&gt;, and &lt;code&gt;conflict_id&lt;/code&gt; is now extracted from error metadata (&lt;code&gt;meta.conflict_id&lt;/code&gt;) returned by the pending-changes endpoint.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 29, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ravi.maniyar.123&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;justafish (Acquia)&lt;/li&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3575644: `Regex` constraint on `string_long` field type intended to convey semantics causes "JIT stack limit reached" on long strings; make this pattern a no-op since it allows _anything_</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md</link>
       <guid isPermaLink="false">019f2791-302e-72bd-92b9-9672f2b5f563</guid>
@@ -835,43 +876,6 @@ const { name } = uid;   // uid is now a nested object
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;tedbow opened two early MRs (!833, !885) demonstrating TMGMT translation working for plain-string inputs, with screenshots. wim leers noted in comment #9 that the approach could only ever surface plain strings: multi-property field types like &lt;code&gt;link&lt;/code&gt; could not work because TMGMT's &lt;code&gt;Data::wordCount&lt;/code&gt; assumed a flat string, and the default &lt;code&gt;ConfigProcessorInterface&lt;/code&gt; had no way to handle the value/format split of formatted text or the uri/options split of links. This diagnosis ruled out the earlier MRs and established that a custom &lt;code&gt;ConfigProcessorInterface&lt;/code&gt; implementation was the only viable path. wim leers closed both MRs and opened !1099, which resolved the remaining crash by removing the incorrect delta assertion in &lt;code&gt;CanvasStaticPropSourceFieldWidget::setConfig()&lt;/code&gt; and building the full custom processor.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591638: Add a computed `src` field property to the image field type</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591638.md</link>
-      <guid isPermaLink="false">019ead56-744e-766c-8198-d8944b368492</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 09 Jun 2026 16:06:42 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591638"&gt;#3591638&lt;/a&gt; · 2 contributors · 6 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas's image field type now exposes a &lt;code&gt;src&lt;/code&gt; field property that code-component developers can use to bind an image URL to a component prop. Previously the only browser-ready URL was named &lt;code&gt;src_with_alternate_widths&lt;/code&gt;, which leaked an internal implementation detail into the data-selection UI. The new &lt;code&gt;src&lt;/code&gt; is a clean alias: it resolves to the same URL (including the &lt;code&gt;?alternateWidths&lt;/code&gt; query string needed for Canvas's responsive-image handling) but is presented with a name that is meaningful to component authors. Automatic shape matching and content-template suggestions are unaffected and continue to resolve &lt;code&gt;src_with_alternate_widths&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Image field type in Canvas now exposes a computed &lt;code&gt;src&lt;/code&gt; property (alias of &lt;code&gt;src_with_alternate_widths&lt;/code&gt;) for direct use in code-component data selection.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is in &lt;code&gt;ImageItemOverride::propertyDefinitions()&lt;/code&gt;. After the existing &lt;code&gt;src_with_alternate_widths&lt;/code&gt; property is constructed (a computed &lt;code&gt;DataDefinition&lt;/code&gt; backed by &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt;), a new &lt;code&gt;src&lt;/code&gt; property is added by cloning it and calling &lt;code&gt;setSetting('is source for', 'src_with_alternate_widths')&lt;/code&gt; on the clone. The &lt;code&gt;is source for&lt;/code&gt; setting is the same mechanism already used in &lt;code&gt;TextWithSummaryItemOverride&lt;/code&gt; to exclude raw &lt;code&gt;value&lt;/code&gt;/&lt;code&gt;format&lt;/code&gt; properties in favour of &lt;code&gt;processed&lt;/code&gt;. In &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt;, any property carrying &lt;code&gt;is source for&lt;/code&gt; is skipped during shape matching iteration (&lt;code&gt;continue&lt;/code&gt;), which keeps &lt;code&gt;src&lt;/code&gt; out of automatic prop matching while still making it available for explicit selection. Both &lt;code&gt;src&lt;/code&gt; and &lt;code&gt;src_with_alternate_widths&lt;/code&gt; produce identical dependency graphs, as confirmed by the test case at line 1011 of &lt;code&gt;PropExpressionTest&lt;/code&gt;. The &lt;code&gt;@todo&lt;/code&gt; on this property points to &lt;a href="https://www.drupal.org/node/3464003"&gt;#3464003&lt;/a&gt;, which tracks replacing computed field properties with adapters; that change will require an update path for any component trees that consume &lt;code&gt;src&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

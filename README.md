@@ -1,24 +1,24 @@
-**TL;DR:** [734 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [735 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_101 summaries · 4 new this week_
+
+- [#3591601: Rudimentary conflict resolution UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591601.md)
+- [#3575644: `Regex` constraint on `string_long` field type intended to convey semantics...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md)
+- [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
+
 ### Drupal Core
 
-_531 summaries · 13 new this week_
+_531 summaries · 12 new this week_
 
 - [#3605554: Translations are never loaded or downloaded for a custom profile](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605554.md)
 - [#3564112: Cache rebuild triggers file_get_contents Permission denied in theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md)
 - [#3608374: Data for non-revisionable/non-translatable/no-dedicated-field-tables entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608374.md)
-
-### Drupal Canvas
-
-_100 summaries · 3 new this week_
-
-- [#3575644: `Regex` constraint on `string_long` field type intended to convey semantics...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md)
-- [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
-- [#3587526: Prevention of publishing on Conflict in Canvas UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587526.md)
 
 ### Drupal AI
 
