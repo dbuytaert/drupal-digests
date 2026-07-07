@@ -1,4 +1,4 @@
-**TL;DR:** [733 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [734 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_530 summaries · 13 new this week_
+_531 summaries · 14 new this week_
 
+- [#3605554: Translations are never loaded or downloaded for a custom profile](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605554.md)
 - [#3564112: Cache rebuild triggers file_get_contents Permission denied in theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md)
 - [#3608374: Data for non-revisionable/non-translatable/no-dedicated-field-tables entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608374.md)
-- [#3588547: Don't invalidate the entire fast backend on persistent backend cache misses](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588547.md)
 
 ### Drupal Canvas
 
