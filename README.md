@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_531 summaries · 14 new this week_
+_531 summaries · 13 new this week_
 
 - [#3605554: Translations are never loaded or downloaded for a custom profile](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605554.md)
 - [#3564112: Cache rebuild triggers file_get_contents Permission denied in theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md)
@@ -14,7 +14,7 @@ _531 summaries · 14 new this week_
 
 ### Drupal Canvas
 
-_100 summaries · 4 new this week_
+_100 summaries · 3 new this week_
 
 - [#3575644: `Regex` constraint on `string_long` field type intended to convey semantics...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md)
 - [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
