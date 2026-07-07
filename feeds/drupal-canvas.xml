@@ -5,6 +5,48 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591727: Deleting optional props from an SDC/code component causes validation errors in config-defined component instances: regression for monolingual sites, bug for multilingual sites</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591727.md</link>
+      <guid isPermaLink="false">019f3e4f-cd27-74b8-b897-68f637145ec6</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 07 Jul 2026 17:38:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591727"&gt;#3591727&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When an optional prop was removed from an SDC or code component (triggering a new component version), existing component tree instances that referenced the old version would produce config validation errors, even though those instances were otherwise untouched and completely valid. On multilingual sites the same root cause also broke prop translatability for component instances at old versions. This is now fixed. A one-time post-update hook backfills the new per-prop &lt;code&gt;derived_schema_metadata&lt;/code&gt; onto all existing &lt;code&gt;Component&lt;/code&gt; config entities; automatic component instance updating then handles migrating instances to the current version as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update hook &lt;code&gt;canvas_post_update_0021_store_prop_derived_schema_metadata&lt;/code&gt; backfills &lt;code&gt;derived_schema_metadata&lt;/code&gt; on all existing &lt;code&gt;Component&lt;/code&gt; config entities.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;derived_schema_metadata&lt;/code&gt; key (with optional &lt;code&gt;string_shape&lt;/code&gt; sub-key) added to each prop entry inside &lt;code&gt;type: canvas.json_schema_props&lt;/code&gt;; all &lt;code&gt;Component&lt;/code&gt; config exports will include it after the update.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that &lt;code&gt;JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::getConfigSchemaMapping()&lt;/code&gt; and &lt;code&gt;ComponentInputsTranslatablesExtractor&lt;/code&gt; both called &lt;code&gt;getMetadata()&lt;/code&gt; on the live component source to determine which props exist and which are translatable. The live source only knows about the currently deployed JSON schema: a prop removed from the live SDC or code component is simply absent from &lt;code&gt;getMetadata()&lt;/code&gt;, so the generated config schema mapping dropped the entry for it, causing config validation to reject any stored instance that still referenced that prop under the old component version.&lt;/p&gt;
+&lt;p&gt;The fix stores a new &lt;code&gt;derived_schema_metadata&lt;/code&gt; key per prop inside each version's &lt;code&gt;prop_field_definitions&lt;/code&gt; (under &lt;code&gt;type: canvas.json_schema_props&lt;/code&gt;). Its only current sub-key is &lt;code&gt;string_shape&lt;/code&gt;: the translation-relevant subset of the prop's JSON schema at the time that version was created (plain string, multi-line &lt;code&gt;pattern&lt;/code&gt;, rich text &lt;code&gt;contentMediaType&lt;/code&gt;/&lt;code&gt;x-formatting-context&lt;/code&gt;, or URI-esque &lt;code&gt;format&lt;/code&gt;). The new static &lt;code&gt;PropShape::getTranslatableStringShape()&lt;/code&gt; extracts that subset from a raw or normalized JSON schema, and returns &lt;code&gt;NULL&lt;/code&gt; for non-translatable shapes such as integers or string enums. This replaces the removed static &lt;code&gt;isTranslatableShape()&lt;/code&gt; on &lt;code&gt;JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;getConfigSchemaMapping()&lt;/code&gt; now iterates &lt;code&gt;prop_field_definitions&lt;/code&gt; (versioned, config-stored data) instead of calling &lt;code&gt;getMetadata()&lt;/code&gt;, so a removed or changed prop keeps its mapping entry for every version that still names it. Translatability is determined by the new &lt;code&gt;JsonSchemaPropsComponentSourceBase::isExplicitInputTranslatable()&lt;/code&gt;, which reads &lt;code&gt;derived_schema_metadata['string_shape']&lt;/code&gt; from the versioned config and additionally checks that the prop is not backed by an entity reference. Inputs that are populated in a stored instance but have no field definition for that version (for example, props whose shape is not storable) now receive a non-translatable &lt;code&gt;type: ignore&lt;/code&gt; entry rather than being silently dropped.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;derived_schema_metadata&lt;/code&gt; is deliberately excluded from the version hash. &lt;code&gt;ComponentSourceBase&lt;/code&gt; gains a new &lt;code&gt;settingsAffectingVersionHash()&lt;/code&gt; hook that subclasses can override to strip purely derived data; &lt;code&gt;JsonSchemaPropsComponentSourceBase&lt;/code&gt; overrides it to remove &lt;code&gt;derived_schema_metadata&lt;/code&gt; before hashing, so backfilling or recomputing this field never changes existing component version ids.&lt;/p&gt;
+&lt;p&gt;The post-update hook &lt;code&gt;canvas_post_update_0021_store_prop_derived_schema_metadata&lt;/code&gt; runs &lt;code&gt;CanvasConfigUpdater::updatePropFieldDefinitionsWithDerivedSchemaMetadata()&lt;/code&gt; on all existing &lt;code&gt;Component&lt;/code&gt; config entities. For each version it can still derive the shape from the live implementation (active version only); past versions whose live schema is no longer available receive an empty &lt;code&gt;derived_schema_metadata&lt;/code&gt; and are treated as non-translatable until the instance is updated to the active version. A side change makes props with a &lt;code&gt;minLength&lt;/code&gt; JSON schema constraint non-storable (returning &lt;code&gt;NULL&lt;/code&gt; from &lt;code&gt;JsonSchemaType&lt;/code&gt;), because length constraints interact poorly with translation.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No application code changes are required. After running database updates, the post-update hook &lt;code&gt;canvas_post_update_0021_store_prop_derived_schema_metadata&lt;/code&gt; will backfill &lt;code&gt;derived_schema_metadata&lt;/code&gt; on all &lt;code&gt;Component&lt;/code&gt; config entities automatically. If you export config after updating, every &lt;code&gt;Component&lt;/code&gt; config file will gain &lt;code&gt;derived_schema_metadata: {}&lt;/code&gt; (or &lt;code&gt;derived_schema_metadata: {string_shape: {…}}&lt;/code&gt;) under each prop in &lt;code&gt;prop_field_definitions&lt;/code&gt;. Commit those exports. No changes to SDC &lt;code&gt;.component.yml&lt;/code&gt; files or code component definitions are needed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591601: Rudimentary conflict resolution UI</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591601.md</link>
       <guid isPermaLink="false">019f3d80-24b9-71e7-8f30-6db206b3e878</guid>
@@ -829,53 +871,6 @@ const { name } = uid;   // uid is now a nested object
 &lt;ul&gt;
 &lt;li&gt;Opened: May 7, 2026&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582558: Symmetrically translatable config-defined component trees, STEP 4: allow translating component instance inputs via TMGMT for ContentTemplates &amp; PageRegions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582558.md</link>
-      <guid isPermaLink="false">019eb355-154b-74ba-bd57-750f98bf4ff8</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Wed, 10 Jun 2026 20:07:50 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +833/−200 · php +814/−199 · yml +12/−1 · neon +6 · json +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3582558"&gt;#3582558&lt;/a&gt; · 6 contributors · 24 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas site owners who use TMGMT (Translation Management Tool) to manage config-translation workflows can now translate the text inputs of component instances stored in &lt;code&gt;ContentTemplate&lt;/code&gt; and &lt;code&gt;PageRegion&lt;/code&gt; config entities. Inputs populated by static prop sources (plain strings, rich text, URIs, and multi-value sequences) are exposed as translatable segments in the TMGMT job UI. Inputs driven by entity field references or host-entity URL prop sources are correctly excluded. Optional inputs not populated in the default-language template can still receive a translation value. This is Step 4 of a series of issues making Canvas config-defined component trees symmetrically translatable; it requires the &lt;code&gt;canvas_dev_translation&lt;/code&gt; module to be enabled.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;translatable_uri&lt;/code&gt; config schema type added; &lt;code&gt;field.value.link&lt;/code&gt; and &lt;code&gt;field.value.uri&lt;/code&gt; URI properties retyped to &lt;code&gt;translatable_uri&lt;/code&gt; via &lt;code&gt;hook_config_schema_info_alter()&lt;/code&gt; in &lt;code&gt;canvas_dev_translation&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ComponentInputsConfigProcessor&lt;/code&gt; class in &lt;code&gt;Drupal\canvas\Tmgmt\&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) registered as &lt;code&gt;tmgmt_config_processor&lt;/code&gt; for &lt;code&gt;canvas.content_template.*.*.*&lt;/code&gt; and &lt;code&gt;canvas.page_region.*&lt;/code&gt; config schema types.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The central addition is &lt;code&gt;ComponentInputsConfigProcessor&lt;/code&gt; (&lt;code&gt;Drupal\canvas\Tmgmt\&lt;/code&gt;, &lt;code&gt;@internal&lt;/code&gt;), which extends TMGMT's &lt;code&gt;DefaultConfigProcessor&lt;/code&gt;. It is registered on the &lt;code&gt;canvas.content_template.*.*.*&lt;/code&gt; and &lt;code&gt;canvas.page_region.*&lt;/code&gt; config schema types via a new &lt;code&gt;hook_config_schema_info_alter()&lt;/code&gt; implementation in &lt;code&gt;canvas_dev_translation&lt;/code&gt;'s &lt;code&gt;ConfigTranslationSupportHooks&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;extractTranslatables()&lt;/code&gt; encounters a &lt;code&gt;ComponentInputsMapping&lt;/code&gt; element, it bypasses standard schema-driven extraction and instead loads the &lt;code&gt;Component&lt;/code&gt; entity and its &lt;code&gt;JsonSchemaPropsComponentSourceBase&lt;/code&gt; component source. It then constructs an ad-hoc concrete schema by mapping each prop's field type to the corresponding &lt;code&gt;field.value.*&lt;/code&gt; config schema definition, handling four cardinality/property-count combinations (single cardinality + single property, multi-cardinality + single property, single cardinality + multi-property, multi-cardinality + multi-property). Props not backed by a &lt;code&gt;StaticPropSource&lt;/code&gt; are emitted as &lt;code&gt;type: ignore&lt;/code&gt;. Optional inputs absent from the default translation are injected as &lt;code&gt;NULL&lt;/code&gt; into &lt;code&gt;$config_data&lt;/code&gt; so TMGMT's &lt;code&gt;ArrayElement::getAllKeys()&lt;/code&gt; does not silently skip them; because TMGMT's flattener drops empty strings, the Unicode sentinel &lt;code&gt;∅&lt;/code&gt; (&amp;quot;empty set&amp;quot;) is substituted to force these inputs visible in the translation UI, via the private &lt;code&gt;extractTranslatablesIncludingEmpty()&lt;/code&gt; method.&lt;/p&gt;
-&lt;p&gt;Two config schema alterations accompany the processor. &lt;code&gt;field.value.link&lt;/code&gt;'s &lt;code&gt;uri&lt;/code&gt; property and &lt;code&gt;field.value.uri&lt;/code&gt;'s &lt;code&gt;value&lt;/code&gt; property are retyped to a new &lt;code&gt;translatable_uri&lt;/code&gt; schema type (a translatable variant of &lt;code&gt;type: uri&lt;/code&gt;) added by the MR with a &lt;code&gt;@todo&lt;/code&gt; referencing core issue &lt;a href="https://www.drupal.org/node/3595275"&gt;#3595275&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;A bug fix in &lt;code&gt;CanvasStaticPropSourceFieldWidget::setConfig()&lt;/code&gt; was also required to make TMGMT's save path work correctly. An &lt;code&gt;assert()&lt;/code&gt; requiring values to be delta-keyed lists was removed (TMGMT does not supply delta keys); multi-value fields now strip only the &lt;code&gt;add_more&lt;/code&gt; pseudo-key. A second bug was fixed where the config override was written to &lt;code&gt;$base_key&lt;/code&gt; instead of &lt;code&gt;$subkey&lt;/code&gt; for multi-property field types, and optional empty properties in the base config now skip creating an override rather than writing an empty value.&lt;/p&gt;
-&lt;p&gt;Functional test coverage is split into two new parallel test classes sharing a &lt;code&gt;ConfigWithComponentTreeTranslationTestBase&lt;/code&gt; fixture: &lt;code&gt;ConfigWithComponentTreeConfigTranslationUiTest&lt;/code&gt; (core Config Translation UI) and &lt;code&gt;ConfigWithComponentTreeTmgmtUiTest&lt;/code&gt; (TMGMT UI). Both assert the same resulting &lt;code&gt;LanguageConfigOverride&lt;/code&gt;, covering plain prose, rich text (value-only override, format excluded), URI-esque props, multi-cardinality sequences, optional unpopulated props, and excluded non-static prop sources.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 1, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;tedbow opened two early MRs (!833, !885) demonstrating TMGMT translation working for plain-string inputs, with screenshots. wim leers noted in comment #9 that the approach could only ever surface plain strings: multi-property field types like &lt;code&gt;link&lt;/code&gt; could not work because TMGMT's &lt;code&gt;Data::wordCount&lt;/code&gt; assumed a flat string, and the default &lt;code&gt;ConfigProcessorInterface&lt;/code&gt; had no way to handle the value/format split of formatted text or the uri/options split of links. This diagnosis ruled out the earlier MRs and established that a custom &lt;code&gt;ConfigProcessorInterface&lt;/code&gt; implementation was the only viable path. wim leers closed both MRs and opened !1099, which resolved the remaining crash by removing the incorrect delta assertion in &lt;code&gt;CanvasStaticPropSourceFieldWidget::setConfig()&lt;/code&gt; and building the full custom processor.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

@@ -1,4 +1,4 @@
-**TL;DR:** [735 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [736 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_101 summaries · 4 new this week_
+_102 summaries · 5 new this week_
 
+- [#3591727: Deleting optional props from an SDC/code component causes validation errors in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591727.md)
 - [#3591601: Rudimentary conflict resolution UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591601.md)
 - [#3575644: `Regex` constraint on `string_long` field type intended to convey semantics...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md)
-- [#3591760: Canvas should mark multi-line string props on SDCs and code components as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md)
 
 ### Drupal Core
 
