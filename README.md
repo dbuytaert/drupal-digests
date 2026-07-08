@@ -1,4 +1,4 @@
-**TL;DR:** [741 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [743 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_104 summaries · 7 new this week_
+_106 summaries · 9 new this week_
 
+- [#3591782: Content template editor preview shows a stale snapshot instead of live edits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591782.md)
+- [#3591781: Release content entity reference props for code components: drop the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591781.md)
 - [#3591698: Release symmetrical translation functionality: drop the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591698.md)
-- [#3591669: Add heuristics for exposing fields/props to the content-entity-reference...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591669.md)
-- [#3591727: Deleting optional props from an SDC/code component causes validation errors in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591727.md)
 
 ### Drupal Core
 
@@ -22,7 +22,7 @@ _533 summaries · 14 new this week_
 
 ### Drupal AI
 
-_87 summaries · 4 new this week_
+_87 summaries · 1 new this week_
 
 - [#3548526: Support File Handling](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md)
 - [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
