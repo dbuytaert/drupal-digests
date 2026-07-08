@@ -5,6 +5,61 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3548526: Support File Handling</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md</link>
+      <guid isPermaLink="false">019f4297-1994-71bf-bdae-302fdcd03b20</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 07 Jul 2026 16:23:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +572/−2 · php +571/−1 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_openai/-/commit/623d27cf1e2925895e70dfb5ba0b7a63da94fb76"&gt;623d27c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3548526"&gt;#3548526&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The OpenAI provider module for Drupal now supports the OpenAI Files API through the normalized AI module file-handling interface. Developers can upload files to OpenAI, attach them by remote ID to chat messages, download file content, and delete remote files. This enables use cases like document Q&amp;amp;A and fine-tuning data management without leaving the Drupal AI abstraction layer. Requires &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2 or higher.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum drupal/ai version raised from ^1.4.0 to ^1.4.2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; OpenAiProvider now implements AiFileProviderInterface, adding uploadFile(), deleteFile(), downloadFile(), and supportsMimeType() methods for interacting with the OpenAI Files API.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;OpenAiProvider&lt;/code&gt; now implements &lt;code&gt;AiFileProviderInterface&lt;/code&gt; (from &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2+) and uses the &lt;code&gt;FileApiTrait&lt;/code&gt; (&lt;code&gt;Drupal\ai\Traits\OpenAi\FileApiTrait&lt;/code&gt;) to fulfil that interface. The trait provides &lt;code&gt;uploadFile()&lt;/code&gt;, &lt;code&gt;deleteFile()&lt;/code&gt;, &lt;code&gt;downloadFile()&lt;/code&gt;, and &lt;code&gt;supportsMimeType()&lt;/code&gt; methods backed by the OpenAI PHP SDK. MIME type eligibility is gated by purpose: &lt;code&gt;batch&lt;/code&gt; and &lt;code&gt;fine_tune&lt;/code&gt; accept text and JSON only, &lt;code&gt;vision&lt;/code&gt; accepts image types, and &lt;code&gt;user_data&lt;/code&gt; is unrestricted.&lt;/p&gt;
+&lt;p&gt;On the chat side, &lt;code&gt;OpenAiProvider::chat()&lt;/code&gt; was extended to detect &lt;code&gt;getRemoteFiles()&lt;/code&gt; on each &lt;code&gt;ChatMessage&lt;/code&gt; and append &lt;code&gt;{'type': 'file', 'file': {'file_id': $id}}&lt;/code&gt; content blocks to the outgoing API payload. This allows previously uploaded files to be referenced in a conversation turn without re-sending file bytes.&lt;/p&gt;
+&lt;p&gt;Error handling in &lt;code&gt;uploadFile()&lt;/code&gt; maps &amp;quot;Request too large&amp;quot; API errors to &lt;code&gt;AiRateLimitException&lt;/code&gt; and quota errors to &lt;code&gt;AiQuotaException&lt;/code&gt;. The minimum &lt;code&gt;drupal/ai&lt;/code&gt; constraint in &lt;code&gt;composer.json&lt;/code&gt; was tightened from &lt;code&gt;^1.4.0&lt;/code&gt; to &lt;code&gt;^1.4.2&lt;/code&gt;, which is the release that introduced &lt;code&gt;AiFileProviderInterface&lt;/code&gt; and &lt;code&gt;FileApiTrait&lt;/code&gt; in the base module (see &lt;a href="https://www.drupal.org/node/3546954"&gt;#3546954&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No changes required for existing code. To use file handling, obtain the provider as &lt;code&gt;AiFileProviderInterface&lt;/code&gt; and call its methods:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai\AiFileProviderInterface;
+
+// Upload a file (returns the AiFile entity with remote ID set).
+/** @var AiFileProviderInterface $provider */
+$aiFile = $this-&amp;gt;aiFileManager-&amp;gt;upload('public://docs/report.pdf', 1, 'openai');
+
+// Reference the uploaded file in a chat message.
+$message = new ChatMessage('user', 'Summarize this document.');
+$message-&amp;gt;addRemoteFile($aiFile-&amp;gt;getRemoteId());
+$input = new ChatInput([$message]);
+$response = $provider-&amp;gt;chat($input, 'gpt-4o')-&amp;gt;getNormalized();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 24, 2025&lt;/li&gt;
+&lt;li&gt;Committed: July 7, 2026 (9 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;b_sharpe demonstrated the feature working end-to-end in a comment showing file upload followed by referencing the remote ID in a chat message. marcus_johansson steered the implementation toward using the &lt;code&gt;AiModelCapability&lt;/code&gt; enum for capability checks and suggested moving the file trait into the base AI module rather than keeping it in the provider, which is what ultimately shipped. b_sharpe subsequently rebased the MR against the 1.3.x branch after &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2 landed with the normalized file API.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3600886: Add an "AI audio" field validation constraint (speech-to-text)</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md</link>
       <guid isPermaLink="false">019f1e97-f1a5-7321-87fc-9a21e63e7dd8</guid>
@@ -822,74 +877,6 @@ fi
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;In the closing comment, ajv009 explicitly disclosed a deviation from the ticket's literal spec: the implementation uses provenance-comment detection rather than canvas-starter boilerplate string matching, with a reasoned trade-off. The comment acknowledged the one scenario where the approach fails closed (a manually edited file with provenance removed and real-looking titles) and offered to add the literal string scan as a secondary check if reviewers required it.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588596: Add Webhook support, Project support and events for this</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588596.md</link>
-      <guid isPermaLink="false">019e1e3c-3617-7265-94bf-14683b30befb</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 12 May 2026 07:14:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 3.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 92 files, +6272/−26 · php +5823/−23 · json +238/−1 · txt +108 · yml +103/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/gitlab_api/-/commit/0a19cf602a95b7f3d87f3f16aeced51063614439"&gt;0a19cf6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588596"&gt;#3588596&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;gitlab_api&lt;/code&gt; module (3.0.x) gains three major capabilities in this release. First, access tokens for GitLab servers are moved from inline config strings to Key module entities, making the Key module a hard dependency. Second, a new &lt;code&gt;GitlabProject&lt;/code&gt; config entity lets administrators configure multiple projects, each with its own access token and webhook secrets. Third, a public webhook endpoint at &lt;code&gt;/gitlab-api/webhook/{project}&lt;/code&gt; receives GitLab events (issues, comments, push, merge requests, pipelines) and dispatches typed Symfony events, which the &lt;code&gt;eca_gitlab_api&lt;/code&gt; submodule exposes as ECA event plugins complete with conditions for slash commands and template validation. Sites upgrading from an earlier 2.x configuration must run &lt;code&gt;drush updatedb&lt;/code&gt; and, critically, must switch the auto-created Key entities off the &lt;code&gt;config&lt;/code&gt; provider before running &lt;code&gt;drush config:export&lt;/code&gt; — otherwise the GitLab access token will be written in plaintext to config YAML and any git commit of that export will expose the secret.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Update hook 9003 creates Key entities with &lt;code&gt;key_provider: config&lt;/code&gt; by default; running &lt;code&gt;drush config:export&lt;/code&gt; before switching to an &lt;code&gt;environment&lt;/code&gt; or &lt;code&gt;file&lt;/code&gt; provider will write the GitLab access token in plaintext to config YAML. See UPGRADING.md for remediation steps.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;drupal/key ^1.18&lt;/code&gt; is now a hard runtime dependency of &lt;code&gt;gitlab_api&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;gitlab_seen_event&lt;/code&gt; table with primary key on SHA-256 event ID and an index on &lt;code&gt;seen_at&lt;/code&gt; for cron-based TTL expiry.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;gitlab_server&lt;/code&gt; config entity field &lt;code&gt;auth_token&lt;/code&gt; (inline string) removed; replaced by &lt;code&gt;auth_token_key&lt;/code&gt; (Key entity ID). New &lt;code&gt;gitlab_project&lt;/code&gt; config entity type added.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;administer gitlab_project&lt;/code&gt; and &lt;code&gt;use gitlab_api tools&lt;/code&gt; permissions, both marked &lt;code&gt;restrict access: true&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Nine typed Symfony event classes (&lt;code&gt;GitlabPushEvent&lt;/code&gt;, &lt;code&gt;GitlabCommentEvent&lt;/code&gt;, etc.), &lt;code&gt;GitlabProject&lt;/code&gt; config entity, &lt;code&gt;WebhookController&lt;/code&gt;, &lt;code&gt;GitLabApiClientFactory&lt;/code&gt;, &lt;code&gt;SignatureVerifier&lt;/code&gt;, and ECA event/condition plugins in &lt;code&gt;eca_gitlab_api&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;GitlabProject&lt;/code&gt; config entity (&lt;code&gt;gitlab_api.gitlab_project.*&lt;/code&gt; schema) holds the GitLab project ID and path, a reference to a parent &lt;code&gt;GitlabServer&lt;/code&gt;, an &lt;code&gt;access_token_source&lt;/code&gt; field (server-level or per-project Key entity), one or more &lt;code&gt;webhook_secret_keys&lt;/code&gt; Key entity IDs, and an optional maintainer username list. The admin UI gains a &amp;quot;Projects&amp;quot; tab alongside &amp;quot;Servers&amp;quot; via new local-tasks and action-links.&lt;/p&gt;
-&lt;p&gt;The webhook route (&lt;code&gt;/gitlab-api/webhook/{project}&lt;/code&gt;, POST, &lt;code&gt;_access: TRUE&lt;/code&gt;) is handled by &lt;code&gt;WebhookController::receive&lt;/code&gt;, which delegates HMAC verification to the new &lt;code&gt;gitlab_api.signature_verifier&lt;/code&gt; service and deduplicates payloads using the &lt;code&gt;gitlab_seen_event&lt;/code&gt; database table. Each row stores a SHA-256 hash of the project ID concatenated with the &lt;code&gt;X-Gitlab-Event-UUID&lt;/code&gt; header (or a hash of the body when the header is absent). Rows expire after 600 seconds via &lt;code&gt;hook_cron&lt;/code&gt;. Nine Symfony event classes are fired on verified receipt: &lt;code&gt;GitlabPushEvent&lt;/code&gt;, &lt;code&gt;GitlabTagPushEvent&lt;/code&gt;, &lt;code&gt;GitlabIssueCreatedEvent&lt;/code&gt;, &lt;code&gt;GitlabIssueUpdatedEvent&lt;/code&gt;, &lt;code&gt;GitlabIssueClosedEvent&lt;/code&gt;, &lt;code&gt;GitlabIssueReopenedEvent&lt;/code&gt;, &lt;code&gt;GitlabCommentEvent&lt;/code&gt;, &lt;code&gt;GitlabMrEvent&lt;/code&gt;, and &lt;code&gt;GitlabPipelineEvent&lt;/code&gt;. All extend &lt;code&gt;GitlabEventBase&lt;/code&gt; and carry the full payload and the originating &lt;code&gt;GitlabProject&lt;/code&gt; entity.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;eca_gitlab_api&lt;/code&gt; submodule maps each event to a derived ECA event plugin via &lt;code&gt;GitlabIntegrationEventDeriver&lt;/code&gt; (base plugin &lt;code&gt;eca_gitlab_api_event&lt;/code&gt;, derivative IDs &lt;code&gt;:push&lt;/code&gt;, &lt;code&gt;:comment&lt;/code&gt;, etc.). Plugins expose payload fields as &lt;code&gt;[event:*]&lt;/code&gt; tokens and a &lt;code&gt;[gitlab_project]&lt;/code&gt; entity token. A project scope filter (all or selected IDs) is implemented through &lt;code&gt;generateWildcard&lt;/code&gt; and &lt;code&gt;appliesForWildcard&lt;/code&gt;. Two new ECA conditions ship: &lt;code&gt;SlashCommandCondition&lt;/code&gt;, which matches &lt;code&gt;/command&lt;/code&gt; lines in comment bodies using the stateless &lt;code&gt;SlashCommandParser&lt;/code&gt; service and exposes &lt;code&gt;[gitlab_slash:command]&lt;/code&gt; and &lt;code&gt;[gitlab_slash:arg:&amp;lt;name&amp;gt;]&lt;/code&gt; tokens on match; and &lt;code&gt;BodyFollowsTemplateCondition&lt;/code&gt;, which validates minimum character length, ATX Markdown heading count, and required heading titles.&lt;/p&gt;
-&lt;p&gt;The migration path runs three update hooks: &lt;code&gt;gitlab_api_update_9001&lt;/code&gt; installs the Key module, &lt;code&gt;gitlab_api_update_9002&lt;/code&gt; creates &lt;code&gt;gitlab_seen_event&lt;/code&gt;, and &lt;code&gt;gitlab_api_update_9003&lt;/code&gt; reads each server's inline &lt;code&gt;auth_token&lt;/code&gt;, creates a Key entity (ID &lt;code&gt;gitlab_api_server_&amp;lt;id&amp;gt;_token&lt;/code&gt;, provider &lt;code&gt;config&lt;/code&gt;) holding the value, writes the Key ID back as &lt;code&gt;auth_token_key&lt;/code&gt;, and clears the inline field. A &lt;code&gt;hook_requirements&lt;/code&gt; check surfaces servers where a runtime config override (e.g. &lt;code&gt;$config[...]['auth_token']&lt;/code&gt; in &lt;code&gt;settings.php&lt;/code&gt;) outlived the migration, since the override no longer has any effect but still holds the secret on disk.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates after deploying 3.0.x:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;This installs the Key module, creates the &lt;code&gt;gitlab_seen_event&lt;/code&gt; table, and migrates each GitLab server's inline token to a Key entity.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Before running &lt;code&gt;drush config:export&lt;/code&gt;&lt;/strong&gt;, switch every auto-created Key entity off the &lt;code&gt;config&lt;/code&gt; provider:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Visit &lt;code&gt;/admin/config/system/keys&lt;/code&gt; and edit each &lt;code&gt;gitlab_api_server_&amp;lt;id&amp;gt;_token&lt;/code&gt; entity.&lt;/li&gt;
-&lt;li&gt;Change the Key provider to &lt;strong&gt;Environment&lt;/strong&gt; (or &lt;strong&gt;File&lt;/strong&gt;) and supply the token value via an environment variable or file outside the docroot.&lt;/li&gt;
-&lt;li&gt;Save, then export config. The exported YAML will contain only the provider configuration, not the token value.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;If you previously set &lt;code&gt;auth_token&lt;/code&gt; via &lt;code&gt;settings.php&lt;/code&gt; or a similar override, that override no longer does anything; remove it. The status report at &lt;code&gt;/admin/reports/status&lt;/code&gt; lists any servers where such a stale override is detected.&lt;/p&gt;
-&lt;p&gt;The two new permissions should be reviewed and granted appropriately:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;administer gitlab_project  # restrict access: true
-use gitlab_api tools       # restrict access: true — grants write operations to GitLab via Tool plugins
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 12, 2026 (5 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, a.dmitriiev observed that the GitLab access token used for a project must have at least the &amp;quot;Developer&amp;quot; role in GitLab; a &amp;quot;Guest&amp;quot;-scoped token returns access denied even with the correct API scopes. a.dmitriiev also recommended that the ECA actions be declared as Tool API plugins so they are available to agents, a suggestion marcus_johansson incorporated before marking the issue ready for review.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
