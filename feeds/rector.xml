@@ -5,6 +5,101 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Add missing $imageDerivativeUtilities argument to ImageFormatter constructor calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-missing-imagederivativeutilities-argument-to-3609124.php</link>
+      <guid isPermaLink="false">019f41c5-0ffd-7313-a1e2-917894fd15c7</guid>
+      <pubDate>Wed, 08 Jul 2026 12:47:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609124"&gt;#3609124&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Calling &lt;code&gt;ImageFormatter&lt;/code&gt;, &lt;code&gt;ImageUrlFormatter&lt;/code&gt;, or &lt;code&gt;MediaThumbnailFormatter&lt;/code&gt; constructors without the &lt;code&gt;$imageDerivativeUtilities&lt;/code&gt; argument is deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and will be required in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. This rule detects direct &lt;code&gt;new ClassName(...)&lt;/code&gt; calls that use the pre-deprecation argument count and appends &lt;code&gt;\Drupal::service(\Drupal\image\ImageDerivativeUtilities::class)&lt;/code&gt; as the final argument.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\image\Plugin\Field\FieldFormatter\ImageFormatter(
+    $pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty,
+    $currentUser, $imageStyleStorage, $fileUrlGenerator
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\image\Plugin\Field\FieldFormatter\ImageFormatter(
+    $pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty,
+    $currentUser, $imageStyleStorage, $fileUrlGenerator,
+    \Drupal::service(\Drupal\image\ImageDerivativeUtilities::class)
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Handles direct &lt;code&gt;new ClassName(...)&lt;/code&gt; instantiation only. Contrib subclasses that call &lt;code&gt;parent::__construct()&lt;/code&gt; without the new argument, and any &lt;code&gt;new static(...)&lt;/code&gt; patterns in factory methods, require manual updates: accept &lt;code&gt;?ImageDerivativeUtilities $imageDerivativeUtilities = NULL&lt;/code&gt; as a new constructor parameter, pass it to &lt;code&gt;parent::__construct()&lt;/code&gt;, and inject &lt;code&gt;\Drupal::service(ImageDerivativeUtilities::class)&lt;/code&gt; from the &lt;code&gt;create()&lt;/code&gt; factory.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use Rector\Rector\AbstractRector;
+use Rector\Config\RectorConfig;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddImageDerivativeUtilitiesToImageFormatterRector extends AbstractRector
+{
+    // Maps each affected class FQCN to the argument count BEFORE the new
+    // $imageDerivativeUtilities parameter was added in drupal:11.4.0.
+    private const CLASS_OLD_ARG_COUNT = [
+        'Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter' =&amp;gt; 10,
+        'Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageUrlFormatter' =&amp;gt; 9,
+        'Drupal\\media\\Plugin\\Field\\FieldFormatter\\MediaThumbnailFormatter' =&amp;gt; 11,
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add the missing $imageDerivativeUtilities service argument to ImageFormatter, ImageUrlFormatter, and MediaThumbnailFormatter constructor calls deprecated in drupal:11.4.0.',
+            [new CodeSample(
+                'new \\Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter($pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty, $currentUser, $imageStyleStorage, $fileUrlGenerator);',
+                'new \\Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter($pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty, $currentUser, $imageStyleStorage, $fileUrlGenerator, \\Drupal::service(\\Drupal\\image\\ImageDerivativeUtilities::class));',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof New_) {
+            return null;
+        }
+        foreach (self::CLASS_OLD_ARG_COUNT as $fqcn =&amp;gt; $oldArgCount) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;class, $fqcn)) {
+                continue;
+            }
+            if (count($node-&amp;gt;args) !== $oldArgCount) {
+                return null;
+            }
+            $serviceCall = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
+                'Drupal',
+                'service',
+                [$this-&amp;gt;nodeFactory-&amp;gt;createClassConstReference('Drupal\\image\\ImageDerivativeUtilities')]
+            );
+            $node-&amp;gt;args[] = $this-&amp;gt;nodeFactory-&amp;gt;createArg($serviceCall);
+            return $node;
+        }
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddImageDerivativeUtilitiesToImageFormatterRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated locale submit callbacks with service method calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php</link>
       <guid isPermaLink="false">019efa8f-2d46-701a-b713-1dde64e4cbd6</guid>
@@ -2073,115 +2168,6 @@ final class ViewsEntityFieldLabelRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([ViewsEntityFieldLabelRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated node_add_body_field() with createBodyField()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-node-add-body-field-with-createbodyfield-3489266.php</link>
-      <guid isPermaLink="false">019e09ac-f8c2-7253-96b2-c2a62454b4bb</guid>
-      <pubDate>Fri, 08 May 2026 22:19:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3489266"&gt;#3489266&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.3.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites standalone calls to the deprecated &lt;code&gt;node_add_body_field($type)&lt;/code&gt; (and the two-argument form &lt;code&gt;node_add_body_field($type, $label)&lt;/code&gt;) to &lt;code&gt;$this-&amp;gt;createBodyField('node', $type-&amp;gt;id())&lt;/code&gt;. The function was deprecated in Drupal 11.3.0 and removed in 12.0.0 with no core-level replacement; test classes should use &lt;code&gt;BodyFieldCreationTrait&lt;/code&gt; from &lt;code&gt;Drupal\Tests\field\Traits&lt;/code&gt; to supply the method.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;node_add_body_field($type);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;createBodyField('node', $type-&amp;gt;id());
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only fires when the call is a standalone statement (return value discarded). Fluent-chain uses such as &lt;code&gt;node_add_body_field($type)-&amp;gt;setLabel(...)&lt;/code&gt; are intentionally skipped because &lt;code&gt;createBodyField()&lt;/code&gt; returns &lt;code&gt;void&lt;/code&gt;. Named arguments are also skipped. The calling class must &lt;code&gt;use BodyFieldCreationTrait&lt;/code&gt; (or define an equivalent &lt;code&gt;createBodyField()&lt;/code&gt; method) for the rewritten code to work.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\Variable;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\Node\Stmt\Expression;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class DeprecateNodeAddBodyFieldRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated node_add_body_field() with BodyFieldCreationTrait::createBodyField().',
-            [new CodeSample(
-                'node_add_body_field($type);',
-                &amp;quot;\$this-&amp;gt;createBodyField('node', \$type-&amp;gt;id());&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        // Match the Expression statement wrapper to guarantee the return value
-        // is discarded; this prevents replacing chained calls where
-        // createBodyField() returns void.
-        return [Expression::class];
-    }
-
-    /** @param Expression $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof Expression) {
-            return null;
-        }
-        if (!$node-&amp;gt;expr instanceof FuncCall) {
-            return null;
-        }
-        $funcCall = $node-&amp;gt;expr;
-        if (!$this-&amp;gt;isName($funcCall-&amp;gt;name, 'node_add_body_field')) {
-            return null;
-        }
-        if (count($funcCall-&amp;gt;args) &amp;lt; 1 || count($funcCall-&amp;gt;args) &amp;gt; 2) {
-            return null;
-        }
-        // Skip named arguments.
-        foreach ($funcCall-&amp;gt;args as $arg) {
-            if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;name !== null) {
-                return null;
-            }
-        }
-
-        $typeArg = $funcCall-&amp;gt;args[0]-&amp;gt;value;
-        // $type-&amp;gt;id() produces the bundle machine name required by createBodyField().
-        $typeIdCall = new MethodCall($typeArg, 'id');
-
-        $args = [
-            new Arg(new String_('node')),
-            new Arg($typeIdCall),
-        ];
-
-        if (count($funcCall-&amp;gt;args) === 2) {
-            // Forward the label as the $fieldLabel (4th) parameter; 'body' is
-            // the default $fieldName (3rd) and is passed explicitly to reach
-            // the 4th positional parameter.
-            $args[] = new Arg(new String_('body'));
-            $args[] = new Arg($funcCall-&amp;gt;args[1]-&amp;gt;value);
-        }
-
-        $node-&amp;gt;expr = new MethodCall(new Variable('this'), 'createBodyField', $args);
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([DeprecateNodeAddBodyFieldRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
