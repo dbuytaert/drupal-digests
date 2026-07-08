@@ -1,4 +1,4 @@
-**TL;DR:** [736 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [738 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [178 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_102 summaries · 5 new this week_
+_103 summaries · 6 new this week_
 
+- [#3591669: Add heuristics for exposing fields/props to the content-entity-reference...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591669.md)
 - [#3591727: Deleting optional props from an SDC/code component causes validation errors in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591727.md)
 - [#3591601: Rudimentary conflict resolution UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591601.md)
-- [#3575644: `Regex` constraint on `string_long` field type intended to convey semantics...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3575644.md)
 
 ### Drupal Core
 
-_531 summaries · 12 new this week_
+_532 summaries · 13 new this week_
 
+- [#3609020: BC layer in locale_translation_get_projects() implemented incorrectly](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609020.md)
 - [#3605554: Translations are never loaded or downloaded for a custom profile](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605554.md)
 - [#3564112: Cache rebuild triggers file_get_contents Permission denied in theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md)
-- [#3608374: Data for non-revisionable/non-translatable/no-dedicated-field-tables entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608374.md)
 
 ### Drupal AI
 
