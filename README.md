@@ -1,24 +1,24 @@
-**TL;DR:** [746 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [749 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_109 summaries · 12 new this week_
-
-- [#3591789: Deleting a content entity translation leaves its auto-save snapshot behind;...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591789.md)
-- [#3591700: Support `content-entity-reference` props in CLI and Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591700.md)
-- [#3591745: Enabling content translation of Canvas pages results in an unsupported state...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591745.md)
-
 ### Drupal Core
 
-_533 summaries · 11 new this week_
+_534 summaries · 12 new this week_
 
+- [#3609363: Regression: install_import_translations() no longer lets contrib/custom...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md)
 - [#3609087: \Drupal\locale\LocaleProjectRepository::buildProjects() does not respect weight...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609087.md)
 - [#3609020: BC layer in locale_translation_get_projects() implemented incorrectly](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609020.md)
-- [#3605554: Translations are never loaded or downloaded for a custom profile](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605554.md)
+
+### Drupal Canvas
+
+_111 summaries · 13 new this week_
+
+- [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
+- [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
+- [#3591789: Deleting a content entity translation leaves its auto-save snapshot behind;...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591789.md)
 
 ### Drupal AI
 
