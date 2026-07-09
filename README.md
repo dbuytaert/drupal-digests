@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_534 summaries · 12 new this week_
+_534 summaries · 11 new this week_
 
 - [#3609363: Regression: install_import_translations() no longer lets contrib/custom...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md)
 - [#3609087: \Drupal\locale\LocaleProjectRepository::buildProjects() does not respect weight...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609087.md)
@@ -14,7 +14,7 @@ _534 summaries · 12 new this week_
 
 ### Drupal Canvas
 
-_111 summaries · 13 new this week_
+_111 summaries · 12 new this week_
 
 - [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
 - [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
