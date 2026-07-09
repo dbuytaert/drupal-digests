@@ -1,4 +1,4 @@
-**TL;DR:** [744 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [745 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_107 summaries · 10 new this week_
+_108 summaries · 11 new this week_
 
+- [#3591700: Support `content-entity-reference` props in CLI and Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591700.md)
 - [#3591745: Enabling content translation of Canvas pages results in an unsupported state...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591745.md)
 - [#3591782: Content template editor preview shows a stale snapshot instead of live edits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591782.md)
-- [#3591781: Release content entity reference props for code components: drop the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591781.md)
 
 ### Drupal Core
 
