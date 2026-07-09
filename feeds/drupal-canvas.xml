@@ -5,6 +5,52 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591745: Enabling content translation of Canvas pages results in an unsupported state (asymmetrical translations) by default: force the known valid state if the field is marked as translatable</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591745.md</link>
+      <guid isPermaLink="false">019f4456-0f78-7746-a245-fcb306336cae</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 09 Jul 2026 00:01:58 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591745"&gt;#3591745&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When site builders enabled content translation on Canvas pages, the standard Drupal &amp;quot;Content language and translation&amp;quot; settings form presented checkboxes for both the component input values and the component tree, allowing asymmetrical configurations that Canvas does not support. This fix enforces the only valid state: component input values are translatable, the component tree is shared across languages. The form now hides the column-group checkboxes and renames the field label to &amp;quot;Component input values&amp;quot; to clarify what is actually being translated. A post-update hook (&lt;code&gt;canvas_post_update_0022&lt;/code&gt;) repairs any site that previously reached an invalid configuration. Going forward, the correct state is also set automatically on module install and rejected at config import time.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update hook &lt;code&gt;canvas_post_update_0022_enforce_symmetrical_canvas_page_components_translation&lt;/code&gt; creates or corrects the &lt;code&gt;components&lt;/code&gt; base field override to enforce symmetrical translation settings.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;core.base_field_override.canvas_page.canvas_page.components&lt;/code&gt; config object is created on install and enforced by a post-update hook; config schema constraints and a config import validator reject the asymmetrical &lt;code&gt;translation_sync&lt;/code&gt; combination.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;components&lt;/code&gt; base field of the &lt;code&gt;canvas_page&lt;/code&gt; entity type stores both the component tree (which instances exist, in what order) and per-instance input values. Content translation's &lt;code&gt;FieldTranslationSynchronizer&lt;/code&gt; uses the &lt;code&gt;translation_sync&lt;/code&gt; third-party setting on a &lt;code&gt;BaseFieldOverride&lt;/code&gt; to decide which column groups to synchronize across translations. The only supported combination is &lt;code&gt;inputs =&amp;gt; 'inputs'&lt;/code&gt; (translatable) and &lt;code&gt;tree =&amp;gt; '0'&lt;/code&gt; (shared). Previously the UI exposed checkboxes for both, so any user could accidentally enable the unsupported asymmetrical mode.&lt;/p&gt;
+&lt;p&gt;Enforcement is now layered across four surfaces. First, &lt;code&gt;ModuleHooks::afterBuildCanvasPageLanguageSettings()&lt;/code&gt; removes the &lt;code&gt;components&lt;/code&gt; column-group sub-checkboxes from the form, renames the field label, and &lt;code&gt;ModuleHooks::validateCanvasPageLanguageSettings()&lt;/code&gt; (a new form validator) hard-codes the symmetrical values into form state before the settings are saved. Second, a &lt;code&gt;hook_modules_installed&lt;/code&gt; implementation in &lt;code&gt;ContentTranslationHooks&lt;/code&gt; calls &lt;code&gt;ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()&lt;/code&gt; to create or update the &lt;code&gt;BaseFieldOverride&lt;/code&gt; whenever either &lt;code&gt;canvas&lt;/code&gt; or &lt;code&gt;content_translation&lt;/code&gt; is installed while the other is already present. Third, a new config schema file &lt;code&gt;canvas_symmetrical_translations_only.schema.yml&lt;/code&gt; defines &lt;code&gt;Choice&lt;/code&gt; constraints on the &lt;code&gt;translation_sync&lt;/code&gt; mapping, making the valid state machine-checkable. Fourth, &lt;code&gt;SymmetricalTranslationsConfigImportValidator&lt;/code&gt; (registered as an event subscriber on &lt;code&gt;ConfigImporterEvent&lt;/code&gt;) validates the staged override before any config import and logs an error to abort the import if the &lt;code&gt;tree&lt;/code&gt; column group is set to translatable. The post-update hook &lt;code&gt;canvas_post_update_0022&lt;/code&gt; handles four distinct cases: no &lt;code&gt;content_translation&lt;/code&gt; installed (no-op), an existing override with invalid settings (corrected), an existing override already valid (no-op), and &lt;code&gt;content_translation&lt;/code&gt; present but no override yet (created). All of this is marked &lt;code&gt;@todo Remove in&lt;/code&gt; issue &lt;a href="https://www.drupal.org/node/3571130"&gt;#3571130&lt;/a&gt;, which tracks a planned core fix that would make the form-level workaround unnecessary.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Sites running Canvas with &lt;code&gt;content_translation&lt;/code&gt; enabled should run database updates to trigger &lt;code&gt;canvas_post_update_0022&lt;/code&gt;, which will create or fix the &lt;code&gt;core.base_field_override.canvas_page.canvas_page.components&lt;/code&gt; config object:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you manage config with Config Management (CMI/recipes), be aware that importing a staged override with &lt;code&gt;translation_sync.tree&lt;/code&gt; set to &lt;code&gt;'tree'&lt;/code&gt; (the asymmetrical value) will now be rejected at import time with a message containing &amp;quot;Canvas Pages support only symmetrical translations&amp;quot;. Correct the staged config to &lt;code&gt;translation_sync: { inputs: inputs, tree: '0' }&lt;/code&gt; before importing.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 29, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591782: Content template editor preview shows a stale snapshot instead of live edits</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591782.md</link>
       <guid isPermaLink="false">019f436e-79f2-750c-ada4-a139cb60aafc</guid>
@@ -831,70 +877,6 @@ $result = Evaluator::evaluate($entity, $expr, is_required: FALSE, language: Nego
 &lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585354: Add "Typed Data browser" internal HTTP API for `content-entity-reference` props' selection UI — single-target-bundle references only</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585354.md</link>
-      <guid isPermaLink="false">019ed4fb-21d8-707e-9038-b5aadfeccc1f</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 17 Jun 2026 09:04:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 41 files, +2985/−205 · php +2392/−167 · yml +593/−38&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3585354"&gt;#3585354&lt;/a&gt; · 3 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The payload delivered to JS code components for &lt;code&gt;content-entity-reference&lt;/code&gt; props is restructured. Instead of a flat dictionary keyed by field names joined with a &lt;code&gt;$&lt;/code&gt; separator (e.g., &lt;code&gt;uid$name&lt;/code&gt;), each resolved entity now arrives as a nested object that mirrors the reference structure, with a &lt;code&gt;__type&lt;/code&gt; key set to the entity's bundle. Reference expressions produce nested sub-objects rather than compound flat keys. Code components that destructure the old flat payload will need to update to the new nested shape. Two new internal HTTP API endpoints also land to power the upcoming entity reference selection UI.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt; (public static) and &lt;code&gt;JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR&lt;/code&gt; are removed; the runtime payload for &lt;code&gt;content-entity-reference&lt;/code&gt; props changes from a flat &lt;code&gt;$&lt;/code&gt;-keyed dict to a nested object with a &lt;code&gt;__type&lt;/code&gt; bundle key.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The public static method &lt;code&gt;JsComponent::generateKeyForExpression()&lt;/code&gt; and the constant &lt;code&gt;JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR&lt;/code&gt; (&lt;code&gt;'$'&lt;/code&gt;) are removed. Their replacement is the private &lt;code&gt;JsComponent::buildReferencePayload()&lt;/code&gt;, which takes the resolved entity wrapped in an &lt;code&gt;EvaluationResult&lt;/code&gt; and the list of &lt;code&gt;EntityFieldBasedPropExpressionInterface&lt;/code&gt; instances declared for the prop. It groups reference expressions by their referencer field, evaluates each group by recursing into the referenced entity, and assembles a nested object. Every entity object in the result carries &lt;code&gt;__type&lt;/code&gt; set to &lt;code&gt;$entity-&amp;gt;bundle()&lt;/code&gt;. Scalar and object-prop leaves are hoisted directly onto the entity object using &lt;code&gt;getDeveloperFacingKey()&lt;/code&gt; rather than the old &lt;code&gt;$&lt;/code&gt;-joined compound keys. The cacheability of every traversed entity is composed into the returned &lt;code&gt;EvaluationResult&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;JavaScriptComponent&lt;/code&gt; gains &lt;code&gt;expandEntityFields()&lt;/code&gt; and &lt;code&gt;coalesceEntityFields()&lt;/code&gt; (both &lt;code&gt;private static&lt;/code&gt;), implementing the expand/coalesce contract from ADR &lt;a href="https://www.drupal.org/node/0005"&gt;#0005&lt;/a&gt;. Before the &lt;code&gt;dataDependencies&lt;/code&gt; object is sent to the client, &lt;code&gt;expandEntityFields()&lt;/code&gt; unpacks stored &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt; entries into per-property atomic leaf strings via &lt;code&gt;Coalescer::expand()&lt;/code&gt;. On save, &lt;code&gt;coalesceEntityFields()&lt;/code&gt; re-groups the leaf strings the client returns into &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt; form via &lt;code&gt;Coalescer::coalesce()&lt;/code&gt;, keeping the client from needing to understand expression merging.&lt;/p&gt;
-&lt;p&gt;Five new config-schema validation constraints enforce the invariants the selection UI requires: &lt;code&gt;EntityFieldExpressionsMustBeIdempotent&lt;/code&gt; (a stored expression must reproduce exactly after an expand/coalesce round trip via &lt;code&gt;Coalescer&lt;/code&gt;), &lt;code&gt;EntityFieldExpressionsSameFieldMustBeCoalesced&lt;/code&gt; (multiple expressions on the same host entity field must be stored as a single &lt;code&gt;FieldObjectPropsExpression&lt;/code&gt;), &lt;code&gt;EntityFieldExpressionMustNotTargetInternalProperty&lt;/code&gt; (blocks non-computed internal fields and field properties, matching the same rule applied by &lt;code&gt;ApiUiContentEntityReferenceControllers::buildFieldEntry()&lt;/code&gt;), &lt;code&gt;MultiValuedFieldNotSupported&lt;/code&gt; (temporary, rejects fields with cardinality other than 1), and &lt;code&gt;MultiTargetBundleReferenceNotSupported&lt;/code&gt; (temporary, rejects reference fields that target more than one bundle). Both temporary constraints carry a &lt;code&gt;@todo&lt;/code&gt; referencing their respective follow-up issues.&lt;/p&gt;
-&lt;p&gt;The two new HTTP endpoints live in &lt;code&gt;ApiUiContentEntityReferenceControllers&lt;/code&gt;, which is marked &lt;code&gt;@internal&lt;/code&gt;. &lt;code&gt;listContentEntityTypes()&lt;/code&gt; iterates all content entity type definitions, creates an unsaved stub per bundle, runs &lt;code&gt;view&lt;/code&gt; access against the stub, and returns only bundles the current user can view. &lt;code&gt;listFields()&lt;/code&gt; returns per-field descriptors: each entry includes the field name, label, pickable field properties with pre-built expression strings, and for reference fields a &lt;code&gt;targetBundles&lt;/code&gt; map and a &lt;code&gt;hasChildren&lt;/code&gt; flag. An optional &lt;code&gt;?parent=[expression]&lt;/code&gt; query parameter chains the response onto an existing reference path so the UI can lazily expand reference fields without constructing expression strings. Stubs are normalized before the access check (users activated, files given a &lt;code&gt;public://&lt;/code&gt; URI, other content entities published) to avoid false denials from handlers that require a valid entity state.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Removed from JsComponent — delete any code referencing these:
-// JsComponent::CONTENT_ENTITY_REFERENCE_KEY_SEPARATOR  (was '$')
-// JsComponent::generateKeyForExpression($expression)
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-js"&gt;// Old payload shape (flat, $ separator):
-// content-entity-reference prop resolved to:
-// { label: &amp;quot;My Title&amp;quot;, uid$name: &amp;quot;Author&amp;quot; }
-
-// New payload shape (nested objects, __type key):
-// { __type: &amp;quot;article&amp;quot;, label: &amp;quot;My Title&amp;quot;, uid: { __type: &amp;quot;user&amp;quot;, name: &amp;quot;Author&amp;quot; } }
-
-// Update component code from:
-const { label, uid$name } = payload;
-
-// To:
-const { __type, label, uid } = payload;
-const { name } = uid;   // uid is now a nested object
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
