@@ -1,4 +1,4 @@
-**TL;DR:** [758 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [759 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_541 summaries · 15 new this week_
+_542 summaries · 16 new this week_
 
+- [#3593939: AttributeRouteDiscovery: invokable controllers with class-only #[Route] never...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593939.md)
 - [#3608710: Core 11.3.13 to 11.4 fails on help_search_items doesn't exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608710.md)
 - [#3608912: Move search updates back to search module and fix missing plugin errors](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608912.md)
-- [#3554720: Remove addition of a object type in all props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3554720.md)
 
 ### Drupal AI
 
