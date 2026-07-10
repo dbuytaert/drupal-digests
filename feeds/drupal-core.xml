@@ -5,6 +5,122 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3091285: Composer scaffolding fails when permissions on default.settings.yml or default.settings.php is not writable.</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3091285.md</link>
+      <guid isPermaLink="false">019f497d-efe5-7208-9dd6-b692a4ff58b7</guid>
+      <pubDate>Thu, 09 Jul 2026 23:24:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +92/−10 · php +92/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/06650578bf5f812c1e65859b3053d28c86811c3a"&gt;0665057&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3091285"&gt;#3091285&lt;/a&gt; · 52 contributors · 161 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 146&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;After Drupal's installation process hardens the &lt;code&gt;sites/default&lt;/code&gt; directory (setting permissions to read-only), subsequent Composer commands that trigger the scaffold plugin would throw a &lt;code&gt;RuntimeException&lt;/code&gt; and abort, sometimes leaving &lt;code&gt;composer.json&lt;/code&gt; and &lt;code&gt;composer.lock&lt;/code&gt; out of sync. The fix makes the scaffold plugin automatically and temporarily loosen permissions on the destination directory before writing a scaffold file, then restore the original permissions when the operation completes. Sites that added &lt;code&gt;file-mapping&lt;/code&gt; workarounds in &lt;code&gt;composer.json&lt;/code&gt; to skip scaffolding of &lt;code&gt;default.settings.php&lt;/code&gt; and &lt;code&gt;default.services.yml&lt;/code&gt; no longer need those workarounds.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is applied to &lt;code&gt;ReplaceOp::process()&lt;/code&gt; in &lt;code&gt;composer/Plugin/Scaffold/Operations/ReplaceOp.php&lt;/code&gt;. Before removing and replacing a scaffold file, the method now captures the original &lt;code&gt;fileperms()&lt;/code&gt; values of both the destination directory and the destination file (if they exist). If the destination directory is not writable, it calls the new protected &lt;code&gt;makeWritable(string $filepath): bool&lt;/code&gt; method, which applies &lt;code&gt;chmod($path, ($mod &amp;amp; 0777) | 0200)&lt;/code&gt; to add the owner write bit. The actual remove-and-copy (or symlink) operation then runs inside a &lt;code&gt;try/finally&lt;/code&gt; block that restores the captured original permissions on both the directory and the file, regardless of whether the scaffold write succeeded or failed. If &lt;code&gt;makeWritable()&lt;/code&gt; itself returns false (the running process lacks sufficient OS privileges to change permissions), a &lt;code&gt;RuntimeException&lt;/code&gt; is thrown with an interpolated message identifying the path. The symlink path bypasses the post-write file-permission restoration since the symlink inherits source permissions. &lt;code&gt;makeWritable()&lt;/code&gt; is added as a protected method on the base class shared with &lt;code&gt;AppendOp&lt;/code&gt;, making it available for future use in other operations.&lt;/p&gt;
+&lt;p&gt;Test infrastructure in &lt;code&gt;FixturesBase::io()&lt;/code&gt; gains a &lt;code&gt;bool $reset = FALSE&lt;/code&gt; parameter to allow flushing the &lt;code&gt;BufferIO&lt;/code&gt; between assertions in a single test. A new test case in &lt;code&gt;ReplaceOpTest&lt;/code&gt; verifies that &lt;code&gt;process()&lt;/code&gt; succeeds when both the target file and its parent directory have been chmod'd to non-writable, that file content is correctly updated, that the restrictive permissions are preserved after the operation, and that the symlink variant does not alter permissions.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No action required. Sites using the &lt;code&gt;file-mapping&lt;/code&gt; workaround in &lt;code&gt;composer.json&lt;/code&gt; to skip scaffolding of &lt;code&gt;default.settings.php&lt;/code&gt; or &lt;code&gt;default.services.yml&lt;/code&gt; may remove those entries if the sole purpose was to avoid the permissions failure:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;// These workaround entries are no longer necessary:
+&amp;quot;file-mapping&amp;quot;: {
+    &amp;quot;[web-root]/sites/default/default.services.yml&amp;quot;: false,
+    &amp;quot;[web-root]/sites/default/default.settings.php&amp;quot;: false
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 30, 2019&lt;/li&gt;
+&lt;li&gt;Committed: July 9, 2026 (6 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Centarro)&lt;/li&gt;
+&lt;li&gt;mile23&lt;/li&gt;
+&lt;li&gt;afeijo&lt;/li&gt;
+&lt;li&gt;Mixologic (Drupal Association)&lt;/li&gt;
+&lt;li&gt;lolandese (Cognizant Technology Solutions)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;jannakha (Tomato Elephant Studio)&lt;/li&gt;
+&lt;li&gt;mmjvb&lt;/li&gt;
+&lt;li&gt;thursday_bw&lt;/li&gt;
+&lt;li&gt;xmacinfo (xMac info)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;vakulrai (QED42)&lt;/li&gt;
+&lt;li&gt;emersonreis.dev (Zoocha)&lt;/li&gt;
+&lt;li&gt;trackleft2 (The University of Arizona)&lt;/li&gt;
+&lt;li&gt;nmudgal (Material)&lt;/li&gt;
+&lt;li&gt;greg.1.anderson (Pantheon)&lt;/li&gt;
+&lt;li&gt;Marsell key&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3607866: Scaffold plugin does not always create autoload_runtime.php when upgrading to 11.4</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607866.md</link>
+      <guid isPermaLink="false">019f497c-a79e-768b-861b-b1ce6af02eb9</guid>
+      <pubDate>Thu, 09 Jul 2026 22:07:26 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +215/−0 · php +199 · json +16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7f3e2517f3f0df0e34abb4d1926392b03886092c"&gt;7f3e251&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607866"&gt;#3607866&lt;/a&gt; · 23 contributors · 70 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 39&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When running &lt;code&gt;composer update&lt;/code&gt; to upgrade from Drupal 11.3.x to 11.4.x, the new &lt;code&gt;autoload_runtime.php&lt;/code&gt; stub file was sometimes not written to the web root. Because &lt;code&gt;web/index.php&lt;/code&gt; in 11.4 requires that file, the site immediately returned an HTTP 500 error after the update. The workaround was to run &lt;code&gt;composer install&lt;/code&gt; a second time after the update completed. This fix eliminates the need for that second invocation.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Drupal 11.4 introduced &lt;code&gt;autoload_runtime.php&lt;/code&gt; (a stub that delegates to &lt;code&gt;vendor/autoload_runtime.php&lt;/code&gt; for the Symfony Runtime integration), and the &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt; plugin was updated to generate that file via &lt;code&gt;Handler::scaffold()&lt;/code&gt;. The problem is a class-loading race inside a single Composer process.&lt;/p&gt;
+&lt;p&gt;When &lt;code&gt;composer update&lt;/code&gt; runs, Composer fires &lt;code&gt;post-package-install&lt;/code&gt;/&lt;code&gt;post-package-update&lt;/code&gt; events as each package is extracted. If any package that declares &lt;code&gt;plugin-modifies-downloads&lt;/code&gt; (or any plugin that triggers &lt;code&gt;postPackage()&lt;/code&gt; on the scaffold plugin) is installed &lt;em&gt;before&lt;/em&gt; &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt; itself is updated on disk, PHP loads and pins the 11.3 version of &lt;code&gt;Handler&lt;/code&gt; for the remainder of the process. Composer does reload &lt;code&gt;Plugin.php&lt;/code&gt; itself via &lt;code&gt;eval()&lt;/code&gt; after the scaffold package is replaced (see &lt;code&gt;PluginManager::registerPackage()&lt;/code&gt;), but &lt;code&gt;Handler&lt;/code&gt; was already in PHP's class cache and cannot be reloaded. So when the final &lt;code&gt;postCmd&lt;/code&gt; event fires &lt;code&gt;handler()-&amp;gt;scaffold()&lt;/code&gt;, the stale 11.3 &lt;code&gt;Handler&lt;/code&gt; code runs and skips &lt;code&gt;autoload_runtime.php&lt;/code&gt; generation entirely.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;ensureAutoloadRuntimeFile()&lt;/code&gt; directly to &lt;code&gt;Plugin&lt;/code&gt;, which is always reloaded with the new code. It is called from &lt;code&gt;postCmd()&lt;/code&gt; immediately after &lt;code&gt;handler()-&amp;gt;scaffold()&lt;/code&gt;. The method uses &lt;code&gt;ManageOptions&lt;/code&gt;, &lt;code&gt;AllowedPackages&lt;/code&gt;, &lt;code&gt;GenerateAutoloadRuntimeReferenceFile&lt;/code&gt;, and &lt;code&gt;ManageGitIgnore&lt;/code&gt; directly (without going through &lt;code&gt;Handler&lt;/code&gt;) and is a no-op when the file already exists or when no allowed packages are configured. A &lt;code&gt;@todo&lt;/code&gt; marks it for removal once upgrades from 11.3 are no longer supported.&lt;/p&gt;
+&lt;p&gt;The regression test introduces a fixture Composer plugin (&lt;code&gt;fixtures/composer-plugin-downloads-modifier&lt;/code&gt;) that declares &lt;code&gt;&amp;quot;plugin-modifies-downloads&amp;quot;: true&lt;/code&gt;, which causes Composer's dependency resolver (&lt;code&gt;Transaction::movePluginsToFront()&lt;/code&gt;) to install it ahead of the scaffold plugin update, reliably reproducing the stale-Handler scenario. The test then asserts both that the stale handler's marker string (&lt;code&gt;SCAFFOLD_TEST_STALE_HANDLER&lt;/code&gt;) appeared in output and that &lt;code&gt;autoload_runtime.php&lt;/code&gt; was nonetheless created by the refreshed &lt;code&gt;Plugin&lt;/code&gt; code.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No code changes are required in projects. Sites that already ran into the 500 error can recover by running:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;composer install
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After this fix ships in &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt;, a single &lt;code&gt;composer update&lt;/code&gt; will correctly produce &lt;code&gt;autoload_runtime.php&lt;/code&gt;. If your build pipeline copies only tracked Git files, ensure &lt;code&gt;autoload_runtime.php&lt;/code&gt; is not listed in your web root's &lt;code&gt;.gitignore&lt;/code&gt; (it is added there by the scaffold plugin and must be included in deployment artifacts).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 9, 2026 (7 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;phily&lt;/li&gt;
+&lt;li&gt;xmacinfo (xMac info)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;kentr&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave diagnosed the root cause through direct instrumentation: they added &lt;code&gt;debug_print_backtrace()&lt;/code&gt; to the &lt;code&gt;Handler&lt;/code&gt; constructor and observed that the constructor was called while the 11.3 plugin code was still on disk, confirming that &lt;code&gt;Handler&lt;/code&gt; was locked in PHP's class cache before the scaffold package was overwritten. That specific debugging session (comments #50 and #51) identified the class-loading race and the &lt;code&gt;eval()&lt;/code&gt; mechanism Composer uses to reload only the &lt;code&gt;Plugin&lt;/code&gt; class, which pointed directly to the solution: put the recovery logic in &lt;code&gt;Plugin&lt;/code&gt; rather than &lt;code&gt;Handler&lt;/code&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3609363: Regression: install_import_translations() no longer lets contrib/custom translations override core on install-from-config</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md</link>
       <guid isPermaLink="false">019f47cd-7243-7659-a057-9b5a54643c1f</guid>
@@ -849,98 +965,6 @@ php core/scripts/drupal.php update
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The thread went through a significant design shift. The initial proposal and first set of MRs removed all minor constraints from &lt;code&gt;core-recommended&lt;/code&gt; entirely. Several contributors, including xjm and joelpittet, pushed back on this as too drastic and potentially confusing, questioning the purpose of the metapackage without any pinning. benjifisher suggested a middle ground: relax constraints only for the specific packages known to publish security-only minor releases, &lt;code&gt;twig/twig&lt;/code&gt;, &lt;code&gt;guzzlehttp/*&lt;/code&gt;, and &lt;code&gt;symfony/polyfill-*&lt;/code&gt;. That targeted approach is what landed. longwave noted during final review that &lt;code&gt;guzzlehttp/promises&lt;/code&gt; and the PHP 8.4/8.5 polyfills should also be included, and catch added those before the commit.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3606969: Content translation column group settings only show up once there are base field overrides saved</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606969.md</link>
-      <guid isPermaLink="false">019f1398-c042-7067-a931-e536dec82c19</guid>
-      <pubDate>Mon, 29 Jun 2026 13:12:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +70/−1 · php +70/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/68f6b308eae02d3636ddf7dd146c87591fb53e7c"&gt;68f6b30&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3606969"&gt;#3606969&lt;/a&gt; · 4 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On the content language settings form (&lt;code&gt;admin/config/regional/content-language&lt;/code&gt;), &amp;quot;column group&amp;quot; or subfield sync options for translatable base fields were invisible until the user had already saved the field once as untranslatable. This forced an awkward workaround before the per-column translation controls would appear. The fix makes those controls visible immediately on the first load. Core's own Media entity &lt;code&gt;thumbnail&lt;/code&gt; field (with its &lt;code&gt;file&lt;/code&gt;, &lt;code&gt;alt&lt;/code&gt;, and &lt;code&gt;title&lt;/code&gt; subfields) was already affected, as were any contributed or custom modules that register translatable base fields with column groups.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The content translation form alter in &lt;code&gt;ContentTranslationManager&lt;/code&gt; (specifically &lt;code&gt;formLanguageContentSettingsFormAlter&lt;/code&gt;) passes a field definition to &lt;code&gt;FieldSyncWidget::widget()&lt;/code&gt; so it can render per-column translatable checkboxes. Base field definitions (&lt;code&gt;BaseFieldDefinition&lt;/code&gt;) never carry third-party settings, which is where column group configuration is stored. Before this fix, the code always passed the raw &lt;code&gt;$definition&lt;/code&gt; object directly, so &lt;code&gt;FieldSyncWidget::widget()&lt;/code&gt; found no third-party settings and produced no output for base fields unless a &lt;code&gt;BaseFieldOverride&lt;/code&gt; config entity had already been saved (overrides do carry third-party settings).&lt;/p&gt;
-&lt;p&gt;The fix adds a branch: when &lt;code&gt;$definition-&amp;gt;getFieldStorageDefinition()-&amp;gt;isBaseField()&lt;/code&gt; is true, it calls &lt;code&gt;$definition-&amp;gt;getConfig($bundle)&lt;/code&gt; to obtain the bundle-level config wrapper before passing it to &lt;code&gt;$this-&amp;gt;fieldSyncWidget-&amp;gt;widget()&lt;/code&gt;. This wrapper can surface third-party settings even before an explicit &lt;code&gt;BaseFieldOverride&lt;/code&gt; exists on disk. Bundle fields (non-base fields) continue to use &lt;code&gt;$definition&lt;/code&gt; unchanged. A new functional test &lt;code&gt;ContentLanguageBaseFieldSyncWidgetTest&lt;/code&gt; verifies that the &lt;code&gt;thumbnail&lt;/code&gt; subfield checkboxes (&lt;code&gt;file&lt;/code&gt;, &lt;code&gt;alt&lt;/code&gt;, &lt;code&gt;title&lt;/code&gt;) are present on the first page load for a Media type, before any override has been saved.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 29, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 29, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;penyaskito noted in a comment that they had independently identified the same bug and arrived at the same fix, also observing that no changes to the form submit handler were needed because it was already adapted to handle this case correctly.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585894: LLM harm reduction in Drupal core contribution, AGENTS.md guidelines</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585894.md</link>
-      <guid isPermaLink="false">019f0bbc-c501-7165-851a-b5ea87015b10</guid>
-      <pubDate>Sat, 27 Jun 2026 21:43:39 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +55/−0 · md +55&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/eb59ce6bf471bf595d5d44081438d7d0075fbabd"&gt;eb59ce6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585894"&gt;#3585894&lt;/a&gt; · 18 contributors · 56 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 44&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core now includes an &lt;code&gt;AGENTS.md&lt;/code&gt; file and a &lt;code&gt;CLAUDE.md&lt;/code&gt; file that coding agents read automatically when working in the repository. The files set &amp;quot;harm reduction&amp;quot; rules aimed at limiting the negative impact of LLM-generated contributions on human reviewers: discouraging LLM use for prose (issue comments, MR posts, commit messages), requiring a disclosure line on any AI-assisted prose that does get published, capping writing length and banning editorial boilerplate, and directing agents to run Drupal's code-check script and PHPUnit before submitting. This is a three-month trial on &lt;code&gt;main&lt;/code&gt; only; a follow-up issue (&lt;a href="https://www.drupal.org/node/3606814"&gt;#3606814&lt;/a&gt;) tracks evaluation of the effects.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit adds two files to the repository root. &lt;code&gt;AGENTS.md&lt;/code&gt; contains five numbered operator-level sections: &lt;strong&gt;Disclosure&lt;/strong&gt; (append &amp;quot;Generated with the help of an LLM.&amp;quot; verbatim, no model or vendor name, because smaller local models hallucinate their own names), &lt;strong&gt;Writing Style&lt;/strong&gt; (≤180 words, ≤25-word sentences, simplified English, no editorial adjectives like &lt;code&gt;robust&lt;/code&gt; or &lt;code&gt;seamless&lt;/code&gt;, no formula phrasing, no restating prior comments), &lt;strong&gt;Code Style&lt;/strong&gt; (Drupal coding standards; run &lt;code&gt;./core/scripts/dev/commit-code-check.sh&lt;/code&gt;), &lt;strong&gt;Tests&lt;/strong&gt; (run &lt;code&gt;./vendor/bin/phpunit -c core &amp;lt;path&amp;gt;&lt;/code&gt; for the matching &lt;code&gt;tests/&lt;/code&gt; directory), and &lt;strong&gt;Git Commits&lt;/strong&gt; (same word and sentence caps, no LLM-credit trailers such as &lt;code&gt;Co-Authored-By:&lt;/code&gt; or &lt;code&gt;Assisted-by:&lt;/code&gt;). A &amp;quot;Discouraged uses&amp;quot; preamble precedes the numbered sections: it explicitly discourages using LLMs for any drupal.org prose or for evaluating contributors; if the operator asks anyway, the agent must tell them to rewrite the output in their own words before publishing.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;CLAUDE.md&lt;/code&gt; contains a single line, &lt;code&gt;@AGENTS.md&lt;/code&gt;, which is the Claude Code reference syntax that causes it to import and apply &lt;code&gt;AGENTS.md&lt;/code&gt; automatically. This file was added after alexpott noted that Claude Code does not read &lt;code&gt;AGENTS.md&lt;/code&gt; by default; webchick supplied the one-line &lt;code&gt;@AGENTS.md&lt;/code&gt; import syntax from the Claude Code documentation.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 27, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;webchick&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;poker10 (ActivIT s.r.o.)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;alexpott pointed out mid-review that Claude Code does not automatically read &lt;code&gt;AGENTS.md&lt;/code&gt;, which the MR originally lacked. webchick supplied the &lt;code&gt;@AGENTS.md&lt;/code&gt; import syntax from the Claude Code docs, and nod_ added &lt;code&gt;CLAUDE.md&lt;/code&gt; in response. The debate about whether to include a model or vendor name in the disclosure line was resolved by nod_ explaining that smaller local models hallucinate their own names, so a deliberately vague disclosure is more accurate than a potentially wrong one, and also keeps the guidelines accessible to contributors who cannot afford frontier models.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

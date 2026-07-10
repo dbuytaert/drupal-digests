@@ -1,4 +1,4 @@
-**TL;DR:** [749 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [751 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_534 summaries · 11 new this week_
+_536 summaries · 13 new this week_
 
+- [#3091285: Composer scaffolding fails when permissions on default.settings.yml or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3091285.md)
+- [#3607866: Scaffold plugin does not always create autoload_runtime.php when upgrading to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607866.md)
 - [#3609363: Regression: install_import_translations() no longer lets contrib/custom...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md)
-- [#3609087: \Drupal\locale\LocaleProjectRepository::buildProjects() does not respect weight...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609087.md)
-- [#3609020: BC layer in locale_translation_get_projects() implemented incorrectly](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609020.md)
 
 ### Drupal Canvas
 
