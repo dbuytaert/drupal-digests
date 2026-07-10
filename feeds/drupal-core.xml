@@ -5,6 +5,169 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3608710: Core 11.3.13 to 11.4 fails on help_search_items doesn't exist</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608710.md</link>
+      <guid isPermaLink="false">019f4ceb-f6b7-76a3-a171-a3ef53489507</guid>
+      <pubDate>Fri, 10 Jul 2026 15:06:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical support request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +99/−66 · php +99/−66&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608710"&gt;#3608710&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites upgrading from Drupal 11.3.x to 11.4.x that had both the Help and Search modules enabled could encounter a fatal database error (&amp;quot;Table 'help_search_items' doesn't exist&amp;quot;) partway through &lt;code&gt;drush updatedb&lt;/code&gt;, leaving the site in a broken state. The error appeared after the search-related &lt;code&gt;hook_update_n&lt;/code&gt; functions ran and is fixed in 11.4.2. No manual workaround is needed if you are upgrading to 11.4.2 or later.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The breakage stemmed from &lt;code&gt;system_update_11400()&lt;/code&gt;, which unconditionally dropped the &lt;code&gt;help_search_items&lt;/code&gt; table before installing the new &lt;code&gt;search_help&lt;/code&gt; module. When the module was then installed and its code immediately queried that table (e.g. during &lt;code&gt;HelpSearch::findResults()&lt;/code&gt; or &lt;code&gt;HelpSearch::updateTopicList()&lt;/code&gt;), the table no longer existed and no &lt;code&gt;hook_schema()&lt;/code&gt; had yet re-created it, causing an &lt;code&gt;SQLSTATE[42S02]&lt;/code&gt; crash that aborted the entire update batch.&lt;/p&gt;
+&lt;p&gt;The MR makes two coordinated changes. First, &lt;code&gt;system_update_11400()&lt;/code&gt; is corrected to only drop the table when Search is &lt;strong&gt;not&lt;/strong&gt; installed (meaning &lt;code&gt;search_help&lt;/code&gt; will not be installed and the table is truly obsolete). When Search is installed, the table drop is skipped entirely because &lt;code&gt;search_help&lt;/code&gt;'s installation will own the table going forward.&lt;/p&gt;
+&lt;p&gt;Second, the &lt;code&gt;hook_schema()&lt;/code&gt; implementation in &lt;code&gt;search_help.install&lt;/code&gt; is removed entirely. Instead, the schema definition and a lazy &lt;code&gt;ensureTableExists()&lt;/code&gt; method are moved into the &lt;code&gt;HelpSearch&lt;/code&gt; plugin class itself, following the pattern established in &lt;a href="https://www.drupal.org/node/3221051"&gt;#3221051&lt;/a&gt;. &lt;code&gt;HelpSearch::updateTopicList()&lt;/code&gt; now catches the initial database exception, calls &lt;code&gt;ensureTableExists()&lt;/code&gt; to create the table on the fly if it is absent, and retries the query. &lt;code&gt;HelpSearch::findResults()&lt;/code&gt; catches the same exception and returns an empty result set rather than letting the error propagate. This makes the &lt;code&gt;search_help&lt;/code&gt; module resilient to the table being missing at any point, regardless of update ordering.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No code changes are required in custom modules. If you are upgrading to 11.4.0 or 11.4.1 and hit this error, the fix is included in 11.4.2. As a temporary workaround on the affected versions you can create the table manually before re-running &lt;code&gt;drush updatedb&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-sql"&gt;CREATE TABLE IF NOT EXISTS help_search_items (
+  sid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  section_plugin_id VARCHAR(255) NOT NULL DEFAULT '',
+  permission VARCHAR(255) NOT NULL DEFAULT '',
+  topic_id VARCHAR(255) NOT NULL DEFAULT '',
+  PRIMARY KEY (sid),
+  INDEX section_plugin_id (section_plugin_id),
+  INDEX topic_id (topic_id)
+) ENGINE=InnoDB;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch diagnosed the issue from the reporter's logs, identified the unconditional table drop in &lt;code&gt;system_update_11400()&lt;/code&gt; as the culprit, and connected it to the &lt;code&gt;ensureTableExists()&lt;/code&gt; pattern from &lt;a href="https://www.drupal.org/node/3221051"&gt;#3221051&lt;/a&gt;, then opened MR !16239 to apply both fixes together.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3608912: Move search updates back to search module and fix missing plugin errors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608912.md</link>
+      <guid isPermaLink="false">019f4ceb-3dd4-772c-9480-049cc6176680</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 10 Jul 2026 13:54:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +569/−110 · php +569/−110&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/09561ef818621242a44d839dff05fea5de6cb0e5"&gt;09561ef&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608912"&gt;#3608912&lt;/a&gt; · 4 contributors · 31 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites upgrading from Drupal 11.3.x to 11.4.x were hitting fatal errors during &lt;code&gt;drush updb&lt;/code&gt; because the &lt;code&gt;help_search&lt;/code&gt; and &lt;code&gt;node_search&lt;/code&gt; search plugins could not be found. This was caused by the upgrade logic (installing &lt;code&gt;search_help&lt;/code&gt; and &lt;code&gt;search_node&lt;/code&gt; modules) living in &lt;code&gt;system_update_11400/11401()&lt;/code&gt; instead of in the search module itself, creating a race condition where plugin discovery ran before the new modules were in place. The fix moves the update hooks into the search module and adds temporary deprecated stub plugin classes in the &lt;code&gt;help&lt;/code&gt; and &lt;code&gt;node&lt;/code&gt; modules so they are always resolvable during the upgrade window. This was backported to 11.4.x and released in 11.4.2.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;search_update_11401()&lt;/code&gt; and &lt;code&gt;search_update_11402()&lt;/code&gt; hooks install &lt;code&gt;search_help&lt;/code&gt; and &lt;code&gt;search_node&lt;/code&gt;; &lt;code&gt;help_update_11400()&lt;/code&gt; drops the &lt;code&gt;help_search_items&lt;/code&gt; table when search is not installed.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;\Drupal\help\Plugin\Search\HelpSearch&lt;/code&gt; and &lt;code&gt;\Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; are now deprecated stubs; use &lt;code&gt;\Drupal\search_help\Plugin\Search\HelpSearch&lt;/code&gt; and &lt;code&gt;\Drupal\search_node\Plugin\Search\SearchNode&lt;/code&gt; respectively.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The original &lt;code&gt;system_update_11400()&lt;/code&gt; and &lt;code&gt;system_update_11401()&lt;/code&gt; installed &lt;code&gt;search_help&lt;/code&gt; and &lt;code&gt;search_node&lt;/code&gt; and dropped the &lt;code&gt;help_search_items&lt;/code&gt; table. Because those updates lived in &lt;code&gt;system&lt;/code&gt;, any future removal of search from core required all sites to have already run them, effectively blocking Drupal 12 from dropping search. Moving the logic to &lt;code&gt;search_update_11401()&lt;/code&gt; (installs &lt;code&gt;search_help&lt;/code&gt; if &lt;code&gt;help&lt;/code&gt; is enabled) and &lt;code&gt;search_update_11402()&lt;/code&gt; (installs &lt;code&gt;search_node&lt;/code&gt; if &lt;code&gt;node&lt;/code&gt; is enabled) means the updates only matter when the search module exists, which is the same contract as any other module.&lt;/p&gt;
+&lt;p&gt;A separate problem caused &amp;quot;plugin does not exist&amp;quot; errors during the update: router rebuilds triggered during the update process load &lt;code&gt;search_page&lt;/code&gt; config entities, which instantiate search plugins by ID. If &lt;code&gt;search_help&lt;/code&gt;/&lt;code&gt;search_node&lt;/code&gt; were not yet installed when the router rebuilt, the &lt;code&gt;help_search&lt;/code&gt; and &lt;code&gt;node_search&lt;/code&gt; plugin IDs could not be resolved. The fix adds deprecated stub classes: &lt;code&gt;\Drupal\help\Plugin\Search\HelpSearch&lt;/code&gt; (new file in &lt;code&gt;help&lt;/code&gt; module) and a refactored &lt;code&gt;\Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; that now extends &lt;code&gt;ConfigurableSearchPluginBase&lt;/code&gt; directly instead of the &lt;code&gt;search_node&lt;/code&gt; class. Both fire a &lt;code&gt;@trigger_error&lt;/code&gt; deprecation in their constructors and return empty/forbidden results from all methods, providing just enough surface for plugin discovery to succeed without executing any real search logic.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;help_search_items&lt;/code&gt; table management was also restructured: &lt;code&gt;hook_schema()&lt;/code&gt; was removed from &lt;code&gt;search_help.install&lt;/code&gt; so the table is no longer created on module install. Instead, &lt;code&gt;\Drupal\search_help\Plugin\Search\HelpSearch::updateTopicList()&lt;/code&gt; and &lt;code&gt;findResults()&lt;/code&gt; now wrap DB queries in try/catch blocks and call &lt;code&gt;ensureTableExists()&lt;/code&gt; (backed by &lt;code&gt;schemaDefinition()&lt;/code&gt;) to create the table on first use. &lt;code&gt;search_help_uninstall()&lt;/code&gt; drops the table on uninstall. A new &lt;code&gt;help_update_11400()&lt;/code&gt; handles the case where a site has the &lt;code&gt;help_search_items&lt;/code&gt; table but search is not installed. The &lt;code&gt;help_post_update_search_help_dependencies()&lt;/code&gt; function is emptied and its logic moved to &lt;code&gt;search_post_update_search_help_dependencies()&lt;/code&gt;, so it travels with the search module into contrib. Multiple update path test classes were annotated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; to suppress noise from the stub constructors during testing, and &lt;code&gt;HelpSearchHelpUpgradeTest&lt;/code&gt; was relocated from the &lt;code&gt;Tests\help\Functional&lt;/code&gt; namespace to &lt;code&gt;Tests\search\Functional&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No manual changes are required for sites upgrading to 11.4.2 or later. Running &lt;code&gt;drush updb&lt;/code&gt; will execute the new &lt;code&gt;search_update_11401()&lt;/code&gt; and &lt;code&gt;search_update_11402()&lt;/code&gt; hooks automatically.&lt;/p&gt;
+&lt;p&gt;If your custom code extends or directly instantiates the deprecated stubs, update the references:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated (drupal:11.4.0, removed drupal:12.0.0):
+\Drupal\help\Plugin\Search\HelpSearch
+\Drupal\node\Plugin\Search\NodeSearch
+
+// Use instead:
+\Drupal\search_help\Plugin\Search\HelpSearch   // requires search_help module
+\Drupal\search_node\Plugin\Search\SearchNode   // requires search_node module
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 10, 2026 (3 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;longwave identified that &lt;code&gt;search_help_schema()&lt;/code&gt; created the table on install but nothing cleaned it up on uninstall, and that the &lt;code&gt;HelpSearchHelpUpgradeTest&lt;/code&gt; file was in the wrong module namespace. godotislate suggested adding deprecation triggers to the stub plugin constructors and noted the stubs could be simplified since the main reason they are loaded during updates is router rebuild, not actual search execution. Both reviewers contributed meaningfully to the final shape of the solution.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3554720: Remove addition of a object type in all props</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3554720.md</link>
+      <guid isPermaLink="false">019f4cec-b8fe-71ca-b29b-5742e68a4d58</guid>
+      <pubDate>Fri, 10 Jul 2026 13:36:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +11/−19 · php +11/−19&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/411e46bd1799f878b6d04ecc25fce45e746e10ab"&gt;411e46b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3554720"&gt;#3554720&lt;/a&gt; · 7 contributors · 27 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's Single Directory Components (SDC) system used to silently append &lt;code&gt;&amp;quot;object&amp;quot;&lt;/code&gt; to the declared type of every component prop. This was an undocumented internal modification that widened each prop's accepted types beyond what the component author specified in their &lt;code&gt;*.component.yml&lt;/code&gt; schema. That behavior has been removed. Component schemas are now used as written, without Drupal adding &lt;code&gt;object&lt;/code&gt; as an extra permissible type. If you author SDC components, review your prop schemas: any prop that genuinely accepts a render array or other PHP object should now explicitly declare &lt;code&gt;&amp;quot;object&amp;quot;&lt;/code&gt; as one of its types. Contrib modules that worked around this behavior (such as UI Patterns and Display Builder) should be able to simplify their code.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The automatic widening lived in &lt;code&gt;ComponentMetadata::parseSchemaInfo()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Theme/Component/ComponentMetadata.php&lt;/code&gt;. After processing each prop schema from the component definition file, the method replaced the &lt;code&gt;type&lt;/code&gt; field with &lt;code&gt;array_unique([...(array) $type, 'object'])&lt;/code&gt;, unconditionally appending &lt;code&gt;'object'&lt;/code&gt; regardless of what the author declared. The comment attributed the intent to &amp;quot;deferring rendering in Twig to the render pipeline.&amp;quot; According to the original author (Mateu, referenced in the thread by pdureau), it was a remnant from the early CL Components era when there were no slots; render arrays were passed through props because no alternative existed. With slots now available for renderable content, the workaround is no longer needed. The fix is a straightforward deletion of that block. Test fixtures in &lt;code&gt;ComponentMetadataTest&lt;/code&gt; are updated to reflect that prop types are now plain scalar values such as &lt;code&gt;'string'&lt;/code&gt; rather than arrays like &lt;code&gt;['string', 'object']&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you have an SDC component whose prop legitimately accepts a PHP object (including a render array), explicitly add &lt;code&gt;object&lt;/code&gt; to the &lt;code&gt;type&lt;/code&gt; field in your &lt;code&gt;*.component.yml&lt;/code&gt; schema:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;# Before (implicit — no longer works):
+props:
+  type: object
+  properties:
+    my_prop:
+      type: string   # Drupal silently accepted objects here too
+
+# After (explicit):
+props:
+  type: object
+  properties:
+    my_prop:
+      type:
+        - string
+        - object
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you previously worked around this behavior in contrib or custom code (e.g. stripping &lt;code&gt;object&lt;/code&gt; from a prop's resolved type before validation), that workaround can be removed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 28, 2025&lt;/li&gt;
+&lt;li&gt;Committed: July 10, 2026 (8 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pdureau&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;e0ipso (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;pdureau investigated the original intent by contacting the snippet's author (Mateu), who confirmed it was a remnant of the pre-slot era when render arrays had to travel through props. That historical context, shared in comment &lt;a href="https://www.drupal.org/node/16324266"&gt;#16324266&lt;/a&gt;, gave the reviewers the confidence to approve the removal. geek-merlin initially signaled objections but after reading the source concluded it was &amp;quot;an obsoleted internal type hack&amp;quot; and changed to a +1. alexpott requested a change record be written before merging, which pdureau produced (https://www.drupal.org/node/3589343).&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3605792: SQL injection via unvalidated operator in case-insensitive entity query array conditions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605792.md</link>
       <guid isPermaLink="false">019f4c14-09da-77bd-81fe-9ab1a82ad0e2</guid>
@@ -802,183 +965,6 @@ $connection-&amp;gt;truncate('my_table')-&amp;gt;execute();
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The initial approach proposed in the MR introduced a new execution method alongside &lt;code&gt;execute()&lt;/code&gt;, which drew pushback from catch (#6) who questioned why the existing method's return type couldn't simply be corrected. mondrake explained (#7) that PHP does not allow &lt;code&gt;void&lt;/code&gt; in a union type, so narrowing the return type on &lt;code&gt;execute()&lt;/code&gt; in the base &lt;code&gt;Query&lt;/code&gt; class would be impossible while other implementations still return values. After alexpott (#13) revisited catch's concern and suggested leaving the API docs as-is and returning NULL, mondrake proposed (#14) introducing two distinct interfaces instead. The final MR applied that narrower interface approach only to &lt;code&gt;Truncate&lt;/code&gt;, which catch then accepted and committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3584793: Use PHP attributes for form route discovery</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584793.md</link>
-      <guid isPermaLink="false">019f1f68-d884-7412-84a1-7ca8368f3608</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 01 Jul 2026 18:19:33 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +433/−84 · php +432/−75 · txt +1/−1 · yml +0/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5bc84e84f587de6614ca85f4094d6eafd442487a"&gt;5bc84e8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584793"&gt;#3584793&lt;/a&gt; · 3 contributors · 35 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Module developers can now declare form routes using a &lt;code&gt;#[Route]&lt;/code&gt; PHP attribute placed directly on a form class, instead of writing a corresponding entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file. This extends the attribute-based route discovery introduced for controllers in &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt; to cover Drupal forms as well. The same standard Symfony &lt;code&gt;Route&lt;/code&gt; attribute is reused; no separate attribute class is needed. &lt;code&gt;SiteInformationForm&lt;/code&gt; in the system module was converted as the first real-world example.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Module developers can place &lt;code&gt;#[Route]&lt;/code&gt; directly on &lt;code&gt;FormInterface&lt;/code&gt; classes in the &lt;code&gt;Form&lt;/code&gt; namespace to declare routes, replacing equivalent YAML entries in &lt;code&gt;*.routing.yml&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;AttributeRouteDiscovery::collectRoutes()&lt;/code&gt; now iterates over both &lt;code&gt;Controller&lt;/code&gt; and &lt;code&gt;Form&lt;/code&gt; subdirectories for every registered namespace. Files containing &lt;code&gt;#[Route]&lt;/code&gt; in the &lt;code&gt;Form&lt;/code&gt; tree are handled by a new &lt;code&gt;createFormRouteCollection()&lt;/code&gt; method rather than the existing &lt;code&gt;createControllerRouteCollection()&lt;/code&gt;. The form path checks that the reflected class implements &lt;code&gt;FormInterface&lt;/code&gt;; classes in the &lt;code&gt;Form&lt;/code&gt; namespace that do not implement it are silently skipped. When the interface is implemented, the route default &lt;code&gt;_form&lt;/code&gt; is set to the fully-qualified class name (matching the YAML convention) and the class-level attribute is registered as a route. Route attributes on individual methods of a form class are explicitly unsupported: an &lt;code&gt;\AssertionError&lt;/code&gt; is thrown in assert mode with a descriptive message. When exactly one route is registered for a form class, the class name itself is added as a route alias.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;getReflectionClass()&lt;/code&gt; helper was extracted to centralize class existence and abstraction checks; it returns &lt;code&gt;NULL&lt;/code&gt; and swallows &lt;code&gt;\Error&lt;/code&gt; when a class cannot be loaded due to a missing parent, interface, or trait. A pre-existing bug in the invokable-controller path was also fixed: the condition &lt;code&gt;$class-&amp;gt;hasMethod('__invoke') === 0&lt;/code&gt; (a boolean compared to an integer, always &lt;code&gt;FALSE&lt;/code&gt;) was corrected to &lt;code&gt;$collection-&amp;gt;count() === 0 &amp;amp;&amp;amp; $class-&amp;gt;hasMethod('__invoke')&lt;/code&gt;. &lt;code&gt;configureRoute()&lt;/code&gt; was removed; the &lt;code&gt;_controller&lt;/code&gt; default is now set directly on the attribute object before &lt;code&gt;addRoute()&lt;/code&gt; is called. The &lt;code&gt;addRoute()&lt;/code&gt; &lt;code&gt;$method&lt;/code&gt; parameter is now nullable to accommodate form routes, which are class-level rather than method-level.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To migrate an existing YAML form route to an attribute, remove the YAML entry and add &lt;code&gt;#[Route]&lt;/code&gt; to the form class. Example from &lt;code&gt;SiteInformationForm&lt;/code&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Before&lt;/strong&gt; (&lt;code&gt;system.routing.yml&lt;/code&gt;):&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;system.site_information_settings:
-  path: '/admin/config/system/site-information'
-  defaults:
-    _form: '\Drupal\system\Form\SiteInformationForm'
-    _title: 'Basic site settings'
-  requirements:
-    _permission: 'administer site configuration'
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;After&lt;/strong&gt; (&lt;code&gt;SiteInformationForm.php&lt;/code&gt;):&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Symfony\Component\Routing\Attribute\Route;
-
-#[Route(
-  path: '/admin/config/system/site-information',
-  name: 'system.site_information_settings',
-  requirements: [
-    '_permission' =&amp;gt; 'administer site configuration',
-  ],
-  defaults: ['_title' =&amp;gt; new TranslatableMarkup('Basic site settings')],
-)]
-class SiteInformationForm extends ConfigFormBase { ... }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The form class must implement &lt;code&gt;FormInterface&lt;/code&gt; and must reside in a &lt;code&gt;Form&lt;/code&gt; subdirectory/namespace of a registered module namespace. Route attributes on methods inside the form class are not supported and will throw an &lt;code&gt;\AssertionError&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 14, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 1, 2026 (2 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;niklan&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;godotislate initially proposed a dedicated &lt;code&gt;FormRoute&lt;/code&gt; attribute that extended the Symfony &lt;code&gt;Route&lt;/code&gt; attribute, to keep form and controller discovery separate. After longwave suggested reusing the plain &lt;code&gt;#[Route]&lt;/code&gt; attribute and detecting form classes internally via &lt;code&gt;FormInterface&lt;/code&gt;, godotislate agreed immediately, dropped &lt;code&gt;FormRoute&lt;/code&gt;, and rebuilt the implementation around &lt;code&gt;FormInterface&lt;/code&gt; detection. That exchange directly shaped the final DX of the feature.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591974: Update import paths for CKEditor 5 v48</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591974.md</link>
-      <guid isPermaLink="false">019f196f-0b04-7693-92a3-b365679484ae</guid>
-      <pubDate>Tue, 30 Jun 2026 15:28:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 36 files, +42/−51 · js +42/−51&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fd41a57a4e93e595bb47e3bf470f72b7d2031958"&gt;fd41a57&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3591974"&gt;#3591974&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Following the CKEditor 5 v48 upgrade in &lt;a href="https://www.drupal.org/node/3587182"&gt;#3587182&lt;/a&gt;, the old sub-path import style for CKEditor 5 (such as &lt;code&gt;ckeditor5/src/core&lt;/code&gt;) was sunset by the library. This issue updates all of Drupal core's built-in CKEditor 5 plugin source files to use the new unified &lt;code&gt;ckeditor5&lt;/code&gt; package import and rebuilds the compiled bundles, keeping the editor fully functional on Drupal 12 (&lt;code&gt;main&lt;/code&gt;). This change does not affect Drupal 10 or 11.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;CKEditor 5's new installation method requires importing from the single unified &lt;code&gt;ckeditor5&lt;/code&gt; package rather than from deep sub-paths like &lt;code&gt;ckeditor5/src/core&lt;/code&gt;. The compiled bundles for the five core CKEditor 5 plugins, &lt;code&gt;drupalEmphasis&lt;/code&gt;, &lt;code&gt;drupalHtmlEngine&lt;/code&gt;, &lt;code&gt;drupalImage&lt;/code&gt;, &lt;code&gt;drupalMedia&lt;/code&gt;, and &lt;code&gt;drupalEntityLinkSuggestions&lt;/code&gt;, all had their webpack external binding updated from &lt;code&gt;&amp;quot;ckeditor5/src/core&amp;quot;&lt;/code&gt; to &lt;code&gt;&amp;quot;ckeditor5&amp;quot;&lt;/code&gt; in the minified output, reflecting matching source-file changes that were rebuilt with webpack.&lt;/p&gt;
-&lt;p&gt;During review, the question arose whether to also remove the now-dead externals patterns in &lt;code&gt;webpack.config.js&lt;/code&gt; (the &lt;code&gt;request.startsWith('ckeditor5/')&lt;/code&gt; and &lt;code&gt;request.startsWith('@ckeditor/')&lt;/code&gt; branches that previously mapped old sub-path imports to the &lt;code&gt;CKEDITOR&lt;/code&gt; UMD global). Testing confirmed these branches are dead code after the migration, but the cleanup was intentionally deferred to a follow-up to keep this patch focused.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Contrib or custom module developers who maintain CKEditor 5 plugins for Drupal 12 and use the old sub-path import style must update their source files:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-js"&gt;// Before (old installation method, sunset in CKEditor 5 v48)
-import { Plugin } from 'ckeditor5/src/core';
-import { ButtonView } from 'ckeditor5/src/ui';
-
-// After (new installation method)
-import { Plugin, ButtonView } from 'ckeditor5';
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;After updating the source files, rebuild the plugin bundles with &lt;code&gt;yarn build&lt;/code&gt; (or the equivalent). See the &lt;a href="https://ckeditor.com/docs/ckeditor5/latest/updating/nim-migration/migration-to-new-installation-methods.html"&gt;CKEditor 5 migration guide&lt;/a&gt; for full details.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 26, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 30, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;amitgoyal (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3387100: Missing config schema for core.base_field_override.*.*.* third_party_settings.content_translation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3387100.md</link>
-      <guid isPermaLink="false">019f1892-e38a-71b5-9cdf-6d41eac1c8ae</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 30 Jun 2026 11:39:00 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +32/−1 · php +25 · yml +7/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/22c7a860b85ebc807d13df74f62cf6a5f625b8f9"&gt;22c7a86&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3387100"&gt;#3387100&lt;/a&gt; · 12 contributors · 39 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When enabling content translation on entity types such as media, Drupal writes &lt;code&gt;core.base_field_override.*.*.*&lt;/code&gt; config entities that may carry a &lt;code&gt;third_party_settings.content_translation&lt;/code&gt; entry. No config schema existed for that key, causing config inspector and strict schema validation to report errors. The fix adds the missing schema and includes a post-update hook that resaves all affected base field override entities so that previously stored values (for example integer &lt;code&gt;0&lt;/code&gt; instead of string &lt;code&gt;'0'&lt;/code&gt;) are normalized to match the new schema.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New post-update hook &lt;code&gt;content_translation_post_update_resave_base_field_overrides&lt;/code&gt; resaves base field override config entities that have content translation third-party settings to normalize stored values against the new schema.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The schema file &lt;code&gt;content_translation.schema.yml&lt;/code&gt; previously defined &lt;code&gt;field.field.*.*.*.third_party.content_translation&lt;/code&gt; inline. The fix extracts that mapping into a reusable named type &lt;code&gt;content_translation_field_third_party_settings&lt;/code&gt; and references it from both the existing &lt;code&gt;field.field&lt;/code&gt; key and the newly added &lt;code&gt;core.base_field_override.*.*.*.third_party.content_translation&lt;/code&gt; key.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;content_translation_post_update_resave_base_field_overrides()&lt;/code&gt; function in &lt;code&gt;content_translation.post_update.php&lt;/code&gt; iterates all &lt;code&gt;base_field_override&lt;/code&gt; entities via &lt;code&gt;ConfigEntityUpdater&lt;/code&gt; and resaves only those that have &lt;code&gt;content_translation&lt;/code&gt; third-party settings. Resaving forces Drupal to cast stored values through the schema, converting any integer &lt;code&gt;0&lt;/code&gt; / &lt;code&gt;1&lt;/code&gt; values to the string type the schema requires. A test assertion was also added to &lt;code&gt;ContentLanguageBaseFieldSyncWidgetTest::testBaseFieldSyncOptionsVisibleOnFirstLoad()&lt;/code&gt; verifying that saving the content-language settings form produces no config schema errors.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates after deploying this change so that existing base field override config entities with content translation settings are resaved and normalized:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb
-# or
-php core/scripts/drupal.php update
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No code changes are required in custom modules.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 13, 2023&lt;/li&gt;
-&lt;li&gt;Committed: June 30, 2026 (2 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;grimreaper (Smile)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
-&lt;li&gt;bbrala (SWIS)&lt;/li&gt;
-&lt;li&gt;bbu23 (Nazaries Intelligenia)&lt;/li&gt;
-&lt;li&gt;codebymikey (Zodiac Media)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The thread ran for nearly two years before landing. A long-standing question was whether an update hook was needed or would be too disruptive. Contributor heddn (comment #12) argued that a hook would force unwanted config exports for sites that never exported their base field overrides. Contributor bbu23 later demonstrated concretely (comment #18) that without resaving, integer &lt;code&gt;0&lt;/code&gt; values stored by older Drupal versions still trigger a type-mismatch error even with the new schema present. Contributor codebymikey then added the post-update hook targeting only base field overrides that already carry &lt;code&gt;content_translation&lt;/code&gt; third-party settings, limiting the resave footprint. Maintainer alexpott accelerated the final review after the related issue &lt;a href="https://www.drupal.org/node/3606969"&gt;#3606969&lt;/a&gt; caused contrib test failures, and longwave committed the result.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

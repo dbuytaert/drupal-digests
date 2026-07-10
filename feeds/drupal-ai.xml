@@ -5,6 +5,53 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3582452: Add guardrail set selection to ai_search_block</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md</link>
+      <guid isPermaLink="false">019f4ced-a6a0-70df-a65f-407e34fae704</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 10 Jul 2026 14:12:41 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +668/−3 · php +507 · yml +160/−2 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_search_block/-/commit/a6c2d8f1a8a30e1f2dbe849e91435b21b81a4df3"&gt;a6c2d8f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582452"&gt;#3582452&lt;/a&gt; · 3 contributors · 12 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Search Block configuration form now includes a dedicated &lt;strong&gt;Guardrails&lt;/strong&gt; section. Site builders can choose one of three modes: no guardrails, apply an existing saved &lt;code&gt;ai_guardrail_set&lt;/code&gt; entity, or pick individual pre-generation and post-generation guardrails. The selected guardrail configuration is saved in block config, exported correctly, and is attached to every AI request that block makes, so compatible providers (such as LiteLLM) can enforce the configured safety policies. If guardrail entities are deleted or unavailable, stale IDs are filtered out at request time rather than causing errors. This requires the &lt;code&gt;ai&lt;/code&gt; module at version 1.4 or later.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;drupal/ai&lt;/code&gt; minimum version raised from &lt;code&gt;^1.2&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;guardrail_mode&lt;/code&gt;, &lt;code&gt;guardrail_set&lt;/code&gt;, &lt;code&gt;pre_generate_guardrails&lt;/code&gt;, &lt;code&gt;post_generate_guardrails&lt;/code&gt;, and &lt;code&gt;guardrail_stop_threshold&lt;/code&gt; keys in &lt;code&gt;block.settings.ai_search_block&lt;/code&gt; config schema.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;SearchFormBlock&lt;/code&gt; plugin gains a &lt;code&gt;guardrails&lt;/code&gt; fieldset with a &lt;code&gt;guardrail_mode&lt;/code&gt; radio group (&lt;code&gt;none&lt;/code&gt;, &lt;code&gt;sets&lt;/code&gt;, &lt;code&gt;individual&lt;/code&gt;). In &lt;code&gt;sets&lt;/code&gt; mode, a select element lists all &lt;code&gt;ai_guardrail_set&lt;/code&gt; entities; in &lt;code&gt;individual&lt;/code&gt; mode, two &lt;code&gt;checkboxes&lt;/code&gt; elements list all &lt;code&gt;ai_guardrail&lt;/code&gt; entities for pre-generation and post-generation slots, along with a numeric &lt;code&gt;guardrail_stop_threshold&lt;/code&gt; field. Empty-state markup (with links to create/manage entities) is shown when no entities exist, preventing confusing or broken UI states. &lt;code&gt;calculateDependencies()&lt;/code&gt; is implemented on &lt;code&gt;SearchFormBlock&lt;/code&gt; to record the selected &lt;code&gt;ai_guardrail_set&lt;/code&gt; and &lt;code&gt;ai_guardrail&lt;/code&gt; config entities as proper block config dependencies.&lt;/p&gt;
+&lt;p&gt;The actual guardrail attachment happens in the new private &lt;code&gt;applyGuardrailSet()&lt;/code&gt; method on &lt;code&gt;AiSearchBlockHelper&lt;/code&gt;, called just before &lt;code&gt;ChatInput&lt;/code&gt; is passed to the provider. In &lt;code&gt;sets&lt;/code&gt; mode it delegates to &lt;code&gt;AiGuardrailHelper::applyGuardrailSetToChatInput()&lt;/code&gt;. In &lt;code&gt;individual&lt;/code&gt; mode it loads and validates the selected guardrail IDs, then creates a transient unsaved &lt;code&gt;AiGuardrailSet&lt;/code&gt; entity (identified by a hashed UUID prefix to avoid collisions), clones the &lt;code&gt;ChatInput&lt;/code&gt;, and calls &lt;code&gt;addGuardrailSet()&lt;/code&gt; on the clone. Non-existent guardrail IDs are intersected against actually-loaded entities before the transient set is built. The &lt;code&gt;@ai.guardrail_helper&lt;/code&gt; service is injected into &lt;code&gt;AiSearchBlockHelper&lt;/code&gt; via &lt;code&gt;ai.services.yml&lt;/code&gt;. The &lt;code&gt;drupal/ai&lt;/code&gt; requirement is bumped from &lt;code&gt;^1.2&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt; because &lt;code&gt;addGuardrailSet()&lt;/code&gt; and &lt;code&gt;getGuardrailSets()&lt;/code&gt; on &lt;code&gt;ChatInput&lt;/code&gt; are only available from that version. A complete &lt;code&gt;block.settings.ai_search_block&lt;/code&gt; config schema was also added, covering all existing and new settings. Kernel test coverage is provided in &lt;code&gt;AiSearchBlockHelperGuardrailTest&lt;/code&gt; with five test cases covering sets mode, individual mode, empty selection, and stale-ID filtering.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Sites must update the &lt;code&gt;drupal/ai&lt;/code&gt; dependency to &lt;code&gt;^1.4&lt;/code&gt; before enabling this version of &lt;code&gt;ai_search_block&lt;/code&gt;. In &lt;code&gt;composer.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;require&amp;quot;: {
+    &amp;quot;drupal/ai&amp;quot;: &amp;quot;^1.4&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;No existing block configuration is affected: the new &lt;code&gt;guardrail_mode&lt;/code&gt; key defaults to &lt;code&gt;none&lt;/code&gt;, so existing blocks continue to send requests without guardrails unless explicitly reconfigured.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 31, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 10, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue was opened by nikro, who outlined the full design in the initial comment and indicated the work would target the 1.3.x planning cycle. abhisekmazumdar opened MR !44 and performed hands-on testing of all three guardrail modes, verifying config persistence and dependency recording. During review, abhisekmazumdar identified and pushed several fixes to the branch: the deprecated &lt;code&gt;setGuardrailSet()&lt;/code&gt;/&lt;code&gt;getGuardrailSet()&lt;/code&gt; calls were replaced with &lt;code&gt;addGuardrailSet()&lt;/code&gt;/&lt;code&gt;getGuardrailSets()&lt;/code&gt; in both &lt;code&gt;AiSearchBlockHelper.php&lt;/code&gt; and the kernel test, two anonymous closures in &lt;code&gt;uasort()&lt;/code&gt; calls were converted to arrow functions, a &lt;code&gt;use&lt;/code&gt; statement was reordered alphabetically, and a &lt;code&gt;@covers&lt;/code&gt; annotation was corrected to target the class rather than a private method. Nikro then pushed the final version-constraint correction (bumping &lt;code&gt;^1.3&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt; to match the API actually used) and merged to 1.1.x.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583809: Add Text Classification support</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3583809.md</link>
       <guid isPermaLink="false">019f4c15-ad85-72a7-9f5e-85860ff0b0a8</guid>
@@ -824,57 +871,6 @@ fi
 &lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
 &lt;li&gt;Committed: May 13, 2026 (6 days and 4 commits later)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588776: [Sprint 3] Issue files missing before-fix screenshots — fixer working blind</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588776.md</link>
-      <guid isPermaLink="false">019e3a64-80f1-712d-8620-25a6db254ebb</guid>
-      <pubDate>Wed, 13 May 2026 08:31:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +8/−0 · md +8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/112f31e45ce537a27a7fc122a0dfb573f4059340"&gt;112f31e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588776"&gt;#3588776&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; AI-agent workflow, the &lt;code&gt;storybook-qa&lt;/code&gt; agent was filing visual-mismatch issues without always capturing a built screenshot at filing time. This left the &lt;code&gt;component-fixer&lt;/code&gt; agent working blind: it had no before-fix baseline to compare against and could report a fix as successful without any visual evidence. Three Sprint 3 commits close this gap by making screenshot evidence mandatory at every stage of the Phase 3.5 QA loop. &lt;code&gt;storybook-qa&lt;/code&gt; now refuses to write an &lt;code&gt;issue.md&lt;/code&gt; file unless the required source/built PNG pairs already exist on disk. &lt;code&gt;component-fixer&lt;/code&gt; now verifies those PNGs are present and non-zero before starting any fix, and aborts with a &lt;code&gt;BLOCKED&lt;/code&gt; status when they are missing. A new Phase 3.5 gate runs &lt;code&gt;validate-screenshots.mjs&lt;/code&gt; across all open issue directories and fails the gate if any required PNG is absent or zero-byte.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The changes touch three agent instruction files and add a new validation script plus tests.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;.claude/agents/storybook-qa.md&lt;/code&gt;, a new &amp;quot;Issue Filing Protocol (mandatory)&amp;quot; block (lines 98–130) describes a five-step pre-filing sequence: determine the Viewport (&lt;code&gt;desktop&lt;/code&gt;, &lt;code&gt;mobile&lt;/code&gt;, or &lt;code&gt;both&lt;/code&gt;), capture source and built PNGs at the matching element selector via &lt;code&gt;agent-browser screenshot&lt;/code&gt;, capture computed styles as JSON, then verify every PNG is non-zero before writing &lt;code&gt;issue.md&lt;/code&gt;. Failure at any capture step causes the agent to emit a &lt;code&gt;issue_filing_skipped&lt;/code&gt; event to &lt;code&gt;state.jsonl&lt;/code&gt; and abort filing that issue rather than writing an incomplete record. The required filenames are viewport-driven: &lt;code&gt;source-desktop.png&lt;/code&gt; / &lt;code&gt;built-desktop.png&lt;/code&gt; for desktop, &lt;code&gt;source-mobile.png&lt;/code&gt; / &lt;code&gt;built-mobile.png&lt;/code&gt; for mobile, both pairs for &lt;code&gt;both&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;.claude/agents/component-fixer.md&lt;/code&gt;, a &amp;quot;Pre-fix screenshot guard (P1-6)&amp;quot; block (lines 69–75) requires the fixer to check the PNG siblings for every path in &lt;code&gt;issue_paths&lt;/code&gt; before any fix attempt. If any required PNG is missing or zero-byte, the agent emits an &lt;code&gt;action: fix_blocked&lt;/code&gt; state event to &lt;code&gt;state.jsonl&lt;/code&gt; and aborts with &lt;code&gt;BLOCKED: issue &amp;lt;NN-desc&amp;gt; missing screenshot evidence — re-dispatch storybook-qa to re-capture&lt;/code&gt;. The implementation deliberately chose a hard abort rather than the ticket's proposed silent re-dispatch, because a missing baseline indicates Phase 3.5 did not complete properly; silent recovery would mask the upstream failure.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;.claude/agents/artifact-checker.md&lt;/code&gt;, the Phase 3.5 gate now includes an issue-dir screenshot check. It runs &lt;code&gt;node scripts/issue-files/validate-screenshots.mjs docs/migration/issues/&lt;/code&gt; against every issue directory whose &lt;code&gt;issue.md&lt;/code&gt; has &lt;code&gt;Status: open&lt;/code&gt; or &lt;code&gt;Status: fixing&lt;/code&gt;. The script (&lt;code&gt;scripts/issue-files/validate-screenshots.mjs&lt;/code&gt;) reads the &lt;code&gt;Viewport&lt;/code&gt; field from each &lt;code&gt;issue.md&lt;/code&gt;, derives the required PNG filenames, and checks existence and non-zero size for each. A non-zero exit fails the gate and pastes the failure list into the artifact summary. Vitest tests for the script live in &lt;code&gt;tests/issue-files/required-screenshots.test.mjs&lt;/code&gt; and cover pass, missing file, zero-byte, mobile-only viewport, and resolved-issue-skip cases.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you are running the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; Phase 3.5 QA loop, expect the following behavior changes:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;storybook-qa&lt;/code&gt;&lt;/strong&gt; will refuse to write &lt;code&gt;issue.md&lt;/code&gt; when any required PNG is missing. Ensure the agent has access to a running Storybook server and the production site so it can complete captures during filing.&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;component-fixer&lt;/code&gt;&lt;/strong&gt; will abort with &lt;code&gt;BLOCKED&lt;/code&gt; (rather than proceeding) when an issue directory is missing its screenshot evidence. Re-dispatch &lt;code&gt;storybook-qa&lt;/code&gt; to re-capture, then re-invoke &lt;code&gt;component-fixer&lt;/code&gt;.&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;The Phase 3.5 gate now runs &lt;code&gt;validate-screenshots.mjs&lt;/code&gt; automatically. To run it manually against an existing issues directory:&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ol&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;node scripts/issue-files/validate-screenshots.mjs docs/migration/issues/
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;A non-zero exit prints the failure list. Zero exit prints &lt;code&gt;PASS: all open issues have required screenshots&lt;/code&gt;.&lt;/p&gt;
-&lt;ol start="4"&gt;
-&lt;li&gt;Issue file screenshot fields use viewport-driven filename pairs (&lt;code&gt;source-desktop.png&lt;/code&gt; / &lt;code&gt;built-desktop.png&lt;/code&gt;, etc.) rather than the &lt;code&gt;source_screenshot:&lt;/code&gt; / &lt;code&gt;built_screenshot:&lt;/code&gt; YAML keys described in the ticket's spec. The gate logic keys off the &lt;code&gt;**Viewport:**&lt;/code&gt; field in &lt;code&gt;issue.md&lt;/code&gt;, not YAML keys.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 13, 2026 (6 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;In the closing comment, ajv009 documented two deliberate deviations from the ticket's literal spec: viewport-driven filenames instead of YAML &lt;code&gt;source_screenshot&lt;/code&gt;/&lt;code&gt;built_screenshot&lt;/code&gt; fields, and a hard &lt;code&gt;BLOCKED&lt;/code&gt; abort in &lt;code&gt;component-fixer&lt;/code&gt; instead of the spec's suggested &amp;quot;log warning and re-run storybook-qa.&amp;quot; The rationale given for the abort behavior was that silent recovery would mask upstream Phase 3.5 failures, which is the underlying problem the issue was filed to solve.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

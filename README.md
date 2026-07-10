@@ -1,24 +1,24 @@
-**TL;DR:** [754 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [758 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_88 summaries · 2 new this week_
-
-- [#3583809: Add Text Classification support](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3583809.md)
-- [#3548526: Support File Handling](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md)
-- [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
-
 ### Drupal Core
 
-_538 summaries · 13 new this week_
+_541 summaries · 15 new this week_
 
-- [#3605792: SQL injection via unvalidated operator in case-insensitive entity query array...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605792.md)
-- [#3574204: Disallow usage of md5(), sha1(), crc32() and hash() with weak algorithms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574204.md)
-- [#3091285: Composer scaffolding fails when permissions on default.settings.yml or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3091285.md)
+- [#3608710: Core 11.3.13 to 11.4 fails on help_search_items doesn't exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608710.md)
+- [#3608912: Move search updates back to search module and fix missing plugin errors](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608912.md)
+- [#3554720: Remove addition of a object type in all props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3554720.md)
+
+### Drupal AI
+
+_89 summaries · 3 new this week_
+
+- [#3582452: Add guardrail set selection to ai_search_block](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md)
+- [#3583809: Add Text Classification support](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3583809.md)
+- [#3548526: Support File Handling](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md)
 
 ### Drupal Canvas
 
