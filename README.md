@@ -1,32 +1,32 @@
-**TL;DR:** [751 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [754 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_88 summaries · 2 new this week_
+
+- [#3583809: Add Text Classification support](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3583809.md)
+- [#3548526: Support File Handling](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md)
+- [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
+
 ### Drupal Core
 
-_536 summaries · 13 new this week_
+_538 summaries · 13 new this week_
 
+- [#3605792: SQL injection via unvalidated operator in case-insensitive entity query array...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605792.md)
+- [#3574204: Disallow usage of md5(), sha1(), crc32() and hash() with weak algorithms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574204.md)
 - [#3091285: Composer scaffolding fails when permissions on default.settings.yml or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3091285.md)
-- [#3607866: Scaffold plugin does not always create autoload_runtime.php when upgrading to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607866.md)
-- [#3609363: Regression: install_import_translations() no longer lets contrib/custom...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md)
 
 ### Drupal Canvas
 
-_111 summaries · 12 new this week_
+_111 summaries · 11 new this week_
 
 - [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
 - [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
 - [#3591789: Deleting a content entity translation leaves its auto-save snapshot behind;...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591789.md)
-
-### Drupal AI
-
-_87 summaries · 1 new this week_
-
-- [#3548526: Support File Handling](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md)
-- [#3600886: Add an "AI audio" field validation constraint (speech-to-text)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md)
-- [#3595515: Add AI Text Classification field validation rule (mirror of AI Image...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3595515.md)
 
 ### Drupal CMS
 

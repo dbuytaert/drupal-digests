@@ -5,6 +5,118 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3605792: SQL injection via unvalidated operator in case-insensitive entity query array conditions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605792.md</link>
+      <guid isPermaLink="false">019f4c14-09da-77bd-81fe-9ab1a82ad0e2</guid>
+      <category>Site owners</category>
+      <pubDate>Fri, 10 Jul 2026 09:37:03 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +89/−0 · php +89&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f8c93a2f241773f12b8b6b17e3dfbe57cfa4bf90"&gt;f8c93a2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3605792"&gt;#3605792&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A SQL injection vulnerability in Drupal's PostgreSQL entity query handler has been fixed. When performing a case-insensitive entity query with an array value (for example, an &lt;code&gt;IN&lt;/code&gt; query on a field configured as case-insensitive), the operator string was concatenated directly into the SQL &lt;code&gt;WHERE&lt;/code&gt; clause with no validation. An attacker who could control the operator argument to &lt;code&gt;-&amp;gt;condition()&lt;/code&gt;, for example via a contrib module that exposes this parameter, could inject arbitrary SQL on PostgreSQL databases. The fix restricts allowed operators to &lt;code&gt;'IN'&lt;/code&gt; and &lt;code&gt;'NOT IN'&lt;/code&gt; for this specific code path. The vulnerability does not affect MySQL or SQLite, and is not directly exploitable from Drupal core alone.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; SQL injection via unvalidated operator in the PostgreSQL entity query case-insensitive array condition handler in &lt;code&gt;Drupal\pgsql\EntityQuery\Condition::translateCondition()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The vulnerable code is in &lt;code&gt;Drupal\pgsql\EntityQuery\Condition::translateCondition()&lt;/code&gt;. The method checks &lt;code&gt;is_array($condition['value']) &amp;amp;&amp;amp; $case_sensitive === FALSE&lt;/code&gt; and, if true, constructs a raw SQL fragment by concatenating &lt;code&gt;$condition['operator']&lt;/code&gt; directly: &lt;code&gt;'LOWER(' . $sql_query-&amp;gt;escapeField($condition['real_field']) . ') ' . $condition['operator'] . ' ('&lt;/code&gt;. While the field name is properly escaped via &lt;code&gt;escapeField()&lt;/code&gt; and values are parameterized, no validation existed for the operator itself. &lt;code&gt;ConditionBase::condition()&lt;/code&gt; stores the operator without validation, and the base &lt;code&gt;Sql\Condition::translateCondition()&lt;/code&gt; returns early for array values, so no upstream guard caught this.&lt;/p&gt;
+&lt;p&gt;The fix inserts an allowlist check immediately before the SQL construction: if &lt;code&gt;$condition['operator']&lt;/code&gt; is not &lt;code&gt;'IN'&lt;/code&gt; or &lt;code&gt;'NOT IN'&lt;/code&gt;, an &lt;code&gt;\InvalidArgumentException&lt;/code&gt; is thrown with a descriptive message. Case-sensitive conditions and non-array values are unaffected. The commit also adds a new unit test class &lt;code&gt;ConditionTest&lt;/code&gt; covering valid operators, the invalid-operator exception path, and the case-sensitive bypass path. This issue was originally a private security report; the Drupal Security Team approved public handling because the &lt;code&gt;$operator&lt;/code&gt; parameter being an unvalidated sink was already publicly documented since 2015 (issue &lt;a href="https://www.drupal.org/node/2626026"&gt;#2626026&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No API changes. If your contrib module or custom code passes user-controlled input as the operator argument to entity query conditions on PostgreSQL, it will now receive an &lt;code&gt;\InvalidArgumentException&lt;/code&gt; for any operator other than &lt;code&gt;'IN'&lt;/code&gt; or &lt;code&gt;'NOT IN'&lt;/code&gt; in the case-insensitive array path. Sanitize or validate the operator before passing it to &lt;code&gt;-&amp;gt;condition()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 10, 2026 (16 days and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;macsim&lt;/li&gt;
+&lt;li&gt;greggles (Colorado Governor's Office of Information Technology - Colorado Digital Service)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, smustgrave ran the new unit tests locally (GitLab role prevented CI access) and confirmed that &lt;code&gt;testInvalidOperatorThrowsException&lt;/code&gt; failed without the patch change, as expected, validating that the test correctly detects the unguarded code path. This gave confidence that the test provides genuine regression coverage for the fix.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3574204: Disallow usage of md5(), sha1(), crc32() and hash() with weak algorithms</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3574204.md</link>
+      <guid isPermaLink="false">019f4c14-e754-712e-81ec-45e28d30a4fe</guid>
+      <pubDate>Fri, 10 Jul 2026 09:24:36 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +89/−0 · php +66 · dist +23&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/0db7b644f5dd1810486774e576d52bee55f47fc0"&gt;0db7b64&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3574204"&gt;#3574204&lt;/a&gt; · 10 contributors · 52 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's PHPStan configuration now forbids calling &lt;code&gt;md5()&lt;/code&gt;, &lt;code&gt;sha1()&lt;/code&gt;, &lt;code&gt;crc32()&lt;/code&gt;, and &lt;code&gt;hash()&lt;/code&gt; with the weak algorithm strings &lt;code&gt;'md5'&lt;/code&gt;, &lt;code&gt;'sha1'&lt;/code&gt;, &lt;code&gt;'crc32'&lt;/code&gt;, or &lt;code&gt;'crc32b'&lt;/code&gt;. Any new use of these functions in core will cause a PHPStan error during CI, pointing developers to use &lt;code&gt;hash()&lt;/code&gt; with an xxHash algorithm for non-cryptographic purposes, or &lt;code&gt;sha256()&lt;/code&gt; for cryptographic contexts. The existing core usages are added to the PHPStan baseline (rather than converted immediately) and are tagged for follow-up replacement in &lt;a href="https://www.drupal.org/node/3609780"&gt;#3609780&lt;/a&gt;. The &lt;code&gt;uniqid()&lt;/code&gt; function was considered during this issue but excluded, as &lt;code&gt;bin2hex(random_bytes())&lt;/code&gt; is not a mechanical drop-in and its handling is tracked separately in &lt;a href="https://www.drupal.org/node/2972100"&gt;#2972100&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds a &lt;code&gt;disallowedFunctionCalls&lt;/code&gt; block to &lt;code&gt;phpstan.neon&lt;/code&gt; using the &lt;code&gt;spaze/phpstan-disallowed-calls&lt;/code&gt; extension (introduced as a dev dependency in &lt;a href="https://www.drupal.org/node/3573259"&gt;#3573259&lt;/a&gt;). Four rules are configured: &lt;code&gt;crc32()&lt;/code&gt; is unconditionally forbidden; &lt;code&gt;md5()&lt;/code&gt; is unconditionally forbidden; &lt;code&gt;sha1()&lt;/code&gt; is unconditionally forbidden; and &lt;code&gt;hash()&lt;/code&gt; is forbidden specifically when its first &lt;code&gt;algo&lt;/code&gt; parameter is one of &lt;code&gt;'md5'&lt;/code&gt;, &lt;code&gt;'sha1'&lt;/code&gt;, &lt;code&gt;'crc32'&lt;/code&gt;, or &lt;code&gt;'crc32b'&lt;/code&gt; (using &lt;code&gt;allowExceptCaseInsensitiveParams&lt;/code&gt; to match only those literal string arguments). Each rule's &lt;code&gt;errorTip&lt;/code&gt; points to the change record at &lt;code&gt;https://www.drupal.org/node/3581605&lt;/code&gt;. The recommended replacements are &lt;code&gt;hash()&lt;/code&gt; with an xxHash algorithm for non-cryptographic hashing, and &lt;code&gt;sha256()&lt;/code&gt; (or a stronger algorithm via the &lt;code&gt;Crypt&lt;/code&gt; class) for cryptographic needs. All existing core files that still call these functions are added to &lt;code&gt;phpstan-ignore-errors.php&lt;/code&gt; as baseline suppressions, covering files including &lt;code&gt;GenerateTheme.php&lt;/code&gt;, &lt;code&gt;CheckpointStorage.php&lt;/code&gt;, &lt;code&gt;DrupalKernel.php&lt;/code&gt;, &lt;code&gt;PhpassHashedPasswordBase.php&lt;/code&gt;, &lt;code&gt;RouteProvider.php&lt;/code&gt;, and several SQLite driver and test infrastructure files.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you contribute to Drupal core or use core's &lt;code&gt;phpstan.neon&lt;/code&gt; as a base for your own project's static analysis, any call to &lt;code&gt;md5()&lt;/code&gt;, &lt;code&gt;sha1()&lt;/code&gt;, &lt;code&gt;crc32()&lt;/code&gt;, or &lt;code&gt;hash()&lt;/code&gt; with a weak algorithm will now produce a PHPStan error. Replace them as follows:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Non-cryptographic hashing (speed/deduplication use-cases):
+// Before:
+$hash = md5($value);
+$hash = crc32($value);
+$hash = hash('md5', $value);
+
+// After (xxHash is fast and low-collision):
+$hash = hash('xxh3', $value);   // or 'xxh32', 'xxh64', 'xxh128'
+
+// Cryptographic hashing:
+// Before:
+$hash = sha1($value);
+
+// After:
+$hash = hash('sha256', $value);
+// Or use Drupal's Crypt class for common patterns:
+use Drupal\Component\Utility\Crypt;
+$hash = Crypt::hashBase64($value);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Existing usages already in core are suppressed in &lt;code&gt;phpstan-ignore-errors.php&lt;/code&gt; and will be converted in follow-up issue &lt;a href="https://www.drupal.org/node/3609780"&gt;#3609780&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 10, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;sivaji_ganesh_jojodae&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;poker10 (ActivIT s.r.o.)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The scope of this issue narrowed meaningfully during review. &lt;code&gt;catch&lt;/code&gt;, consulting with &lt;code&gt;alexpott&lt;/code&gt;, argued that &lt;code&gt;uniqid()&lt;/code&gt; should be split out: &lt;code&gt;bin2hex(random_bytes())&lt;/code&gt; is not a straight replacement because the number of bytes requires deliberate choice, and the upstream PHP RFC to deprecate &lt;code&gt;uniqid()&lt;/code&gt; is stalled, making the right long-term direction unclear. That feedback led to &lt;code&gt;uniqid()&lt;/code&gt; being removed from the disallow list entirely, keeping this issue focused on the weak hash algorithms where the replacements are unambiguous. &lt;code&gt;catch&lt;/code&gt; also caught that the error tip was linking to a change record that circularly linked back, and added the &lt;code&gt;Crypt&lt;/code&gt; class reference to the change record text before committing.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3091285: Composer scaffolding fails when permissions on default.settings.yml or default.settings.php is not writable.</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3091285.md</link>
       <guid isPermaLink="false">019f497d-efe5-7208-9dd6-b692a4ff58b7</guid>
@@ -867,104 +979,6 @@ php core/scripts/drupal.php update
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The thread ran for nearly two years before landing. A long-standing question was whether an update hook was needed or would be too disruptive. Contributor heddn (comment #12) argued that a hook would force unwanted config exports for sites that never exported their base field overrides. Contributor bbu23 later demonstrated concretely (comment #18) that without resaving, integer &lt;code&gt;0&lt;/code&gt; values stored by older Drupal versions still trigger a type-mismatch error even with the new schema present. Contributor codebymikey then added the post-update hook targeting only base field overrides that already carry &lt;code&gt;content_translation&lt;/code&gt; third-party settings, limiting the resave footprint. Maintainer alexpott accelerated the final review after the related issue &lt;a href="https://www.drupal.org/node/3606969"&gt;#3606969&lt;/a&gt; caused contrib test failures, and longwave committed the result.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3600644: Pull up attributes from block plugins if the render array has no type or theme on the top level</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600644.md</link>
-      <guid isPermaLink="false">019f1459-e77c-7773-97c8-ae36e3fea10d</guid>
-      <pubDate>Mon, 29 Jun 2026 16:21:28 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +37/−0 · php +37&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ec24cbda1f711a9cb07e89473e3df52c237e7f63"&gt;ec24cbd&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3600644"&gt;#3600644&lt;/a&gt; · 5 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Block plugins that return a plain render array (one with no &lt;code&gt;#type&lt;/code&gt; or &lt;code&gt;#theme&lt;/code&gt; at the top level) with &lt;code&gt;#attributes&lt;/code&gt; set will again have those attributes hoisted onto the block wrapper element, restoring behavior that worked correctly up to Drupal 11.3. In 11.4 those attributes were silently dropped, breaking a common workaround pattern used by module developers.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The regression was introduced by &lt;a href="https://www.drupal.org/node/2486267"&gt;#2486267&lt;/a&gt;, which reworked how &lt;code&gt;BlockViewBuilder::preRender()&lt;/code&gt; handles attributes. That change only merged attributes when the plugin's content array carried &lt;code&gt;#wrapper_attributes&lt;/code&gt;; any other top-level &lt;code&gt;#attributes&lt;/code&gt; were simply discarded.&lt;/p&gt;
-&lt;p&gt;The fix adds an &lt;code&gt;elseif&lt;/code&gt; branch in &lt;code&gt;BlockViewBuilder::preRender()&lt;/code&gt; immediately after the &lt;code&gt;#wrapper_attributes&lt;/code&gt; path: when &lt;code&gt;#wrapper_attributes&lt;/code&gt; is absent and the content render element has neither &lt;code&gt;#type&lt;/code&gt; nor &lt;code&gt;#theme&lt;/code&gt;, any &lt;code&gt;#attributes&lt;/code&gt; on the content are hoisted into &lt;code&gt;$build['#attributes']&lt;/code&gt; and removed from the child array. This covers the typical &amp;quot;plain build array with custom attributes&amp;quot; pattern that many contrib and custom module block plugins rely on. A kernel test using the existing &lt;code&gt;test_html&lt;/code&gt; block plugin was added to verify the hoisting behavior and confirm the fix against the regression. A follow-up issue (&lt;a href="https://www.drupal.org/node/3605585"&gt;#3605585&lt;/a&gt;) tracks whether this compatibility path should eventually be deprecated.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 13, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 29, 2026 (16 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;amitgoyal (Acquia)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir reported and authored the fix, noting the pattern was a common workaround and proposing that BC restoration should be conditional on the absence of &lt;code&gt;#type&lt;/code&gt; and &lt;code&gt;#theme&lt;/code&gt;. godotislate (after consulting with catch) confirmed it should land in 11.4, and raised the question of deprecation messaging. berdir argued to commit the hotfix first and handle deprecation in a follow-up, which both catch and godotislate agreed with. berdir subsequently opened &lt;a href="https://www.drupal.org/node/3605585"&gt;#3605585&lt;/a&gt; for that discussion.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3600889: Remove some minor constraints from core-recommended</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3600889.md</link>
-      <guid isPermaLink="false">019f1459-42e8-7528-ac3d-e17155df5b49</guid>
-      <pubDate>Mon, 29 Jun 2026 15:23:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +19/−16 · php +18/−3 · json +1/−13&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8db15f2346c616f979e9b0f547310d98caec5060"&gt;8db15f2&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3600889"&gt;#3600889&lt;/a&gt; · 21 contributors · 63 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 54&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites using &lt;code&gt;drupal/core-recommended&lt;/code&gt; were regularly blocked from running &lt;code&gt;composer update&lt;/code&gt; whenever Guzzle, Symfony polyfills, or Twig shipped a security fix in a new minor version, because &lt;code&gt;core-recommended&lt;/code&gt; pinned those packages to a specific minor. The fix removes the minor-version pins for &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt;, &lt;code&gt;guzzlehttp/promises&lt;/code&gt;, &lt;code&gt;guzzlehttp/psr7&lt;/code&gt;, all &lt;code&gt;symfony/polyfill-*&lt;/code&gt; packages, &lt;code&gt;twig/twig&lt;/code&gt;, and &lt;code&gt;twig/html-extra&lt;/code&gt; from the generated metapackage. Sites can now install security updates for these libraries as soon as they are available, without needing a new Drupal core release. Related security pressure came from issues like &lt;a href="https://www.drupal.org/node/3599842"&gt;#3599842&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3592065"&gt;#3592065&lt;/a&gt;. A follow-up (&lt;a href="https://www.drupal.org/node/3606820"&gt;#3606820&lt;/a&gt;) tracks adding a separate, more-frequent release process for &lt;code&gt;core-recommended&lt;/code&gt; so that future constraint adjustments can ship independently of core.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drupal/core-recommended&lt;/code&gt; metapackage is generated from &lt;code&gt;composer/Plugin/Metapackage/CoreRecommended/src/Builder.php&lt;/code&gt;. That class maintains a &lt;code&gt;$remove_list&lt;/code&gt;: any package in this list is omitted from the pinned &lt;code&gt;require&lt;/code&gt; section of the generated &lt;code&gt;composer/Metapackage/CoreRecommended/composer.json&lt;/code&gt;, meaning Composer will fall back to the broader constraints in &lt;code&gt;drupal/core&lt;/code&gt;'s own &lt;code&gt;composer.json&lt;/code&gt; rather than the tighter minor-version pins (&lt;code&gt;~x.y.z&lt;/code&gt;) that &lt;code&gt;core-recommended&lt;/code&gt; had previously added.&lt;/p&gt;
-&lt;p&gt;The commit adds &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt;, &lt;code&gt;guzzlehttp/promises&lt;/code&gt;, &lt;code&gt;guzzlehttp/psr7&lt;/code&gt;, &lt;code&gt;symfony/polyfill-ctype&lt;/code&gt;, &lt;code&gt;symfony/polyfill-iconv&lt;/code&gt;, &lt;code&gt;symfony/polyfill-intl-grapheme&lt;/code&gt;, &lt;code&gt;symfony/polyfill-intl-idn&lt;/code&gt;, &lt;code&gt;symfony/polyfill-intl-normalizer&lt;/code&gt;, &lt;code&gt;symfony/polyfill-mbstring&lt;/code&gt;, &lt;code&gt;symfony/polyfill-php86&lt;/code&gt;, &lt;code&gt;twig/html-extra&lt;/code&gt;, and &lt;code&gt;twig/twig&lt;/code&gt; to that remove list. Each removal is annotated with its rationale: Twig and Guzzle regularly issue security releases only as new minor versions, and the Symfony polyfills are transitive dependencies that follow the same pattern. The generated &lt;code&gt;composer/Metapackage/CoreRecommended/composer.json&lt;/code&gt; was regenerated after these changes. The earlier approach of removing all minor constraints from the metapackage (MRs !16071, !16072, !16073) was set to draft in favour of this targeted removal; &lt;code&gt;symfony/yaml&lt;/code&gt; and the full Symfony component stack retain their minor-version pins for now.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 15, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 29, 2026 (14 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;moshe weitzman&lt;/li&gt;
-&lt;li&gt;deviantintegral&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;borisson_ (Calibrate)&lt;/li&gt;
-&lt;li&gt;ressa&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;prudloff (Insite)&lt;/li&gt;
-&lt;li&gt;solideogloria&lt;/li&gt;
-&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;steven jones (ComputerMinds)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;lambert&lt;/li&gt;
-&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The thread went through a significant design shift. The initial proposal and first set of MRs removed all minor constraints from &lt;code&gt;core-recommended&lt;/code&gt; entirely. Several contributors, including xjm and joelpittet, pushed back on this as too drastic and potentially confusing, questioning the purpose of the metapackage without any pinning. benjifisher suggested a middle ground: relax constraints only for the specific packages known to publish security-only minor releases, &lt;code&gt;twig/twig&lt;/code&gt;, &lt;code&gt;guzzlehttp/*&lt;/code&gt;, and &lt;code&gt;symfony/polyfill-*&lt;/code&gt;. That targeted approach is what landed. longwave noted during final review that &lt;code&gt;guzzlehttp/promises&lt;/code&gt; and the PHP 8.4/8.5 polyfills should also be included, and catch added those before the commit.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
