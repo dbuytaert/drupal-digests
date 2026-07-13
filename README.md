@@ -1,8 +1,16 @@
-**TL;DR:** [762 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [764 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_545 summaries · 18 new this week_
+
+- [#3592946: ComponentNegotiator::negotiate() re-runs on every call when no replacement is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592946.md)
+- [#3589108: Refactor DeprecationHandler into a standard PHPUnit extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589108.md)
+- [#3570465: run-tests.sh - introduce an in-memory storage to replace --sqlite](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570465.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _91 summaries · 5 new this week_
 - [#3601361: Replace the experimental tool prompts with a generic, script-driven "Extra...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601361.md)
 - [#3309122: Add a new dedicated permission for JSON API extra configurations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3309122.md)
 - [#3582452: Add guardrail set selection to ai_search_block](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md)
-
-### Drupal Core
-
-_543 summaries · 16 new this week_
-
-- [#3570465: run-tests.sh - introduce an in-memory storage to replace --sqlite](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3570465.md)
-- [#3593939: AttributeRouteDiscovery: invokable controllers with class-only #[Route] never...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593939.md)
-- [#3608710: Core 11.3.13 to 11.4 fails on help_search_items doesn't exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608710.md)
 
 ### Drupal Canvas
 
