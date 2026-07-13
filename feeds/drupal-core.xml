@@ -5,6 +5,139 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3606411: Return the correct typehint when Drupal::classResolver() is called with a class string</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606411.md</link>
+      <guid isPermaLink="false">019f5d2f-faba-749a-928d-cc9b993713a2</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 13 Jul 2026 19:33:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +12/−16 · php +12/−16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/0daf93c5d93e6c6fe62e66cb67424cca6474f7c5"&gt;0daf93c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3606411"&gt;#3606411&lt;/a&gt; · 6 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;PHPDoc annotations on &lt;code&gt;\Drupal::classResolver()&lt;/code&gt; and &lt;code&gt;ClassResolverInterface::getInstanceFromDefinition()&lt;/code&gt; now use PHPStan generics and conditional return types, so static analysis tools and IDEs can infer the concrete class type when a class-string literal is passed. Before this change, both methods returned an untyped &lt;code&gt;object&lt;/code&gt; (or &lt;code&gt;ClassResolverInterface&lt;/code&gt;) regardless of argument, forcing callers to add manual &lt;code&gt;/** @var MyClass $x */&lt;/code&gt; casts. After this change those casts are unnecessary. This mirrors the equivalent fix applied to &lt;code&gt;\Drupal::service()&lt;/code&gt; in &lt;a href="https://www.drupal.org/node/3490713"&gt;#3490713&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;\Drupal::classResolver()&lt;/code&gt; and &lt;code&gt;ClassResolverInterface::getInstanceFromDefinition()&lt;/code&gt; now carry PHPStan generic/conditional return-type annotations; callers passing a class-string literal get the concrete class inferred instead of &lt;code&gt;object&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;Drupal::classResolver()&lt;/code&gt;, the &lt;code&gt;@param&lt;/code&gt; is now typed &lt;code&gt;class-string&amp;lt;T&amp;gt;|null $class&lt;/code&gt; with a &lt;code&gt;@template T of object&lt;/code&gt; declaration, and the &lt;code&gt;@return&lt;/code&gt; uses the conditional form &lt;code&gt;($class is class-string&amp;lt;T&amp;gt; ? T : \Drupal\Core\DependencyInjection\ClassResolverInterface)&lt;/code&gt;. In &lt;code&gt;ClassResolverInterface::getInstanceFromDefinition()&lt;/code&gt;, the same pattern is applied with &lt;code&gt;class-string&amp;lt;T&amp;gt;|string $definition&lt;/code&gt; (no null, since that method does not accept null) and &lt;code&gt;@return ($definition is class-string&amp;lt;T&amp;gt; ? T : object)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;As a side-effect, four call sites in &lt;code&gt;layout_builder&lt;/code&gt;'s &lt;code&gt;LayoutBuilderHooks&lt;/code&gt; that previously needed explicit &lt;code&gt;@var&lt;/code&gt; cast annotations (for &lt;code&gt;InlineBlockEntityOperations&lt;/code&gt; and &lt;code&gt;LayoutOverrideFieldHelper&lt;/code&gt;) were simplified to direct method chaining, because PHPStan now resolves the type automatically from the &lt;code&gt;class-string&lt;/code&gt; literal passed to &lt;code&gt;classResolver()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No runtime behavior changed. If your code uses &lt;code&gt;\Drupal::classResolver(MyClass::class)&lt;/code&gt; or &lt;code&gt;ClassResolverInterface::getInstanceFromDefinition(MyClass::class)&lt;/code&gt; and carries an inline &lt;code&gt;@var&lt;/code&gt; cast to suppress PHPStan errors, that cast can now be removed:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+/** @var \My\Module\MyClass $instance */
+$instance = \Drupal::classResolver(\My\Module\MyClass::class);
+$instance-&amp;gt;doSomething();
+
+// After (PHPStan infers \My\Module\MyClass automatically)
+\Drupal::classResolver(\My\Module\MyClass::class)-&amp;gt;doSomething();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 26, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 13, 2026 (17 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3152267: Invalid use of array union operator</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3152267.md</link>
+      <guid isPermaLink="false">019f5d30-7ac6-7420-b611-7c8c92602757</guid>
+      <pubDate>Mon, 13 Jul 2026 19:11:15 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +76/−1 · php +76/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8976ec40b089535d35b503e2ffd25471bbbf3f47"&gt;8976ec4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3152267"&gt;#3152267&lt;/a&gt; · 8 contributors · 31 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A bug in the Views module caused the &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; token types to be silently dropped whenever additional token types were passed to &lt;code&gt;getAvailableGlobalTokens()&lt;/code&gt;. For example, a view using date tokens alongside the expected site tokens would lose all site tokens, producing empty output instead of the intended replacements. The fix ensures that &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; are always included in the available token set regardless of what other types are requested.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The method &lt;code&gt;PluginBase::getAvailableGlobalTokens()&lt;/code&gt; in &lt;code&gt;core/modules/views/src/Plugin/views/PluginBase.php&lt;/code&gt; used PHP's array union operator (&lt;code&gt;$types += ['site', 'view']&lt;/code&gt;) to guarantee that &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; token types are always present. Because &lt;code&gt;$types&lt;/code&gt; is a numerically-indexed array, the union operator compares by index: index 0 is already occupied by whatever the caller passed, so &lt;code&gt;'site'&lt;/code&gt; (which would go to index 0) is never appended. The fix replaces the union with &lt;code&gt;array_merge($types, ['site', 'view'])&lt;/code&gt;, which appends unconditionally and lets &lt;code&gt;array_intersect_key&lt;/code&gt; downstream select the correct tokens. The proposed &lt;code&gt;array_unique&lt;/code&gt; wrapper was dropped during review because the token info array is multi-dimensional and &lt;code&gt;array_unique()&lt;/code&gt; raises an &amp;quot;array to string conversion&amp;quot; error on such structures. A &lt;code&gt;@DataProvider&lt;/code&gt;-driven unit test was added to &lt;code&gt;PluginBaseTest&lt;/code&gt; covering combinations of zero, one, and multiple token types to prevent regression.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 16, 2020&lt;/li&gt;
+&lt;li&gt;Committed: July 13, 2026 (6 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;s_bhandari (Material)&lt;/li&gt;
+&lt;li&gt;jayelless (Xequals)&lt;/li&gt;
+&lt;li&gt;quietone (Xequals)&lt;/li&gt;
+&lt;li&gt;lendude (iO)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, quietone attempted to add &lt;code&gt;array_unique()&lt;/code&gt; as suggested in the issue body, but discovered that the token info array is multi-dimensional, causing PHP to throw an &amp;quot;array to string conversion&amp;quot; error. lendude acknowledged this as a good reason to drop &lt;code&gt;array_unique&lt;/code&gt;, and the MR was approved without it.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3608776: [regression] Route discovery isn't fully compatible with Symfony routes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608776.md</link>
+      <guid isPermaLink="false">019f5d2f-2552-71fe-9802-e24f36f3b8ce</guid>
+      <pubDate>Mon, 13 Jul 2026 16:59:48 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +55/−5 · php +46/−5 · yml +9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d290c9a7e7d2ec86260f7ab154bb5784919a31a1"&gt;d290c9a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608776"&gt;#3608776&lt;/a&gt; · 4 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A regression introduced in &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt; caused route discovery to reject &lt;code&gt;routing.yml&lt;/code&gt; files that specified &lt;code&gt;methods&lt;/code&gt; or &lt;code&gt;schemes&lt;/code&gt; as a plain string (e.g., &lt;code&gt;methods: 'GET'&lt;/code&gt;) instead of a YAML array. Symfony's own Route constructor has always accepted either form, but Drupal's &lt;code&gt;StaticRouteDiscoveryBase::createRoute()&lt;/code&gt; was narrowed to require arrays only. The fix restores compatibility: both &lt;code&gt;methods&lt;/code&gt; and &lt;code&gt;schemes&lt;/code&gt; now accept a string or an array, matching Symfony's behavior. The Gutenberg contrib module was the first reported breakage.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The regression originated in &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;, which refactored route discovery to use PHP attributes. That change narrowed the &lt;code&gt;$methods&lt;/code&gt; and &lt;code&gt;$schemes&lt;/code&gt; parameters of &lt;code&gt;StaticRouteDiscoveryBase::createRoute()&lt;/code&gt; from the implicit &lt;code&gt;string|array&lt;/code&gt; that Symfony's &lt;code&gt;Route&lt;/code&gt; constructor accepts to a strict &lt;code&gt;array&lt;/code&gt;. Any &lt;code&gt;routing.yml&lt;/code&gt; that used a bare string for either key (valid YAML and previously accepted by Symfony) would then fail at route compilation.&lt;/p&gt;
+&lt;p&gt;The fix widens those two parameter types back to &lt;code&gt;string|array&lt;/code&gt; in the &lt;code&gt;protected function createRoute()&lt;/code&gt; signature. The underlying &lt;code&gt;Route&lt;/code&gt; constructor from Symfony already handles the string-to-array normalization, so no further change is needed in the method body. A new kernel test class &lt;code&gt;YamlRouteDiscoveryTest&lt;/code&gt; and a companion fixture route &lt;code&gt;router_test.string_method_scheme&lt;/code&gt; (with &lt;code&gt;methods: 'GET'&lt;/code&gt; and &lt;code&gt;schemes: 'https'&lt;/code&gt; as strings) cover the restored behavior.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 13, 2026 (7 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;neclimdul (APQC)&lt;/li&gt;
+&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592946: ComponentNegotiator::negotiate() re-runs on every call when no replacement is found</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592946.md</link>
       <guid isPermaLink="false">019f5c67-a017-7083-89a4-969a0175e849</guid>
@@ -847,142 +980,6 @@ $hash = Crypt::hashBase64($value);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;berdir discovered the double query while profiling performance tests and noted the fix eliminates 12 to 14 queries on cold and cool caches in their own test setup. catch observed that the saving approaches a 10% query reduction on the lighter pages in the Umami performance suite.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588547: Don't invalidate the entire fast backend on persistent backend cache misses</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588547.md</link>
-      <guid isPermaLink="false">019f395f-632e-77d6-bc67-65740b7c1ad4</guid>
-      <pubDate>Mon, 06 Jul 2026 19:23:02 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +73/−12 · php +73/−12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4f3e6a284a744f596389f81e06996364bd39bb2c"&gt;4f3e6a2&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588547"&gt;#3588547&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites using &lt;code&gt;ChainedFastBackend&lt;/code&gt; (typically APCu as the fast layer in front of a database or Redis persistent layer) will see fewer unnecessary APCu invalidations when cache items are written. Previously, every &lt;code&gt;set()&lt;/code&gt; or &lt;code&gt;setMultiple()&lt;/code&gt; call caused the entire fast backend to be marked outdated, forcing subsequent reads to fall back to the persistent backend even when those reads had nothing to do with the items just written. Now, the invalidation only happens when the item being set already existed in the persistent backend, i.e. when it is truly being updated rather than freshly added. During cold cache warmup, where many new items are written in rapid succession, this eliminates a cascade of full-bin invalidations that was making the fast backend effectively useless until warming completed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The key mechanism in &lt;code&gt;ChainedFastBackend&lt;/code&gt; is a &amp;quot;last write timestamp&amp;quot; stored in the consistent backend. When &lt;code&gt;markAsOutdated()&lt;/code&gt; is called, it bumps that timestamp, causing &lt;code&gt;getMultiple()&lt;/code&gt; to treat all APCu hits as stale if they were written before the new timestamp. This timestamp approach is intentionally coarse: it invalidates the whole fast bin rather than individual entries.&lt;/p&gt;
-&lt;p&gt;Previously, &lt;code&gt;set()&lt;/code&gt; and &lt;code&gt;setMultiple()&lt;/code&gt; always called &lt;code&gt;markAsOutdated()&lt;/code&gt; unconditionally after writing to the consistent backend. The fix changes both methods to first call &lt;code&gt;consistentBackend-&amp;gt;get()&lt;/code&gt; (or &lt;code&gt;getMultiple()&lt;/code&gt; for the plural form) to check whether the item already exists. If the item is found, &lt;code&gt;markAsOutdated()&lt;/code&gt; is called as before because existing fast-backend copies of that item are now stale. If the item is not found, no invalidation is needed: the fast backend cannot hold a stale copy of something it has never seen. The comment in the diff acknowledges a narrow race window where another process might write the same key between the &lt;code&gt;get()&lt;/code&gt; check and the &lt;code&gt;set()&lt;/code&gt;, but notes that such a process would also have received an empty &lt;code&gt;get()&lt;/code&gt; result and would therefore not trigger invalidation either, keeping the risk of divergent state extremely low.&lt;/p&gt;
-&lt;p&gt;Unit tests in &lt;code&gt;ChainedFastBackendTest&lt;/code&gt; were split from a single &lt;code&gt;testSet()&lt;/code&gt; into &lt;code&gt;testSetEmptyConsistent()&lt;/code&gt; (verifying that four writes to new keys produce no &lt;code&gt;markAsOutdated()&lt;/code&gt; call and exactly four &lt;code&gt;get()&lt;/code&gt; checks on the consistent backend) and &lt;code&gt;testSetFullConsistent()&lt;/code&gt; (verifying that writes to pre-existing keys still trigger invalidation).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 6, 2026 (2 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3607938: Chunking of Op in loadFromDedicatedTables causes Cartesian multiplication</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607938.md</link>
-      <guid isPermaLink="false">019f284e-2354-77ce-9883-89d5e06ee7d0</guid>
-      <pubDate>Fri, 03 Jul 2026 13:15:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +29/−27 · php +29/−27&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c6b410288686450ccbf4fd8e56ef682e977bb335"&gt;c6b4102&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607938"&gt;#3607938&lt;/a&gt; · 8 contributors · 24 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A critical regression introduced in Drupal 11.4 caused entity loading to generate catastrophically large SQL queries when an entity type had more than one unlimited-cardinality (dedicated table) field. Loading a single entity with several well-populated multi-value fields could produce millions of result rows via Cartesian multiplication, exhausting PHP memory and causing 502 errors and high CPU load regardless of how high the memory limit was set. This fix eliminates the Cartesian explosion by loading each multi-cardinality field in its own separate query instead of grouping them together.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was a chunking optimization in &lt;code&gt;SqlContentEntityStorage::loadFromDedicatedTables()&lt;/code&gt;, introduced alongside the related 61-table JOIN limit fix (&lt;a href="https://www.drupal.org/node/3593963"&gt;#3593963&lt;/a&gt;). When an entity had more than &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE&lt;/code&gt; unlimited-cardinality fields, those fields were grouped into chunks and each chunk was passed to &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; together. That method builds a single SELECT by joining each field's dedicated table to the base entity table. Joining N multi-value field tables in one query produces a Cartesian product: rows from &lt;code&gt;field_a&lt;/code&gt; (5 values) × &lt;code&gt;field_b&lt;/code&gt; (10 values) × &lt;code&gt;field_c&lt;/code&gt; (4 values) = 200 rows instead of 19. On real content the multiplication was far worse; one confirmed case produced ~19.5 million rows per language per entity load.&lt;/p&gt;
-&lt;p&gt;The fix removes the chunking loop entirely. &lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; now iterates over &lt;code&gt;$multiple_cardinality_fields&lt;/code&gt; one field at a time, calling &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; with a single-element array on each iteration. This trades fewer queries for a guaranteed linear row count. Simultaneously, the join type inside &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; was changed from &lt;code&gt;leftJoin&lt;/code&gt; to &lt;code&gt;join&lt;/code&gt; (INNER JOIN) for both the translatable and non-translatable code paths. A LEFT JOIN was unnecessary here because an entity that has no rows for a given dedicated field simply produces no result in that field's individual query; an INNER JOIN is correct and slightly more efficient.&lt;/p&gt;
-&lt;p&gt;The performance test fixtures reflect the new query shape: what was previously one multi-field LEFT OUTER JOIN query becomes N separate INNER JOIN queries, one per unlimited-cardinality field. Query counts in the Umami and standard performance tests increased accordingly (e.g., warm-cache node page rose from 56 to 65 queries). A follow-up issue &lt;a href="https://www.drupal.org/node/3608184"&gt;#3608184&lt;/a&gt; was opened to explore loading multiple fields without Cartesian multiplication (e.g., via UNION), which could recover some of that query count increase.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 3, 2026 (1 day and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;jviitamaki&lt;/li&gt;
-&lt;li&gt;thefancywizard&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;kulturmensch&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Several contributors quickly confirmed the severity before the fix was merged. &lt;code&gt;thefancywizard&lt;/code&gt; reported that a node with 8 populated unlimited-cardinality fields generated a 14×13×11×8×7×6×3×2 = 4 million row query that took 134 seconds instead of ~235 ms, causing 502 errors and 800% CPU on their search pages, blocking an 11.4 production deployment entirely. &lt;code&gt;kulturmensch&lt;/code&gt; tested MR !16200 against a real bilingual production site where one node had a theoretical Cartesian product of ~19.6 million rows per language; after the fix that node loaded in 0.56 seconds at 55 MB peak memory, and full sitemap generation of over 1,000 items completed successfully in under 30 seconds.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3608069: Restore (but don't apply) deprecated recipes to 11.4.x</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608069.md</link>
-      <guid isPermaLink="false">019f278e-3d41-754d-bc7f-c6e1406bf2d1</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 03 Jul 2026 09:27:08 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 25 files, +721/−0 · yml +641 · php +80&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/bae80c73c61b6e927047283fcc225ad47ceeeedd"&gt;bae80c7&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608069"&gt;#3608069&lt;/a&gt; · 5 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Five core recipes that were removed in Drupal 11.4.0 as part of the Standard profile content type cleanup (&lt;a href="https://www.drupal.org/node/3587118"&gt;#3587118&lt;/a&gt;) have been restored to the 11.x and 11.4.x codebases. The removed recipes — &lt;code&gt;article_content_type&lt;/code&gt;, &lt;code&gt;page_content_type&lt;/code&gt;, &lt;code&gt;article_comment&lt;/code&gt;, &lt;code&gt;article_tags&lt;/code&gt;, and &lt;code&gt;content_search&lt;/code&gt; — were still required as dependencies by third-party recipes and site templates (such as Commerce Kickstart) that build on the standard Article and Basic page content types. Their absence caused fatal errors when those downstream recipes tried to apply. The recipes are restored but no longer applied by the Standard profile or recipe. They will not be present in Drupal 12.x, giving the ecosystem one major version to migrate away from depending on them.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Five core recipes (&lt;code&gt;article_content_type&lt;/code&gt;, &lt;code&gt;page_content_type&lt;/code&gt;, &lt;code&gt;article_comment&lt;/code&gt;, &lt;code&gt;article_tags&lt;/code&gt;, &lt;code&gt;content_search&lt;/code&gt;) are restored in 11.x/11.4.x but will not be present in Drupal 12.x; recipes depending on them must migrate before upgrading.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The recipes were initially removed as part of &lt;a href="https://www.drupal.org/node/3587118"&gt;#3587118&lt;/a&gt;, which decoupled the Standard profile from the Article and Basic page content types. That removal broke any recipe or site template that listed one of these five recipes in its own &lt;code&gt;recipes:&lt;/code&gt; dependency key, producing a fatal error at apply time because the recipe directory no longer existed in core.&lt;/p&gt;
-&lt;p&gt;The fix is a direct partial revert: all five recipe directories are re-added under &lt;code&gt;core/recipes/&lt;/code&gt; on both the &lt;code&gt;11.x&lt;/code&gt; and &lt;code&gt;11.4.x&lt;/code&gt; branches, each containing its &lt;code&gt;recipe.yml&lt;/code&gt;, the associated config files (node type definitions, field storages, field instances, entity form/view displays), and a &lt;code&gt;GenericTest.php&lt;/code&gt; functional test that extends &lt;code&gt;GenericRecipeTestBase&lt;/code&gt;. The &lt;code&gt;11.4.x&lt;/code&gt; and &lt;code&gt;11.x&lt;/code&gt; commits are identical in content. The recipes are deliberately absent from the &lt;code&gt;12.x&lt;/code&gt; branch.&lt;/p&gt;
-&lt;p&gt;A comment in the thread from phenaproxima articulates the backwards-compatibility principle at play: removing a recipe from a minor release is equivalent to removing a module from core in a minor release. A follow-up issue to explore formally marking recipes as deprecated was mentioned by gábor hojtsy and catch but is out of scope here.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your custom recipe lists any of these in its &lt;code&gt;recipes:&lt;/code&gt; key, it will continue to work on 11.x and 11.4.x. Plan to remove that dependency before upgrading to Drupal 12, where the recipes will not exist. For example, if your &lt;code&gt;recipe.yml&lt;/code&gt; currently declares:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;recipes:
-  - article_content_type
-  - page_content_type
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;You will need to either inline the equivalent config actions directly into your recipe, or require and ship those content type recipes yourself, before Drupal 12.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 3, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;rszrama (Centarro)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;phenaproxima's comment provided the key framing that swayed the thread quickly: removing these recipes in a minor release is equivalent to pulling a module out of core in a minor release, even if it cannot break live sites directly. That analogy established the backwards-compatibility obligation and made the path forward (restore in 11.x, remove in 12.x) immediately obvious to maintainers catch and longwave, who approved and committed within hours of the issue being filed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
