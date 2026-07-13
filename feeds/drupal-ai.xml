@@ -5,6 +5,137 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3601361: Replace the experimental tool prompts with a generic, script-driven "Extra Drupal Installations" multi-select</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601361.md</link>
+      <guid isPermaLink="false">019f5b90-addd-7059-8fe2-2366515c5638</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 13 Jul 2026 12:36:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601361"&gt;#3601361&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The one-line installer now offers all optional Drupal tools through a single &amp;quot;Any extra Drupal installations?&amp;quot; multi-select prompt instead of separate yes/no questions for each tool. Three extras ship today: Drush Token Killer (&lt;code&gt;dtk&lt;/code&gt;, pre-ticked and installed by default under &lt;code&gt;--yolo&lt;/code&gt;), Tool API + Toolbelt (&lt;code&gt;tool_api&lt;/code&gt;, opt-in), and the new Droost AI-agent MCP integration (&lt;code&gt;droost&lt;/code&gt;, opt-in). Anyone using the old &lt;code&gt;--tool-api&lt;/code&gt; flag must switch to &lt;code&gt;--extras tool_api&lt;/code&gt;. Config files should use the new &lt;code&gt;extra_scripts&lt;/code&gt; array key instead of per-tool booleans. Adding a new optional tool no longer requires editing prompts, globals, the pipeline, or config readers: dropping one file into &lt;code&gt;src/lib/extras/&lt;/code&gt; and regenerating is all that is needed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;.drupalaibp.json&lt;/code&gt; gains &lt;code&gt;extra_scripts&lt;/code&gt; (array of ids: &lt;code&gt;dtk&lt;/code&gt;, &lt;code&gt;tool_api&lt;/code&gt;, &lt;code&gt;droost&lt;/code&gt;); the old per-tool boolean keys are no longer read.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;--tool-api&lt;/code&gt; boolean flag is removed; use &lt;code&gt;--extras tool_api&lt;/code&gt; (or a comma-separated list) instead.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;extra_installed &amp;lt;id&amp;gt;&lt;/code&gt; event emitted after each successful extra install; new &lt;code&gt;src/lib/extras/&lt;/code&gt; convention for adding optional tools as &lt;code&gt;extra_&amp;lt;id&amp;gt;_meta&lt;/code&gt; + &lt;code&gt;extra_&amp;lt;id&amp;gt;&lt;/code&gt; function pairs.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old architecture had a dedicated prompt function (&lt;code&gt;choose_toolbelt&lt;/code&gt;, &lt;code&gt;choose_dtk&lt;/code&gt;, &lt;code&gt;choose_tool_api&lt;/code&gt;), a per-tool global (&lt;code&gt;TOOL_API&lt;/code&gt;, &lt;code&gt;TOOLBELT&lt;/code&gt;, &lt;code&gt;DTK&lt;/code&gt;), a per-tool install step (&lt;code&gt;step_install_tool_api&lt;/code&gt;), and a per-tool boolean CLI flag (&lt;code&gt;--tool-api&lt;/code&gt;) for every optional install. Each addition required changes across at least five places.&lt;/p&gt;
+&lt;p&gt;The new architecture introduces &lt;code&gt;src/lib/extras/&lt;/code&gt; as a convention. Each extra defines exactly two bash functions: &lt;code&gt;extra_&amp;lt;id&amp;gt;_meta&lt;/code&gt; (prints &lt;code&gt;Name|Description&lt;/code&gt;, or &lt;code&gt;Name|Description|default&lt;/code&gt; to mark it as a default) and &lt;code&gt;extra_&amp;lt;id&amp;gt;&lt;/code&gt; (performs the install using &lt;code&gt;step&lt;/code&gt;/&lt;code&gt;ok&lt;/code&gt;/&lt;code&gt;warn&lt;/code&gt; and &lt;code&gt;ddev&lt;/code&gt;/&lt;code&gt;drush&lt;/code&gt;). The single &lt;code&gt;_extras_discover&lt;/code&gt; function finds them at runtime via &lt;code&gt;compgen -A function&lt;/code&gt; scanning the bash function namespace, because the entire script is bundled by Bashly and extras cannot be globbed off disk. &lt;code&gt;choose_extras&lt;/code&gt; (registered on &lt;code&gt;ask_questions&lt;/code&gt; at weight 45) builds one &lt;code&gt;select_many&lt;/code&gt; menu from the discovered extras, pre-ticking defaults via &lt;code&gt;MENU_PRESELECT&lt;/code&gt;, and sets the &lt;code&gt;EXTRAS&lt;/code&gt; array of ids. The generic &lt;code&gt;step_install_extras&lt;/code&gt; (pipeline slot 10, replacing &lt;code&gt;step_install_tool_api&lt;/code&gt;) iterates &lt;code&gt;EXTRAS&lt;/code&gt;, calls &lt;code&gt;extra_&amp;lt;id&amp;gt;&lt;/code&gt;, and emits &lt;code&gt;extra_installed &amp;lt;id&amp;gt;&lt;/code&gt; on success. Failures warn and continue.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;--tool-api&lt;/code&gt; boolean flag is replaced by &lt;code&gt;--extras LIST&lt;/code&gt; (comma-separated ids). Presence of the flag, not its value, overrides the defaults: &lt;code&gt;--extras &amp;quot;&amp;quot;&lt;/code&gt; is a valid explicit &amp;quot;install nothing.&amp;quot; The &lt;code&gt;.drupalaibp.json&lt;/code&gt; config schema gains &lt;code&gt;extra_scripts&lt;/code&gt; (array of ids), read into &lt;code&gt;EXTRAS&lt;/code&gt; by &lt;code&gt;load_config.sh&lt;/code&gt;. Old per-tool boolean keys (&lt;code&gt;toolbelt&lt;/code&gt;, &lt;code&gt;dtk&lt;/code&gt;) are not read; the project documents this as part of its 2.0 schema clean break. &lt;code&gt;export_config.sh&lt;/code&gt; writes &lt;code&gt;extra_scripts&lt;/code&gt; with the selected ids rather than expanding packages into &lt;code&gt;composer_projects&lt;/code&gt;/&lt;code&gt;install_modules&lt;/code&gt;, so configs no longer need to track package names separately from the extras themselves. A new &lt;code&gt;extra_installed&lt;/code&gt; event joins the event registry alongside &lt;code&gt;ddev_addon_added&lt;/code&gt; and &lt;code&gt;skill_added&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Also in this commit: the Bashly generator version is pinned to a &lt;code&gt;.bashly-version&lt;/code&gt; file and a &lt;code&gt;bin/generate&lt;/code&gt; wrapper enforces the pin, preventing CI failures caused by version drift between local and CI generators.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you use the CLI flag, replace &lt;code&gt;--tool-api&lt;/code&gt; with &lt;code&gt;--extras tool_api&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;# Before
+drupalaibp --tool-api
+
+# After
+drupalaibp --extras tool_api
+# Multiple extras (comma-separated)
+drupalaibp --extras tool_api,droost
+# Explicit &amp;quot;none&amp;quot; (overrides the dtk default)
+drupalaibp --extras &amp;quot;&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you have a &lt;code&gt;.drupalaibp.json&lt;/code&gt; config that listed Tool API packages manually, replace those entries with the &lt;code&gt;extra_scripts&lt;/code&gt; key:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;// Before (manual package listing)
+{
+  &amp;quot;composer_projects&amp;quot;: [&amp;quot;drupal/tool&amp;quot;, &amp;quot;drupal/tool_belt&amp;quot;],
+  &amp;quot;install_modules&amp;quot;: [&amp;quot;tool&amp;quot;, &amp;quot;tool_belt&amp;quot;, &amp;quot;tool_belt_content&amp;quot;, &amp;quot;...&amp;quot;],
+  &amp;quot;composer_allow_plugins&amp;quot;: [&amp;quot;tbachert/spi&amp;quot;]
+}
+
+// After
+{
+  &amp;quot;extra_scripts&amp;quot;: [&amp;quot;tool_api&amp;quot;]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To add a new optional tool, create one file in &lt;code&gt;src/lib/extras/&lt;/code&gt; following this pattern, then run &lt;code&gt;bin/generate&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;# src/lib/extras/extra_mymodule.sh
+extra_mymodule_meta() {
+  printf '%s|%s\n' &amp;quot;My Module&amp;quot; &amp;quot;short description shown in the menu&amp;quot;
+  # Add |default as a third field to pre-tick it
+}
+
+extra_mymodule() {
+  ddev exec composer require drupal/mymodule --no-interaction || { warn &amp;quot;Could not require mymodule.&amp;quot;; return 1; }
+  ddev drush en -y mymodule || warn &amp;quot;Could not enable mymodule.&amp;quot;
+  ok &amp;quot;My Module installed.&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 9, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3309122: Add a new dedicated permission for JSON API extra configurations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3309122.md</link>
+      <guid isPermaLink="false">019f5b92-242c-743f-b6e4-fb18e5e1ed0e</guid>
+      <category>Site owners</category>
+      <pubDate>Mon, 13 Jul 2026 07:28:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 8.x-3.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +99/−11 · php +94/−10 · yml +5/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/jsonapi_extras/-/commit/5260dba7158f13e4f46908aa751eb577f061aa05"&gt;5260dba&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3309122"&gt;#3309122&lt;/a&gt; · 6 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;JSON API Extras previously required the broad &lt;code&gt;administer site configuration&lt;/code&gt; permission to access its configuration forms and manage resource config entities. This made it impossible to delegate JSON:API Extras configuration to a role without granting that role unrestricted access to every configuration on the site. A new, dedicated permission called &lt;code&gt;administer json api extra configuration&lt;/code&gt; now controls access to these forms. An automatic database update (&lt;code&gt;jsonapi_extras_update_9002&lt;/code&gt;) grants the new permission to every role that already held &lt;code&gt;administer site configuration&lt;/code&gt;, so existing setups will continue working after running updates.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;administer json api extra configuration&lt;/code&gt; permission replaces &lt;code&gt;administer site configuration&lt;/code&gt; for all JSON API Extras configuration forms and resource config entities; run &lt;code&gt;update.php&lt;/code&gt; or &lt;code&gt;drush updb&lt;/code&gt; to migrate existing roles automatically.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change touches three areas in the codebase. First, &lt;code&gt;jsonapi_extras.permissions.yml&lt;/code&gt; declares the new &lt;code&gt;administer json api extra configuration&lt;/code&gt; permission with &lt;code&gt;restrict access: true&lt;/code&gt;. Second, the route requirement in the routing YAML and the &lt;code&gt;admin_permission&lt;/code&gt; annotation on the &lt;code&gt;JsonapiResourceConfig&lt;/code&gt; config entity both switch from &lt;code&gt;administer site configuration&lt;/code&gt; to the new permission, which gates both the settings form (&lt;code&gt;/admin/config/services/jsonapi/extras&lt;/code&gt;) and all CRUD operations on the resource config entities. Third, &lt;code&gt;jsonapi_extras_update_9002()&lt;/code&gt; in &lt;code&gt;jsonapi_extras.install&lt;/code&gt; iterates over all user roles and calls &lt;code&gt;grantPermission('administer json api extra configuration')&lt;/code&gt; on any role that already has &lt;code&gt;administer site configuration&lt;/code&gt;, ensuring backward compatibility without manual intervention. A new kernel test &lt;code&gt;JsonapiExtrasUpdateTest&lt;/code&gt; verifies that the update hook grants the permission only to qualifying roles.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run &lt;code&gt;drush updb&lt;/code&gt; (or visit &lt;code&gt;/update.php&lt;/code&gt;) after updating the module. The update hook &lt;code&gt;jsonapi_extras_update_9002&lt;/code&gt; automatically grants the new permission to all roles that had &lt;code&gt;administer site configuration&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;If you have roles that should be able to manage JSON:API Extras configuration but do &lt;strong&gt;not&lt;/strong&gt; have &lt;code&gt;administer site configuration&lt;/code&gt;, grant the new permission to those roles manually:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Via Drush or a one-time script:
+$role = \Drupal\user\Entity\Role::load('your_role_id');
+$role-&amp;gt;grantPermission('administer json api extra configuration')-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Or grant it through the admin UI at &lt;code&gt;/admin/people/permissions&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 12, 2022&lt;/li&gt;
+&lt;li&gt;Committed: July 13, 2026 (3 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mingsong&lt;/li&gt;
+&lt;li&gt;bbrala (SWIS)&lt;/li&gt;
+&lt;li&gt;ankitv18 (Acquia)&lt;/li&gt;
+&lt;li&gt;jackwrfuller&lt;/li&gt;
+&lt;li&gt;ali-h&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue was originally filed and patched by mingsong in September 2022. It sat idle for nearly two years until bbrala noted in May 2024 that the code had become outdated. ankitv18 then rebased the merge request and confirmed the pipelines were passing. After another year, bbrala added a kernel test covering the upgrade path before committing and closing the issue.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3582452: Add guardrail set selection to ai_search_block</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md</link>
       <guid isPermaLink="false">019f4ced-a6a0-70df-a65f-407e34fae704</guid>
@@ -790,86 +921,6 @@ fi
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588587: Add Codex backend for harness-native plugin install</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588587.md</link>
-      <guid isPermaLink="false">019e2d6a-246c-77ec-9b5a-1ab6d9bbf19a</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 14 May 2026 21:26:39 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.2.1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +810/−0 · py +794 · json +16&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_devkit/-/commit/8529e838c7ed265ca31a6edc97c88c8c0e3288e0"&gt;8529e83&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588587"&gt;#3588587&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drupal-devkit&lt;/code&gt; tool now supports harness-native plugin installation for Codex CLI and Gemini CLI users, not just Claude Code. Before this change, the &lt;code&gt;drupal-devkit harness-plugin install&lt;/code&gt; command had no available backend for Codex or Gemini users even though both harnesses were listed in the README as supported. The &lt;code&gt;drupal-workflow&lt;/code&gt; marketplace entry is now available under all three harnesses.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new plugin backends registered under type keys &lt;code&gt;&amp;quot;codex-marketplace&amp;quot;&lt;/code&gt; and &lt;code&gt;&amp;quot;gemini-extension&amp;quot;&lt;/code&gt; in the harness plugin registry&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;HarnessPluginBackend&lt;/code&gt; protocol in &lt;code&gt;harness_plugins/protocol.py&lt;/code&gt; already defined the interface (&lt;code&gt;is_available&lt;/code&gt;, &lt;code&gt;install&lt;/code&gt;, &lt;code&gt;uninstall&lt;/code&gt;, &lt;code&gt;list_installed&lt;/code&gt;, &lt;code&gt;info&lt;/code&gt;). This commit adds two concrete implementations alongside the existing &lt;code&gt;ClaudeCodePluginBackend&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;CodexPluginBackend&lt;/code&gt; (type &lt;code&gt;&amp;quot;codex-marketplace&amp;quot;&lt;/code&gt;) manages plugins by combining a CLI call to &lt;code&gt;codex plugin marketplace add&lt;/code&gt; to register the upstream marketplace source with direct manipulation of &lt;code&gt;~/.agents/plugins/marketplace.json&lt;/code&gt;, the file Codex reads on startup. Because individual plugin install/list in Codex is TUI-only as of v0.130+, the backend writes plugin entries directly into that JSON file. If &lt;code&gt;_register_plugin&lt;/code&gt; raises after a marketplace was added during the same run, the backend attempts a rollback via &lt;code&gt;codex plugin marketplace remove&lt;/code&gt;; it correctly skips rollback when the marketplace was already present before the run.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;GeminiPluginBackend&lt;/code&gt; (type &lt;code&gt;&amp;quot;gemini-extension&amp;quot;&lt;/code&gt;) delegates entirely to the &lt;code&gt;gemini extensions install/uninstall/list&lt;/code&gt; subcommands available in Gemini CLI v0.38+. A notable quirk is that &lt;code&gt;gemini extensions list -o json&lt;/code&gt; writes its JSON array to stderr rather than stdout, and may prefix it with non-JSON lines such as theme registration notices. The backend handles this with &lt;code&gt;_parse_json_array&lt;/code&gt;, which strips a leading non-JSON prefix before attempting to decode.&lt;/p&gt;
-&lt;p&gt;Both backends are registered in &lt;code&gt;harness_plugins/__init__.py&lt;/code&gt; under their respective type keys in the &lt;code&gt;BACKENDS&lt;/code&gt; dict, and corresponding marketplace entries (&lt;code&gt;&amp;quot;drupal-workflow-codex&amp;quot;&lt;/code&gt; and &lt;code&gt;&amp;quot;drupal-workflow-gemini&amp;quot;&lt;/code&gt;) are added to &lt;code&gt;default_marketplaces.json&lt;/code&gt; so the registry can resolve them by &lt;code&gt;harness&lt;/code&gt; + &lt;code&gt;type&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 14, 2026 (8 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588780: [Sprint 3] Component revision tracking — before/current/after comparison</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588780.md</link>
-      <guid isPermaLink="false">019e3eb4-b785-75a5-a8e6-55b084d4ae19</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 13 May 2026 08:31:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +57/−1 · md +57/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas_ai_migrations/-/commit/2aca47e57af99999009ffb1e176dba430c09a6d0"&gt;2aca47e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588780"&gt;#3588780&lt;/a&gt; · 1 contributor · 8 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; project's component-fixer had no way to verify that a fix actually improved a component's visual fidelity versus introducing a regression. This sprint adds a lightweight per-component revision tracking system: before and after each fix attempt, screenshots and computed styles are captured and compared to the original source baseline. The agent can now determine whether a change was converging (post-fix is more similar to source), diverging (regression), or unchanged (fix missed the right element), and it halts with a revert instruction on diverging results.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;capture-component.sh&lt;/code&gt; script and &lt;code&gt;compare-three-way.mjs&lt;/code&gt; aggregator; &lt;code&gt;component-fixer&lt;/code&gt; and &lt;code&gt;storybook-qa&lt;/code&gt; agent workflows gain mandatory pre/post capture steps and a &lt;code&gt;revisions/revisions.jsonl&lt;/code&gt; log per component.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Three new artifacts implement the system. &lt;code&gt;scripts/visual/capture-component.sh&lt;/code&gt; is a bash script that issues a single &lt;code&gt;agent-browser batch&lt;/code&gt; call per phase (&lt;code&gt;source&lt;/code&gt;, &lt;code&gt;pre&lt;/code&gt;, or &lt;code&gt;post&lt;/code&gt;). For &lt;code&gt;source&lt;/code&gt; phase it writes &lt;code&gt;docs/migration/components/&amp;lt;Name&amp;gt;/source.png&lt;/code&gt; and &lt;code&gt;source-styles.json&lt;/code&gt;. For &lt;code&gt;pre&lt;/code&gt;/&lt;code&gt;post&lt;/code&gt; phases it writes &lt;code&gt;revisions/&amp;lt;N&amp;gt;-{phase}.png&lt;/code&gt;, &lt;code&gt;&amp;lt;N&amp;gt;-{phase}-styles.json&lt;/code&gt;, and &lt;code&gt;&amp;lt;N&amp;gt;-{phase}-diff.json&lt;/code&gt; (a pixel-diff against &lt;code&gt;source.png&lt;/code&gt;). Batching all four browser actions into one call avoids repeated browser startup overhead.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;scripts/visual/compare-three-way.mjs&lt;/code&gt; is the aggregator. It reads the two diff JSONs and three styles JSONs, converts &lt;code&gt;diffRatio&lt;/code&gt; (0 = identical) to &lt;code&gt;pixel_similarity&lt;/code&gt; (1 = identical), classifies &lt;code&gt;direction&lt;/code&gt; as &lt;code&gt;converging&lt;/code&gt;/&lt;code&gt;diverging&lt;/code&gt;/&lt;code&gt;unchanged&lt;/code&gt; using a 0.02-point band, and emits a JSON object with &lt;code&gt;revision&lt;/code&gt;, &lt;code&gt;pixel_similarity_pre&lt;/code&gt;, &lt;code&gt;pixel_similarity_post&lt;/code&gt;, &lt;code&gt;direction&lt;/code&gt;, and &lt;code&gt;css_deltas&lt;/code&gt;. Each &lt;code&gt;css_deltas&lt;/code&gt; entry carries a &lt;code&gt;regressed&lt;/code&gt; flag that is &lt;code&gt;true&lt;/code&gt; only when the pre-fix state matched source and the post-fix state does not, distinguishing regressions from properties that were already wrong.&lt;/p&gt;
-&lt;p&gt;The agent workflow in &lt;code&gt;.claude/agents/component-fixer.md&lt;/code&gt; gains Step 3a (call &lt;code&gt;capture-component.sh --phase pre&lt;/code&gt; before any code change) and Step 5a (call &lt;code&gt;capture-component.sh --phase post&lt;/code&gt; after upload, then run &lt;code&gt;compare-three-way.mjs&lt;/code&gt; and append a &lt;code&gt;revisions.jsonl&lt;/code&gt; line). On &lt;code&gt;direction: &amp;quot;diverging&amp;quot;&lt;/code&gt; the agent reverts with &lt;code&gt;git restore&lt;/code&gt; and emits &lt;code&gt;BLOCKED: regression detected&lt;/code&gt;. &lt;code&gt;.claude/agents/storybook-qa.md&lt;/code&gt; is updated to call &lt;code&gt;capture-component.sh --phase source&lt;/code&gt; once when the first issue for a component is filed, seeding the stable &lt;code&gt;source.png&lt;/code&gt; baseline. The &lt;code&gt;visual-comparison&lt;/code&gt; skill docs gain a dedicated &lt;code&gt;Three-way comparison&lt;/code&gt; section documenting the full capture-aggregate-interpret flow. Vitest tests for &lt;code&gt;compare-three-way.mjs&lt;/code&gt; and bash smoke tests for &lt;code&gt;capture-component.sh&lt;/code&gt; are included; a new &lt;code&gt;visual&lt;/code&gt; test suite is registered in &lt;code&gt;vitest.config.js&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No migration of existing components is required. To start tracking revisions for a component that already has issues, run the source-baseline capture once:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;scripts/visual/capture-component.sh --component &amp;lt;Name&amp;gt; --revision 0 --phase source \
-  --url &amp;lt;SOURCE_URL&amp;gt; --selector &amp;quot;&amp;lt;SECTION_SELECTOR&amp;gt;&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Subsequent &lt;code&gt;component-fixer&lt;/code&gt; runs will then use &lt;code&gt;--revision 1&lt;/code&gt;, &lt;code&gt;--revision 2&lt;/code&gt;, etc. automatically (the agent derives &lt;code&gt;N&lt;/code&gt; from the line count of &lt;code&gt;revisions/revisions.jsonl&lt;/code&gt;). Components that have never had a &lt;code&gt;storybook-qa&lt;/code&gt; issue filed since this change will need the source baseline captured manually before the fixer can produce a &lt;code&gt;direction&lt;/code&gt; result.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: May 13, 2026 (6 days and 4 commits later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
