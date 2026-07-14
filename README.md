@@ -1,24 +1,24 @@
-**TL;DR:** [768 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [773 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Core
-
-_549 summaries · 19 new this week_
-
-- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
-- [#3606411: Return the correct typehint when Drupal::classResolver() is called with a class...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606411.md)
-- [#3152267: Invalid use of array union operator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3152267.md)
-
 ### Drupal AI
 
-_91 summaries · 5 new this week_
+_95 summaries · 9 new this week_
 
-- [#3601361: Replace the experimental tool prompts with a generic, script-driven "Extra...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601361.md)
-- [#3309122: Add a new dedicated permission for JSON API extra configurations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3309122.md)
-- [#3582452: Add guardrail set selection to ai_search_block](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md)
+- [#3601370: Agent Ready Drupal Build Kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601370.md)
+- [#3601332: Adopt Bashly (bashly.dev) to generate the installer from a single YAML-defined...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601332.md)
+- [#3601367: Fix the viewport issue](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601367.md)
+
+### Drupal Core
+
+_550 summaries · 20 new this week_
+
+- [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
+- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
+- [#3606411: Return the correct typehint when Drupal::classResolver() is called with a class...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606411.md)
 
 ### Drupal Canvas
 

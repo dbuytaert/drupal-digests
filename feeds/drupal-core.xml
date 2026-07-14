@@ -5,6 +5,48 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3532506: Never bypass basic validation when saving a config object</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md</link>
+      <guid isPermaLink="false">019f5fd4-a7e7-76cf-bb90-6e23cfc9c776</guid>
+      <pubDate>Tue, 14 Jul 2026 08:16:39 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +29/−12 · php +29/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e798c54ce907e2b9874c83a1b048c36f88edef51"&gt;e798c54&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3532506"&gt;#3532506&lt;/a&gt; · 8 contributors · 28 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Passing &lt;code&gt;$has_trusted_data = TRUE&lt;/code&gt; to &lt;code&gt;Config::save()&lt;/code&gt; was intended to skip schema-based type coercion (the expensive &lt;code&gt;castValue()&lt;/code&gt; pass), but it also accidentally skipped the basic sanity check that prevents non-scalar types such as objects and streams from being serialized into the config storage. As a result, calling &lt;code&gt;$config-&amp;gt;set('foo', new stdClass())-&amp;gt;save(TRUE)&lt;/code&gt; would silently write PHP-serialized objects to the database. This is now fixed: basic type validation always runs regardless of the &lt;code&gt;$has_trusted_data&lt;/code&gt; flag, so any unsupported type throws &lt;code&gt;UnsupportedDataTypeConfigException&lt;/code&gt; at save time. Note that the &lt;code&gt;$has_trusted_data&lt;/code&gt; parameter itself was deprecated in Drupal 11.4 by &lt;a href="https://www.drupal.org/node/3347842"&gt;#3347842&lt;/a&gt;, so this fix also guards the remaining lifecycle of that deprecated path.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in the conditional inside &lt;code&gt;Config::save()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Config/Config.php&lt;/code&gt;. The original structure nested both &lt;code&gt;castValue()&lt;/code&gt; and &lt;code&gt;validateValue()&lt;/code&gt; inside a single &lt;code&gt;if (!$has_trusted_data)&lt;/code&gt; guard, meaning the &lt;code&gt;else&lt;/code&gt; branch that calls &lt;code&gt;validateValue()&lt;/code&gt; was unreachable when trusted data was passed. The fix moves the condition so that only the schema-based &lt;code&gt;castValue()&lt;/code&gt; call is guarded by &lt;code&gt;!$has_trusted_data&lt;/code&gt;: the condition becomes &lt;code&gt;if (!$has_trusted_data &amp;amp;&amp;amp; $this-&amp;gt;typedConfigManager-&amp;gt;hasConfigSchema($this-&amp;gt;name))&lt;/code&gt;, with an unconditional &lt;code&gt;else&lt;/code&gt; branch that always runs &lt;code&gt;validateValue()&lt;/code&gt; on every top-level key. This ensures the invariant that config storage only ever contains nested arrays of scalar values, even when the caller opts out of schema enforcement. New test assertions in &lt;code&gt;ConfigCRUDTest::testTrustedDataDeprecation()&lt;/code&gt; cover both the case where a config schema exists and the case where none is registered, confirming that &lt;code&gt;UnsupportedDataTypeConfigException&lt;/code&gt; is thrown in both situations.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you have code that calls &lt;code&gt;$config-&amp;gt;save(TRUE)&lt;/code&gt; and sets non-scalar values (objects, resources, etc.), that code will now throw &lt;code&gt;UnsupportedDataTypeConfigException&lt;/code&gt;. Ensure all values are nested arrays of scalars before saving. Additionally, the &lt;code&gt;$has_trusted_data&lt;/code&gt; parameter is deprecated as of Drupal 11.4 and will be removed in 13.0; migrate to calling &lt;code&gt;$config-&amp;gt;save()&lt;/code&gt; without arguments.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 26, 2025&lt;/li&gt;
+&lt;li&gt;Committed: July 14, 2026 (1 year and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;dhruv.mittal (Innoraft)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;santanu mondal (Innoraft)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3603333: Errors when stream wrappers instantiate services in constructors because register() is called before container is built</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md</link>
       <guid isPermaLink="false">019f5e18-01f8-7689-b424-a8df0581e850</guid>
@@ -936,52 +978,6 @@ $hash = Crypt::hashBase64($value);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;gábor hojtsy pointed out mid-review that issue &lt;a href="https://www.drupal.org/node/3594389"&gt;#3594389&lt;/a&gt; (removing the &lt;code&gt;-dev&lt;/code&gt; suffix special-casing from locale project info) had just landed, which let phenaproxima simplify the implementation by dropping the &lt;code&gt;-dev&lt;/code&gt; handling they had originally added. gábor also surfaced a nearly identical duplicate, &lt;a href="https://www.drupal.org/node/3529211"&gt;#3529211&lt;/a&gt;, which phenaproxima had worked on a year earlier but which never landed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3564112: Cache rebuild triggers file_get_contents Permission denied in theme node_modules despite file_scan_ignore_directories</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3564112.md</link>
-      <guid isPermaLink="false">019f3960-08c3-7412-8275-683743489a24</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 06 Jul 2026 21:00:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +118/−10 · php +108/−10 · yml +10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7e0c9a2e38711c4c542fd09658572792380e3e78"&gt;7e0c9a2&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3564112"&gt;#3564112&lt;/a&gt; · 7 contributors · 41 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Since Drupal 11.3 introduced OOP hook scanning for themes, cache rebuilds on sites with a &lt;code&gt;node_modules/&lt;/code&gt; directory inside a custom theme began emitting large numbers of &lt;code&gt;file_get_contents() Permission denied&lt;/code&gt; warnings and could slow down dramatically. This happened because the new hook-collector classes did not respect the &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting. The fix makes &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; honour that setting, so directories listed there are skipped during hook discovery just as they already were during file and extension scanning.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting now also controls which directories are skipped during hook-discovery scanning in &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;, not only file API and extension scanning.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The 11.3 addition of &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; and &lt;code&gt;HookCollectorPass&lt;/code&gt; each contain a &lt;code&gt;filterIterator()&lt;/code&gt; method that decides which directories to recurse into when scanning an extension for hook implementations. Those methods had a hardcoded exclusion list (&lt;code&gt;['tests', 'js', 'css']&lt;/code&gt; for modules; &lt;code&gt;['tests', 'js', 'css', 'templates']&lt;/code&gt; for themes) but did not consult &lt;code&gt;Settings::get('file_scan_ignore_directories')&lt;/code&gt;. As a result, &lt;code&gt;node_modules/&lt;/code&gt; trees inside theme directories were fully traversed, triggering &lt;code&gt;StaticReflectionParser::parse()&lt;/code&gt; to attempt &lt;code&gt;file_get_contents()&lt;/code&gt; on every file it encountered, many of which were unreadable directories on the developer's system.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;Settings::get('file_scan_ignore_directories', [])&lt;/code&gt; inside &lt;code&gt;filterIterator()&lt;/code&gt; in both &lt;code&gt;HookCollectorPass&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;, merging the result into the hardcoded exclusion array. The comment block for &lt;code&gt;$settings['file_scan_ignore_directories']&lt;/code&gt; in &lt;code&gt;default.settings.php&lt;/code&gt; was also updated to document that the setting now governs hook-discovery scanning in addition to the file API and extension discovery. Tests covering both the module-hook and theme-hook cases were added under &lt;code&gt;core/modules/system/tests/modules/HookCollector/&lt;/code&gt; and &lt;code&gt;core/modules/system/tests/themes/HookCollector/&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 19, 2025&lt;/li&gt;
-&lt;li&gt;Committed: July 6, 2026 (6 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dotoree&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;richard.thomas&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The thread had a brief but substantive design debate. berdir's initial read-through suggested the fix should happen higher in the call stack and should respect the scan setting rather than only hardcoding directory names. nicxvan later floated the idea of simply hardcoding &lt;code&gt;node_modules&lt;/code&gt; and &lt;code&gt;bower_components&lt;/code&gt; rather than reusing &lt;code&gt;file_scan_ignore_directories&lt;/code&gt;, reasoning the two concerns were distinct. richard.thomas pushed back by quoting the existing &lt;code&gt;default.settings.php&lt;/code&gt; documentation, which already describes the setting as preventing &amp;quot;recursive scanning of directories looking for extensions,&amp;quot; arguing the intent was identical. nicxvan agreed, and the approach of reading the setting at runtime was kept. The &lt;code&gt;default.settings.php&lt;/code&gt; comment was then revised to make the broadened scope explicit.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
