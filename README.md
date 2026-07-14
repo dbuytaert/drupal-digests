@@ -1,4 +1,4 @@
-**TL;DR:** [767 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [768 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_548 summaries · 21 new this week_
+_549 summaries · 19 new this week_
 
+- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
 - [#3606411: Return the correct typehint when Drupal::classResolver() is called with a class...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606411.md)
 - [#3152267: Invalid use of array union operator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3152267.md)
-- [#3608776: [regression] Route discovery isn't fully compatible with Symfony routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608776.md)
 
 ### Drupal AI
 
