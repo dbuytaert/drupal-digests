@@ -1,4 +1,4 @@
-**TL;DR:** [773 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [775 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_95 summaries · 9 new this week_
+_96 summaries · 10 new this week_
 
+- [#3601371: Make the build script only move the main script on tags](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601371.md)
 - [#3601370: Agent Ready Drupal Build Kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601370.md)
 - [#3601332: Adopt Bashly (bashly.dev) to generate the installer from a single YAML-defined...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601332.md)
-- [#3601367: Fix the viewport issue](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601367.md)
 
 ### Drupal Core
 
-_550 summaries · 20 new this week_
+_551 summaries · 20 new this week_
 
 - [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
 - [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
