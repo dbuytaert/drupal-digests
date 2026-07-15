@@ -14,7 +14,7 @@ _96 summaries · 10 new this week_
 
 ### Drupal Core
 
-_551 summaries · 19 new this week_
+_551 summaries · 18 new this week_
 
 - [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
 - [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
