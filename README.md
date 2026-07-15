@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_96 summaries · 10 new this week_
+_96 summaries · 9 new this week_
 
 - [#3601371: Make the build script only move the main script on tags](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601371.md)
 - [#3601370: Agent Ready Drupal Build Kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601370.md)
@@ -22,7 +22,7 @@ _551 summaries · 18 new this week_
 
 ### Drupal Canvas
 
-_111 summaries · 8 new this week_
+_111 summaries · 7 new this week_
 
 - [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
 - [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_179 rules · 1 new this week_
+_179 rules · 0 new this week_
 
 - [Add missing $imageDerivativeUtilities argument to ImageFormatter constructor...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-missing-imagederivativeutilities-argument-to-3609124.php)
 - [Replace deprecated locale submit callbacks with service method calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php)
