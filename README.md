@@ -14,7 +14,7 @@ _99 summaries · 12 new this week_
 
 ### Drupal Core
 
-_551 summaries · 18 new this week_
+_551 summaries · 17 new this week_
 
 - [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
 - [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
@@ -22,7 +22,7 @@ _551 summaries · 18 new this week_
 
 ### Drupal Canvas
 
-_111 summaries · 2 new this week_
+_111 summaries · 0 new this week_
 
 - [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
 - [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
