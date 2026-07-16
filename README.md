@@ -22,7 +22,7 @@ _551 summaries · 18 new this week_
 
 ### Drupal Canvas
 
-_111 summaries · 4 new this week_
+_111 summaries · 3 new this week_
 
 - [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
 - [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
