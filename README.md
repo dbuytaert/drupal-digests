@@ -1,4 +1,4 @@
-**TL;DR:** [775 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [777 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_96 summaries · 9 new this week_
+_98 summaries · 11 new this week_
 
+- [#3601376: Allow .drupalaibp.json to append or replace the welcome text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md)
+- [#3601363: Add --config-path to install from a local, HTTPS, or repo-hosted...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601363.md)
 - [#3601371: Make the build script only move the main script on tags](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601371.md)
-- [#3601370: Agent Ready Drupal Build Kit](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601370.md)
-- [#3601332: Adopt Bashly (bashly.dev) to generate the installer from a single YAML-defined...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601332.md)
 
 ### Drupal Core
 

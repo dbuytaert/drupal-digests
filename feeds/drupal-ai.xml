@@ -5,6 +5,86 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3601376: Allow .drupalaibp.json to append or replace the welcome text</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md</link>
+      <guid isPermaLink="false">019f6af5-af80-7040-8364-02929f5f04c3</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 16 Jul 2026 11:15:59 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601376"&gt;#3601376&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Projects shipping a &lt;code&gt;.drupalaibp.json&lt;/code&gt; config can now customize the &amp;quot;you're all set&amp;quot; summary that the one-line installer prints at the end of a successful build. Two optional keys are available: &lt;code&gt;append_welcome_text&lt;/code&gt; adds extra paragraphs after the standard summary (site URL, admin login, handy commands), and &lt;code&gt;replace_welcome_text&lt;/code&gt; replaces the entire summary with custom content. Both keys work for Drupal and non-Drupal builds. When both are set, &lt;code&gt;replace_welcome_text&lt;/code&gt; wins and &lt;code&gt;append_welcome_text&lt;/code&gt; is ignored. The feature is documented in &lt;code&gt;docs/drupalaibp-json.md&lt;/code&gt; including a full token and color reference.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new &lt;code&gt;.drupalaibp.json&lt;/code&gt; keys: &lt;code&gt;append_welcome_text&lt;/code&gt; and &lt;code&gt;replace_welcome_text&lt;/code&gt;, with &lt;code&gt;{TOKEN}&lt;/code&gt; and color-code substitution in both.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Both keys are read by the new &lt;code&gt;_config_read_welcome_text&lt;/code&gt; function in &lt;code&gt;src/lib/config/load_config.sh&lt;/code&gt; into &lt;code&gt;APPEND_WELCOME_TEXT&lt;/code&gt; and &lt;code&gt;REPLACE_WELCOME_TEXT&lt;/code&gt; bash arrays. Each key accepts either a bare string or an array of strings (paragraphs); the reader handles both shapes.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;print_welcome&lt;/code&gt; in &lt;code&gt;src/lib/steps/print_welcome.sh&lt;/code&gt; checks &lt;code&gt;REPLACE_WELCOME_TEXT&lt;/code&gt; first: when the array is non-empty it iterates and prints each paragraph through &lt;code&gt;_welcome_text_substitute&lt;/code&gt;, then returns before any of the standard summary is built. If only &lt;code&gt;APPEND_WELCOME_TEXT&lt;/code&gt; is set, the standard summary prints in full and the extra paragraphs are appended at the end via the same helper.&lt;/p&gt;
+&lt;p&gt;The new helper &lt;code&gt;src/lib/steps/_welcome_text_substitute.sh&lt;/code&gt; performs &lt;code&gt;{TOKEN}&lt;/code&gt; substitution. Built-in tokens are &lt;code&gt;{PROJECT_NAME}&lt;/code&gt;, &lt;code&gt;{SITE_URL}&lt;/code&gt;, &lt;code&gt;{DRUPAL_USERNAME}&lt;/code&gt;, &lt;code&gt;{DRUPAL_PASSWORD}&lt;/code&gt;, and &lt;code&gt;{DRUPAL_LOGIN_URL}&lt;/code&gt;. Any key from the config's &lt;code&gt;questions&lt;/code&gt; array is also available by its &lt;code&gt;env&lt;/code&gt; name. Color tokens (&lt;code&gt;{BOLD}&lt;/code&gt;, &lt;code&gt;{DIM}&lt;/code&gt;, &lt;code&gt;{GREEN}&lt;/code&gt;, &lt;code&gt;{YELLOW}&lt;/code&gt;, &lt;code&gt;{RED}&lt;/code&gt;, &lt;code&gt;{RESET}&lt;/code&gt;) expand to ANSI codes only when stdout is a real TTY (gated by &lt;code&gt;_welcome_text_colors_enabled&lt;/code&gt; which wraps &lt;code&gt;[[ -t 1 ]]&lt;/code&gt;); they collapse to nothing in piped or redirected output. An unrecognized token is left untouched rather than silently deleted, surfacing typos in the terminal output. Every paragraph receives an automatic trailing &lt;code&gt;RESET&lt;/code&gt; when colors are enabled so an unclosed color token cannot bleed into subsequent output. Both new keys are registered in &lt;code&gt;DRUPALAIBP_KNOWN_KEYS&lt;/code&gt; so the unknown-key warning does not fire on valid configs.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No changes required for existing configs; both keys are optional and the default behavior (standard summary, no appended or replaced text) is unchanged.&lt;/p&gt;
+&lt;p&gt;To append project-specific instructions after the standard summary:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;append_welcome_text&amp;quot;: [
+    &amp;quot;Project docs: https://example.com/handbook&amp;quot;,
+    &amp;quot;Ask in #project-support if you get stuck.&amp;quot;
+  ]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To replace the entire summary with custom content (accepts a bare string or array):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;replace_welcome_text&amp;quot;: &amp;quot;{BOLD}{GREEN}Welcome to the ACME demo!{RESET} Run `ddev launch` and log in with admin / admin.&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Tokens from &lt;code&gt;questions[].env&lt;/code&gt; answers are available in both keys, e.g. &lt;code&gt;{SITE_FLAVOR}&lt;/code&gt; when a question with &lt;code&gt;&amp;quot;env&amp;quot;: &amp;quot;SITE_FLAVOR&amp;quot;&lt;/code&gt; is defined. Unknown tokens are left verbatim in the output rather than silently removed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 16, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3601363: Add --config-path to install from a local, HTTPS, or repo-hosted .drupalaibp.json</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601363.md</link>
+      <guid isPermaLink="false">019f6af7-0ffa-73db-bce0-07f92371d1e9</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 16 Jul 2026 10:37:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601363"&gt;#3601363&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;setup-site&lt;/code&gt; command gains a &lt;code&gt;--config-path &amp;lt;dir&amp;gt;&lt;/code&gt; flag, a third way to point the installer at a &lt;code&gt;.drupalaibp.json&lt;/code&gt; alongside the existing &lt;code&gt;--global-config&lt;/code&gt; (a named file in &lt;code&gt;~/.drupalaibp/configs/&lt;/code&gt;) and &lt;code&gt;--config-url&lt;/code&gt; (a git-cloned repo). Passing a local directory path — such as a folder checked into the current project — loads its root &lt;code&gt;.drupalaibp.json&lt;/code&gt;, drives the build from it, and resolves sibling hook scripts and &lt;code&gt;copy_paths&lt;/code&gt; assets relative to that directory. This lets teams share a config by committing it to their repo and passing its directory at build time, without copying the file into each developer's global config store. The flag is local-only and intentionally has no network or URL support; for remote configs, &lt;code&gt;--config-url&lt;/code&gt; is the appropriate tool.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;--config-path &amp;lt;dir&amp;gt;&lt;/code&gt; flag on &lt;code&gt;setup-site&lt;/code&gt; builds from a &lt;code&gt;.drupalaibp.json&lt;/code&gt; in a local directory, mutually exclusive with &lt;code&gt;--config-url&lt;/code&gt; and &lt;code&gt;--global-config&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The implementation lives in two new files: &lt;code&gt;src/lib/config/_resolve_config_path_source.sh&lt;/code&gt; (&lt;code&gt;_resolve_config_path_source&lt;/code&gt;) validates that the argument is an existing directory containing a &lt;code&gt;.drupalaibp.json&lt;/code&gt;, then sets &lt;code&gt;RESOLVED_CONFIG_SOURCE&lt;/code&gt; to its absolute path. &lt;code&gt;src/lib/config/load_config_path.sh&lt;/code&gt; (&lt;code&gt;load_config_path&lt;/code&gt;) calls that resolver and then hands the resolved path to the existing &lt;code&gt;drupalaibp_load&lt;/code&gt; machinery, which populates all choice globals and registers config hooks exactly as it does for other load paths. &lt;code&gt;setup_site_command.sh&lt;/code&gt; dispatches to &lt;code&gt;load_config_path&lt;/code&gt; when &lt;code&gt;--config-path&lt;/code&gt; is present and &lt;code&gt;PROJECT_CONTEXT == none&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Compared to &lt;code&gt;--global-config&lt;/code&gt;, &lt;code&gt;--config-path&lt;/code&gt; sets only &lt;code&gt;USE_CONFIG=1&lt;/code&gt;, not &lt;code&gt;YOLO=1&lt;/code&gt;: the config's own &lt;code&gt;questions&lt;/code&gt; still prompt interactively unless &lt;code&gt;--yolo&lt;/code&gt; is passed separately. &lt;code&gt;CONFIG_BASEDIR&lt;/code&gt; is set to the given directory (via the normal &lt;code&gt;drupalaibp_load&lt;/code&gt; call), so &lt;code&gt;hooks[].script&lt;/code&gt; and &lt;code&gt;copy_paths&lt;/code&gt; entries resolve relative to it and are copied into the project by the existing &lt;code&gt;_copy_hook_scripts&lt;/code&gt;/&lt;code&gt;_copy_config_paths&lt;/code&gt; machinery. No key restriction, trust gate, or HTTPS fetch is involved; those concerns belong to &lt;code&gt;--config-url&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;--config-path&lt;/code&gt; is mutually exclusive with &lt;code&gt;--config-url&lt;/code&gt; and &lt;code&gt;--global-config&lt;/code&gt;; passing more than one of the three causes an immediate &lt;code&gt;die&lt;/code&gt;. The flag is silently rejected in management mode (it only applies when &lt;code&gt;PROJECT_CONTEXT == none&lt;/code&gt;). The bats suite covers the happy path, &lt;code&gt;CONFIG_BASEDIR&lt;/code&gt; positioning, a missing &lt;code&gt;.drupalaibp.json&lt;/code&gt;, and a nonexistent directory in &lt;code&gt;tests/bats/lib/config/load_config_path.bats&lt;/code&gt; and &lt;code&gt;_resolve_config_path_source.bats&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 9, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3601371: Make the build script only move the main script on tags</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601371.md</link>
       <guid isPermaLink="false">019f60a4-4d35-7032-b592-441c9e48d870</guid>
@@ -824,113 +904,6 @@ class MyCustomAiRule extends AiConstraintFieldValidationRuleBase {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;a.dmitriiev noted in a follow-up comment that the change also resolved a concrete Composer installation failure: &lt;code&gt;drupal/drupal_cms_media ^1.0&lt;/code&gt; had no satisfying release because the package was only available at 2.x, making the recipe impossible to &lt;code&gt;composer require&lt;/code&gt; at all on any current Drupal project.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3355087: Support for non-bundle entity types</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3355087.md</link>
-      <guid isPermaLink="false">019e97e8-7a97-77c0-9e6e-38415e6a3a56</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 05 Jun 2026 10:15:16 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +1120/−228 · php +1061/−223 · yml +51 · md +8/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3355087"&gt;#3355087&lt;/a&gt; · 9 contributors · 40 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 22&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Scheduler module now supports entity types that have no bundles, such as custom entities built without a bundle type or entities from contrib modules like &lt;code&gt;ai_context&lt;/code&gt;. Previously, Scheduler silently dropped any plugin targeting a no-bundle entity type during discovery, making it impossible to schedule publishing on such entities regardless of the plugin definition. After this change, site owners can enable and configure scheduled publishing and unpublishing on no-bundle entity types via a new per-entity-type settings page at &lt;code&gt;/admin/config/content/scheduler/{entity_type_id}&lt;/code&gt;. Scheduler 2.3.0 includes this feature.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;scheduler.no_bundle_entity_type_settings.*&lt;/code&gt; config objects store publish/unpublish settings for no-bundle entity types, reusing the &lt;code&gt;scheduler_third_party_settings&lt;/code&gt; schema.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;SchedulerManager&lt;/code&gt; methods: &lt;code&gt;hasBundleType()&lt;/code&gt;, &lt;code&gt;entityTypeNoBundleConfig()&lt;/code&gt;, &lt;code&gt;getNoBundleEntityTypeSetting()&lt;/code&gt;, &lt;code&gt;buildSchedulerFormElements()&lt;/code&gt;; new &lt;code&gt;SchedulerNoBundleSettingsForm&lt;/code&gt; class and &lt;code&gt;scheduler.no_bundle_settings_form&lt;/code&gt; route.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root blocker was in &lt;code&gt;SchedulerPluginManager::findDefinitions()&lt;/code&gt;, which called &lt;code&gt;$entityType-&amp;gt;getBundleEntityType()&lt;/code&gt; and unset any plugin definition that returned falsy. Removing that guard opens discovery to no-bundle types.&lt;/p&gt;
-&lt;p&gt;With discovery unblocked, several other subsystems needed to branch on whether a bundle type exists. The new &lt;code&gt;SchedulerManager::hasBundleType()&lt;/code&gt; method encapsulates that check. &lt;code&gt;getThirdPartySetting()&lt;/code&gt; now delegates to &lt;code&gt;getNoBundleEntityTypeSetting()&lt;/code&gt; for no-bundle entities, reading from &lt;code&gt;scheduler.no_bundle_entity_type_settings.{entity_type_id}&lt;/code&gt; config objects rather than third-party settings on a bundle entity. &lt;code&gt;getEnabledTypes()&lt;/code&gt; returns &lt;code&gt;[$entityTypeId]&lt;/code&gt; when the no-bundle config enables scheduling, and the publish/unpublish entity queries skip the &lt;code&gt;typeFieldName()&lt;/code&gt; bundle condition when &lt;code&gt;typeFieldName()&lt;/code&gt; returns an empty string. Logging was refactored into the protected &lt;code&gt;getEntityLogContext()&lt;/code&gt; helper to handle both paths without fatal bundle-entity loads.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;SchedulerNoBundleSettingsForm&lt;/code&gt; provides a dedicated admin UI registered at the &lt;code&gt;scheduler.no_bundle_settings_form&lt;/code&gt; route; settings are saved to &lt;code&gt;scheduler.no_bundle_entity_type_settings.*&lt;/code&gt; config objects, which reuse the existing &lt;code&gt;scheduler_third_party_settings&lt;/code&gt; config schema. Form-building logic was extracted from &lt;code&gt;_scheduler_entity_type_form_alter()&lt;/code&gt; into the public &lt;code&gt;SchedulerManager::buildSchedulerFormElements()&lt;/code&gt; helper to avoid duplication. A submit-time edge case is also handled: form modes registered only via &lt;code&gt;hook_entity_form_mode_info_alter()&lt;/code&gt; with no backing &lt;code&gt;entity_form_mode&lt;/code&gt; config entity (&amp;quot;phantom&amp;quot; modes) would cause a fatal in &lt;code&gt;EntityDisplayBase::calculateDependencies()&lt;/code&gt;; the submit handler now skips such modes. &lt;code&gt;SchedulerPluginBase::typeFieldName()&lt;/code&gt; returns an empty string for no-bundle types, and &lt;code&gt;getTypes()&lt;/code&gt; and &lt;code&gt;entityTypeFormIds()&lt;/code&gt; return early empty arrays when no bundle entity type exists.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;scheduler_no_bundle_test&lt;/code&gt; module ships a &lt;code&gt;scheduler_test_no_bundle&lt;/code&gt; entity type (&lt;code&gt;EntityTestNoBundlePublishable&lt;/code&gt;) and its &lt;code&gt;SchedulerTestNoBundleScheduler&lt;/code&gt; plugin. A &lt;code&gt;SchedulerNoBundleSupportTest&lt;/code&gt; kernel test covers discovery, settings resolution, and the phantom form-mode edge case. The new &lt;code&gt;SchedulerNoBundleEntitySetupTrait&lt;/code&gt; and &lt;code&gt;dataNoBundleEntityTypes()&lt;/code&gt; data provider extend existing functional tests to exercise the no-bundle code path alongside bundled entity types.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To write a Scheduler plugin for a no-bundle entity type, declare a standard &lt;code&gt;@SchedulerPlugin&lt;/code&gt; annotation omitting any bundle-specific fields. No &lt;code&gt;typeFieldName()&lt;/code&gt; override is needed; the base class returns &lt;code&gt;''&lt;/code&gt; automatically.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;/**
- * @SchedulerPlugin(
- *   id = &amp;quot;my_entity_scheduler&amp;quot;,
- *   label = @Translation(&amp;quot;My entity scheduler plugin&amp;quot;),
- *   description = @Translation(&amp;quot;Provides scheduler support for my entity type&amp;quot;),
- *   entityType = &amp;quot;my_entity&amp;quot;,
- *   dependency = &amp;quot;my_module&amp;quot;
- * )
- */
-class MyEntityScheduler extends SchedulerPluginBase implements ContainerFactoryPluginInterface {}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Configure settings via the new config object rather than bundle third-party settings:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush config-set scheduler.no_bundle_entity_type_settings.my_entity publish_enable 1
-drush config-set scheduler.no_bundle_entity_type_settings.my_entity unpublish_enable 1
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Or visit &lt;code&gt;/admin/config/content/scheduler/my_entity&lt;/code&gt; in the admin UI. Existing code that reads settings through &lt;code&gt;SchedulerManager::getThirdPartySetting()&lt;/code&gt; continues to work without changes; the method now routes no-bundle entities to &lt;code&gt;getNoBundleEntityTypeSetting()&lt;/code&gt; automatically.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 19, 2023&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicodh&lt;/li&gt;
-&lt;li&gt;jonathan1055&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;mglaman opened the MR with a detailed audit of every bundle-assumption touch point in the 2.x codebase and a concrete five-step implementation plan. scott falconer identified a blocking crash: the &lt;code&gt;SchedulerNoBundleSettingsForm&lt;/code&gt; submit handler looped over all form modes and attempted to save an &lt;code&gt;EntityFormDisplay&lt;/code&gt; for modes registered only via &lt;code&gt;hook_entity_form_mode_info_alter()&lt;/code&gt; without a backing config entity, triggering a fatal in &lt;code&gt;EntityDisplayBase::calculateDependencies()&lt;/code&gt;. He documented the exact stack trace and noted that the config save happened before the loop, leaving sites partially configured on failure. mglaman addressed both problems in a follow-up commit. jonathan1055 reviewed the final MR, requested renaming the test class from &lt;code&gt;EntityTestNoBundleScheduler&lt;/code&gt; to &lt;code&gt;SchedulerTestNoBundleScheduler&lt;/code&gt;, explained why no-bundle entities cannot be wired into the existing JavaScript test suite (the JS tests configure scheduling via &lt;code&gt;setThirdPartySetting()&lt;/code&gt; on a bundle object, which does not exist for no-bundle types), and merged and released Scheduler 2.3.0.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588809: [Sprint 8] Add Phase 5.5 (asset library setup) using canvas:asset_library</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588809.md</link>
-      <guid isPermaLink="false">019e3894-7bdc-72d2-921a-d324c2722bbd</guid>
-      <pubDate>Sun, 17 May 2026 21:26:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588809"&gt;#3588809&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;canvas_ai_migrations&lt;/code&gt; workflow gains a new Phase 5.5 that deploys global CSS and brand kit settings to Canvas config entities as a deterministic (non-LLM) step. Previously, &lt;code&gt;global.css&lt;/code&gt; was bundled inside a specific component, meaning any style update required re-uploading the whole component. After this change, global styles live in the Canvas &lt;code&gt;asset_library&lt;/code&gt; config entity and can be independently PATCH-updated post-migration without touching component bundles. A companion script also patches the global &lt;code&gt;brand_kit&lt;/code&gt; entity with fonts discovered during migration. Both scripts run via Node.js and are orchestrated between Phase 5 (media) and Phase 6 (site-config) in SKILL.md.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two new scripts are added under &lt;code&gt;scripts/&lt;/code&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;setup-asset-library.mjs&lt;/code&gt; targets &lt;code&gt;/canvas/api/v0/config/asset_library/global&lt;/code&gt; using the &lt;code&gt;canvas:asset_library&lt;/code&gt; OAuth scope. It reads &lt;code&gt;src/components/global.css&lt;/code&gt;, GETs the endpoint to check existence, then either POSTs (HTTP 201 expected) or PATCHes (HTTP 200 expected). The payload uses &lt;code&gt;{ id, label, css: { original, compiled } }&lt;/code&gt;. On completion it writes &lt;code&gt;docs/migration/workflow/05.5-asset-library-checklist.json&lt;/code&gt; conforming to &lt;code&gt;state-envelope.schema.json&lt;/code&gt; via an atomic &lt;code&gt;.tmp&lt;/code&gt;-to-rename write.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; targets &lt;code&gt;/canvas/api/v0/config/brand_kit/global&lt;/code&gt; using the &lt;code&gt;canvas:brand_kit&lt;/code&gt; scope. Live API probing during development confirmed that POST on the brand_kit endpoint returns 403 with &lt;code&gt;&amp;quot;Brand kits cannot be created via the API&amp;quot;&lt;/code&gt; — only the pre-provisioned &lt;code&gt;global&lt;/code&gt; instance exists per Acquia installation. The script therefore does GET-then-PATCH only. Fonts are read from &lt;code&gt;docs/migration/discovery/design-tokens.json&lt;/code&gt;; if no fonts key is present, the script exits cleanly with a skip note. PATCH requires the Drupal permission &lt;code&gt;administer brand kit&lt;/code&gt;; the script detects the 403 message and throws a permission-specific error. The &lt;code&gt;canvas:brand_kit&lt;/code&gt; OAuth scope is only available on Acquia release 173672 and later; older instances will record &lt;code&gt;invalid_scope&lt;/code&gt; in the scope-availability manifest and Phase 5.5 brand_kit step is skipped automatically.&lt;/p&gt;
-&lt;p&gt;Both scripts export a pure function with a &lt;code&gt;fetchImpl&lt;/code&gt; parameter for fetch-mocked unit tests, and use a CLI guard (&lt;code&gt;import.meta.url === file://${process.argv[1]}&lt;/code&gt;) so importing the module in tests does not trigger side effects. SKILL.md documents the two-script sequence, OAuth scope requirements, and the POST-disabled brand_kit constraint. &lt;code&gt;component-builder.md&lt;/code&gt; adds a &lt;code&gt;## Global CSS handling&lt;/code&gt; note that components ship JS and component-scoped styles only. Two new entries in &lt;code&gt;references/gotchas.md&lt;/code&gt; cover the brand_kit POST restriction and the &lt;code&gt;administer brand kit&lt;/code&gt; permission requirement.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Operators running the &lt;code&gt;canvas_ai_migrations&lt;/code&gt; workflow should add Phase 5.5 between media upload and site-config phases:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;# Phase 5.5 — Asset Library + Brand Kit Setup
-node scripts/setup-asset-library.mjs
-node scripts/setup-brand-kit.mjs
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Ensure the &lt;code&gt;canvas:asset_library&lt;/code&gt; OAuth scope is granted (it is universally available on Canvas/Acquia). For brand kit setup, ensure the &lt;code&gt;canvas:brand_kit&lt;/code&gt; scope is available (Acquia release 173672+) and that the migrating user role has the &lt;code&gt;administer brand kit&lt;/code&gt; Drupal permission. If the permission is absent, &lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; exits 1 with a descriptive error; coordinate with the Acquia operator before running Phase 5.5.&lt;/p&gt;
-&lt;p&gt;Global CSS is now read from &lt;code&gt;src/components/global.css&lt;/code&gt; and should no longer be embedded in any component bundle. The &lt;code&gt;CANVAS_GLOBAL_CSS_PATH&lt;/code&gt; environment variable can override the default path.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The closing comment from ajv009 notes that the brand_kit endpoint was not part of the original ticket scope. It was discovered through inspection of &lt;code&gt;openapi.yml&lt;/code&gt; and confirmed via live API probing on 2026-05-17, which revealed the POST-disabled constraint, the PATCH-only contract, and the &lt;code&gt;administer brand kit&lt;/code&gt; permission requirement. This empirical finding directly shaped the implementation contract and is why &lt;code&gt;setup-brand-kit.mjs&lt;/code&gt; is PATCH-only with explicit permission-error detection.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
