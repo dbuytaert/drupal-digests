@@ -1,8 +1,16 @@
-**TL;DR:** [778 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [779 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_552 summaries · 16 new this week_
+
+- [#2863785: Avoid PHP notice when comparing config without uuid](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2863785.md)
+- [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
+- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _99 summaries · 12 new this week_
 - [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
 - [#3601376: Allow .drupalaibp.json to append or replace the welcome text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md)
 - [#3601363: Add --config-path to install from a local, HTTPS, or repo-hosted...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601363.md)
-
-### Drupal Core
-
-_551 summaries · 17 new this week_
-
-- [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
-- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
-- [#3606411: Return the correct typehint when Drupal::classResolver() is called with a class...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3606411.md)
 
 ### Drupal Canvas
 
