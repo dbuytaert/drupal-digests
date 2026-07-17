@@ -1,4 +1,4 @@
-**TL;DR:** [779 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [783 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [179 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_552 summaries · 16 new this week_
+_556 summaries · 20 new this week_
 
-- [#2863785: Avoid PHP notice when comparing config without uuid](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2863785.md)
-- [#3532506: Never bypass basic validation when saving a config object](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532506.md)
-- [#3603333: Errors when stream wrappers instantiate services in constructors because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3603333.md)
+- [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
+- [#3547724: Throw an exception when unsupported procedural functions are defined in views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547724.md)
+- [#3029122: Drupal returns a 500 Internal error when 'destination' url query value is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3029122.md)
 
 ### Drupal AI
 

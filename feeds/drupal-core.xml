@@ -5,6 +5,224 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3586832: Allow kernel test classes to define their own routes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md</link>
+      <guid isPermaLink="false">019f6f48-ac69-7405-ae32-d0337ae10df6</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 17 Jul 2026 08:32:18 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +74/−7 · php +74/−7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f44b16fbf04866b79f62da5941328d0e0c92ad1a"&gt;f44b16f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586832"&gt;#3586832&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Kernel test classes can now define their own HTTP routes by placing Symfony's &lt;code&gt;#[Route]&lt;/code&gt; PHP attribute on methods in the test class. Previously, a test author needing a custom route for a kernel test had to create a separate test module just to host that one route. With this change, the test class itself acts as the controller, and test properties are directly accessible in the route method without any database round-trips or mocking.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AttributeRouteDiscovery::createControllerRouteCollection()&lt;/code&gt; and &lt;code&gt;getReflectionClass()&lt;/code&gt; widened from &lt;code&gt;private&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt;, enabling subclassing.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Kernel test classes can now place Symfony &lt;code&gt;#[Route]&lt;/code&gt; attributes on methods to register routes in the test container without a separate test module.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;KernelTestBase::register()&lt;/code&gt;, a new &lt;code&gt;KernelTestAttributeRouteDiscovery&lt;/code&gt; service is now registered in the test container, tagged as &lt;code&gt;event_subscriber&lt;/code&gt;. This &lt;code&gt;@internal&lt;/code&gt; class extends &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt; and overrides &lt;code&gt;collectRoutes()&lt;/code&gt; to scan only the specific kernel test class, which is passed as a constructor string argument. The service is registered with &lt;code&gt;static::class&lt;/code&gt; so each test class has its own discovery instance.&lt;/p&gt;
+&lt;p&gt;To enable the subclass, two methods in &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt; were widened from &lt;code&gt;private&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt;: &lt;code&gt;createControllerRouteCollection(\ReflectionClass $class)&lt;/code&gt; and &lt;code&gt;getReflectionClass(string $className)&lt;/code&gt;. These are the only diff-visible changes to &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt; itself; &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt; is not marked &lt;code&gt;@internal&lt;/code&gt;, making this a public API surface change.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;KernelTestHttpRequestTest&lt;/code&gt; demonstrates the feature: a &lt;code&gt;$testMarkup&lt;/code&gt; property set in the test method is read by &lt;code&gt;exampleRoute()&lt;/code&gt;, which is decorated with &lt;code&gt;#[Route(path: '/kernel-test-example', ...)]&lt;/code&gt;. This proves that test instance state is shared between the test body and the route handler because both run in the same process. Routes meant to be shared across multiple kernel tests can be placed in a trait and used via &lt;code&gt;use&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you subclass &lt;code&gt;AttributeRouteDiscovery&lt;/code&gt; and relied on &lt;code&gt;createControllerRouteCollection()&lt;/code&gt; or &lt;code&gt;getReflectionClass()&lt;/code&gt; being &lt;code&gt;private&lt;/code&gt; (e.g. via reflection to access them), they are now &lt;code&gt;protected&lt;/code&gt; and directly available to subclasses.&lt;/p&gt;
+&lt;p&gt;To define a route in a kernel test class:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Symfony\Component\Routing\Attribute\Route;
+
+class MyKernelTest extends KernelTestBase {
+
+  protected string $myValue = '';
+
+  public function testSomething(): void {
+    $this-&amp;gt;myValue = 'hello';
+    $this-&amp;gt;drupalGet('my-test-route');
+    $this-&amp;gt;assertSession()-&amp;gt;pageTextContains('hello');
+  }
+
+  #[Route(
+    path: '/my-test-route',
+    name: 'my_test.example',
+    requirements: ['_access' =&amp;gt; 'TRUE'],
+  )]
+  public function myController(): array {
+    return ['#markup' =&amp;gt; $this-&amp;gt;myValue];
+  }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 17, 2026 (2 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;smustgrave caught a real bug during local testing before the change landed: &lt;code&gt;KernelTestAttributeRouteDiscovery&lt;/code&gt; was calling &lt;code&gt;createControllerRouteCollection()&lt;/code&gt;, which was still &lt;code&gt;private&lt;/code&gt; in the parent class, producing a fatal error. godotislate responded by widening both &lt;code&gt;private&lt;/code&gt; methods to &lt;code&gt;protected&lt;/code&gt; and refactoring the constructor to accept a class name string rather than an object. dcam verified the feature by converting a real existing route (&lt;code&gt;binary_file_response_test.download&lt;/code&gt;) to an in-test route and confirming the test still passed. joachim raised the question of how to share a route across multiple kernel tests; godotislate suggested placing the &lt;code&gt;#[Route]&lt;/code&gt;-annotated method in a PHP trait.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3547724: Throw an exception when unsupported procedural functions are defined in views</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547724.md</link>
+      <guid isPermaLink="false">019f6f49-52b6-76e0-9b5b-e672bb29002d</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 17 Jul 2026 08:24:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +17/−107 · php +17/−107&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a06956c97b5c05e823e4a82f34c22d9e836c29a6"&gt;a06956c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3547724"&gt;#3547724&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Support for the &lt;code&gt;access callback&lt;/code&gt; key in Views handler plugin definitions has been removed in Drupal 12.0.0. Any custom Views handler that still declares an &lt;code&gt;access callback&lt;/code&gt; in its definition array will now throw an &lt;code&gt;AccessException&lt;/code&gt; when &lt;code&gt;access()&lt;/code&gt; is called, rather than silently invoking the procedural function. Developers must replace procedural access callbacks with a custom &lt;code&gt;access()&lt;/code&gt; method on their handler class.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;HandlerBase::access()&lt;/code&gt; now throws &lt;code&gt;AccessException&lt;/code&gt; (rather than invoking the callback or returning &lt;code&gt;TRUE&lt;/code&gt;) when &lt;code&gt;access callback&lt;/code&gt; is present in the handler definition; the key is no longer supported.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;HandlerBase::access()&lt;/code&gt; (located in &lt;code&gt;core/modules/views/src/Plugin/views/HandlerBase.php&lt;/code&gt;), the old code checked &lt;code&gt;function_exists($this-&amp;gt;definition['access callback'])&lt;/code&gt;, triggered a &lt;code&gt;@trigger_error&lt;/code&gt; deprecation, and then called the procedural function. The new code replaces all of that with a single unconditional &lt;code&gt;throw new AccessException(...)&lt;/code&gt; whenever the &lt;code&gt;access callback&lt;/code&gt; key is present in the definition at all, regardless of whether the function exists. The check for &lt;code&gt;function_exists&lt;/code&gt; is gone, meaning there is no longer any execution path that runs the callback.&lt;/p&gt;
+&lt;p&gt;The two test helper functions &lt;code&gt;views_test_data_handler_test_access_callback()&lt;/code&gt; and &lt;code&gt;views_test_data_handler_test_access_callback_argument()&lt;/code&gt; have been deleted from &lt;code&gt;core/modules/views/tests/modules/views_test_data/views_test_data.module&lt;/code&gt;, and the corresponding functional &lt;code&gt;testAccess()&lt;/code&gt; test in &lt;code&gt;HandlerTest&lt;/code&gt; has been removed. A new unit test &lt;code&gt;testAccessThrowsExceptionWithAccessCallback()&lt;/code&gt; in &lt;code&gt;HandlerTest&lt;/code&gt; (unit variant) covers the exception path. The original deprecation was introduced in drupal:11.3.0 referencing &lt;a href="https://www.drupal.org/node/3539918"&gt;#3539918&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Any custom Views handler definition that sets &lt;code&gt;access callback&lt;/code&gt; must be updated. Instead of:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Old: in hook_views_data() or a derived views data class
+$data['my_table']['my_field']['field']['access callback'] = 'my_module_access_callback';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Remove the &lt;code&gt;access callback&lt;/code&gt; key entirely and override &lt;code&gt;access()&lt;/code&gt; on the handler class:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// New: in the handler plugin class
+public function access(AccountInterface $account) {
+  // Your access logic here.
+  return $account-&amp;gt;hasPermission('my permission');
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 20, 2025&lt;/li&gt;
+&lt;li&gt;Committed: July 17, 2026 (10 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;lendude (iO)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, nicxvan noted that the &lt;code&gt;function_exists()&lt;/code&gt; guard in the original deprecation code should also be dropped to prevent accidentally granting access if the callback no longer existed. berdir and lendude discussed whether to keep the functional test coverage: berdir explained that removing the generic mechanism meant every handler type would need its own custom test plugin to exercise access logic, making coverage retention high-effort. lendude agreed that removing the tests made sense given that trade-off, and catch re-titled the issue to reflect that the final approach throws an exception rather than silently defaulting to false.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3029122: Drupal returns a 500 Internal error when 'destination' url query value is numeric and less than 6 length</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3029122.md</link>
+      <guid isPermaLink="false">019f6f49-f801-70c4-981a-fa9100f96aff</guid>
+      <pubDate>Fri, 17 Jul 2026 07:56:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +6/−1 · php +6/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ecaa384d8dfab095b14f6659d3162efbf01679ef"&gt;ecaa384&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3029122"&gt;#3029122&lt;/a&gt; · 8 contributors · 43 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal threw a 500 Internal Server Error when a form redirect used a &lt;code&gt;?destination=&lt;/code&gt; query value that was a short numeric string (for example &lt;code&gt;?destination=18&lt;/code&gt;). This happened when visiting URLs like &lt;code&gt;/user/login?destination=18&lt;/code&gt; and then successfully logging in. The bug is now fixed: numeric destination values are handled correctly and Drupal redirects as expected after form submission.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is PHP's &lt;code&gt;parse_url()&lt;/code&gt; interpreting short numeric URI paths differently depending on digit length. &lt;code&gt;parse_url('base:12345', PHP_URL_SCHEME)&lt;/code&gt; returns &lt;code&gt;'base'&lt;/code&gt; (correct), but &lt;code&gt;parse_url('base:1234', PHP_URL_SCHEME)&lt;/code&gt; returns &lt;code&gt;null&lt;/code&gt; because PHP parses it as a host name plus port rather than a scheme plus path. As a result, the scheme check in &lt;code&gt;UnroutedUrlAssembler::assemble()&lt;/code&gt; silently failed for short numeric paths, and Drupal fell through to invalid-URI error handling with a fatal 500.&lt;/p&gt;
+&lt;p&gt;The fix replaces the &lt;code&gt;parse_url($uri, PHP_URL_SCHEME) === 'base'&lt;/code&gt; check with &lt;code&gt;strncasecmp($uri, 'base:', 5) === 0 &amp;amp;&amp;amp; parse_url($uri, PHP_URL_SCHEME) !== FALSE&lt;/code&gt;. The &lt;code&gt;strncasecmp&lt;/code&gt; call reliably detects the &lt;code&gt;base:&lt;/code&gt; scheme prefix regardless of what follows it, while the secondary &lt;code&gt;parse_url !== FALSE&lt;/code&gt; guard still rejects entirely malformed URIs that PHP cannot parse at all. Two test cases covering &lt;code&gt;base:1978&lt;/code&gt; were added to &lt;code&gt;providerTestAssembleWithLocalUri()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix was backported to 11.4.x and 11.x in addition to the &lt;code&gt;main&lt;/code&gt; (12.x) branch. A follow-up issue (&lt;a href="https://www.drupal.org/node/3591074"&gt;#3591074&lt;/a&gt;) tracks replacing broader usages of &lt;code&gt;parse_url&lt;/code&gt; across Drupal core with the PHP 8.5 URI extension.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 29, 2019&lt;/li&gt;
+&lt;li&gt;Committed: July 17, 2026 (7 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;thihathit&lt;/li&gt;
+&lt;li&gt;chi&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;steven jones (ComputerMinds)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;steven jones initially proposed using the new PHP 8.5 URI extension (&lt;code&gt;ext-uri&lt;/code&gt;) to replace &lt;code&gt;parse_url&lt;/code&gt; entirely. After alexpott reviewed the merge request and provided feedback, the approach was changed to a simpler string prefix comparison. That narrower approach had the important side-effect of making the fix backportable to Drupal 11, which a PHP-8.5-only solution would not have been. steven jones noted the pivot explicitly: &amp;quot;I've tweaked the approach based on excellent feedback from @alexpott, and so this actually becomes possible to backport this fix too.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3611084: DrupalApplication should use the compiled container</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611084.md</link>
+      <guid isPermaLink="false">019f6f47-4e6e-7584-ad16-6757c74e350b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 17 Jul 2026 07:47:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +31/−28 · php +31/−28&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/854ccc02f134c81abf0b2fba0cdb7f86af846d63"&gt;854ccc0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3611084"&gt;#3611084&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;CLI commands run through &lt;code&gt;vendor/bin/dr&lt;/code&gt; (and tools such as Drush that bootstrap Drupal the same way) now use the compiled, cached container instead of rebuilding it from scratch on every invocation. Previously &lt;code&gt;DrupalApplication::bootstrap()&lt;/code&gt; always passed &lt;code&gt;allow_dumping=FALSE&lt;/code&gt; to &lt;code&gt;DrupalKernel&lt;/code&gt;, forcing a full &lt;code&gt;ContainerBuilder&lt;/code&gt; build even in production. The fix makes normal CLI use fast while keeping the uncompiled-container behaviour available for kernel tests that need it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;DrupalApplicationTesterTrait&lt;/code&gt; in &lt;code&gt;Drupal\KernelTests&lt;/code&gt; for kernel test classes that need to invoke &lt;code&gt;vendor/bin/dr&lt;/code&gt; commands, replacing ad-hoc inline helpers.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;DrupalApplication::bootstrap()&lt;/code&gt; previously hardcoded &lt;code&gt;new DrupalKernel('prod', $this-&amp;gt;classloader, FALSE)&lt;/code&gt;, disabling container dumping unconditionally. The original motivation was that &lt;code&gt;KernelTestBase::register()&lt;/code&gt; mutates the container, so loading a cached copy during kernel tests would reuse the wrong container. The fix replaces the hardcoded values with context lookups: &lt;code&gt;new DrupalKernel($this-&amp;gt;context['kernel.environment'] ?? 'prod', $this-&amp;gt;classloader, $this-&amp;gt;context['kernel.allow_dumping'] ?? TRUE)&lt;/code&gt;. Production CLI invocations get the compiled container by default; test harnesses opt out by passing &lt;code&gt;kernel.environment =&amp;gt; 'testing'&lt;/code&gt; and &lt;code&gt;kernel.allow_dumping =&amp;gt; FALSE&lt;/code&gt; in the context array.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;DrupalApplicationTesterTrait&lt;/code&gt; (in &lt;code&gt;Drupal\KernelTests&lt;/code&gt;) centralises this opt-out for kernel test classes. The trait provides a private &lt;code&gt;applicationTester(array $context = [])&lt;/code&gt; method that includes &lt;code&gt;vendor/bin/dr&lt;/code&gt;, injects the two testing context keys, and returns a Symfony &lt;code&gt;ApplicationTester&lt;/code&gt;. The duplicate inline &lt;code&gt;applicationTester()&lt;/code&gt; helpers that existed in &lt;code&gt;StatusCommandTest&lt;/code&gt; and &lt;code&gt;ConsoleTest&lt;/code&gt; were removed in favour of the shared trait.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 15, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 17, 2026 (1 day and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;moshe weitzman&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch noted in a comment that Drush was already hitting this slow path, having profiled it the previous week, and that the fix should make CLI operations noticeably snappier across the board. moshe weitzman independently arrived at the same resolution while working on a separate module/theme install command issue (&lt;a href="https://www.drupal.org/node/3594334"&gt;#3594334&lt;/a&gt;), confirming the approach.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2863785: Avoid PHP notice when comparing config without uuid</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2863785.md</link>
       <guid isPermaLink="false">019f6d8e-83b2-7431-b83e-90a59598f283</guid>
@@ -806,173 +1024,6 @@ $hash = Crypt::hashBase64($value);
 &lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3607866: Scaffold plugin does not always create autoload_runtime.php when upgrading to 11.4</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607866.md</link>
-      <guid isPermaLink="false">019f497c-a79e-768b-861b-b1ce6af02eb9</guid>
-      <pubDate>Thu, 09 Jul 2026 22:07:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +215/−0 · php +199 · json +16&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7f3e2517f3f0df0e34abb4d1926392b03886092c"&gt;7f3e251&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607866"&gt;#3607866&lt;/a&gt; · 23 contributors · 70 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 39&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When running &lt;code&gt;composer update&lt;/code&gt; to upgrade from Drupal 11.3.x to 11.4.x, the new &lt;code&gt;autoload_runtime.php&lt;/code&gt; stub file was sometimes not written to the web root. Because &lt;code&gt;web/index.php&lt;/code&gt; in 11.4 requires that file, the site immediately returned an HTTP 500 error after the update. The workaround was to run &lt;code&gt;composer install&lt;/code&gt; a second time after the update completed. This fix eliminates the need for that second invocation.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Drupal 11.4 introduced &lt;code&gt;autoload_runtime.php&lt;/code&gt; (a stub that delegates to &lt;code&gt;vendor/autoload_runtime.php&lt;/code&gt; for the Symfony Runtime integration), and the &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt; plugin was updated to generate that file via &lt;code&gt;Handler::scaffold()&lt;/code&gt;. The problem is a class-loading race inside a single Composer process.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;composer update&lt;/code&gt; runs, Composer fires &lt;code&gt;post-package-install&lt;/code&gt;/&lt;code&gt;post-package-update&lt;/code&gt; events as each package is extracted. If any package that declares &lt;code&gt;plugin-modifies-downloads&lt;/code&gt; (or any plugin that triggers &lt;code&gt;postPackage()&lt;/code&gt; on the scaffold plugin) is installed &lt;em&gt;before&lt;/em&gt; &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt; itself is updated on disk, PHP loads and pins the 11.3 version of &lt;code&gt;Handler&lt;/code&gt; for the remainder of the process. Composer does reload &lt;code&gt;Plugin.php&lt;/code&gt; itself via &lt;code&gt;eval()&lt;/code&gt; after the scaffold package is replaced (see &lt;code&gt;PluginManager::registerPackage()&lt;/code&gt;), but &lt;code&gt;Handler&lt;/code&gt; was already in PHP's class cache and cannot be reloaded. So when the final &lt;code&gt;postCmd&lt;/code&gt; event fires &lt;code&gt;handler()-&amp;gt;scaffold()&lt;/code&gt;, the stale 11.3 &lt;code&gt;Handler&lt;/code&gt; code runs and skips &lt;code&gt;autoload_runtime.php&lt;/code&gt; generation entirely.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;ensureAutoloadRuntimeFile()&lt;/code&gt; directly to &lt;code&gt;Plugin&lt;/code&gt;, which is always reloaded with the new code. It is called from &lt;code&gt;postCmd()&lt;/code&gt; immediately after &lt;code&gt;handler()-&amp;gt;scaffold()&lt;/code&gt;. The method uses &lt;code&gt;ManageOptions&lt;/code&gt;, &lt;code&gt;AllowedPackages&lt;/code&gt;, &lt;code&gt;GenerateAutoloadRuntimeReferenceFile&lt;/code&gt;, and &lt;code&gt;ManageGitIgnore&lt;/code&gt; directly (without going through &lt;code&gt;Handler&lt;/code&gt;) and is a no-op when the file already exists or when no allowed packages are configured. A &lt;code&gt;@todo&lt;/code&gt; marks it for removal once upgrades from 11.3 are no longer supported.&lt;/p&gt;
-&lt;p&gt;The regression test introduces a fixture Composer plugin (&lt;code&gt;fixtures/composer-plugin-downloads-modifier&lt;/code&gt;) that declares &lt;code&gt;&amp;quot;plugin-modifies-downloads&amp;quot;: true&lt;/code&gt;, which causes Composer's dependency resolver (&lt;code&gt;Transaction::movePluginsToFront()&lt;/code&gt;) to install it ahead of the scaffold plugin update, reliably reproducing the stale-Handler scenario. The test then asserts both that the stale handler's marker string (&lt;code&gt;SCAFFOLD_TEST_STALE_HANDLER&lt;/code&gt;) appeared in output and that &lt;code&gt;autoload_runtime.php&lt;/code&gt; was nonetheless created by the refreshed &lt;code&gt;Plugin&lt;/code&gt; code.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No code changes are required in projects. Sites that already ran into the 500 error can recover by running:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;composer install
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;After this fix ships in &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt;, a single &lt;code&gt;composer update&lt;/code&gt; will correctly produce &lt;code&gt;autoload_runtime.php&lt;/code&gt;. If your build pipeline copies only tracked Git files, ensure &lt;code&gt;autoload_runtime.php&lt;/code&gt; is not listed in your web root's &lt;code&gt;.gitignore&lt;/code&gt; (it is added there by the scaffold plugin and must be included in deployment artifacts).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 9, 2026 (7 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;phily&lt;/li&gt;
-&lt;li&gt;xmacinfo (xMac info)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;kentr&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;longwave diagnosed the root cause through direct instrumentation: they added &lt;code&gt;debug_print_backtrace()&lt;/code&gt; to the &lt;code&gt;Handler&lt;/code&gt; constructor and observed that the constructor was called while the 11.3 plugin code was still on disk, confirming that &lt;code&gt;Handler&lt;/code&gt; was locked in PHP's class cache before the scaffold package was overwritten. That specific debugging session (comments #50 and #51) identified the class-loading race and the &lt;code&gt;eval()&lt;/code&gt; mechanism Composer uses to reload only the &lt;code&gt;Plugin&lt;/code&gt; class, which pointed directly to the solution: put the recovery logic in &lt;code&gt;Plugin&lt;/code&gt; rather than &lt;code&gt;Handler&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3609363: Regression: install_import_translations() no longer lets contrib/custom translations override core on install-from-config</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609363.md</link>
-      <guid isPermaLink="false">019f47cd-7243-7659-a057-9b5a54643c1f</guid>
-      <pubDate>Thu, 09 Jul 2026 16:49:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +110/−2 · php +93/−1 · yml +17/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7056932df399b5e24f61f85012c6006b03a3cd59"&gt;7056932&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609363"&gt;#3609363&lt;/a&gt; · 5 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites that install from existing configuration with a non-English default language could lose contrib or custom translation overrides after upgrading to 11.4.x. Core translations would silently &amp;quot;win&amp;quot; over any overriding &lt;code&gt;.po&lt;/code&gt; file provided by a contrib module (such as &lt;code&gt;locale_deploy&lt;/code&gt;) or a custom project. This is now fixed and the 11.3.x behavior is restored.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The 11.4.x locale batch-to-services refactor changed &lt;code&gt;install_import_translations()&lt;/code&gt; in &lt;code&gt;core/includes/install.core.inc&lt;/code&gt; to call &lt;code&gt;\Drupal::service(LocaleFetch::class)-&amp;gt;buildUpdateBatch()&lt;/code&gt; with no arguments. That call imports every project's translations in a single &amp;quot;first-wins&amp;quot; pass: &lt;code&gt;PoDatabaseWriter&lt;/code&gt; uses empty &lt;code&gt;overwrite_options&lt;/code&gt;, meaning the first import of a string can never be overwritten. Projects are processed in &lt;code&gt;getAll()&lt;/code&gt; order, so &lt;code&gt;drupal&lt;/code&gt; is imported first and its strings are locked in before contrib or custom projects run. The subsequent &amp;quot;last-wins&amp;quot; pass in &lt;code&gt;install_finish_translations()&lt;/code&gt; then finds every file already recorded in &lt;code&gt;{locale_file}&lt;/code&gt; and re-imports nothing, so custom overrides are permanently lost.&lt;/p&gt;
-&lt;p&gt;In 11.3.x, &lt;code&gt;install_import_translations()&lt;/code&gt; explicitly imported only the &lt;code&gt;drupal&lt;/code&gt; project, deferring all contrib and custom projects to &lt;code&gt;install_finish_translations()&lt;/code&gt;, which runs with last-wins semantics. The fix restores that contract with a one-character change: &lt;code&gt;buildUpdateBatch(['drupal'])&lt;/code&gt;. A functional test was also added to &lt;code&gt;MultilingualInstallerTest&lt;/code&gt;, covering the install-from-config path with two new hidden test modules (&lt;code&gt;locale_test_additional&lt;/code&gt; and &lt;code&gt;locale_test_extra&lt;/code&gt;) that supply competing Spanish translations for the same source string; the test asserts that the last-wins override from &lt;code&gt;locale_test_extra&lt;/code&gt; is the one that survives.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 8, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 9, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;chr.fritsch (Thunder)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;alexpott diagnosed the regression by placing the 11.3.x and 11.4.x implementations of &lt;code&gt;install_import_translations()&lt;/code&gt; side by side in a comment and immediately identifying the missing &lt;code&gt;['drupal']&lt;/code&gt; argument. He then spent considerable effort writing a functional test for the fix, noting in a comment that the installer translation code is &amp;quot;convoluted and full of side effects&amp;quot; and that even AI assistance did not speed up the test-writing process. catch, on review, echoed that it was &amp;quot;a painful test to write for a one-line fix.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3609087: \Drupal\locale\LocaleProjectRepository::buildProjects() does not respect weight in 11.4.x</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609087.md</link>
-      <guid isPermaLink="false">019f40f1-65e4-720f-8deb-956d8cfbf540</guid>
-      <pubDate>Wed, 08 Jul 2026 07:51:33 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +9/−0 · php +9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/94efcafb4312af6c121e7e4e8b34fe6fe9796204"&gt;94efcaf&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609087"&gt;#3609087&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites that use &lt;code&gt;hook_locale_translation_projects_alter()&lt;/code&gt; to set a &lt;code&gt;weight&lt;/code&gt; key on translation projects will see that weight respected again when Drupal processes translation files. The weight was silently ignored in Drupal 11.4.x due to a regression, so any modules (such as &lt;code&gt;locale_deploy&lt;/code&gt;) relying on this ordering mechanism would have had translation files processed in the wrong order.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The regression was introduced by the locale modernization refactor in &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt;. &lt;code&gt;LocaleProjectRepository::buildProjects()&lt;/code&gt; constructs &lt;code&gt;LocaleTranslatableProject&lt;/code&gt; objects using named arguments, but the &lt;code&gt;weight&lt;/code&gt; named argument was never passed. As a result the weight set by &lt;code&gt;hook_locale_translation_projects_alter()&lt;/code&gt; implementations was always discarded.&lt;/p&gt;
-&lt;p&gt;The fix is a one-liner: &lt;code&gt;weight: $data['weight'] ?? 0&lt;/code&gt; is added to the named-argument list in the &lt;code&gt;LocaleTranslatableProject&lt;/code&gt; constructor call inside &lt;code&gt;buildProjects()&lt;/code&gt;. A kernel test was added that sets the weight to 100 via a state flag (exercised through &lt;code&gt;localeTranslationProjectsAlter()&lt;/code&gt; in the test module) and asserts &lt;code&gt;getWeight()&lt;/code&gt; returns 100 after a fresh &lt;code&gt;buildProjects()&lt;/code&gt; call. A baseline assertion confirming the default weight of 0 was also added.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 7, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;nicxvan reviewed the patch, confirmed it was a straightforward fix, manually ran the tests, and verified the failure without the fix and the pass with it. This manual verification was notable because the test-only path could not be run against core committer pipelines.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3609020: BC layer in locale_translation_get_projects() implemented incorrectly</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3609020.md</link>
-      <guid isPermaLink="false">019f3f2a-b533-732a-8c80-415e261a7c21</guid>
-      <pubDate>Tue, 07 Jul 2026 20:55:16 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +17/−0 · php +17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a009581e4e47fd66ffca142b0453611aa0a13b33"&gt;a009581&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609020"&gt;#3609020&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A regression in the backward-compatibility shim for &lt;code&gt;locale_translation_get_projects()&lt;/code&gt; caused the function to return an empty result when called with no arguments on 11.4.x, where the correct behavior is to return all locale projects. Any code that still calls &lt;code&gt;locale_translation_get_projects()&lt;/code&gt; without arguments was silently broken after upgrading to 11.4.x.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;When &lt;code&gt;locale_translation_get_projects()&lt;/code&gt; was deprecated in 11.4.0 (see &lt;a href="https://www.drupal.org/node/3569330"&gt;#3569330&lt;/a&gt;), the replacement shim always delegated to &lt;code&gt;LocaleProjectRepository::getMultiple($project_names)&lt;/code&gt; regardless of whether &lt;code&gt;$project_names&lt;/code&gt; was empty. The &lt;code&gt;getMultiple()&lt;/code&gt; method interprets an empty array as &amp;quot;fetch nothing,&amp;quot; but the original function's contract treats an empty array as &amp;quot;fetch all.&amp;quot; The fix adds an &lt;code&gt;empty($project_names)&lt;/code&gt; guard that routes to &lt;code&gt;LocaleProjectRepository::getAll()&lt;/code&gt; when no project names are supplied, matching the pre-deprecation behavior. A new kernel test &lt;code&gt;testLocaleTranslationGetProjects()&lt;/code&gt; in &lt;code&gt;LocaleTranslationTest&lt;/code&gt; covers the no-argument, single-project, and nonexistent-project cases with the &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; attribute to suppress the expected deprecation notice during the test run.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 7, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 7, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
