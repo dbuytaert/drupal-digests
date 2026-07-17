@@ -1,12 +1,20 @@
-**TL;DR:** [784 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [785 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_112 summaries · 1 new this week_
+
+- [#3549885: Prevent deleting Code Components if there are usages in forward revisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549885.md)
+- [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
+- [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
+
 ### Drupal Core
 
-_557 summaries · 21 new this week_
+_557 summaries · 19 new this week_
 
 - [#3607711: Deprecate \Drupal\Core\Htmx\Htmx methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607711.md)
 - [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
@@ -14,19 +22,11 @@ _557 summaries · 21 new this week_
 
 ### Drupal AI
 
-_99 summaries · 12 new this week_
+_99 summaries · 11 new this week_
 
 - [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
 - [#3601376: Allow .drupalaibp.json to append or replace the welcome text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md)
 - [#3601363: Add --config-path to install from a local, HTTPS, or repo-hosted...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601363.md)
-
-### Drupal Canvas
-
-_111 summaries · 0 new this week_
-
-- [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
-- [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
-- [#3591789: Deleting a content entity translation leaves its auto-save snapshot behind;...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591789.md)
 
 ### Drupal CMS
 
