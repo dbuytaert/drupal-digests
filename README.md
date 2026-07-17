@@ -14,7 +14,7 @@ _112 summaries · 1 new this week_
 
 ### Drupal Core
 
-_557 summaries · 19 new this week_
+_557 summaries · 16 new this week_
 
 - [#3607711: Deprecate \Drupal\Core\Htmx\Htmx methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607711.md)
 - [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
@@ -22,7 +22,7 @@ _557 summaries · 19 new this week_
 
 ### Drupal AI
 
-_99 summaries · 11 new this week_
+_99 summaries · 10 new this week_
 
 - [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
 - [#3601376: Allow .drupalaibp.json to append or replace the welcome text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md)
