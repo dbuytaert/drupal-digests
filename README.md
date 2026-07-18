@@ -1,8 +1,16 @@
-**TL;DR:** [785 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [787 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_101 summaries · 12 new this week_
+
+- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
+- [#3601357: GitHub: default to private repo and prompt for public](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601357.md)
+- [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
 
 ### Drupal Canvas
 
@@ -14,19 +22,11 @@ _112 summaries · 1 new this week_
 
 ### Drupal Core
 
-_557 summaries · 16 new this week_
+_557 summaries · 15 new this week_
 
 - [#3607711: Deprecate \Drupal\Core\Htmx\Htmx methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607711.md)
 - [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
 - [#3547724: Throw an exception when unsupported procedural functions are defined in views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547724.md)
-
-### Drupal AI
-
-_99 summaries · 10 new this week_
-
-- [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
-- [#3601376: Allow .drupalaibp.json to append or replace the welcome text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md)
-- [#3601363: Add --config-path to install from a local, HTTPS, or repo-hosted...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601363.md)
 
 ### Drupal CMS
 

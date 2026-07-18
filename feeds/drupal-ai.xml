@@ -5,6 +5,87 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md</link>
+      <guid isPermaLink="false">019f72b1-d0c3-769c-ab4b-e3c33bb765e3</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 17 Jul 2026 20:36:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601377"&gt;#3601377&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;one_line_installer&lt;/code&gt; project's &lt;code&gt;.drupalaibp.json&lt;/code&gt; config format now supports conditional questions. A question entry can include a &lt;code&gt;depends_on&lt;/code&gt; field that gates the prompt on another question's answer. If the condition is not met the question is silently skipped, its answer is set to an empty string in &lt;code&gt;.ddev/.env&lt;/code&gt;, and the user is never shown the prompt. This is useful for things like &amp;quot;only ask for a Redis TTL when the user opted into Redis&amp;quot; rather than always asking both questions regardless of context.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Any &lt;code&gt;depends_on&lt;/code&gt; in a config's &lt;code&gt;questions&lt;/code&gt; block disables &lt;code&gt;.ddev/.env&lt;/code&gt; answer reuse for the entire block on every re-run.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;depends_on&lt;/code&gt; field in &lt;code&gt;.drupalaibp.json&lt;/code&gt; question entries, supporting &lt;code&gt;equals&lt;/code&gt;, &lt;code&gt;not_equals&lt;/code&gt;, and &lt;code&gt;in&lt;/code&gt; condition kinds against an earlier question's answer.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The implementation adds &lt;code&gt;_config_read_depends_on&lt;/code&gt; to &lt;code&gt;src/lib/config/load_config.sh&lt;/code&gt;. It runs for every question entry in &lt;code&gt;_config_read_questions&lt;/code&gt; and populates three new parallel arrays: &lt;code&gt;CONFIG_QUESTION_DEP_ENV&lt;/code&gt;, &lt;code&gt;CONFIG_QUESTION_DEP_KIND&lt;/code&gt;, and &lt;code&gt;CONFIG_QUESTION_DEP_VALUES&lt;/code&gt;. Every question gets exactly one entry in these arrays (empty strings when no &lt;code&gt;depends_on&lt;/code&gt; is present), keeping them parallel to &lt;code&gt;CONFIG_QUESTION_KEYS&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Three condition kinds are supported: &lt;code&gt;equals&lt;/code&gt; (string equality), &lt;code&gt;not_equals&lt;/code&gt; (string inequality), and &lt;code&gt;in&lt;/code&gt; (the dependency's answer is one of an array of values; stored internally as a comma-joined string). The &lt;code&gt;depends_on.env&lt;/code&gt; value must reference a question that appears &lt;strong&gt;earlier&lt;/strong&gt; in the same &lt;code&gt;questions&lt;/code&gt; array. A forward reference, self-reference, a name that matches no earlier question, or a &lt;code&gt;depends_on&lt;/code&gt; block that lacks all three condition keys triggers a warning at load time and falls back to asking the question unconditionally rather than silently dropping it.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ask_config_questions&lt;/code&gt; in &lt;code&gt;src/lib/shared/prompts/ask_config_questions.sh&lt;/code&gt; evaluates the condition against &lt;code&gt;ANSWERS[dep_env]&lt;/code&gt; before prompting. A failing condition sets &lt;code&gt;ANSWERS[key]=&amp;quot;&amp;quot;&lt;/code&gt; and skips the prompt entirely, even in unattended runs where the question's own &lt;code&gt;default&lt;/code&gt; would otherwise be used. The &lt;code&gt;value&lt;/code&gt; pre-answer field short-circuits before &lt;code&gt;depends_on&lt;/code&gt; is evaluated, so a pre-answered question is never conditionally skipped.&lt;/p&gt;
+&lt;p&gt;A boolean flag &lt;code&gt;CONFIG_HAS_CONDITIONAL_QUESTION&lt;/code&gt; is set by &lt;code&gt;_config_read_depends_on&lt;/code&gt; as soon as any valid &lt;code&gt;depends_on&lt;/code&gt; is parsed. &lt;code&gt;ask_config_questions&lt;/code&gt; uses this flag to disable &lt;code&gt;.ddev/.env&lt;/code&gt; reuse for the &lt;strong&gt;entire&lt;/strong&gt; questions block, not just the conditional questions. The rationale documented in &lt;code&gt;AGENTS.md&lt;/code&gt; and &lt;code&gt;docs/drupalaibp-json.md&lt;/code&gt; is that a stale saved value for a dependency question could silently gate a dependent question using an answer the user never confirmed in the current run. The cost is that every question in the block, including unconditional and &lt;code&gt;password&lt;/code&gt;-type ones, is re-prompted on every re-run of that config.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Config authors add &lt;code&gt;depends_on&lt;/code&gt; to any question entry:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;questions&amp;quot;: [
+    { &amp;quot;env&amp;quot;: &amp;quot;USE_REDIS&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;Use Redis?&amp;quot;, &amp;quot;type&amp;quot;: &amp;quot;text&amp;quot;, &amp;quot;default&amp;quot;: &amp;quot;no&amp;quot; },
+    {
+      &amp;quot;env&amp;quot;: &amp;quot;REDIS_TTL&amp;quot;,
+      &amp;quot;label&amp;quot;: &amp;quot;Redis cache TTL (seconds)&amp;quot;,
+      &amp;quot;type&amp;quot;: &amp;quot;text&amp;quot;,
+      &amp;quot;default&amp;quot;: &amp;quot;3600&amp;quot;,
+      &amp;quot;depends_on&amp;quot;: { &amp;quot;env&amp;quot;: &amp;quot;USE_REDIS&amp;quot;, &amp;quot;equals&amp;quot;: &amp;quot;yes&amp;quot; }
+    }
+  ]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Other condition kinds:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;depends_on&amp;quot;: { &amp;quot;env&amp;quot;: &amp;quot;MODE&amp;quot;, &amp;quot;not_equals&amp;quot;: &amp;quot;prod&amp;quot; }
+&amp;quot;depends_on&amp;quot;: { &amp;quot;env&amp;quot;: &amp;quot;FLAVOR&amp;quot;, &amp;quot;in&amp;quot;: [&amp;quot;blog&amp;quot;, &amp;quot;shop&amp;quot;] }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;depends_on.env&lt;/code&gt; must name a question that appears &lt;strong&gt;earlier&lt;/strong&gt; in the array. A forward reference or a missing condition key (&lt;code&gt;equals&lt;/code&gt;/&lt;code&gt;not_equals&lt;/code&gt;/&lt;code&gt;in&lt;/code&gt;) produces a warning and the question is asked unconditionally. Adding any &lt;code&gt;depends_on&lt;/code&gt; to a config disables &lt;code&gt;.ddev/.env&lt;/code&gt; answer reuse for the whole &lt;code&gt;questions&lt;/code&gt; block on every re-run.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3601357: GitHub: default to private repo and prompt for public</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601357.md</link>
+      <guid isPermaLink="false">019f72b2-f4a1-711c-9bb3-af9a2b6fceea</guid>
+      <pubDate>Fri, 17 Jul 2026 20:35:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601357"&gt;#3601357&lt;/a&gt; · 1 contributor · 10 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When the one_line_installer prompts you to create a GitHub repository for a new site, it now defaults to &lt;strong&gt;private&lt;/strong&gt; visibility. Previously the prompt defaulted to public, meaning a new site could be published to GitHub publicly unless the user explicitly chose otherwise. Now you must opt in to make the repo public.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change affects three places in &lt;code&gt;src/&lt;/code&gt;. The global initializer in &lt;code&gt;src/setup_site_command.sh&lt;/code&gt; now sets &lt;code&gt;GH_VISIBILITY=&amp;quot;--private&amp;quot;&lt;/code&gt; as the starting default, with a comment noting that repos are created private unless the user explicitly opts into public. In &lt;code&gt;src/lib/steps/github_setup.sh&lt;/code&gt;, the &lt;code&gt;github_setup&lt;/code&gt; function's visibility prompt now lists &amp;quot;Private&amp;quot; as the first option (index 0) with &lt;code&gt;MENU_DEFAULT=0&lt;/code&gt; pre-highlighting it, and &amp;quot;Public&amp;quot; as the second option; selecting index 0 sets &lt;code&gt;GH_VISIBILITY=&amp;quot;--private&amp;quot;&lt;/code&gt;, index 1 sets &lt;code&gt;--public&lt;/code&gt;. The &lt;code&gt;--github-setup&lt;/code&gt; CLI flag path in &lt;code&gt;src/lib/shared/prompts/apply_cli_flags.sh&lt;/code&gt; also sets &lt;code&gt;GH_VISIBILITY=&amp;quot;--private&amp;quot;&lt;/code&gt; (it had no visibility override before; the non-interactive flag path now hard-codes private, consistent with the prompt default).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md</link>
       <guid isPermaLink="false">019f6bcb-7505-7073-991a-06241d650d9c</guid>
@@ -807,96 +888,6 @@ $file = $this-&amp;gt;loadFile($data);
 &lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
 &lt;li&gt;danrod (OPTASY)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3604032: Add static_list completion providers to example prompt argument configs and cover them with tests</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3604032.md</link>
-      <guid isPermaLink="false">019edbb6-76b0-753d-81bc-30c8b23ca50c</guid>
-      <pubDate>Thu, 18 Jun 2026 13:50:16 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3604032"&gt;#3604032&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;mcp_server_examples&lt;/code&gt; module now ships example prompt argument configurations that expose &lt;code&gt;static_list&lt;/code&gt; completion providers, enabling MCP clients to autocomplete valid values for arguments such as &lt;code&gt;skill_level&lt;/code&gt;, &lt;code&gt;court_surface&lt;/code&gt;, &lt;code&gt;focus_area&lt;/code&gt;, and others. Previously these arguments described their valid values only in prose; they now carry machine-readable completion data that MCP clients can query. Functional test coverage was added at the same time to verify each configured argument through the &lt;code&gt;completion/complete&lt;/code&gt; endpoint.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Each affected prompt config YAML received one or more &lt;code&gt;completion_providers&lt;/code&gt; blocks using &lt;code&gt;plugin_id: static_list&lt;/code&gt;, listing the exact accepted values. The affected arguments span six prompt configs: &lt;code&gt;comprehensive_lesson.lesson_focus&lt;/code&gt;, &lt;code&gt;match_strategy.opponent_type&lt;/code&gt; and &lt;code&gt;court_surface&lt;/code&gt;, &lt;code&gt;multi_provider_prompt.opponent_type&lt;/code&gt; (which was also missing three of its four values), &lt;code&gt;tennis_resources.topic&lt;/code&gt;, &lt;code&gt;tennis_tip_basic.skill_level&lt;/code&gt; and &lt;code&gt;focus_area&lt;/code&gt;, and &lt;code&gt;test_with_args.skill_level&lt;/code&gt; and &lt;code&gt;surface&lt;/code&gt;. No schema changes were needed because &lt;code&gt;mcp_server.mcp_prompt_config.*&lt;/code&gt; already declared &lt;code&gt;completion_providers&lt;/code&gt; as a supported key.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;assertPromptArgumentCompletions()&lt;/code&gt; method in &lt;code&gt;McpServerExamplesFunctionalTest&lt;/code&gt; iterates over nine argument cases, calls the &lt;code&gt;completion/complete&lt;/code&gt; MCP endpoint with an empty argument value, and asserts that &lt;code&gt;completion.values&lt;/code&gt;, &lt;code&gt;completion.total&lt;/code&gt;, and &lt;code&gt;completion.hasMore&lt;/code&gt; all match the configured static list. The method is called from the existing &lt;code&gt;testMcpServerExamples()&lt;/code&gt; entry point, so it runs as part of the standard functional test suite.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;e0ipso (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586397: Switch FieldValidationRule plugins to the Provider Configuration Form Element</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3586397.md</link>
-      <guid isPermaLink="false">019ebbfc-5f7c-7555-a343-8f871a7f10e7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 12 Jun 2026 09:56:36 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +856/−449 · php +851/−449 · neon +4 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/66d9d6f7bc5d6be729186874a9655378da24c2bb"&gt;66d9d6f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586397"&gt;#3586397&lt;/a&gt; · 4 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Validations module previously used a plain dropdown for selecting a specific AI provider and model in each validation rule, with no way to fall back to the site's configured default provider. This made it impossible to create portable recipes or shared configurations without hardcoding a provider. Each of the four AI FieldValidationRule plugins now uses the AI module's reusable &lt;code&gt;ai_provider_configuration&lt;/code&gt; form element, which surfaces a &amp;quot;Default&amp;quot; option that automatically falls back to whichever provider the site administrator has configured as the default for the relevant operation type. Existing saved rule configurations using a hardcoded &lt;code&gt;provider__model&lt;/code&gt; string continue to work without any data migration.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new public abstract base classes: &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt; for rule plugins and &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; for constraint validators, intended for custom AI validation rule implementations.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two new abstract base classes consolidate the shared code that was previously duplicated across each plugin. &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt; (in &lt;code&gt;src/AiConstraintFieldValidationRuleBase.php&lt;/code&gt;) extends &lt;code&gt;ConstraintFieldValidationRuleBase&lt;/code&gt; and centralizes &lt;code&gt;ai.provider&lt;/code&gt; service injection, plus the helpers &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; (decodes a stored &lt;code&gt;provider__model&lt;/code&gt; string into the structured array the &lt;code&gt;ai_provider_configuration&lt;/code&gt; element expects as &lt;code&gt;#default_value&lt;/code&gt;) and &lt;code&gt;extractStoredModel()&lt;/code&gt; (normalizes the submitted element value back into a &lt;code&gt;provider__model&lt;/code&gt; string or empty string). Subclasses implement the abstract &lt;code&gt;getOperationType()&lt;/code&gt; method and may override &lt;code&gt;getModelConfigKey()&lt;/code&gt; to preserve legacy config key names: &lt;code&gt;AiTextConstraintFieldValidationRule&lt;/code&gt; and &lt;code&gt;AiImageConstraintFieldValidationRule&lt;/code&gt; store under &lt;code&gt;provider&lt;/code&gt;, while &lt;code&gt;AiImageClassificationConstraintFieldValidationRule&lt;/code&gt; and &lt;code&gt;AiObjectDetectionConstraintFieldValidationRule&lt;/code&gt; use &lt;code&gt;model&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; (in &lt;code&gt;src/AiConstraintValidatorBase.php&lt;/code&gt;) extends &lt;code&gt;ConstraintValidator&lt;/code&gt; and provides three shared helpers used by all four validators: &lt;code&gt;resolveProviderOption()&lt;/code&gt; resolves the stored &lt;code&gt;provider__model&lt;/code&gt; option or falls back to &lt;code&gt;getDefaultProviderForOperationType()&lt;/code&gt; on the &lt;code&gt;ai.provider&lt;/code&gt; plugin manager; &lt;code&gt;loadImageFile()&lt;/code&gt; loads a file entity by ID with consistent violation handling; &lt;code&gt;runBooleanChat()&lt;/code&gt; encapsulates the XTRUE/XFALSE prompt protocol; and &lt;code&gt;labelMatchesFinder()&lt;/code&gt; applies the exact/contains/substring matching strategies. A previously missed gap was fixed during review: &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt; was still reading &lt;code&gt;$constraint-&amp;gt;model&lt;/code&gt; directly instead of calling &lt;code&gt;resolveProviderOption()&lt;/code&gt;, meaning it could not fall back to the configured default. It now matches the other three validators.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;hook_form_FORM_ID_alter()&lt;/code&gt; in &lt;code&gt;ai_validations.module&lt;/code&gt; (with submit handler &lt;code&gt;_ai_validations_sync_rule_to_collection()&lt;/code&gt;) works around a latent &lt;code&gt;field_validation&lt;/code&gt; bug exposed when the AJAX-driven &lt;code&gt;ai_provider_configuration&lt;/code&gt; element is present: serialization during the AJAX round-trip causes the form controller's plugin instance to diverge from the rule set's plugin collection, silently dropping edits on final save. The workaround uses &lt;code&gt;ReflectionProperty&lt;/code&gt; to push the form's modified instance back into the collection before &lt;code&gt;save()&lt;/code&gt;. A &lt;code&gt;@todo&lt;/code&gt; links to the upstream issue &lt;a href="https://www.drupal.org/node/3587461"&gt;#3587461&lt;/a&gt; for removal once the bug is fixed there.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Developers who have subclassed any of the four rule plugins directly should update their extends clause to use the new base class (or &lt;code&gt;ConstraintFieldValidationRuleBase&lt;/code&gt; if the AI-specific helpers are not needed). The stored configuration format (&lt;code&gt;provider__model&lt;/code&gt; string, or empty string for &amp;quot;Default&amp;quot;) is unchanged, so no data migration is required.&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (example for a custom plugin extending one of the AI rule plugins):
-class MyCustomAiRule extends AiTextConstraintFieldValidationRule { ... }
-
-// After (extend the new shared base directly if you need provider config support):
-class MyCustomAiRule extends AiConstraintFieldValidationRuleBase {
-  protected function getOperationType(): string {
-    return 'chat'; // return the relevant operation type
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 12, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, &lt;code&gt;abhisekmazumdar&lt;/code&gt; noticed that &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt; had been left out of the &lt;code&gt;resolveProviderOption()&lt;/code&gt; migration: it was still reading &lt;code&gt;$constraint-&amp;gt;model&lt;/code&gt; directly, meaning object detection rules could not fall back to the site's default provider even after the other three validators were updated. &lt;code&gt;abhisekmazumdar&lt;/code&gt; added the fix alongside a clarifying doc comment explaining why &lt;code&gt;$strictConfigSchema = FALSE&lt;/code&gt; was set in the test class. &lt;code&gt;ahmad-khalil-imagex&lt;/code&gt; also added substantial functional JavaScript test coverage after &lt;code&gt;a.dmitriiev&lt;/code&gt; requested it, including a detailed account in comment #12 of an AJAX ordering gotcha: the provider select fires a rebuild that wipes sibling field values, so the helper &lt;code&gt;primeRuleFormFields()&lt;/code&gt; must populate required fields before the provider is selected.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
