@@ -5,6 +5,111 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace module_set_weight() and module_config_sort() with ModuleWeight service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php</link>
+      <guid isPermaLink="false">019f7ed7-9155-7340-8211-75776a4b1521</guid>
+      <pubDate>Mon, 20 Jul 2026 09:24:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595652"&gt;#3595652&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated global functions &lt;code&gt;module_set_weight()&lt;/code&gt; and &lt;code&gt;module_config_sort()&lt;/code&gt; into equivalent calls on the new &lt;code&gt;Drupal\Core\Extension\ModuleWeight&lt;/code&gt; service. Both functions in &lt;code&gt;module.inc&lt;/code&gt; were deprecated in Drupal 11.5.0 and will be removed in 13.0.0. Contrib modules commonly call them in &lt;code&gt;hook_install()&lt;/code&gt; implementations and test setup, so automated migration saves significant manual effort.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;module_set_weight('views', 10);
+$sorted = module_config_sort($modules);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;set('views', 10);
+$sorted = \Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;sort($modules);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceModuleIncFunctionsWithModuleWeightRector extends AbstractRector
+{
+    private const FUNCTION_TO_METHOD = [
+        'module_set_weight' =&amp;gt; 'set',
+        'module_config_sort' =&amp;gt; 'sort',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated module_set_weight() and module_config_sort() with \Drupal::service(ModuleWeight::class)-&amp;gt;set/sort().',
+            [
+                new CodeSample(
+                    'module_set_weight(\'views\', 10);',
+                    '\Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;set(\'views\', 10);'
+                ),
+                new CodeSample(
+                    '$sorted = module_config_sort($modules);',
+                    '$sorted = \Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;sort($modules);'
+                ),
+            ]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $method = null;
+        foreach (self::FUNCTION_TO_METHOD as $funcName =&amp;gt; $methodName) {
+            if ($this-&amp;gt;isName($node-&amp;gt;name, $funcName)) {
+                $method = $methodName;
+                break;
+            }
+        }
+        if ($method === null) {
+            return null;
+        }
+
+        $moduleWeightClass = new ClassConstFetch(
+            new FullyQualified('Drupal\\Core\\Extension\\ModuleWeight'),
+            new Identifier('class')
+        );
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            new Identifier('service'),
+            [new Arg($moduleWeightClass)]
+        );
+
+        return new MethodCall($serviceCall, new Identifier($method), $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceModuleIncFunctionsWithModuleWeightRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace Htmx::triggerAfterSettleHeader() and triggerAfterSwapHeader() with triggerHeader()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-htmx-triggeraftersettleheader-and-3607711.php</link>
       <guid isPermaLink="false">019f7017-9958-7209-990b-56e0a19b5d28</guid>
@@ -1972,161 +2077,6 @@ locale_translation_check_projects_local([\'drupal\'], [\'de\']);',
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([LocaleCompareIncToServiceRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated $long parameter from FilterInterface::tips()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/remove-deprecated-long-parameter-from-filterinterface-tips-3505370.php</link>
-      <guid isPermaLink="false">51ce04d0d57743d5999b6c245a196290</guid>
-      <pubDate>Sat, 09 May 2026 00:42:32 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3505370"&gt;#3505370&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Remove deprecated $long parameter from FilterInterface::tips() implementations and from _filter_tips() calls.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;public function tips($long = FALSE) { return $this-&amp;gt;t('Short tip.'); }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;public function tips() { return $this-&amp;gt;t('Short tip.'); }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\Variable;
-use PhpParser\Node\Name;
-use PhpParser\Node\Stmt\Class_;
-use PhpParser\Node\Stmt\ClassMethod;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class RemoveFilterTipsLongParamRector extends AbstractRector
-{
-    // Both FQCNs and short names are matched so that the rule works whether or
-    // not Rector's NameResolver has fully resolved imports.
-    private const FILTER_SYMBOLS = [
-        'Drupal\\filter\\Plugin\\FilterBase',
-        'Drupal\\filter\\Plugin\\FilterInterface',
-        'FilterBase',
-        'FilterInterface',
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Remove deprecated $long parameter from FilterInterface::tips() implementations and from _filter_tips() calls.',
-            [new CodeSample(
-                'public function tips($long = FALSE) { return $this-&amp;gt;t(\'Short tip.\'); }',
-                'public function tips() { return $this-&amp;gt;t(\'Short tip.\'); }',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Class_::class, FuncCall::class];
-    }
-
-    /** @param Class_|FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if ($node instanceof Class_) {
-            return $this-&amp;gt;refactorClass($node);
-        }
-        return $this-&amp;gt;refactorFuncCall($node);
-    }
-
-    private function refactorClass(Class_ $node): ?Class_
-    {
-        if (!$this-&amp;gt;classIsFilterPlugin($node)) {
-            return null;
-        }
-
-        $changed = false;
-        foreach ($node-&amp;gt;getMethods() as $method) {
-            if ($this-&amp;gt;updateTipsMethod($method)) {
-                $changed = true;
-            }
-        }
-
-        return $changed ? $node : null;
-    }
-
-    private function classIsFilterPlugin(Class_ $classNode): bool
-    {
-        foreach ($classNode-&amp;gt;implements as $implement) {
-            if ($this-&amp;gt;nameMatchesFilterSymbol($implement)) {
-                return true;
-            }
-        }
-        if ($classNode-&amp;gt;extends !== null &amp;amp;&amp;amp; $this-&amp;gt;nameMatchesFilterSymbol($classNode-&amp;gt;extends)) {
-            return true;
-        }
-        return false;
-    }
-
-    private function nameMatchesFilterSymbol(Name $name): bool
-    {
-        return in_array($name-&amp;gt;toString(), self::FILTER_SYMBOLS, true);
-    }
-
-    private function updateTipsMethod(ClassMethod $method): bool
-    {
-        if (!$this-&amp;gt;isName($method, 'tips')) {
-            return false;
-        }
-        if (count($method-&amp;gt;params) === 0) {
-            return false;
-        }
-        $firstParam = $method-&amp;gt;params[0];
-        if (!($firstParam-&amp;gt;var instanceof Variable)) {
-            return false;
-        }
-        if (!$this-&amp;gt;isName($firstParam-&amp;gt;var, 'long')) {
-            return false;
-        }
-
-        // Skip when $long is referenced in the body — the long-format branch
-        // needs manual removal.
-        $usesLong = false;
-        $this-&amp;gt;traverseNodesWithCallable((array) $method-&amp;gt;stmts, function (Node $subNode) use (&amp;amp;$usesLong): void {
-            if ($subNode instanceof Variable &amp;amp;&amp;amp; $this-&amp;gt;isName($subNode, 'long')) {
-                $usesLong = true;
-            }
-        });
-        if ($usesLong) {
-            return false;
-        }
-
-        $method-&amp;gt;params = [];
-        return true;
-    }
-
-    private function refactorFuncCall(FuncCall $node): ?FuncCall
-    {
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, '_filter_tips')) {
-            return null;
-        }
-        if (count($node-&amp;gt;getArgs()) &amp;lt; 2) {
-            return null;
-        }
-        array_splice($node-&amp;gt;args, 1, 1);
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([RemoveFilterTipsLongParamRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

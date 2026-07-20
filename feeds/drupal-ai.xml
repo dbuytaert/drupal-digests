@@ -5,6 +5,57 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3609590: Switch to official MCP PHP SDK Client</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md</link>
+      <guid isPermaLink="false">019f7ed0-6f43-7160-871f-c873a31a3af0</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 20 Jul 2026 07:31:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +865/−340 · php +852/−331 · txt +7/−2 · md +5/−5 · json +1/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_client/-/commit/a4eccb4f20513663245cb16f13b543bf932e9a2c"&gt;a4eccb4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609590"&gt;#3609590&lt;/a&gt; · 3 contributors · 12 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;mcp_client&lt;/code&gt; module replaces its underlying transport library, swapping the third-party &lt;code&gt;swisnl/mcp-client&lt;/code&gt; for the official &lt;code&gt;modelcontextprotocol/php-sdk&lt;/code&gt; (&lt;code&gt;mcp/sdk&lt;/code&gt;). The previous library required multiple reflection hacks to work around ReactPHP lifecycle issues that caused &amp;quot;Connection aborted early&amp;quot; errors on Drupal 11.3+. The new SDK is synchronous, built on Symfony HttpClient and Process, and eliminates all of those workarounds. The public interface of &lt;code&gt;MCPClient&lt;/code&gt; (its &lt;code&gt;listTools()&lt;/code&gt;, &lt;code&gt;executeTool()&lt;/code&gt;, and &lt;code&gt;disconnect()&lt;/code&gt; methods) is unchanged, so tool plugins work as before. Note that &lt;code&gt;mcp/sdk&lt;/code&gt; is still at version &lt;code&gt;0.6&lt;/code&gt;; the module maintainer has announced that only beta releases will be made until the upstream SDK reaches 1.0.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Drupal\mcp_client\Transporter\CustomHeadersHttpTransporter&lt;/code&gt; has been removed; it was public but was an implementation detail of &lt;code&gt;MCPClient&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;swisnl/mcp-client: ^0.5&lt;/code&gt; Composer dependency (and the &lt;code&gt;minimum-stability: dev&lt;/code&gt; flag it required) is replaced with &lt;code&gt;mcp/sdk: ^0.6&lt;/code&gt;. &lt;code&gt;MCPClient&lt;/code&gt; is rewritten to use &lt;code&gt;\Mcp\Client&lt;/code&gt;, &lt;code&gt;\Mcp\Client\Transport\HttpTransport&lt;/code&gt;, and &lt;code&gt;\Mcp\Client\Transport\StdioTransport&lt;/code&gt;. The &lt;code&gt;CustomHeadersHttpTransporter&lt;/code&gt; class that previously subclassed &lt;code&gt;StreamableHttpTransporter&lt;/code&gt; to inject custom HTTP headers and override &lt;code&gt;initializeConnection()&lt;/code&gt; to strip problematic &lt;code&gt;register_shutdown_function()&lt;/code&gt; calls is deleted entirely. Custom headers now pass through &lt;code&gt;HttpTransport&lt;/code&gt;'s constructor as a supported first-class argument.&lt;/p&gt;
+&lt;p&gt;Stderr capture previously relied on &lt;code&gt;\ReflectionClass&lt;/code&gt; to read the protected &lt;code&gt;transporter&lt;/code&gt; property of the Swis client. This is replaced by the new &lt;code&gt;BufferingLogger&lt;/code&gt; class (a &lt;code&gt;Psr\Log\AbstractLogger&lt;/code&gt; decorator) that wraps any injected logger, retains the last ten log records in memory, and exposes &lt;code&gt;getStderrErrors()&lt;/code&gt; to extract lines the SDK's &lt;code&gt;StdioTransport&lt;/code&gt; logs under the message &lt;code&gt;&amp;quot;Server stderr&amp;quot;&lt;/code&gt;. The &lt;code&gt;BufferingLogger&lt;/code&gt; instance is created inside &lt;code&gt;initializeClient()&lt;/code&gt; and passed to both the transport and the SDK &lt;code&gt;Client::builder()&lt;/code&gt;, so stderr is captured without any reflection.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;listTools()&lt;/code&gt; now follows the MCP pagination cursor in a bounded loop (capped at &lt;code&gt;MAX_TOOL_PAGES = 100&lt;/code&gt;), treating a &lt;code&gt;null&lt;/code&gt; or empty-string cursor as terminal. An empty JSON object that the SDK preserves as &lt;code&gt;\stdClass&lt;/code&gt; (for example an &lt;code&gt;inputSchema['properties']&lt;/code&gt; of a parameterless tool) is normalized to a plain PHP array via a &lt;code&gt;json_encode&lt;/code&gt;/&lt;code&gt;json_decode&lt;/code&gt; round-trip in &lt;code&gt;normalizeToArray()&lt;/code&gt;. &lt;code&gt;executeTool()&lt;/code&gt; uses an &lt;code&gt;instanceof TextContent&lt;/code&gt; check rather than &lt;code&gt;method_exists()&lt;/code&gt; probing; other content types go through &lt;code&gt;jsonSerialize()&lt;/code&gt; and the same normalization. &lt;code&gt;McpToolBase::doExecute()&lt;/code&gt; is updated to look up tools via the &lt;code&gt;ToolCollection&lt;/code&gt; API (&lt;code&gt;$server-&amp;gt;getTool($tool_name)&lt;/code&gt;) rather than the removed name-keyed &lt;code&gt;tools&lt;/code&gt; array and the separate &lt;code&gt;enabled_tools&lt;/code&gt; property. The STDIO transport environment variable handling now merges configured variables over the current parent environment (via &lt;code&gt;array_merge(getenv(), $config['env'])&lt;/code&gt;) rather than replacing it, preserving &lt;code&gt;PATH&lt;/code&gt; and other inherited variables.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;The public class &lt;code&gt;Drupal\mcp_client\Transporter\CustomHeadersHttpTransporter&lt;/code&gt; has been removed. Any code that extended or directly instantiated it must be updated.&lt;/p&gt;
+&lt;p&gt;Before:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\mcp_client\Transporter\CustomHeadersHttpTransporter;
+// ...
+$transporter = new CustomHeadersHttpTransporter($endpoint, $headers, $logger);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After: custom HTTP headers are passed directly through &lt;code&gt;MCPClient&lt;/code&gt;'s configuration array via &lt;code&gt;McpClientFactory&lt;/code&gt;, and the transport is created internally. There is no supported replacement class to extend; inject headers through the module's server configuration instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 20, 2026 (10 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;guignonv asked in the thread whether it was worth continuing to contribute bug reports against the Swis library given the pending migration. marcus_johansson confirmed the AI Initiative had already picked up this issue in an active sprint and that the migration would land within two weeks, which it did.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588043: Add drupal-gitlab skill: GitLab CLI guidance tailored to git.drupalcode.org</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588043.md</link>
       <guid isPermaLink="false">019f7df8-dae5-728f-a111-60d401f98be4</guid>
@@ -837,48 +888,6 @@ $file = $this-&amp;gt;loadFile($data);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;abhisekmazumdar contributed the implementation and noted a deliberate design choice in a comment: the original issue proposed a confidence threshold, but &lt;code&gt;getInformation()&lt;/code&gt; returns provider-dependent structures (floats on OpenAI, different shapes elsewhere), so a cross-provider numeric threshold was initially skipped. After review rounds with marcus_johansson, the threshold was re-added with proper &lt;code&gt;is_numeric()&lt;/code&gt; guarding so it only applies when the value is a comparable float. abhisekmazumdar also caught and fixed a separate fatal-error bug in &lt;code&gt;runBooleanChat()&lt;/code&gt; while preparing a demo, which was rolled into the same branch.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3593019: Add ImageToImage possibilities</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3593019.md</link>
-      <guid isPermaLink="false">019f03fb-cfe4-77f4-aa01-76e56cf45678</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 26 Jun 2026 09:55:00 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +183/−1 · php +149/−1 · yml +34&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_openai/-/commit/e0a64cae214d5f320e4d60562bd98beed566fae6"&gt;e0a64ca&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593019"&gt;#3593019&lt;/a&gt; · 4 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The OpenAI AI provider module now supports the &lt;code&gt;image_to_image&lt;/code&gt; operation type, enabling developers to use OpenAI's image editing endpoint (used by &lt;code&gt;gpt-image-1&lt;/code&gt; and &lt;code&gt;dall-e-2&lt;/code&gt;) to modify existing images with a text prompt and an optional mask. Previously the module only supported generating images from text (&lt;code&gt;text_to_image&lt;/code&gt;). Sites that want to offer image editing functionality through the AI module ecosystem can now wire up these models without building a custom provider.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;image_to_image&lt;/code&gt; operation type on &lt;code&gt;OpenAiProvider&lt;/code&gt;, implementing &lt;code&gt;ImageToImageInterface&lt;/code&gt; with support for prompt-driven image editing and optional mask via OpenAI's images-edit endpoint.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;OpenAiProvider&lt;/code&gt; now implements &lt;code&gt;ImageToImageInterface&lt;/code&gt; and uses &lt;code&gt;ImageToImageTrait&lt;/code&gt;. The new &lt;code&gt;imageToImage()&lt;/code&gt; method only accepts an &lt;code&gt;ImageToImageInput&lt;/code&gt; object (plain string or array inputs throw &lt;code&gt;AiResponseErrorException&lt;/code&gt;), which carries the source image binary, an optional mask &lt;code&gt;ImageFile&lt;/code&gt;, and the edit prompt. Because the OpenAI PHP SDK uploads files as multipart form data, the method writes the image (and mask, if supplied) to &lt;code&gt;temporary://&lt;/code&gt; paths via &lt;code&gt;fileSystem-&amp;gt;saveData()&lt;/code&gt;, opens them as PHP file resources, and passes them to &lt;code&gt;$this-&amp;gt;client-&amp;gt;images()-&amp;gt;edit()&lt;/code&gt;. A &lt;code&gt;finally&lt;/code&gt; block guarantees the temporary files and open handles are cleaned up regardless of outcome. The response bodies are decoded from base64 JSON; output MIME type defaults to &lt;code&gt;image/png&lt;/code&gt; but switches to &lt;code&gt;image/jpeg&lt;/code&gt; or &lt;code&gt;image/webp&lt;/code&gt; when &lt;code&gt;output_format&lt;/code&gt; is set in the configuration payload. The provider declares &lt;code&gt;requiresImageToImagePrompt()&lt;/code&gt; as &lt;code&gt;TRUE&lt;/code&gt; (the edits endpoint always requires a prompt) and &lt;code&gt;hasImageToImageMask()&lt;/code&gt; as &lt;code&gt;TRUE&lt;/code&gt;. Model filtering in the provider's model-listing logic restricts &lt;code&gt;image_to_image&lt;/code&gt; to models matching &lt;code&gt;dall-e-2&lt;/code&gt; or &lt;code&gt;gpt-image-*&lt;/code&gt;, explicitly excluding &lt;code&gt;dall-e-3&lt;/code&gt; which cannot edit images. The default model recommendation for this operation type is &lt;code&gt;gpt-image-1&lt;/code&gt;. &lt;code&gt;api_defaults.yml&lt;/code&gt; gained an &lt;code&gt;image_to_image&lt;/code&gt; section covering &lt;code&gt;n&lt;/code&gt; (1–10) and &lt;code&gt;size&lt;/code&gt; configuration keys.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: June 26, 2026 (24 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;merilainen (Mearra (formerly known as Wunder))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, merilainen approved the change and made a small follow-up code adjustment, removing the &lt;code&gt;response_format&lt;/code&gt; key from the &lt;code&gt;image_to_image&lt;/code&gt; section of &lt;code&gt;api_defaults.yml&lt;/code&gt; after marcus_johansson flagged it as incorrect. merilainen then marked the issue RTBC and marcus_johansson merged it.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

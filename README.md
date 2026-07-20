@@ -1,24 +1,24 @@
-**TL;DR:** [789 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [793 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_102 summaries · 13 new this week_
-
-- [#3588043: Add drupal-gitlab skill: GitLab CLI guidance tailored to git.drupalcode.org](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588043.md)
-- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
-- [#3601357: GitHub: default to private repo and prompt for public](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601357.md)
-
 ### Drupal Core
 
-_558 summaries · 16 new this week_
+_561 summaries · 18 new this week_
 
-- [#3588274: Remove Tags vocabulary from Standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588274.md)
-- [#3607711: Deprecate \Drupal\Core\Htmx\Htmx methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607711.md)
-- [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
+- [#3611853: Correct error deprecation message for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611853.md)
+- [#3611529: Moderation state field definitions can have an incorrect target bundle](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611529.md)
+- [#3595652: Deprecate module.inc contents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595652.md)
+
+### Drupal AI
+
+_103 summaries · 14 new this week_
+
+- [#3609590: Switch to official MCP PHP SDK Client](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md)
+- [#3588043: Add drupal-gitlab skill: GitLab CLI guidance tailored to git.drupalcode.org](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588043.md)
+- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _17 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_180 rules · 1 new this week_
+_181 rules · 2 new this week_
 
+- [Replace module_set_weight() and module_config_sort() with ModuleWeight service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php)
 - [Replace Htmx::triggerAfterSettleHeader() and triggerAfterSwapHeader() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-htmx-triggeraftersettleheader-and-3607711.php)
 - [Add missing $imageDerivativeUtilities argument to ImageFormatter constructor...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-missing-imagederivativeutilities-argument-to-3609124.php)
-- [Replace deprecated locale submit callbacks with service method calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php)
 
 
 ## RSS feeds
