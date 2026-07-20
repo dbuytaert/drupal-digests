@@ -1,8 +1,16 @@
-**TL;DR:** [788 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [789 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [180 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_102 summaries · 13 new this week_
+
+- [#3588043: Add drupal-gitlab skill: GitLab CLI guidance tailored to git.drupalcode.org](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588043.md)
+- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
+- [#3601357: GitHub: default to private repo and prompt for public](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601357.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _558 summaries · 16 new this week_
 - [#3588274: Remove Tags vocabulary from Standard profile and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588274.md)
 - [#3607711: Deprecate \Drupal\Core\Htmx\Htmx methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607711.md)
 - [#3586832: Allow kernel test classes to define their own routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586832.md)
-
-### Drupal AI
-
-_101 summaries · 12 new this week_
-
-- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
-- [#3601357: GitHub: default to private repo and prompt for public](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601357.md)
-- [#3601375: Post-install hand-off: open the project shell on inactivity instead of on Enter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601375.md)
 
 ### Drupal Canvas
 
