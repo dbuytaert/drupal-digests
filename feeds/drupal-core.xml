@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3611653: Upsert fails after upgrade from 11.3 to 11.4</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611653.md</link>
+      <guid isPermaLink="false">019f7f96-e7cb-748f-9866-5afc7c0da527</guid>
+      <pubDate>Mon, 20 Jul 2026 12:15:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +153/−12 · php +153/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/220ee9fe40447258a64efef4d86e656ea1264fab"&gt;220ee9f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3611653"&gt;#3611653&lt;/a&gt; · 4 contributors · 42 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Upgrading from Drupal 11.3 to 11.4 broke database upsert operations where every field passed to the upsert is also part of the key (the &amp;quot;degenerate&amp;quot; case, meaning there are no non-key columns to update on conflict). MySQL returned a syntax error because the generated SQL ended with &lt;code&gt;ON DUPLICATE KEY UPDATE&lt;/code&gt; and nothing after it. The fix restores this as a supported pattern across all database drivers: the statement now silently ignores duplicates rather than crashing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was an accidental behavioral change introduced by &lt;a href="https://www.drupal.org/node/2547493"&gt;#2547493&lt;/a&gt;, which added composite key support to &lt;code&gt;Upsert&lt;/code&gt; queries in 11.4. That commit used &lt;code&gt;array_combine()&lt;/code&gt; to rekey &lt;code&gt;$insert_fields&lt;/code&gt; from a zero-based numeric array to a string-keyed associative array. Once the array had string keys, the existing &lt;code&gt;unset($insert_fields[$key])&lt;/code&gt; loop successfully removed the key columns from the update list. When all fields are key fields, this left &lt;code&gt;$update&lt;/code&gt; empty, and the MySQL driver emitted &lt;code&gt;INSERT INTO ... ON DUPLICATE KEY UPDATE&lt;/code&gt; with no assignments, which is a syntax error. In 11.3 the &lt;code&gt;unset&lt;/code&gt; call was effectively a no-op because the array was still zero-indexed, so the key column remained in the update list and MySQL accepted the statement (performing a no-op update on conflict).&lt;/p&gt;
+&lt;p&gt;The fix introduces an explicit check for the empty-update case in each driver. In &lt;code&gt;core/modules/mysql/src/Driver/Database/mysql/Upsert.php&lt;/code&gt;, when &lt;code&gt;$update_fields&lt;/code&gt; is empty after removing key columns, the query is built as &lt;code&gt;INSERT IGNORE INTO ...&lt;/code&gt; instead of &lt;code&gt;INSERT ... ON DUPLICATE KEY UPDATE&lt;/code&gt;. In the PostgreSQL drivers (&lt;code&gt;core/modules/pgsql&lt;/code&gt; and &lt;code&gt;core/modules/sqlite&lt;/code&gt;), the same empty check switches from &lt;code&gt;ON CONFLICT (...) DO UPDATE SET ...&lt;/code&gt; to &lt;code&gt;ON CONFLICT (...) DO NOTHING&lt;/code&gt;. Three new kernel tests cover the degenerate case: &lt;code&gt;testDegeneratedSingleValueUpsert&lt;/code&gt;, &lt;code&gt;testDegeneratedMultiValueUpsert&lt;/code&gt;, and &lt;code&gt;testDegeneratedCompositeKeyUpsert&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 20, 2026 (2 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;john.oltman&lt;/li&gt;
+&lt;li&gt;cilefen&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;john.oltman, who reported the regression, did key investigative work in the thread: they pinpointed the exact commit that introduced the breakage (&lt;a href="https://www.drupal.org/node/2547493"&gt;#2547493&lt;/a&gt;), confirmed through a debugger that the behavior difference was caused by the numeric-to-string rekey via &lt;code&gt;array_combine()&lt;/code&gt;, and tested each proposed fix end-to-end. mondrake picked up the diagnosis, built the fix, and after an initial MR that still threw an exception for the degenerate case, revised the approach to use &lt;code&gt;INSERT IGNORE&lt;/code&gt; / &lt;code&gt;DO NOTHING&lt;/code&gt; instead of erroring out, then retracted an earlier proposal to deprecate the pattern once john.oltman demonstrated it is a legitimate multi-row insert idiom with native DB support on all drivers.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3611853: Correct error deprecation message for \Drupal\Core\Htmx\HtmxRequestInfoTrait::getHtmxTrigger</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611853.md</link>
       <guid isPermaLink="false">019f7ecd-dc45-77ce-9c8a-b573a9c56ac2</guid>
@@ -944,51 +985,6 @@ class MyController extends ControllerBase {
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3608710: Core 11.3.13 to 11.4 fails on help_search_items doesn't exist</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608710.md</link>
-      <guid isPermaLink="false">019f4ceb-f6b7-76a3-a171-a3ef53489507</guid>
-      <pubDate>Fri, 10 Jul 2026 15:06:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical support request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +99/−66 · php +99/−66&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608710"&gt;#3608710&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites upgrading from Drupal 11.3.x to 11.4.x that had both the Help and Search modules enabled could encounter a fatal database error (&amp;quot;Table 'help_search_items' doesn't exist&amp;quot;) partway through &lt;code&gt;drush updatedb&lt;/code&gt;, leaving the site in a broken state. The error appeared after the search-related &lt;code&gt;hook_update_n&lt;/code&gt; functions ran and is fixed in 11.4.2. No manual workaround is needed if you are upgrading to 11.4.2 or later.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The breakage stemmed from &lt;code&gt;system_update_11400()&lt;/code&gt;, which unconditionally dropped the &lt;code&gt;help_search_items&lt;/code&gt; table before installing the new &lt;code&gt;search_help&lt;/code&gt; module. When the module was then installed and its code immediately queried that table (e.g. during &lt;code&gt;HelpSearch::findResults()&lt;/code&gt; or &lt;code&gt;HelpSearch::updateTopicList()&lt;/code&gt;), the table no longer existed and no &lt;code&gt;hook_schema()&lt;/code&gt; had yet re-created it, causing an &lt;code&gt;SQLSTATE[42S02]&lt;/code&gt; crash that aborted the entire update batch.&lt;/p&gt;
-&lt;p&gt;The MR makes two coordinated changes. First, &lt;code&gt;system_update_11400()&lt;/code&gt; is corrected to only drop the table when Search is &lt;strong&gt;not&lt;/strong&gt; installed (meaning &lt;code&gt;search_help&lt;/code&gt; will not be installed and the table is truly obsolete). When Search is installed, the table drop is skipped entirely because &lt;code&gt;search_help&lt;/code&gt;'s installation will own the table going forward.&lt;/p&gt;
-&lt;p&gt;Second, the &lt;code&gt;hook_schema()&lt;/code&gt; implementation in &lt;code&gt;search_help.install&lt;/code&gt; is removed entirely. Instead, the schema definition and a lazy &lt;code&gt;ensureTableExists()&lt;/code&gt; method are moved into the &lt;code&gt;HelpSearch&lt;/code&gt; plugin class itself, following the pattern established in &lt;a href="https://www.drupal.org/node/3221051"&gt;#3221051&lt;/a&gt;. &lt;code&gt;HelpSearch::updateTopicList()&lt;/code&gt; now catches the initial database exception, calls &lt;code&gt;ensureTableExists()&lt;/code&gt; to create the table on the fly if it is absent, and retries the query. &lt;code&gt;HelpSearch::findResults()&lt;/code&gt; catches the same exception and returns an empty result set rather than letting the error propagate. This makes the &lt;code&gt;search_help&lt;/code&gt; module resilient to the table being missing at any point, regardless of update ordering.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No code changes are required in custom modules. If you are upgrading to 11.4.0 or 11.4.1 and hit this error, the fix is included in 11.4.2. As a temporary workaround on the affected versions you can create the table manually before re-running &lt;code&gt;drush updatedb&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-sql"&gt;CREATE TABLE IF NOT EXISTS help_search_items (
-  sid INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  section_plugin_id VARCHAR(255) NOT NULL DEFAULT '',
-  permission VARCHAR(255) NOT NULL DEFAULT '',
-  topic_id VARCHAR(255) NOT NULL DEFAULT '',
-  PRIMARY KEY (sid),
-  INDEX section_plugin_id (section_plugin_id),
-  INDEX topic_id (topic_id)
-) ENGINE=InnoDB;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch diagnosed the issue from the reporter's logs, identified the unconditional table drop in &lt;code&gt;system_update_11400()&lt;/code&gt; as the culprit, and connected it to the &lt;code&gt;ensureTableExists()&lt;/code&gt; pattern from &lt;a href="https://www.drupal.org/node/3221051"&gt;#3221051&lt;/a&gt;, then opened MR !16239 to apply both fixes together.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

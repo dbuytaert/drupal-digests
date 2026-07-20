@@ -1,4 +1,4 @@
-**TL;DR:** [793 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [796 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_561 summaries · 18 new this week_
+_562 summaries · 19 new this week_
 
+- [#3611653: Upsert fails after upgrade from 11.3 to 11.4](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611653.md)
 - [#3611853: Correct error deprecation message for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611853.md)
 - [#3611529: Moderation state field definitions can have an incorrect target bundle](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611529.md)
-- [#3595652: Deprecate module.inc contents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595652.md)
 
 ### Drupal AI
 
-_103 summaries · 14 new this week_
+_105 summaries · 16 new this week_
 
+- [#3601380: Separate composer and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md)
+- [#3601379: Config-url clobbers the scaffold composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601379.md)
 - [#3609590: Switch to official MCP PHP SDK Client](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md)
-- [#3588043: Add drupal-gitlab skill: GitLab CLI guidance tailored to git.drupalcode.org](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588043.md)
-- [#3601377: Support conditional (depends_on) custom questions in .drupalaibp.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601377.md)
 
 ### Drupal Canvas
 
