@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_563 summaries · 20 new this week_
+_563 summaries · 15 new this week_
 
 - [#3485030: Avoid saving menu links through node form when they do not change](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md)
 - [#3611653: Upsert fails after upgrade from 11.3 to 11.4](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611653.md)
