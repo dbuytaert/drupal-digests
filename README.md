@@ -1,8 +1,16 @@
-**TL;DR:** [897 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [922 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_567 summaries · 16 new this week_
+
+- [#3586221: Remove the Stable 9 theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586221.md)
+- [#3605549: Allow install profiles to specify a list of recipes that should be applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605549.md)
+- [#3101714: Link field display should show plaintext URLs longer than 80 chars](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3101714.md)
 
 ### Drupal CMS
 
@@ -12,17 +20,9 @@ _88 summaries · 71 new this week_
 - [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
 - [#3526844: [meta] Implement the first real-world site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3526844.md)
 
-### Drupal Core
-
-_566 summaries · 15 new this week_
-
-- [#3605549: Allow install profiles to specify a list of recipes that should be applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605549.md)
-- [#3101714: Link field display should show plaintext URLs longer than 80 chars](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3101714.md)
-- [#3284817: Adopt vincentlanglet/twig-cs-fixer for Twig coding standards](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3284817.md)
-
 ### Drupal Canvas
 
-_138 summaries · 27 new this week_
+_162 summaries · 51 new this week_
 
 - [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
 - [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
