@@ -5,6 +5,180 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591130: Deleted (code) components can still be referenced by folders: dependency handling is missing</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md</link>
+      <guid isPermaLink="false">019f8229-0294-779a-b8c6-c8fbae137ccb</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 21 Jul 2026 00:32:59 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +18/−0 · php +18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591130"&gt;#3591130&lt;/a&gt; · 2 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a Canvas component is renamed via the CLI, the operation is actually a delete followed by a create. Any &lt;code&gt;Folder&lt;/code&gt; config entity that listed the old component in its &lt;code&gt;items&lt;/code&gt; retained the stale name after the delete, because Canvas's dependency tracking did not know the connection existed. A later operation on that folder (such as a PATCH) would fail with a 422 &amp;quot;Unprocessable Content&amp;quot; error and a message like &amp;quot;The 'canvas.component.js.media-feature-grid' config does not exist.&amp;quot; The fix adds proper config-dependency declarations to &lt;code&gt;Folder&lt;/code&gt; so that Drupal's built-in dependency resolution removes deleted components from folder items automatically. Existing sites need to run database updates to recompute the previously missing dependencies.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New post-update function resaves all &lt;code&gt;Folder&lt;/code&gt; entities to compute previously missing config dependencies; run &lt;code&gt;drush updb&lt;/code&gt; after updating.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is that &lt;code&gt;Folder&lt;/code&gt; never overrode &lt;code&gt;calculateDependencies()&lt;/code&gt;. It inherited &lt;code&gt;ConfigEntityBase::preDelete()&lt;/code&gt; and &lt;code&gt;ConfigEntityBase::onDependencyRemoval()&lt;/code&gt; unchanged, but those methods can only act on dependencies that have already been declared. Because no dependencies were declared, deleting or renaming a &lt;code&gt;JavaScriptComponent&lt;/code&gt; (or any other config entity stored in a folder) left the &lt;code&gt;Folder&lt;/code&gt;'s &lt;code&gt;items&lt;/code&gt; array untouched. The fix in !1133 implements &lt;code&gt;Folder::calculateDependencies()&lt;/code&gt; to register each item in &lt;code&gt;items&lt;/code&gt; as a config dependency. Once those dependencies are present in the config graph, &lt;code&gt;ConfigEntityBase::onDependencyRemoval()&lt;/code&gt; can fire and strip the deleted entry from &lt;code&gt;items&lt;/code&gt; without any custom delete-hook logic. A post-update function (modeled on &lt;code&gt;canvas_post_update_0002_intermediate_component_dependencies_in_patterns()&lt;/code&gt; and its companion &lt;code&gt;UpdateIntermediateDependenciesUpdateTest&lt;/code&gt;) was added to resave all existing &lt;code&gt;Folder&lt;/code&gt; entities so their dependency metadata is computed and stored. This MR (!1135) contains only the corresponding test in &lt;code&gt;CanvasConfigEntityHttpApiTest&lt;/code&gt;, asserting that after an HTTP DELETE of a component, the folder's &lt;code&gt;items&lt;/code&gt; list is empty. A related follow-up issue, &lt;a href="https://www.drupal.org/node/3591475"&gt;#3591475&lt;/a&gt;, tracks the additional behavior of deleting the &lt;code&gt;Folder&lt;/code&gt; itself when its last dependency is removed.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;After updating the module, run database updates to recompute folder dependencies on existing sites:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-sh"&gt;drush updb
+# or
+vendor/bin/drush updb
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Without this step, existing &lt;code&gt;Folder&lt;/code&gt; config entities will continue to lack declared dependencies and the bug will persist for them even after the code update.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;wim leers identified the underlying cause in comment #5: because &lt;code&gt;Folder&lt;/code&gt; never implemented &lt;code&gt;calculateDependencies()&lt;/code&gt;, Drupal's config dependency system had no record of the folder-to-component relationship, making all the inherited removal machinery inert. This reframed the fix from a bespoke delete-hook approach to a standard dependency-declaration approach. He also flagged the need for a database update path for existing sites, and generated it using an AI tool in a single prompt for $1.73 and roughly nine minutes.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3576837: Manage the global layout (aka regions) within Canvas Workbench</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md</link>
+      <guid isPermaLink="false">019f8234-eceb-73cd-be40-58329e6bdd41</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 21 Jul 2026 00:15:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 68 files, +3196/−509 · js +2827/−495 · mdx +140/−9 · php +92 · json +62/−3 · md +51/−2 · yml +24&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3576837"&gt;#3576837&lt;/a&gt; · 5 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas Workbench and the Canvas CLI now treat global regions (header, footer, etc.) as first-class items alongside pages and content templates. Developers place region JSON specs in a &lt;code&gt;regionsDir&lt;/code&gt; directory, run &lt;code&gt;canvas pull --include-regions&lt;/code&gt; or &lt;code&gt;canvas push --include-regions&lt;/code&gt; to two-way sync them with Drupal, and optionally add a &lt;code&gt;src/layout.jsx&lt;/code&gt; file that wraps Workbench page and content template previews with the surrounding regions. If the layout file is absent, previews continue rendering without surrounding regions, so existing projects are unaffected until they opt in.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;canvas_oauth_post_update_0006_page_region_scope&lt;/code&gt; installs a new &lt;code&gt;canvas:page_region&lt;/code&gt; OAuth scope gated by the &lt;code&gt;administer page template&lt;/code&gt; permission.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;regionsDir&lt;/code&gt; and &lt;code&gt;layoutPath&lt;/code&gt; config keys in &lt;code&gt;canvas.config.json&lt;/code&gt;; new &lt;code&gt;--include-regions&lt;/code&gt; CLI flag for &lt;code&gt;pull&lt;/code&gt;, &lt;code&gt;push&lt;/code&gt;, and &lt;code&gt;validate&lt;/code&gt;; new &lt;code&gt;ApiService&lt;/code&gt; methods &lt;code&gt;listRegions&lt;/code&gt;, &lt;code&gt;getRegion&lt;/code&gt;, &lt;code&gt;createRegion&lt;/code&gt;, &lt;code&gt;updateRegion&lt;/code&gt;, &lt;code&gt;deleteRegion&lt;/code&gt; targeting &lt;code&gt;/canvas/api/v0/config/page_region&lt;/code&gt;; &lt;code&gt;Region&lt;/code&gt; component exported from &lt;code&gt;drupal-canvas@^0.4.0&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two new keys are added to &lt;code&gt;canvas.config.json&lt;/code&gt;: &lt;code&gt;regionsDir&lt;/code&gt; (default &lt;code&gt;./regions&lt;/code&gt;) and &lt;code&gt;layoutPath&lt;/code&gt; (default &lt;code&gt;./src/layout.jsx&lt;/code&gt;). Region spec files in &lt;code&gt;regionsDir&lt;/code&gt; use the same element tree JSON format as page specs. The filename (without extension) becomes the region machine name; the Drupal theme is implicit and resolved server-side from the default theme when pushing. Push semantics are full-sync: remote regions absent from the local &lt;code&gt;regionsDir&lt;/code&gt; are deleted.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;ApiService&lt;/code&gt; class gains &lt;code&gt;listRegions()&lt;/code&gt;, &lt;code&gt;getRegion()&lt;/code&gt;, &lt;code&gt;createRegion()&lt;/code&gt;, &lt;code&gt;updateRegion()&lt;/code&gt;, and &lt;code&gt;deleteRegion()&lt;/code&gt; methods, all targeting the &lt;code&gt;/canvas/api/v0/config/page_region&lt;/code&gt; REST endpoint. The &lt;code&gt;--include-regions&lt;/code&gt; / &lt;code&gt;CANVAS_INCLUDE_REGIONS=true&lt;/code&gt; option is wired into the &lt;code&gt;pull&lt;/code&gt;, &lt;code&gt;push&lt;/code&gt;, and &lt;code&gt;validate&lt;/code&gt; commands. A new &lt;code&gt;createRegionsPullTask()&lt;/code&gt; function and push utilities (&lt;code&gt;prepareRegions&lt;/code&gt;, &lt;code&gt;pushRegions&lt;/code&gt;, &lt;code&gt;collectRegionResults&lt;/code&gt;, &lt;code&gt;validateRegions&lt;/code&gt;) parallel the existing page and content-template paths.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;canvas:page_region&lt;/code&gt; OAuth scope is installed by &lt;code&gt;canvas_oauth_post_update_0006_page_region_scope&lt;/code&gt;, gated by the &lt;code&gt;administer page template&lt;/code&gt; permission. The &lt;code&gt;canvas_oauth&lt;/code&gt; authentication provider now protects &lt;code&gt;PageRegion&lt;/code&gt; config entities alongside &lt;code&gt;ContentTemplate&lt;/code&gt;, &lt;code&gt;BrandKit&lt;/code&gt;, and others.&lt;/p&gt;
+&lt;p&gt;The layout file must export a default React component accepting &lt;code&gt;children&lt;/code&gt;. The &lt;code&gt;Region&lt;/code&gt; component from &lt;code&gt;drupal-canvas&lt;/code&gt; (now at &lt;code&gt;^0.4.0&lt;/code&gt;) slots in a region by machine name; regions with no matching spec file render as nothing, and a &lt;code&gt;fallback&lt;/code&gt; prop can supply a placeholder during development.&lt;/p&gt;
+&lt;p&gt;Internally, the &lt;code&gt;authored-element-utils&lt;/code&gt; module is consolidated into a new &lt;code&gt;authored-elements&lt;/code&gt; module that exposes shared helpers (&lt;code&gt;componentTreeToAuthoredElementMap&lt;/code&gt;, &lt;code&gt;authoredElementMapToComponentTree&lt;/code&gt;, &lt;code&gt;jsonRenderSpecToAuthoredElementMap&lt;/code&gt;) used by all three entity types. A new &lt;code&gt;ConfigComponentTreePayload&lt;/code&gt; type and &lt;code&gt;stripNullableKeysForConfigComponentTree()&lt;/code&gt; function handle the fact that config-entity component trees (regions, content templates) reject &lt;code&gt;null&lt;/code&gt; values for &lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt;, and &lt;code&gt;label&lt;/code&gt;, while page content entities tolerate them. The now-redundant &lt;code&gt;authoredPropToServer()&lt;/code&gt; pass-through (which was only a no-op for pages/regions) is removed from the content-template utilities.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;After running database updates, the new OAuth scope is available:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush updb
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To opt in to region sync, add to &lt;code&gt;canvas.config.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;regionsDir&amp;quot;: &amp;quot;./regions&amp;quot;,
+  &amp;quot;layoutPath&amp;quot;: &amp;quot;./src/layout.jsx&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Create region specs in &lt;code&gt;regions/&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;// regions/header.json
+{
+  &amp;quot;status&amp;quot;: true,
+  &amp;quot;elements&amp;quot;: {
+    &amp;quot;header&amp;quot;: {
+      &amp;quot;type&amp;quot;: &amp;quot;js.header&amp;quot;,
+      &amp;quot;props&amp;quot;: { &amp;quot;darkVariant&amp;quot;: true },
+      &amp;quot;slots&amp;quot;: { &amp;quot;branding&amp;quot;: [&amp;quot;header-logo&amp;quot;] }
+    },
+    &amp;quot;header-logo&amp;quot;: {
+      &amp;quot;type&amp;quot;: &amp;quot;js.logo&amp;quot;,
+      &amp;quot;props&amp;quot;: { &amp;quot;linkToFrontPage&amp;quot;: true }
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Create &lt;code&gt;src/layout.jsx&lt;/code&gt; to wrap Workbench previews with regions:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-jsx"&gt;import { Region } from 'drupal-canvas';
+
+export default function Layout({ children }) {
+  return (
+    &amp;lt;&amp;gt;
+      &amp;lt;Region name=&amp;quot;header&amp;quot; /&amp;gt;
+      &amp;lt;main&amp;gt;{children}&amp;lt;/main&amp;gt;
+      &amp;lt;Region name=&amp;quot;footer&amp;quot; /&amp;gt;
+    &amp;lt;/&amp;gt;
+  );
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pull or push regions with the new flag:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;npx canvas pull --include-regions
+npx canvas push --include-regions
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;rikki_iki&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design discussion shaped the final approach significantly. effulgentsia proposed three options for how to surface regions in Workbench, and in comment &lt;a href="https://www.drupal.org/node/16522896"&gt;#16522896&lt;/a&gt; described a conversation with rikki_iki in which she suggested Option 2 (regions shown as part of page previews rather than in isolation) and specifically proposed using React Router concepts — a &lt;code&gt;layout&lt;/code&gt; with an &lt;code&gt;outlet&lt;/code&gt; — rather than Drupal's region terminology in the local codebase. wotnak pushed back in comment &lt;a href="https://www.drupal.org/node/16582626"&gt;#16582626&lt;/a&gt;, arguing that purely using an outlet without a local concept of regions would make two-way CLI sync difficult, and proposed the hybrid approach that landed: local region JSON specs that sync like pages, combined with a local &lt;code&gt;layout.jsx&lt;/code&gt; for Workbench rendering. wim leers flagged in comment &lt;a href="https://www.drupal.org/node/16584111"&gt;#16584111&lt;/a&gt; that making &lt;code&gt;PageRegion&lt;/code&gt; implement &lt;code&gt;CanvasHttpApiEligibleConfigEntityInterface&lt;/code&gt; carried significant security implications and requested it be extracted to a separate blocking issue, which became &lt;a href="https://www.drupal.org/node/3589801"&gt;#3589801&lt;/a&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3556101: [11.3.x] Semi-coupled engine not compatible with Drupal 11.x</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556101.md</link>
+      <guid isPermaLink="false">019f824f-2835-77b7-82de-523b5c71ffbb</guid>
+      <pubDate>Mon, 20 Jul 2026 23:51:08 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +321/−325 · php +315/−322 · yml +6/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3556101"&gt;#3556101&lt;/a&gt; · 6 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas's &lt;code&gt;semi_coupled&lt;/code&gt; theme engine became incompatible with Drupal 11.3.x after core issue &lt;a href="https://www.drupal.org/node/1685492"&gt;#1685492&lt;/a&gt; converted theme engines from hook-based &lt;code&gt;.engine&lt;/code&gt; files into tagged services. Any Canvas page on an 11.3.x site threw a 500 error with the message &lt;code&gt;Service &amp;quot;semi_coupled&amp;quot; not found: the container inside &amp;quot;Drupal\Core\Theme\ThemeManager&amp;quot; is a smaller service locator that only knows about the &amp;quot;twig&amp;quot; service&lt;/code&gt;. This issue proposed converting the engine to comply with the new service-based API. It was ultimately closed as fixed when &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; removed the semi-coupled theme engine from Canvas entirely, making Canvas compatible with both 11.2.x and 11.3.x without needing the engine approach at all.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is that Drupal 11.3.x (core &lt;a href="https://www.drupal.org/node/1685492"&gt;#1685492&lt;/a&gt;) requires theme engines to be registered as tagged services implementing &lt;code&gt;ThemeEngineInterface&lt;/code&gt; rather than as standalone &lt;code&gt;.engine&lt;/code&gt; files providing procedural hooks (&lt;code&gt;hook_extension()&lt;/code&gt;, &lt;code&gt;hook_theme()&lt;/code&gt;, &lt;code&gt;hook_render_template()&lt;/code&gt;). The old &lt;code&gt;semi_coupled.engine&lt;/code&gt; file and its accompanying &lt;code&gt;semi_coupled.info.yml&lt;/code&gt; (of type &lt;code&gt;theme_engine&lt;/code&gt;) were incompatible with this model.&lt;/p&gt;
+&lt;p&gt;MR !296 proposes the intermediate fix: move all engine logic from procedural functions into a &lt;code&gt;SemiCoupledEngine&lt;/code&gt; class implementing &lt;code&gt;ThemeEngineInterface&lt;/code&gt;, and register it in &lt;code&gt;canvas.services.yml&lt;/code&gt; with &lt;code&gt;tags: [{name: theme_engine, engine_name: semi_coupled}]&lt;/code&gt;. The methods &lt;code&gt;theme()&lt;/code&gt; and &lt;code&gt;renderTemplate()&lt;/code&gt; map directly to the old &lt;code&gt;semi_coupled_theme()&lt;/code&gt; and &lt;code&gt;semi_coupled_render_template()&lt;/code&gt; hooks; the helper functions &lt;code&gt;_semi_coupled_collect_props()&lt;/code&gt;, &lt;code&gt;_semi_coupled_build_html_tag()&lt;/code&gt;, &lt;code&gt;_semi_coupled_get_variable()&lt;/code&gt;, &lt;code&gt;_semi_coupled_snake_case()&lt;/code&gt;, and &lt;code&gt;_semi_coupled_kebab_case()&lt;/code&gt; become private methods on the class.&lt;/p&gt;
+&lt;p&gt;This MR was not merged. The actual fix arrived via &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt;, which removed the &lt;code&gt;semi_coupled&lt;/code&gt; theme engine from Canvas entirely and improved React embedding without relying on a custom engine, resolving the 11.3.x incompatibility in a way that also kept 11.2.x working.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 5, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;alexpott identified a parallel fix in core (&lt;a href="https://www.drupal.org/node/3556130"&gt;#3556130&lt;/a&gt;, &amp;quot;ThemeEngine BC layer is broken - ServiceLocator != Container&amp;quot;) immediately after the issue was filed, which briefly raised the question of whether the Canvas side needed changing at all. wim leers and penyaskito clarified that Canvas targets 11.2.x as its minimum and would not require 11.3.x for 1.0, so the issue was postponed until the minimum version bumped. phenaproxima pointed out that landing &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; (removing the engine) would close this issue as outdated without needing the tagged-service migration at all, and that is ultimately what happened.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3549885: Prevent deleting Code Components if there are usages in forward revisions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549885.md</link>
       <guid isPermaLink="false">019f70ee-52a4-71e6-a470-de982572d710</guid>
@@ -748,131 +922,6 @@ ConfigTranslationHooks::TRANSLATABLE_ENTITY_TYPE_IDS
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;tedbow (Acquia)&lt;/li&gt;
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585970: UI changes for detection of conflicts caused by external updates to underlying entity of auto-save entry</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3585970.md</link>
-      <guid isPermaLink="false">019ef127-565f-70a9-8bd8-05ba65fdfa5f</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 22 Jun 2026 19:29:29 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +861/−81 · js +803/−80 · css +58/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3585970"&gt;#3585970&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas's &amp;quot;Review changes&amp;quot; panel now surfaces conflict indicators when an auto-save entry conflicts with an external update to its underlying entity. A yellow banner at the top of the panel counts active conflicts and offers a &amp;quot;Resolve N conflict(s)&amp;quot; call-to-action button. Each conflicted row replaces its normal entity-type icon with a red triangle warning icon, disables its checkbox, and shows a &amp;quot;Resolve conflict&amp;quot; option in the row's dropdown menu instead of &amp;quot;View changes.&amp;quot; Conflicted rows are automatically excluded from select-all, and any row that becomes conflicted while already selected is silently deselected. This conflict UX is currently gated behind the &lt;code&gt;canvas_dev_mode&lt;/code&gt; module (dev mode flag) while the full conflict resolution workflow is built out in a follow-on issue.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ConflictBanner&lt;/code&gt; component and &lt;code&gt;isConflictUxEnabled()&lt;/code&gt; utility added to the Canvas React frontend; &lt;code&gt;PublishReview&lt;/code&gt; accepts new optional &lt;code&gt;conflictCount&lt;/code&gt; and &lt;code&gt;onResolveConflict&lt;/code&gt; props.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;/canvas/api/v0/auto-saves/pending&lt;/code&gt; endpoint can now return HTTP 409 with a &lt;code&gt;{ data, errors }&lt;/code&gt; envelope alongside the normal flat 200 shape. A new &lt;code&gt;applyConflictStateFromResponse()&lt;/code&gt; function in &lt;code&gt;pendingChangesApi&lt;/code&gt; normalizes both shapes: it iterates the &lt;code&gt;errors&lt;/code&gt; array, indexes entries by &lt;code&gt;meta.api_auto_save_key&lt;/code&gt; (falling back to &lt;code&gt;source.pointer&lt;/code&gt;), and marks each matching &lt;code&gt;PendingChange&lt;/code&gt; with &lt;code&gt;hasConflict: true&lt;/code&gt; and a &lt;code&gt;conflict_id&lt;/code&gt; string only when the error carries &lt;code&gt;CONFLICT_CODE.DETECTED&lt;/code&gt; (new enum value &lt;code&gt;4&lt;/code&gt;). Non-resolvable codes (&lt;code&gt;UNEXPECTED = 1&lt;/code&gt;, &lt;code&gt;EXPECTED = 2&lt;/code&gt;) do not set &lt;code&gt;hasConflict&lt;/code&gt;. The RTK Query &lt;code&gt;getAllPendingChanges&lt;/code&gt; endpoint now passes &lt;code&gt;validateStatus&lt;/code&gt; to accept 409 as a valid response, and &lt;code&gt;transformResponse&lt;/code&gt; delegates to &lt;code&gt;applyConflictStateFromResponse&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;isConflictUxEnabled()&lt;/code&gt; utility in &lt;code&gt;@/features/conflict/conflictUtils&lt;/code&gt; reads &lt;code&gt;getCanvasSettings()?.devMode&lt;/code&gt; as a feature flag; all conflict-specific rendering is conditional on this flag at runtime. &lt;code&gt;ConflictBanner&lt;/code&gt; is a standalone React component (with its own CSS module) that renders null when &lt;code&gt;conflictCount&lt;/code&gt; is zero, shows a pluralised conflict count headline and subtext, and exposes an &lt;code&gt;onResolveClick&lt;/code&gt; callback and a &lt;code&gt;disabled&lt;/code&gt; prop for the CTA button.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ChangeRow&lt;/code&gt; now computes &lt;code&gt;hasConflict = conflictUxEnabled &amp;amp;&amp;amp; !!change.hasConflict&lt;/code&gt; and swaps the &lt;code&gt;ChangeIcon&lt;/code&gt; for a &lt;code&gt;ExclamationTriangleIcon&lt;/code&gt; (testid &lt;code&gt;change-conflict-icon&lt;/code&gt;), disables the checkbox, and gates the &amp;quot;View changes&amp;quot; menu item behind &lt;code&gt;!hasConflict&lt;/code&gt; while injecting a &amp;quot;Resolve conflict&amp;quot; item when &lt;code&gt;hasConflict&lt;/code&gt; and &lt;code&gt;onResolveConflict&lt;/code&gt; are both present. &lt;code&gt;ChangeGroup&lt;/code&gt; and &lt;code&gt;PublishReview&lt;/code&gt; both derive a &lt;code&gt;selectableChanges&lt;/code&gt; list by filtering out conflicted entries when the flag is on, and feed that subset to selection state and the select-all checkbox. A &lt;code&gt;useEffect&lt;/code&gt; in &lt;code&gt;PublishReview&lt;/code&gt; watches &lt;code&gt;changes&lt;/code&gt; for newly conflicted pointers and removes them from &lt;code&gt;selectedChanges&lt;/code&gt;. The &lt;code&gt;onResolveConflict&lt;/code&gt; handler in &lt;code&gt;UnpublishedChanges&lt;/code&gt; currently calls &lt;code&gt;refetch()&lt;/code&gt; as a placeholder; the full resolution UI is tracked in issue &lt;a href="https://www.drupal.org/node/3591601"&gt;#3591601&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;f.mazeikis&lt;/li&gt;
-&lt;li&gt;ravi.maniyar.123&lt;/li&gt;
-&lt;li&gt;mark dodgson&lt;/li&gt;
-&lt;li&gt;justafish (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;f.mazeikis renamed the issue mid-thread to scope it specifically to conflict detection UI rather than resolution, and noted the work is split across two MRs: the React frontend changes in MR !945 and a separate forthcoming PHP/OpenAPI backend MR on a separate branch.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591702: Fatal error (AssertionError on dev env) when a component instance's image references a deleted file</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591702.md</link>
-      <guid isPermaLink="false">019ee0cd-d86a-7063-a17f-2ca86f99114b</guid>
-      <pubDate>Fri, 19 Jun 2026 14:01:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591702"&gt;#3591702&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Opening a Canvas editor page that contains a component with an image prop pointing at a deleted file no longer produces a 500 error. Previously, the editor would fatal with an &lt;code&gt;AssertionError&lt;/code&gt; and log repeated failures whenever a referenced file or media entity had been removed, for example after a content reset or partial re-import. After this fix, the affected component renders without its image and the rest of the page continues to load normally. The empty render is also correctly cache-tagged so it is automatically invalidated if the deleted entity is ever restored.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was in &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt;, which evaluates an image prop expression into a URL and then asserts &lt;code&gt;\is_string($url-&amp;gt;value)&lt;/code&gt;. When the referenced file had been deleted, &lt;code&gt;Evaluator::evaluate()&lt;/code&gt; returned a &lt;code&gt;GeneratedUrl&lt;/code&gt; whose &lt;code&gt;value&lt;/code&gt; was &lt;code&gt;NULL&lt;/code&gt;: the field item existed (so the &lt;code&gt;is_required&lt;/code&gt; guard in &lt;code&gt;Evaluator&lt;/code&gt; did not fire), but the entity no longer loaded. That &lt;code&gt;NULL&lt;/code&gt; flowed directly into the &lt;code&gt;assert()&lt;/code&gt;, fataling on any environment with assertions enabled.&lt;/p&gt;
-&lt;p&gt;The fix adds an explicit &lt;code&gt;NULL&lt;/code&gt; check before the assertion in &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt;. When &lt;code&gt;$url-&amp;gt;value === NULL&lt;/code&gt; and the prop expression implements &lt;code&gt;ReferencePropExpressionInterface&lt;/code&gt;, the method resolves the raw &lt;code&gt;EntityReference&lt;/code&gt; typed-data property, delegates to the new &lt;code&gt;TypedDataHelper::getDeletedReferencedEntityCacheability()&lt;/code&gt; helper, attaches the resulting cache tags to the partially-built &lt;code&gt;GeneratedUrl&lt;/code&gt;, and returns early without touching the &lt;code&gt;assert()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The deleted-entity cacheability logic that previously lived inline in &lt;code&gt;Evaluator&lt;/code&gt; (with a comment about it being &amp;quot;imperfect&amp;quot;) was extracted into the new public static method &lt;code&gt;TypedDataHelper::getDeletedReferencedEntityCacheability(EntityReference $reference): CacheableDependencyInterface&lt;/code&gt;. Both call sites, &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt; and &lt;code&gt;Evaluator&lt;/code&gt;, now use this single helper. The cache tag produced is &lt;code&gt;entity_type_id:id&lt;/code&gt;, which is the default for most entity types per &lt;code&gt;EntityBase::getCacheTagsToInvalidate()&lt;/code&gt;; the code notes this is imperfect for entity types that override that method. A new kernel test &lt;code&gt;ComputedUrlWithQueryStringTest::testHandlesBrokenReference()&lt;/code&gt; verifies that accessing &lt;code&gt;src_with_alternate_widths&lt;/code&gt; on a field item whose file has been deleted returns an empty &lt;code&gt;GeneratedUrl&lt;/code&gt; carrying the deleted file's cache tags, without throwing.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3587587: [META] Review of changes and Conflict resolution</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3587587.md</link>
-      <guid isPermaLink="false">019edf42-f61c-703c-80cb-0caf8e0f508e</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 19 Jun 2026 09:18:35 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical plan&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3587587"&gt;#3587587&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This META issue defines the requirements, user journeys, designs, and implementation plan for adding conflict detection and resolution to the Canvas module. When a Canvas user has unpublished autosave changes on an entity and that entity is updated outside Canvas (via the Drupal admin UI, CLI, config import, or code), Canvas currently has no way to surface or resolve that conflict. The planned feature will flag conflicting entities in the &amp;quot;Review Changes&amp;quot; panel, prevent publishing of conflicted items until the conflict is resolved, and provide a new side-by-side comparison UI where the user can choose to keep either the published version or their autosaved version. The same side-by-side UI will also be available for non-conflicting changes as a general &amp;quot;review before publish&amp;quot; tool. Two foundational child issues have already landed: &lt;a href="https://www.drupal.org/node/3588038"&gt;#3588038&lt;/a&gt; (refactoring the &lt;code&gt;auto-saves/pending&lt;/code&gt; response to wrap entries in a top-level &lt;code&gt;data&lt;/code&gt; key) and &lt;a href="https://www.drupal.org/node/3588546"&gt;#3588546&lt;/a&gt; (adding content entity cache tags to that endpoint).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New HTTP 409 response shape on &lt;code&gt;auto-saves/pending&lt;/code&gt; with top-level &lt;code&gt;data&lt;/code&gt; and &lt;code&gt;errors&lt;/code&gt; keys; new conflict resolution PATCH endpoint; preview endpoint gains a version-selection parameter&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The core challenge is detecting when the entity underlying a Canvas autosave entry has been modified outside Canvas. The plan extends &lt;code&gt;AutoSaveManager&lt;/code&gt; to store an &lt;code&gt;original_hash&lt;/code&gt; at autosave-entry creation time; on subsequent reads the hash is compared against the current entity state to detect drift. Config entities (Content Templates, Code Components, Regions, Patterns) use a hash of all properties except &lt;code&gt;status&lt;/code&gt; and &lt;code&gt;label&lt;/code&gt;; content entities (Canvas Pages) treat any revision-ID change as a conflict.&lt;/p&gt;
-&lt;p&gt;When conflicts are detected, the &lt;code&gt;auto-saves/pending&lt;/code&gt; endpoint returns HTTP 409 with both a &lt;code&gt;data&lt;/code&gt; array (all entries) and a top-level &lt;code&gt;errors&lt;/code&gt; array whose items include a &lt;code&gt;conflict&lt;/code&gt; object carrying &lt;code&gt;conflictId&lt;/code&gt;, &lt;code&gt;status&lt;/code&gt;, and &lt;code&gt;timestamp&lt;/code&gt;. This schema follows JSON:API conventions, a structural change already shipped in &lt;a href="https://www.drupal.org/node/3588038"&gt;#3588038&lt;/a&gt;. The &lt;code&gt;original_hash&lt;/code&gt; value itself is never sent to the client.&lt;/p&gt;
-&lt;p&gt;Conflict resolution will be exposed through a new HTTP PATCH call to the auto-save API supplying a &lt;code&gt;conflictId&lt;/code&gt; and the chosen resolution. Resolving in favour of the autosaved version marks the conflict resolved without discarding the user's work; resolving in favour of the published version removes the autosave entry entirely. The side-by-side visual comparison will reuse the existing Canvas preview endpoint with a new parameter to request either the autosaved or the published rendering. Entities without meaningful visual previews (e.g. global CSS entities) will fall back to a text-based diff using config-export or default-content-export representations.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;mark dodgson&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
-&lt;li&gt;justafish (Acquia)&lt;/li&gt;
-&lt;li&gt;Balint&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;ravi.maniyar.123&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

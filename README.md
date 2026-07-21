@@ -1,12 +1,20 @@
-**TL;DR:** [797 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [822 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_137 summaries · 26 new this week_
+
+- [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
+- [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
+- [#3556101: [11.3.x] Semi-coupled engine not compatible with Drupal 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556101.md)
+
 ### Drupal Core
 
-_563 summaries · 15 new this week_
+_563 summaries · 14 new this week_
 
 - [#3485030: Avoid saving menu links through node form when they do not change](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md)
 - [#3611653: Upsert fails after upgrade from 11.3 to 11.4](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611653.md)
@@ -19,14 +27,6 @@ _105 summaries · 14 new this week_
 - [#3601380: Separate composer and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md)
 - [#3601379: Config-url clobbers the scaffold composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601379.md)
 - [#3609590: Switch to official MCP PHP SDK Client](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md)
-
-### Drupal Canvas
-
-_112 summaries · 1 new this week_
-
-- [#3549885: Prevent deleting Code Components if there are usages in forward revisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549885.md)
-- [#3544213: Harden XB content dependency calculation infrastructure to not cause a PHP...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544213.md)
-- [#3583854: [upstream] Validate LanguageConfigOverrides targeting Canvas config entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3583854.md)
 
 ### Drupal CMS
 
