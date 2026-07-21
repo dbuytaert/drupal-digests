@@ -1,8 +1,24 @@
-**TL;DR:** [822 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [847 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_40 summaries · 23 new this week_
+
+- [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
+- [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
+- [#3526844: [meta] Implement the first real-world site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3526844.md)
+
+### Drupal Core
+
+_565 summaries · 16 new this week_
+
+- [#3101714: Link field display should show plaintext URLs longer than 80 chars](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3101714.md)
+- [#3284817: Adopt vincentlanglet/twig-cs-fixer for Twig coding standards](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3284817.md)
+- [#3485030: Avoid saving menu links through node form when they do not change](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md)
 
 ### Drupal Canvas
 
@@ -12,14 +28,6 @@ _137 summaries · 26 new this week_
 - [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
 - [#3556101: [11.3.x] Semi-coupled engine not compatible with Drupal 11.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556101.md)
 
-### Drupal Core
-
-_563 summaries · 14 new this week_
-
-- [#3485030: Avoid saving menu links through node form when they do not change](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md)
-- [#3611653: Upsert fails after upgrade from 11.3 to 11.4](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611653.md)
-- [#3611853: Correct error deprecation message for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611853.md)
-
 ### Drupal AI
 
 _105 summaries · 14 new this week_
@@ -27,14 +35,6 @@ _105 summaries · 14 new this week_
 - [#3601380: Separate composer and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md)
 - [#3601379: Config-url clobbers the scaffold composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601379.md)
 - [#3609590: Switch to official MCP PHP SDK Client](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md)
-
-### Drupal CMS
-
-_17 summaries · 0 new this week_
-
-- [#3591409: Unable to add components to any Canvas pages in any site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591409.md)
-- [#3483394: Build privacy advanced recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3483394.md)
-- [#3583960: Replace friendlycaptcha with ALTCHA](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3583960.md)
 
 
 ## Rector rules
