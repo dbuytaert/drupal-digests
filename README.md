@@ -1,4 +1,4 @@
-**TL;DR:** [872 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [897 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_65 summaries · 48 new this week_
+_88 summaries · 71 new this week_
 
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
 - [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
@@ -14,15 +14,15 @@ _65 summaries · 48 new this week_
 
 ### Drupal Core
 
-_565 summaries · 15 new this week_
+_566 summaries · 15 new this week_
 
+- [#3605549: Allow install profiles to specify a list of recipes that should be applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605549.md)
 - [#3101714: Link field display should show plaintext URLs longer than 80 chars](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3101714.md)
 - [#3284817: Adopt vincentlanglet/twig-cs-fixer for Twig coding standards](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3284817.md)
-- [#3485030: Avoid saving menu links through node form when they do not change](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md)
 
 ### Drupal Canvas
 
-_137 summaries · 26 new this week_
+_138 summaries · 27 new this week_
 
 - [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
 - [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
@@ -30,7 +30,7 @@ _137 summaries · 26 new this week_
 
 ### Drupal AI
 
-_105 summaries · 10 new this week_
+_105 summaries · 9 new this week_
 
 - [#3601380: Separate composer and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md)
 - [#3601379: Config-url clobbers the scaffold composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601379.md)
