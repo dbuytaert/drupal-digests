@@ -295,6 +295,78 @@ npx canvas upload --css-only
 </description>
     </item>
     <item>
+      <title>#3544517: Support SVG images</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3544517.md</link>
+      <guid isPermaLink="false">019f8675-9c1f-7006-98a5-6ac8f8eeb643</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 20 Jul 2026 23:35:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3544517"&gt;#3544517&lt;/a&gt; · 2 contributors · 4 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Experience Builder (canvas) previously validated image prop URLs by matching file extensions with a hardcoded regex that only permitted PNG, GIF, JPG, JPEG, WEBP, and AVIF. This excluded SVG and any other image format. The fix replaces that approach with the JSON Schema &lt;code&gt;contentMediaType: image/*&lt;/code&gt; annotation, allowing any image MIME type. The same change applies to video props, which previously only allowed MP4. As a side effect, the system now properly maps image string props to the &lt;code&gt;image&lt;/code&gt; field type rather than a plain &lt;code&gt;string&lt;/code&gt; field type, which means image props in generated field-based UX components are backed by an image field with the &lt;code&gt;image_image&lt;/code&gt; widget instead of a plain text field.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; JSON schema definitions &lt;code&gt;image-uri&lt;/code&gt; and &lt;code&gt;stream-wrapper-image-uri&lt;/code&gt; replace extension-regex &lt;code&gt;pattern&lt;/code&gt; with &lt;code&gt;contentMediaType: image/*&lt;/code&gt; and a simplified URL pattern; image and video prop shapes now map to field type &lt;code&gt;image&lt;/code&gt; with widget &lt;code&gt;image_image&lt;/code&gt; instead of &lt;code&gt;string&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old &lt;code&gt;json-schema-definitions://experience_builder.module/image-uri&lt;/code&gt; and &lt;code&gt;stream-wrapper-image-uri&lt;/code&gt; definitions carried &lt;code&gt;pattern&lt;/code&gt; regexes that explicitly enumerated case-insensitive extensions. Those are replaced with &lt;code&gt;contentMediaType: image/*&lt;/code&gt; plus a simplified URL-structure &lt;code&gt;pattern&lt;/code&gt;. The video prop definition similarly moves from an MP4-only extension regex to &lt;code&gt;contentMediaType: video/*&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On the matching side, &lt;code&gt;JsonSchemaFieldInstanceMatcher&lt;/code&gt; previously called &lt;code&gt;buildCaseInsensitiveExtensionRegex()&lt;/code&gt; to synthesise extension-based &lt;code&gt;Regex&lt;/code&gt; constraints for file URI field properties. That method is removed. Instead, a new &lt;code&gt;fileExtensionsToTargetContentMediaType()&lt;/code&gt; helper uses the &lt;code&gt;file.mime_type.guesser.extension&lt;/code&gt; service to map a media type's allowed extensions to their wildcard MIME category (e.g. &lt;code&gt;[&amp;quot;jpg&amp;quot;,&amp;quot;png&amp;quot;,&amp;quot;svg&amp;quot;]&lt;/code&gt; → &lt;code&gt;&amp;quot;image/*&amp;quot;&lt;/code&gt;), and attaches the new &lt;code&gt;UriTargetMediaTypeConstraint&lt;/code&gt; instead.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UriTargetMediaTypeConstraint&lt;/code&gt; is a no-op validation constraint (modelled on Drupal core's &lt;code&gt;FullyValidatable&lt;/code&gt;) whose only role is to carry MIME type semantics on a data definition, enabling the shape-matching logic in &lt;code&gt;mediaLibraryStoragePropShapeAlter&lt;/code&gt; and &lt;code&gt;JsonSchemaStringFormat::computeStorablePropShape()&lt;/code&gt; to recognise image and video URI props and wire them to the &lt;code&gt;image&lt;/code&gt; field type with the &lt;code&gt;image_image&lt;/code&gt; widget.&lt;/p&gt;
+&lt;p&gt;Supporting changes: &lt;code&gt;DataTypeShapeRequirement&lt;/code&gt; and &lt;code&gt;DataTypeShapeRequirements&lt;/code&gt; now implement &lt;code&gt;\IteratorAggregate&lt;/code&gt;, letting &lt;code&gt;JsonSchemaType&lt;/code&gt; spread either type uniformly. &lt;code&gt;StorablePropShape::fieldTypeProp&lt;/code&gt; and &lt;code&gt;CandidateStorablePropShape::fieldTypeProp&lt;/code&gt; now accept &lt;code&gt;ReferenceFieldTypePropExpression&lt;/code&gt; in addition to &lt;code&gt;FieldTypePropExpression|FieldTypeObjectPropsExpression&lt;/code&gt;. &lt;code&gt;JsonSchemaType::patternToPcre()&lt;/code&gt; extracts the pattern-to-PCRE conversion that was previously inlined. The ordering of &lt;code&gt;format&lt;/code&gt; vs &lt;code&gt;pattern&lt;/code&gt; cases in &lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt; was corrected so that &lt;code&gt;format&lt;/code&gt; takes precedence when both are present.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;SDC prop schemas for image URLs must replace the old extension regex with &lt;code&gt;contentMediaType&lt;/code&gt; and a URL-structure pattern:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;# Before
+src:
+  type: string
+  format: uri-reference
+  pattern: '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$'
+
+# After — or use $ref: json-schema-definitions://experience_builder.module/image-uri
+src:
+  type: string
+  format: uri-reference
+  contentMediaType: image/*
+  pattern: '^(/|https?://)?(?!.*\://)[^\s]+$'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Stream-wrapper image URIs:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;# Before
+src:
+  type: string
+  format: uri
+  pattern: '^(?!https?://)[\w\-]+://.*\.([Pp][Nn][Gg]|...)(\?.*)?(#.*)?$'
+
+# After — or use $ref: json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+src:
+  type: string
+  format: uri
+  contentMediaType: image/*
+  pattern: '^(?!https?://)[\w\-]+://'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Video URL props follow the same pattern with &lt;code&gt;contentMediaType: video/*&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 3, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;wim leers pointed out in the issue thread that the regex had already been removed in commit &lt;code&gt;9048ab8&lt;/code&gt; as part of a broader refactor (with a linked change record at drupal.org/node/3542579), and asked larowlan to retest against HEAD. larowlan confirmed the issue was resolved after doing so.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3549885: Prevent deleting Code Components if there are usages in forward revisions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549885.md</link>
       <guid isPermaLink="false">019f70ee-52a4-71e6-a470-de982572d710</guid>
@@ -849,42 +921,6 @@ ConfigTranslationHooks::TRANSLATABLE_ENTITY_TYPE_IDS
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;barakgalili filed the issue with a clear root-cause diagnosis and a working reproduction. wim leers noted that the initial proposed fix (replacing the pattern with &lt;code&gt;/.*\/s&lt;/code&gt;) would lose the semantic meaning the pattern was meant to convey, so a different approach was needed. barakgalili returned with a revised patch using &lt;code&gt;/[\\s\\S]*/&lt;/code&gt; and added a kernel test. The landed fix went further still, keeping the original pattern intact and instead introducing &lt;code&gt;JitSafeRegexValidator&lt;/code&gt; to skip evaluation entirely.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591760: Canvas should mark multi-line string props on SDCs and code components as translatable</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591760.md</link>
-      <guid isPermaLink="false">019f23f4-6913-718c-ac3c-52f21c770b10</guid>
-      <pubDate>Thu, 02 Jul 2026 14:05:02 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591760"&gt;#3591760&lt;/a&gt; · 2 contributors · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the Canvas module, multi-line string props (&lt;code&gt;type: string&lt;/code&gt; with &lt;code&gt;pattern: (.|\r?\n)*&lt;/code&gt;) on SDCs and code components were not being offered for translation in either the config translation UI or TMGMT. Additionally, the config schema generator and TMGMT extractor were using separate, independently maintained rules to decide which prop shapes are translatable, meaning they could silently diverge and produce mismatches where TMGMT would offer an input that the config schema would then reject on save (or the reverse). Both issues are now resolved.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix extracts the inline translatability check from &lt;code&gt;JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator&lt;/code&gt; into a new &lt;code&gt;@internal public static isTranslatableShape(array $prop_shape): bool&lt;/code&gt; method on the same class. &lt;code&gt;ComponentInputsTranslatablesExtractor&lt;/code&gt; (the TMGMT side) now calls &lt;code&gt;isTranslatableShape()&lt;/code&gt; instead of carrying its own copy of the logic, making the two subsystems share a single source of truth.&lt;/p&gt;
-&lt;p&gt;The extracted method also fixes two correctness gaps in the original inline check. First, SDC appends &lt;code&gt;object&lt;/code&gt; to every declared &lt;code&gt;type&lt;/code&gt; value, producing an array like &lt;code&gt;['string', 'object']&lt;/code&gt; instead of the scalar &lt;code&gt;'string'&lt;/code&gt; the old code expected; &lt;code&gt;isTranslatableShape()&lt;/code&gt; normalizes this with &lt;code&gt;((array) $prop_shape['type'])[0]&lt;/code&gt; before comparing. Second, the old array-peeking code asserted the presence of an &lt;code&gt;items&lt;/code&gt; key only after checking &lt;code&gt;type === 'array'&lt;/code&gt;, which could miss raw SDC metadata that has &lt;code&gt;items&lt;/code&gt; but a compound type; the new code simply checks &lt;code&gt;array_key_exists('items', $prop_shape)&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ComponentInputsTranslatablesExtractor&lt;/code&gt; was also refactored to count non-computed stored properties on the field item via &lt;code&gt;FieldItemDataDefinitionInterface::getPropertyDefinitions()&lt;/code&gt; filtered by &lt;code&gt;!isComputed()&lt;/code&gt;, replacing a looser approach that compared against &lt;code&gt;FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED&lt;/code&gt;. This gives an accurate stored-property count to determine whether a single-property field item collapses to a scalar (and the correct config schema type to emit) regardless of cardinality.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;canvas_test_translation&lt;/code&gt; test module adds an &lt;code&gt;untranslatable-prop-shapes&lt;/code&gt; SDC component with &lt;code&gt;date&lt;/code&gt;, &lt;code&gt;email&lt;/code&gt;, &lt;code&gt;integer&lt;/code&gt; and &lt;code&gt;boolean&lt;/code&gt; props to lock in that those shapes are never offered for translation, and a new unit test class &lt;code&gt;JsonSchemaPropsComponentInstanceInputsConfigSchemaGeneratorTest&lt;/code&gt; covers the full range of translatable and non-translatable shapes.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 1, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

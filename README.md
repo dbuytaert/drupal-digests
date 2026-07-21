@@ -1,4 +1,4 @@
-**TL;DR:** [922 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [947 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -22,7 +22,7 @@ _88 summaries · 71 new this week_
 
 ### Drupal Canvas
 
-_162 summaries · 51 new this week_
+_187 summaries · 76 new this week_
 
 - [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
 - [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
