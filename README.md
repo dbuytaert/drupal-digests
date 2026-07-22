@@ -1,8 +1,16 @@
-**TL;DR:** [883 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [884 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_226 summaries · 115 new this week_
+
+- [#3591667: Add `canvas:doctor` Drupal CLI command to check health of Canvas' data:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591667.md)
+- [#3591674: Explicitly support `comment` as a referenceable content entity type (stop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591674.md)
+- [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
 
 ### Drupal AI
 
@@ -19,14 +27,6 @@ _457 summaries · 16 new this week_
 - [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
 - [#3593123: Add BatchStorageInterface::getId()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593123.md)
 - [#2880374: Experimental modules and themes should not have warnings after being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2880374.md)
-
-### Drupal Canvas
-
-_225 summaries · 114 new this week_
-
-- [#3591674: Explicitly support `comment` as a referenceable content entity type (stop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591674.md)
-- [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
-- [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
 
 ### Drupal CMS
 

@@ -5,6 +5,49 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591667: Add `canvas:doctor` Drupal CLI command to check health of Canvas' data: validate every Canvas (content|config) entity + translation, validate every non-Canvas content entity component tree field revision+translation, and more</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591667.md</link>
+      <guid isPermaLink="false">019f8b88-6a10-70d9-87d3-89cec2d7b75f</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 22 Jul 2026 17:48:45 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591667"&gt;#3591667&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas module now ships a &lt;code&gt;canvas:doctor&lt;/code&gt; command (requiring Drupal 11.4's &lt;code&gt;dr&lt;/code&gt; CLI) that validates all Canvas data and reports integrity problems. It runs nine distinct health checks: four system checks (Canvas update paths executed, config entities that escaped the update path, whether all installed extensions are at tagged releases, and whether every component source plugin supports schema evolution) and five data checks (Canvas config entities, default content revisions, past revisions, forward/draft revisions, and auto-save snapshots). Each check reports a count of healthy vs. failing items, a duration, and optional per-violation details with a prescription for remediation. The command can output a human-readable table or structured JSON. Validation also runs incrementally via cron on sites that never use the CLI, so health records stay warm without requiring manual intervention.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;canvas_health_records&lt;/code&gt; table is created lazily on first write; no update hook is required.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;canvas:doctor&lt;/code&gt; CLI command (requires Drupal 11.4+) with &lt;code&gt;--checks&lt;/code&gt;, &lt;code&gt;--all-checks&lt;/code&gt;, &lt;code&gt;--no-cache&lt;/code&gt;, &lt;code&gt;--details&lt;/code&gt;, and &lt;code&gt;--format=json&lt;/code&gt; options for auditing Canvas data integrity.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The implementation is organized into five &lt;code&gt;@internal&lt;/code&gt; classes under &lt;code&gt;src/Health/&lt;/code&gt; plus the command itself in &lt;code&gt;src/Command/DoctorCommand.php&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;HealthCheck&lt;/code&gt; is a string-backed PHP enum with nine cases split into system checks (run once per invocation, never cached) and data checks (streamed as generators, results persisted). The &lt;code&gt;isSystemCheck()&lt;/code&gt; and &lt;code&gt;findingsAreRisks()&lt;/code&gt; methods are the single source of truth for those splits: adding a new case without updating both exhaustive &lt;code&gt;match&lt;/code&gt; expressions causes a PHPStan failure.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Doctor&lt;/code&gt; is the validation engine. &lt;code&gt;runDataChecks()&lt;/code&gt; yields &lt;code&gt;CheckItem&lt;/code&gt; structs via generators, which lets &lt;code&gt;DoctorCommand&lt;/code&gt; display a live progress bar without loading all entities into memory first. &lt;code&gt;runCronWindow()&lt;/code&gt; accepts an offset and limit, enabling &lt;code&gt;HealthHooks::cron()&lt;/code&gt; to advance a cursor stored in Drupal state across separate cron runs. Each data check's freshness signal is computed at the moment Doctor visits the item, not when &lt;code&gt;Inventory&lt;/code&gt; listed it, so paginated results from a previous cron run do not carry stale freshness data.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;HealthRecords&lt;/code&gt; persists results in the &lt;code&gt;canvas_health_records&lt;/code&gt; database table (keyed on &lt;code&gt;data_key&lt;/code&gt; + &lt;code&gt;check&lt;/code&gt;). The table is created lazily on first write rather than via a formal install hook. Freshness is determined by matching two fingerprints: an environment fingerprint (Canvas schema version, count of applied and pending post-updates, xxh64 hash of all installed extension versions) computed by &lt;code&gt;Environment&lt;/code&gt;, and a data fingerprint per item (cache-tag checksum for config and content entities, a precomputed data hash for auto-save snapshots). If any installed extension reports no release version (&lt;code&gt;dev&lt;/code&gt;), &lt;code&gt;HealthRecords::isFresh()&lt;/code&gt; unconditionally returns &lt;code&gt;false&lt;/code&gt;, disabling all result reuse.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UpdatesEscapedConfig&lt;/code&gt; detection uses reflection to enumerate &lt;code&gt;CanvasConfigUpdater::needs*()&lt;/code&gt; methods, filters to those whose first required parameter type-matches the entity being inspected, and calls each. Deprecation emissions from those methods are suppressed during the audit by temporarily calling &lt;code&gt;setDeprecationsEnabled(FALSE)&lt;/code&gt;. The &lt;code&gt;DoctorCommand&lt;/code&gt; itself is thin: it delegates all logic to &lt;code&gt;Doctor&lt;/code&gt; so the same validation can power the planned web UI (&lt;a href="https://www.drupal.org/node/3588907"&gt;#3588907&lt;/a&gt; via Drupal Batch API).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591674: Explicitly support `comment` as a referenceable content entity type (stop omitting it from the content entity types endpoint)</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591674.md</link>
       <guid isPermaLink="false">019f8910-8dfb-76cd-b404-9d4b7d92fe94</guid>
@@ -860,39 +903,6 @@ dataDependencies:
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591782: Content template editor preview shows a stale snapshot instead of live edits</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591782.md</link>
-      <guid isPermaLink="false">019f436e-79f2-750c-ada4-a139cb60aafc</guid>
-      <pubDate>Wed, 08 Jul 2026 18:48:06 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591782"&gt;#3591782&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the Canvas module's content template editor, triggering a full-page preview and then returning to the editor left the editor preview frame frozen on the snapshot captured during that preview. Any subsequent edits (such as linking a component prop to an entity field or typing in a text field) were applied to the model but were not visible in the preview until an unrelated action forced a full re-render. This made it appear as though edits had no effect. The fix ensures the stale snapshot is cleared as soon as the content template editor establishes its own live content, so the preview frame reflects current edits immediately.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The preview HTML selector &lt;code&gt;selectPreviewHtml&lt;/code&gt; evaluates &lt;code&gt;snapshotHTML || html&lt;/code&gt;: a non-empty &lt;code&gt;snapshotHTML&lt;/code&gt; takes precedence over the live editor &lt;code&gt;html&lt;/code&gt;. The snapshot is populated when the user opens the full-page preview and was only cleared on the &lt;code&gt;canvas_page&lt;/code&gt; layout path (fixed earlier in &lt;a href="https://www.drupal.org/node/3591684"&gt;#3591684&lt;/a&gt;) and for language previews on unmount. The content template editor's own two data-loading paths, &lt;code&gt;getContentTemplateLayout&lt;/code&gt; in &lt;code&gt;componentAndLayoutApi&lt;/code&gt; and the component-update handler in &lt;code&gt;previewApi&lt;/code&gt;, never dispatched &lt;code&gt;setSnapshotHTML('')&lt;/code&gt;, so a leftover snapshot permanently masked all subsequent live updates for a plain content template preview, and a late-arriving preview response could re-populate the snapshot even after an unmount cleanup, causing intermittent failures in the &lt;code&gt;Templates - General › Add templates to page&lt;/code&gt; Playwright test.&lt;/p&gt;
-&lt;p&gt;The fix adds &lt;code&gt;dispatch(setSnapshotHTML(''))&lt;/code&gt; immediately before &lt;code&gt;dispatch(setHtml(html))&lt;/code&gt; in both affected RTK Query handlers: in the &lt;code&gt;onQueryStarted&lt;/code&gt; success path of the content template layout endpoint in &lt;code&gt;componentAndLayoutApi&lt;/code&gt;, and in the equivalent component-update path in &lt;code&gt;previewApi&lt;/code&gt;. A new Playwright test reproduces the exact failure sequence (open template, preview, exit preview, link a prop to the entity Title field, assert the preview &lt;code&gt;&amp;lt;h1&amp;gt;&lt;/code&gt; shows the live resolved value) to prevent regression.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
