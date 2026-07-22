@@ -1,4 +1,4 @@
-**TL;DR:** [972 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [995 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_568 summaries · 17 new this week_
+_571 summaries · 20 new this week_
 
-- [#3586221: Remove the Stable 9 theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586221.md)
-- [#3605549: Allow install profiles to specify a list of recipes that should be applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605549.md)
-- [#3101714: Link field display should show plaintext URLs longer than 80 chars](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3101714.md)
+- [#3593466: View mode form crashes if there are no bundles](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593466.md)
+- [#3593123: Add BatchStorageInterface::getId()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593123.md)
+- [#2880374: Experimental modules and themes should not have warnings after being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2880374.md)
+
+### Drupal AI
+
+_112 summaries · 16 new this week_
+
+- [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
+- [#3584903: Migrate the inner workings of Surge into AI Best Practices](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3584903.md)
+- [#3582953: Document how to run evals in various scenarios](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582953.md)
 
 ### Drupal CMS
 
@@ -22,19 +30,11 @@ _88 summaries · 71 new this week_
 
 ### Drupal Canvas
 
-_211 summaries · 100 new this week_
+_224 summaries · 113 new this week_
 
 - [#3591130: Deleted (code) components can still be referenced by folders: dependency...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591130.md)
 - [#3576837: Manage the global layout (aka regions) within Canvas Workbench](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md)
 - [#3540578: Adding components to folders with drag & drop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3540578.md)
-
-### Drupal AI
-
-_105 summaries · 9 new this week_
-
-- [#3601380: Separate composer and recipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md)
-- [#3601379: Config-url clobbers the scaffold composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601379.md)
-- [#3609590: Switch to official MCP PHP SDK Client](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3609590.md)
 
 
 ## Rector rules

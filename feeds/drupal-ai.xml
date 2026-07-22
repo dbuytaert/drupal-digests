@@ -5,6 +5,179 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to git.drupalcode.org in the web container</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md</link>
+      <guid isPermaLink="false">019f885b-ee83-726a-bad6-d8e9e530b61d</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 21 Jul 2026 16:35:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601384"&gt;#3601384&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;one_line_installer&lt;/code&gt; project gains a new opt-in extra called &lt;code&gt;glab&lt;/code&gt; that installs the GitLab CLI (pinned at v1.64.0) into the DDEV web container and authenticates it to &lt;code&gt;git.drupalcode.org&lt;/code&gt; with a Personal Access Token you paste during setup. Once selected, the tool prompts you to create an &lt;code&gt;api&lt;/code&gt;-scoped PAT at drupal.org, stores it in &lt;code&gt;.ddev/.env&lt;/code&gt; (chmod 600, gitignored), bakes &lt;code&gt;glab&lt;/code&gt; into the web image so it survives rebuilds, and writes a DDEV post-start hook that re-authenticates on every container start. After a single &lt;code&gt;ddev restart&lt;/code&gt;, &lt;code&gt;glab mr list&lt;/code&gt;, HTTPS &lt;code&gt;git clone&lt;/code&gt;, and &lt;code&gt;git push&lt;/code&gt; to &lt;code&gt;git.drupalcode.org&lt;/code&gt; all work from inside the container. Because the extra requires an interactive token paste, it is never silently installed by &lt;code&gt;--yolo&lt;/code&gt; or unattended config-driven runs.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;glab&lt;/code&gt; installer extra: select it during &lt;code&gt;drupalaibp&lt;/code&gt; setup to install the GitLab CLI (glab v1.64.0) in the DDEV web container and authenticate it to git.drupalcode.org with a PAT.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The extra lives in &lt;code&gt;src/lib/extras/extra_glab.sh&lt;/code&gt; and follows the project's &lt;code&gt;extra_&amp;lt;id&amp;gt;_meta&lt;/code&gt; + &lt;code&gt;extra_&amp;lt;id&amp;gt;&lt;/code&gt; function-pair convention, so it is auto-discovered by &lt;code&gt;_extras_discover&lt;/code&gt; and appears in the installer's &amp;quot;Any extra Drupal installations?&amp;quot; multi-select without any other file needing to change.&lt;/p&gt;
+&lt;p&gt;Several sharp edges are addressed by design. The token is stored as &lt;code&gt;DRUPALCODE_GITLAB_TOKEN&lt;/code&gt; rather than &lt;code&gt;GITLAB_TOKEN&lt;/code&gt;: glab treats &lt;code&gt;GITLAB_TOKEN&lt;/code&gt; as a global override applied to every host, which causes 401s against gitlab.com and makes &lt;code&gt;glab auth status&lt;/code&gt; exit non-zero even when drupalcode auth works. Feeding the token through &lt;code&gt;glab auth login --stdin&lt;/code&gt; instead writes it into glab's own per-host config, scoped to &lt;code&gt;git.drupalcode.org&lt;/code&gt; alone. The extra also strips any pre-existing &lt;code&gt;GITLAB_TOKEN&lt;/code&gt; or &lt;code&gt;DRUPALCODE_GITLAB_TOKEN&lt;/code&gt; lines from &lt;code&gt;.ddev/.env&lt;/code&gt; on re-run to undo contamination from earlier versions.&lt;/p&gt;
+&lt;p&gt;The DDEV post-start hook in &lt;code&gt;.ddev/config.glab.yaml&lt;/code&gt; additionally runs &lt;code&gt;git config --global 'credential.https://git.drupalcode.org.helper' '!glab auth git-credential'&lt;/code&gt;, because &lt;code&gt;glab auth login --stdin&lt;/code&gt; does not wire the credential helper automatically (only the interactive prompt does). DDEV merges post-start hooks across &lt;code&gt;config.*.yaml&lt;/code&gt; files, so the hook coexists cleanly with the coding-agent add-ons' own post-start hooks.&lt;/p&gt;
+&lt;p&gt;Verification uses &lt;code&gt;ddev exec glab api user&lt;/code&gt; rather than &lt;code&gt;glab auth status&lt;/code&gt;, because &lt;code&gt;glab auth status&lt;/code&gt; always probes gitlab.com and reports failure even when &lt;code&gt;git.drupalcode.org&lt;/code&gt; auth is fully functional. The extra's meta line has no &lt;code&gt;|default&lt;/code&gt; suffix, so it is never pre-ticked or silently installed by &lt;code&gt;--yolo&lt;/code&gt;. &lt;code&gt;_glab_read_token&lt;/code&gt; is factored out into its own function so the bats suite can stub it instead of feeding keystrokes, following the project's &amp;quot;prompts are functions&amp;quot; testing rule.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3584903: Migrate the inner workings of Surge into AI Best Practices</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3584903.md</link>
+      <guid isPermaLink="false">019f8856-41c0-7120-bcfb-be8ffad4bff3</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 20 Jul 2026 20:37:47 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 35 files, +5191/−1 · php +5154 · md +31 · template +6/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3584903"&gt;#3584903&lt;/a&gt; · 6 contributors · 23 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Installing &lt;code&gt;drupal/ai_best_practices&lt;/code&gt; now automatically sets up your Drupal project's AI agent context. The Composer plugin creates &lt;code&gt;AGENTS.md&lt;/code&gt;, &lt;code&gt;CLAUDE.md&lt;/code&gt;, &lt;code&gt;GEMINI.md&lt;/code&gt;, and &lt;code&gt;ai_best_practices.yaml&lt;/code&gt; at your project root, discovers Agent Skills from installed Drupal modules and Composer packages, and copies them into &lt;code&gt;.agents/skills/&lt;/code&gt;. Two commands are available after install: &lt;code&gt;composer drupal-ai skills-sync&lt;/code&gt; refreshes skills and &lt;code&gt;composer drupal-ai skills-list&lt;/code&gt; shows what would be installed. Running &lt;code&gt;composer remove drupal/ai_best_practices&lt;/code&gt; reverses the &lt;code&gt;composer.json&lt;/code&gt; changes and removes &lt;code&gt;ai_best_practices.yaml&lt;/code&gt;. This migrates the orchestration engine from the now-sunsetted Surge project directly into this module so feedback and iteration can happen in one place.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New Composer plugin providing &lt;code&gt;composer drupal-ai skills-sync&lt;/code&gt; and &lt;code&gt;composer drupal-ai skills-list&lt;/code&gt; commands; new &lt;code&gt;AgentsMdSync&lt;/code&gt;, &lt;code&gt;SkillsScanner&lt;/code&gt;, &lt;code&gt;SkillsAggregator&lt;/code&gt;, &lt;code&gt;SkillValidator&lt;/code&gt;, &lt;code&gt;PathSecurity&lt;/code&gt;, and &lt;code&gt;ProjectRootResolver&lt;/code&gt; classes in the &lt;code&gt;Drupal\AiBestPractices&lt;/code&gt; namespace.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The MR adds a Composer plugin (&lt;code&gt;AiBestPracticesPlugin&lt;/code&gt;) implementing &lt;code&gt;PluginInterface&lt;/code&gt; and &lt;code&gt;EventSubscriberInterface&lt;/code&gt;. To avoid running before autoload is dumped, it uses a two-phase deferred-sync pattern: &lt;code&gt;ComposerProjectSynchronizer::markSyncPendingFromPackageEvent()&lt;/code&gt; writes a marker at &lt;code&gt;vendor/.ai_bp_sync_pending&lt;/code&gt; during &lt;code&gt;POST_PACKAGE_INSTALL&lt;/code&gt; / &lt;code&gt;POST_PACKAGE_UPDATE&lt;/code&gt;, and &lt;code&gt;runDeferredSyncIfPending()&lt;/code&gt; acts on it in the later &lt;code&gt;post-install-cmd&lt;/code&gt; / &lt;code&gt;post-update-cmd&lt;/code&gt; phase. The sync is skipped entirely when the &lt;code&gt;AI_BEST_PRACTICES_SKIP_PACKAGE_SYNC&lt;/code&gt; or &lt;code&gt;AI_BEST_PRACTICES_SKIP_COMPOSER_MUTATION&lt;/code&gt; environment variables are set.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AgentsMdSync&lt;/code&gt; manages a region in &lt;code&gt;AGENTS.md&lt;/code&gt; bounded by &lt;code&gt;&amp;lt;!-- ai-best-practices:start --&amp;gt;&lt;/code&gt; and &lt;code&gt;&amp;lt;!-- ai-best-practices:end --&amp;gt;&lt;/code&gt; HTML comment markers. If the file does not yet exist, the full template from &lt;code&gt;.agents/AGENTS.md.template&lt;/code&gt; is written; if it exists without markers, the managed block is prepended; if it exists with markers, only the inner region is replaced (idempotent: returns &lt;code&gt;null&lt;/code&gt; and skips the write when the content is unchanged). &lt;code&gt;AgentRedirectFiles&lt;/code&gt; copies &lt;code&gt;CLAUDE.md&lt;/code&gt; and &lt;code&gt;GEMINI.md&lt;/code&gt; from the package's &lt;code&gt;.agents/&lt;/code&gt; directory to the project root only when those files are absent, printing a Composer warning if they already exist.&lt;/p&gt;
+&lt;p&gt;The skills subsystem (&lt;code&gt;SkillsScanner&lt;/code&gt;, &lt;code&gt;SkillsAggregator&lt;/code&gt;, &lt;code&gt;SkillValidator&lt;/code&gt;) discovers skills from three priority tiers: project-level (&lt;code&gt;.agents/skills/&lt;/code&gt;, &lt;code&gt;.claude/skills/&lt;/code&gt;, &lt;code&gt;skills/&lt;/code&gt;), Drupal modules under &lt;code&gt;modules/*&lt;/code&gt; or &lt;code&gt;web/modules/*&lt;/code&gt;, and Composer packages under &lt;code&gt;vendor/*&lt;/code&gt;. Each skill directory is validated for a &lt;code&gt;SKILL.md&lt;/code&gt; file with valid YAML frontmatter per the Agent Skills spec before being copied to the configured output directory (default &lt;code&gt;.agents/skills/&lt;/code&gt;). The &lt;code&gt;SkillsListCommand&lt;/code&gt; supports both &lt;code&gt;table&lt;/code&gt; and &lt;code&gt;xml&lt;/code&gt; output formats; the XML path is consumed by file-based AI agents that cannot call tools directly.&lt;/p&gt;
+&lt;p&gt;On &lt;code&gt;composer remove&lt;/code&gt;, &lt;code&gt;ComposerConsumerRollback::stripPluginFromComposerData()&lt;/code&gt; removes the &lt;code&gt;drupal-ai&lt;/code&gt; script key (and the legacy &lt;code&gt;abp&lt;/code&gt; key), the package's &lt;code&gt;config.allow-plugins&lt;/code&gt; entry, and prunes now-empty &lt;code&gt;scripts&lt;/code&gt;/&lt;code&gt;config&lt;/code&gt; objects from &lt;code&gt;composer.json&lt;/code&gt;; &lt;code&gt;ai_best_practices.yaml&lt;/code&gt; is deleted separately. A known open issue noted during review: module-contributed skills are correctly copied to &lt;code&gt;.agents/skills/&lt;/code&gt; but are not listed in the &lt;code&gt;AGENTS.md&lt;/code&gt; managed region, so agents reading that file will not discover them.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No existing code needs updating; this is all new. To add the plugin to an existing project:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;composer config allow-plugins.drupal/ai_best_practices true
+composer require --dev drupal/ai_best_practices
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After install, these files appear at your project root and are safe to commit:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;.agents/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+ai_best_practices.yaml
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;drupal-ai&lt;/code&gt; script is also registered in your &lt;code&gt;composer.json&lt;/code&gt; automatically. To refresh skills after adding or updating modules:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;composer drupal-ai skills-sync
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To remove everything the plugin added:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;composer remove drupal/ai_best_practices
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 15, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;webchick&lt;/li&gt;
+&lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
+&lt;li&gt;trebormc (Menetray)&lt;/li&gt;
+&lt;li&gt;zorz (Point Blank)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;webchick tested MR 17 against a fresh Drupal CMS install and filed detailed feedback: the original Composer script name &lt;code&gt;abp&lt;/code&gt; was opaque, the presence of environment templates for ddev, lando, and docker-compose pushed the project toward multi-environment support before the team had decided on a single recommended environment, and the install instructions in README assumed an existing site rather than a new one. ronaldtebrake renamed the script to &lt;code&gt;drupal-ai&lt;/code&gt;, stripped the multi-environment AGENTS.md template generation from the MR to keep the scope focused, and opened a follow-up issue for the new-site install flow. Separately, zorz tested on a fresh DDEV install and identified a concrete bug: module-contributed skills are correctly copied to &lt;code&gt;.agents/skills/&lt;/code&gt; but are not enumerated in the &lt;code&gt;AGENTS.md&lt;/code&gt; managed region, meaning agents reading that file would not learn a module had contributed a skill. ronaldtebrake acknowledged it as a bug to address as a follow-up after the MR lands.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3582953: Document how to run evals in various scenarios</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582953.md</link>
+      <guid isPermaLink="false">019f8857-e20e-70cb-9f15-15bcd9b27e32</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 20 Jul 2026 20:37:28 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +633/−0 · py +491 · md +140 · gitignore +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3582953"&gt;#3582953&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_best_practices&lt;/code&gt; project now ships a new &lt;code&gt;evals/compare.py&lt;/code&gt; script and expanded &lt;code&gt;CONTRIBUTING.md&lt;/code&gt; documentation that let contributors measure whether adding or editing a guidance skill actually changes Claude's output in the desired direction. Before this, there was no automated way to distinguish a skill that genuinely improves model behavior from one that merely adds text. Contributors submitting new or modified skills are now expected to include comparison output in their merge request description.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;evals/compare.py&lt;/code&gt; script for A/B comparison of skill effectiveness, with &lt;code&gt;--no-baseline&lt;/code&gt;, &lt;code&gt;--baseline&lt;/code&gt;, &lt;code&gt;--runs&lt;/code&gt;, &lt;code&gt;--model&lt;/code&gt;, &lt;code&gt;--output-dir&lt;/code&gt;, and &lt;code&gt;--dry-run&lt;/code&gt; flags.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;evals/compare.py&lt;/code&gt; supports two modes, controlled by flags. The default mode calls &lt;code&gt;git show HEAD:skills/...&lt;/code&gt; to retrieve the last committed skill version as a baseline and compares it against the working copy; &lt;code&gt;--baseline /path/to/old.md&lt;/code&gt; allows an explicit file instead. The &lt;code&gt;--no-baseline&lt;/code&gt; flag substitutes a no-skill prompt for the baseline, measuring whether the skill adds value at all over the raw model.&lt;/p&gt;
+&lt;p&gt;Both configurations call &lt;code&gt;claude -p&lt;/code&gt; with identical flags (&lt;code&gt;--no-session-persistence&lt;/code&gt;, &lt;code&gt;--permission-mode auto&lt;/code&gt;, &lt;code&gt;--output-format json&lt;/code&gt;). The only variable between configs is whether skill content is prepended to the prompt. Grading is fully deterministic: &lt;code&gt;must_contain_any&lt;/code&gt; and &lt;code&gt;must_not_contain&lt;/code&gt; string checks on the lowercased response, plus optional &lt;code&gt;php -l&lt;/code&gt; lint on extracted PHP code blocks via &lt;code&gt;check_php_lint&lt;/code&gt;. There is no LLM judge. For isolation, &lt;code&gt;~/.claude/CLAUDE.md&lt;/code&gt; is moved aside during the run and restored afterward so user-level plugins and configuration do not contaminate either config (&lt;code&gt;--no-isolate&lt;/code&gt; skips this). Pass rates, token counts, and cost are aggregated across runs and saved as &lt;code&gt;comparison-{timestamp}.json&lt;/code&gt; in the skill's eval directory; these files are excluded from git via a new &lt;code&gt;.gitignore&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CONTRIBUTING.md&lt;/code&gt; gains a detailed A/B comparison section covering both editing and new-skill workflows, how to read the per-case delta table, and a six-step walkthrough for writing an &lt;code&gt;evals.json&lt;/code&gt; from scratch (directory layout, &lt;code&gt;static-checks.json&lt;/code&gt;, behavioral case structure, &lt;code&gt;README.md&lt;/code&gt;, and verification commands). &lt;code&gt;evals/README.md&lt;/code&gt; also gets a short A/B synopsis linking to the full guide.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;zorz (Point Blank)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;webchick opened the issue and shortly after unassigned herself, crediting zorz for the implementation approach. zorz opened MR !2 with the complete &lt;code&gt;compare.py&lt;/code&gt; and documentation. After reviewing, webchick spun off several follow-on issues for real-world eval coverage (&lt;a href="https://www.drupal.org/node/3583192"&gt;#3583192&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3583191"&gt;#3583191&lt;/a&gt;) and provider-agnostic runner exploration (&lt;a href="https://www.drupal.org/node/3583202"&gt;#3583202&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3583203"&gt;#3583203&lt;/a&gt;), then merged the MR as a foundation to build on. alex ua contributed a substantive Scenario 3 workflow directly in the comments, detailing how a live expert correction becomes an &lt;code&gt;evals.json&lt;/code&gt; regression case via &lt;code&gt;must_contain_any&lt;/code&gt; and &lt;code&gt;must_not_contain&lt;/code&gt; entries. zorz confirmed this mapped cleanly to &lt;code&gt;compare.py&lt;/code&gt;'s existing design and planned to wire it in after the merge.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3581836: Figure out "information architecture" for this project</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3581836.md</link>
+      <guid isPermaLink="false">019f8859-f93f-7471-a1c3-051d88b84884</guid>
+      <pubDate>Mon, 20 Jul 2026 20:37:18 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3581836"&gt;#3581836&lt;/a&gt; · 4 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_best_practices&lt;/code&gt; project (a Composer plugin that copies AI guidance files into Drupal projects) established its canonical information architecture for skill files. Skills live under &lt;code&gt;skills/&lt;/code&gt;, each in its own subdirectory named with a &lt;code&gt;drupal-&lt;/code&gt; prefix in kebab-case (for example &lt;code&gt;skills/drupal-automated-testing/&lt;/code&gt;), with a &lt;code&gt;SKILL.md&lt;/code&gt; file as the required entry point. Every skill must have a matching &lt;code&gt;evals/&amp;lt;skill-name&amp;gt;/&lt;/code&gt; directory containing static structural checks and behavioral test cases. The &lt;code&gt;AGENTS.md&lt;/code&gt; index that consumer projects receive is defined in &lt;code&gt;.agents/AGENTS.md.template&lt;/code&gt; and merged into project roots by the Composer plugin. These conventions govern all current and future skill contributions to the project.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The architecture aligns with the &lt;a href="https://agentskills.io/specification"&gt;Agent Skills specification&lt;/a&gt;. Each &lt;code&gt;SKILL.md&lt;/code&gt; requires only &lt;code&gt;name&lt;/code&gt; (must match the directory name) and &lt;code&gt;description&lt;/code&gt; frontmatter; the proposal to add Drupal-specific keys such as &lt;code&gt;status&lt;/code&gt;, &lt;code&gt;drupal-version&lt;/code&gt;, and &lt;code&gt;last-reviewed&lt;/code&gt; was explicitly rejected. The &lt;code&gt;description&lt;/code&gt; field serves the &amp;quot;when to use&amp;quot; cue that agents use to decide whether to load a skill for a given task.&lt;/p&gt;
+&lt;p&gt;Skill directory naming follows the pattern &lt;code&gt;&amp;lt;domain&amp;gt;-&amp;lt;task-or-topic&amp;gt;&lt;/code&gt; in kebab-case. All skills in this repo carry the &lt;code&gt;drupal-&lt;/code&gt; domain prefix to avoid collision with skills from other packages. The gerund-first naming convention originally proposed was relaxed: the final rule is plain-English kebab-case, not a required gerund prefix.&lt;/p&gt;
+&lt;p&gt;Each skill's &lt;code&gt;evals/&amp;lt;name&amp;gt;/&lt;/code&gt; directory contains &lt;code&gt;static-checks.json&lt;/code&gt; (structural assertions run in CI with no API calls, using check types &lt;code&gt;file_exists&lt;/code&gt;, &lt;code&gt;agent_skill_frontmatter&lt;/code&gt;, &lt;code&gt;contains&lt;/code&gt;, &lt;code&gt;order&lt;/code&gt;, &lt;code&gt;max_lines&lt;/code&gt;), &lt;code&gt;evals.json&lt;/code&gt; (behavioral prompt/assertion pairs that require a live AI CLI), and &lt;code&gt;README.md&lt;/code&gt;. The &lt;code&gt;compare.py&lt;/code&gt; script supports A/B testing of skill edits across multiple AI providers. Skills are auto-discovered from the &lt;code&gt;skills/&lt;/code&gt; directory tree; no manual registration in &lt;code&gt;.agents/AGENTS.md.template&lt;/code&gt; is required for the skill to ship to consumers, though an entry there is still recommended so agents know when to load it.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;ronaldtebrake caught that the initial proposal used &lt;code&gt;index.md&lt;/code&gt; as the skill entry point instead of the spec-compliant &lt;code&gt;SKILL.md&lt;/code&gt;, and restructured the frontmatter to use the Agent Skills specification's required &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; fields, preserving the prose-heavy guidance style while making it interoperable with the broader ecosystem. jrockowitz raised the namespacing concern: without prefixes, skill names from different packages would collide (citing existing conflicts on skills.sh), and pointed to the Drupal.org CLI repo as an example already using namespacing. That observation drove the &lt;code&gt;drupal-*&lt;/code&gt; prefix standard that the final architecture adopted.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3601380: Separate composer and recipe</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md</link>
       <guid isPermaLink="false">019f7f98-bad5-7157-9fc1-3cac784a0146</guid>
@@ -688,206 +861,6 @@ $role-&amp;gt;grantPermission('administer json api extra configuration')-&amp;gt
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue was originally filed and patched by mingsong in September 2022. It sat idle for nearly two years until bbrala noted in May 2024 that the code had become outdated. ankitv18 then rebased the merge request and confirmed the pipelines were passing. After another year, bbrala added a kernel test covering the upgrade path before committing and closing the issue.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582452: Add guardrail set selection to ai_search_block</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3582452.md</link>
-      <guid isPermaLink="false">019f4ced-a6a0-70df-a65f-407e34fae704</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 10 Jul 2026 14:12:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +668/−3 · php +507 · yml +160/−2 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_search_block/-/commit/a6c2d8f1a8a30e1f2dbe849e91435b21b81a4df3"&gt;a6c2d8f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582452"&gt;#3582452&lt;/a&gt; · 3 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Search Block configuration form now includes a dedicated &lt;strong&gt;Guardrails&lt;/strong&gt; section. Site builders can choose one of three modes: no guardrails, apply an existing saved &lt;code&gt;ai_guardrail_set&lt;/code&gt; entity, or pick individual pre-generation and post-generation guardrails. The selected guardrail configuration is saved in block config, exported correctly, and is attached to every AI request that block makes, so compatible providers (such as LiteLLM) can enforce the configured safety policies. If guardrail entities are deleted or unavailable, stale IDs are filtered out at request time rather than causing errors. This requires the &lt;code&gt;ai&lt;/code&gt; module at version 1.4 or later.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;drupal/ai&lt;/code&gt; minimum version raised from &lt;code&gt;^1.2&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;guardrail_mode&lt;/code&gt;, &lt;code&gt;guardrail_set&lt;/code&gt;, &lt;code&gt;pre_generate_guardrails&lt;/code&gt;, &lt;code&gt;post_generate_guardrails&lt;/code&gt;, and &lt;code&gt;guardrail_stop_threshold&lt;/code&gt; keys in &lt;code&gt;block.settings.ai_search_block&lt;/code&gt; config schema.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;SearchFormBlock&lt;/code&gt; plugin gains a &lt;code&gt;guardrails&lt;/code&gt; fieldset with a &lt;code&gt;guardrail_mode&lt;/code&gt; radio group (&lt;code&gt;none&lt;/code&gt;, &lt;code&gt;sets&lt;/code&gt;, &lt;code&gt;individual&lt;/code&gt;). In &lt;code&gt;sets&lt;/code&gt; mode, a select element lists all &lt;code&gt;ai_guardrail_set&lt;/code&gt; entities; in &lt;code&gt;individual&lt;/code&gt; mode, two &lt;code&gt;checkboxes&lt;/code&gt; elements list all &lt;code&gt;ai_guardrail&lt;/code&gt; entities for pre-generation and post-generation slots, along with a numeric &lt;code&gt;guardrail_stop_threshold&lt;/code&gt; field. Empty-state markup (with links to create/manage entities) is shown when no entities exist, preventing confusing or broken UI states. &lt;code&gt;calculateDependencies()&lt;/code&gt; is implemented on &lt;code&gt;SearchFormBlock&lt;/code&gt; to record the selected &lt;code&gt;ai_guardrail_set&lt;/code&gt; and &lt;code&gt;ai_guardrail&lt;/code&gt; config entities as proper block config dependencies.&lt;/p&gt;
-&lt;p&gt;The actual guardrail attachment happens in the new private &lt;code&gt;applyGuardrailSet()&lt;/code&gt; method on &lt;code&gt;AiSearchBlockHelper&lt;/code&gt;, called just before &lt;code&gt;ChatInput&lt;/code&gt; is passed to the provider. In &lt;code&gt;sets&lt;/code&gt; mode it delegates to &lt;code&gt;AiGuardrailHelper::applyGuardrailSetToChatInput()&lt;/code&gt;. In &lt;code&gt;individual&lt;/code&gt; mode it loads and validates the selected guardrail IDs, then creates a transient unsaved &lt;code&gt;AiGuardrailSet&lt;/code&gt; entity (identified by a hashed UUID prefix to avoid collisions), clones the &lt;code&gt;ChatInput&lt;/code&gt;, and calls &lt;code&gt;addGuardrailSet()&lt;/code&gt; on the clone. Non-existent guardrail IDs are intersected against actually-loaded entities before the transient set is built. The &lt;code&gt;@ai.guardrail_helper&lt;/code&gt; service is injected into &lt;code&gt;AiSearchBlockHelper&lt;/code&gt; via &lt;code&gt;ai.services.yml&lt;/code&gt;. The &lt;code&gt;drupal/ai&lt;/code&gt; requirement is bumped from &lt;code&gt;^1.2&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt; because &lt;code&gt;addGuardrailSet()&lt;/code&gt; and &lt;code&gt;getGuardrailSets()&lt;/code&gt; on &lt;code&gt;ChatInput&lt;/code&gt; are only available from that version. A complete &lt;code&gt;block.settings.ai_search_block&lt;/code&gt; config schema was also added, covering all existing and new settings. Kernel test coverage is provided in &lt;code&gt;AiSearchBlockHelperGuardrailTest&lt;/code&gt; with five test cases covering sets mode, individual mode, empty selection, and stale-ID filtering.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites must update the &lt;code&gt;drupal/ai&lt;/code&gt; dependency to &lt;code&gt;^1.4&lt;/code&gt; before enabling this version of &lt;code&gt;ai_search_block&lt;/code&gt;. In &lt;code&gt;composer.json&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;require&amp;quot;: {
-    &amp;quot;drupal/ai&amp;quot;: &amp;quot;^1.4&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No existing block configuration is affected: the new &lt;code&gt;guardrail_mode&lt;/code&gt; key defaults to &lt;code&gt;none&lt;/code&gt;, so existing blocks continue to send requests without guardrails unless explicitly reconfigured.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 31, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 10, 2026 (3 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was opened by nikro, who outlined the full design in the initial comment and indicated the work would target the 1.3.x planning cycle. abhisekmazumdar opened MR !44 and performed hands-on testing of all three guardrail modes, verifying config persistence and dependency recording. During review, abhisekmazumdar identified and pushed several fixes to the branch: the deprecated &lt;code&gt;setGuardrailSet()&lt;/code&gt;/&lt;code&gt;getGuardrailSet()&lt;/code&gt; calls were replaced with &lt;code&gt;addGuardrailSet()&lt;/code&gt;/&lt;code&gt;getGuardrailSets()&lt;/code&gt; in both &lt;code&gt;AiSearchBlockHelper.php&lt;/code&gt; and the kernel test, two anonymous closures in &lt;code&gt;uasort()&lt;/code&gt; calls were converted to arrow functions, a &lt;code&gt;use&lt;/code&gt; statement was reordered alphabetically, and a &lt;code&gt;@covers&lt;/code&gt; annotation was corrected to target the class rather than a private method. Nikro then pushed the final version-constraint correction (bumping &lt;code&gt;^1.3&lt;/code&gt; to &lt;code&gt;^1.4&lt;/code&gt; to match the API actually used) and merged to 1.1.x.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583809: Add Text Classification support</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3583809.md</link>
-      <guid isPermaLink="false">019f4c15-ad85-72a7-9f5e-85860ff0b0a8</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 10 Jul 2026 12:29:19 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +52/−5 · php +51/−4 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_huggingface/-/commit/2b16e6b71890d796acee1b4924fe64dff5807744"&gt;2b16e6b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3583809"&gt;#3583809&lt;/a&gt; · 6 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ai_provider_huggingface&lt;/code&gt; module now supports the &lt;code&gt;text_classification&lt;/code&gt; operation type introduced by the AI core module. Site builders can add a Hugging Face text-classification endpoint (such as &lt;code&gt;distilbert/distilbert-base-uncased-finetuned-sst-2-english&lt;/code&gt;) on the provider settings page and then use the Text Classification Explorer at &lt;code&gt;/admin/config/ai/explorers/text_classification_generator&lt;/code&gt;. The module's &lt;code&gt;drupal/ai&lt;/code&gt; dependency has been raised to &lt;code&gt;^1.4.x-dev@dev&lt;/code&gt;, which is the version that ships the text-classification operation type classes.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum &lt;code&gt;drupal/ai&lt;/code&gt; version raised from &lt;code&gt;^1.3.x-dev@dev&lt;/code&gt; to &lt;code&gt;^1.4.x-dev@dev&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;text_classification&lt;/code&gt; operation type available in &lt;code&gt;HuggingfaceProvider&lt;/code&gt;, implementing &lt;code&gt;TextClassificationInterface&lt;/code&gt; from &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.x.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;HuggingfaceProvider&lt;/code&gt; class now implements &lt;code&gt;TextClassificationInterface&lt;/code&gt; and lists &lt;code&gt;text_classification&lt;/code&gt; in both its &lt;code&gt;$supportedTypes&lt;/code&gt; map (with Hugging Face pipeline filter &lt;code&gt;text-classification&lt;/code&gt;) and its &lt;code&gt;getSupportedOperationTypes()&lt;/code&gt; return value. The new &lt;code&gt;textClassification()&lt;/code&gt; method accepts a string or &lt;code&gt;TextClassificationInput&lt;/code&gt;, calls &lt;code&gt;HuggingfaceApi::textClassification()&lt;/code&gt;, decodes the JSON response, handles both single-item and array responses from the Inference API, and wraps each result in a &lt;code&gt;TextClassificationItem&lt;/code&gt; before returning a &lt;code&gt;TextClassificationOutput&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A pre-existing bug in &lt;code&gt;HuggingfaceApi::textClassification()&lt;/code&gt; was fixed at the same time: the method always included &lt;code&gt;'parameters' =&amp;gt; []&lt;/code&gt; in the request payload. PHP's &lt;code&gt;json_encode&lt;/code&gt; serializes an empty array as &lt;code&gt;[]&lt;/code&gt; (a JSON list), which the Hugging Face Inference API rejects with a &lt;code&gt;400&lt;/code&gt; error and the message &lt;code&gt;'list' object has no attribute 'setdefault'&lt;/code&gt;. The fix omits the &lt;code&gt;parameters&lt;/code&gt; key entirely when the array is empty; when parameters are present they are cast to &lt;code&gt;(object)&lt;/code&gt; so they serialize as a JSON object &lt;code&gt;{}&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;composer.json&lt;/code&gt; dependency on &lt;code&gt;drupal/ai&lt;/code&gt; was bumped from &lt;code&gt;^1.3.x-dev@dev&lt;/code&gt; to &lt;code&gt;^1.4.x-dev@dev&lt;/code&gt; because &lt;code&gt;TextClassificationInterface&lt;/code&gt;, &lt;code&gt;TextClassificationInput&lt;/code&gt;, &lt;code&gt;TextClassificationItem&lt;/code&gt;, and &lt;code&gt;TextClassificationOutput&lt;/code&gt; were added to AI core in &lt;code&gt;1.4.x&lt;/code&gt; via &lt;a href="https://www.drupal.org/node/3456768"&gt;#3456768&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your project depends on &lt;code&gt;ai_provider_huggingface&lt;/code&gt;, update your &lt;code&gt;composer.json&lt;/code&gt; to require at least &lt;code&gt;drupal/ai ^1.4.x-dev@dev&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;require&amp;quot;: {
-    &amp;quot;drupal/ai&amp;quot;: &amp;quot;^1.4.x-dev@dev&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 10, 2026 (3 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, csakiistvan identified that the original MR had four failing CI jobs: the &lt;code&gt;TextClassification*&lt;/code&gt; classes did not exist in the &lt;code&gt;drupal/ai 1.3.x&lt;/code&gt; branch declared in &lt;code&gt;composer.json&lt;/code&gt;, causing non-ignorable phpstan errors. csakiistvan filed a detailed testing report documenting the root cause and the two fixes needed (dependency bump and &lt;code&gt;use&lt;/code&gt; statement reordering). After ahmad khader applied those fixes, jucs7 re-tested the full flow, confirmed CI was green and the empty-parameters 400 error was resolved, and moved the issue to RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3548526: Support File Handling</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3548526.md</link>
-      <guid isPermaLink="false">019f4297-1994-71bf-bdae-302fdcd03b20</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 07 Jul 2026 16:23:13 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +572/−2 · php +571/−1 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_openai/-/commit/623d27cf1e2925895e70dfb5ba0b7a63da94fb76"&gt;623d27c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3548526"&gt;#3548526&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The OpenAI provider module for Drupal now supports the OpenAI Files API through the normalized AI module file-handling interface. Developers can upload files to OpenAI, attach them by remote ID to chat messages, download file content, and delete remote files. This enables use cases like document Q&amp;amp;A and fine-tuning data management without leaving the Drupal AI abstraction layer. Requires &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2 or higher.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum drupal/ai version raised from ^1.4.0 to ^1.4.2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; OpenAiProvider now implements AiFileProviderInterface, adding uploadFile(), deleteFile(), downloadFile(), and supportsMimeType() methods for interacting with the OpenAI Files API.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;OpenAiProvider&lt;/code&gt; now implements &lt;code&gt;AiFileProviderInterface&lt;/code&gt; (from &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2+) and uses the &lt;code&gt;FileApiTrait&lt;/code&gt; (&lt;code&gt;Drupal\ai\Traits\OpenAi\FileApiTrait&lt;/code&gt;) to fulfil that interface. The trait provides &lt;code&gt;uploadFile()&lt;/code&gt;, &lt;code&gt;deleteFile()&lt;/code&gt;, &lt;code&gt;downloadFile()&lt;/code&gt;, and &lt;code&gt;supportsMimeType()&lt;/code&gt; methods backed by the OpenAI PHP SDK. MIME type eligibility is gated by purpose: &lt;code&gt;batch&lt;/code&gt; and &lt;code&gt;fine_tune&lt;/code&gt; accept text and JSON only, &lt;code&gt;vision&lt;/code&gt; accepts image types, and &lt;code&gt;user_data&lt;/code&gt; is unrestricted.&lt;/p&gt;
-&lt;p&gt;On the chat side, &lt;code&gt;OpenAiProvider::chat()&lt;/code&gt; was extended to detect &lt;code&gt;getRemoteFiles()&lt;/code&gt; on each &lt;code&gt;ChatMessage&lt;/code&gt; and append &lt;code&gt;{'type': 'file', 'file': {'file_id': $id}}&lt;/code&gt; content blocks to the outgoing API payload. This allows previously uploaded files to be referenced in a conversation turn without re-sending file bytes.&lt;/p&gt;
-&lt;p&gt;Error handling in &lt;code&gt;uploadFile()&lt;/code&gt; maps &amp;quot;Request too large&amp;quot; API errors to &lt;code&gt;AiRateLimitException&lt;/code&gt; and quota errors to &lt;code&gt;AiQuotaException&lt;/code&gt;. The minimum &lt;code&gt;drupal/ai&lt;/code&gt; constraint in &lt;code&gt;composer.json&lt;/code&gt; was tightened from &lt;code&gt;^1.4.0&lt;/code&gt; to &lt;code&gt;^1.4.2&lt;/code&gt;, which is the release that introduced &lt;code&gt;AiFileProviderInterface&lt;/code&gt; and &lt;code&gt;FileApiTrait&lt;/code&gt; in the base module (see &lt;a href="https://www.drupal.org/node/3546954"&gt;#3546954&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No changes required for existing code. To use file handling, obtain the provider as &lt;code&gt;AiFileProviderInterface&lt;/code&gt; and call its methods:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai\AiFileProviderInterface;
-
-// Upload a file (returns the AiFile entity with remote ID set).
-/** @var AiFileProviderInterface $provider */
-$aiFile = $this-&amp;gt;aiFileManager-&amp;gt;upload('public://docs/report.pdf', 1, 'openai');
-
-// Reference the uploaded file in a chat message.
-$message = new ChatMessage('user', 'Summarize this document.');
-$message-&amp;gt;addRemoteFile($aiFile-&amp;gt;getRemoteId());
-$input = new ChatInput([$message]);
-$response = $provider-&amp;gt;chat($input, 'gpt-4o')-&amp;gt;getNormalized();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2025&lt;/li&gt;
-&lt;li&gt;Committed: July 7, 2026 (9 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;b_sharpe demonstrated the feature working end-to-end in a comment showing file upload followed by referencing the remote ID in a chat message. marcus_johansson steered the implementation toward using the &lt;code&gt;AiModelCapability&lt;/code&gt; enum for capability checks and suggested moving the file trait into the base AI module rather than keeping it in the provider, which is what ultimately shipped. b_sharpe subsequently rebased the MR against the 1.3.x branch after &lt;code&gt;drupal/ai&lt;/code&gt; 1.4.2 landed with the normalized file API.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3600886: Add an "AI audio" field validation constraint (speech-to-text)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3600886.md</link>
-      <guid isPermaLink="false">019f1e97-f1a5-7321-87fc-9a21e63e7dd8</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 01 Jul 2026 13:24:05 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +328/−8 · php +322/−7 · md +6/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_validations/-/commit/94e5c2d366644cd804cf587902f9fbdaca3e7d38"&gt;94e5c2d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3600886"&gt;#3600886&lt;/a&gt; · 2 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ai_validations&lt;/code&gt; module gains a seventh field validation rule: &lt;strong&gt;AI audio constraint&lt;/strong&gt;. Site builders can now attach this rule to a File field that accepts audio uploads. When an editor saves a node, the constraint first transcribes the uploaded audio through a configurable speech-to-text provider, then evaluates that transcript with a separate chat provider using the same &lt;code&gt;XTRUE&lt;/code&gt;/&lt;code&gt;XFALSE&lt;/code&gt; prompt protocol the existing text and image constraints already use. If the chat provider returns &lt;code&gt;XFALSE&lt;/code&gt;, the node is rejected and the configured error message is shown.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;transcribeAudio()&lt;/code&gt; and &lt;code&gt;buildProviderDefaultValue(string $configKey)&lt;/code&gt; helpers on &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; and &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt;; &lt;code&gt;loadImageFile()&lt;/code&gt; renamed to &lt;code&gt;loadFile()&lt;/code&gt; on &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Three new files implement the feature: &lt;code&gt;AiAudioConstraintFieldValidationRule&lt;/code&gt; (the &lt;code&gt;@FieldValidationRule&lt;/code&gt; plugin with id &lt;code&gt;ai_audio_constraint_rule&lt;/code&gt;), &lt;code&gt;AiAudioConstraint&lt;/code&gt; (the Symfony &lt;code&gt;@Constraint&lt;/code&gt; with id &lt;code&gt;AiAudioPrompt&lt;/code&gt;), and &lt;code&gt;AiAudioConstraintValidator&lt;/code&gt; (the validator). The validator resolves both provider options, calls &lt;code&gt;transcribeAudio()&lt;/code&gt; to get a string, then passes it straight into &lt;code&gt;runBooleanChat()&lt;/code&gt; to obtain a boolean verdict.&lt;/p&gt;
-&lt;p&gt;Two base-class changes support the new plugin and clean up the existing ones. In &lt;code&gt;AiConstraintFieldValidationRuleBase&lt;/code&gt;, the private logic formerly in &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; was extracted into a new &lt;code&gt;buildProviderDefaultValue(string $configKey)&lt;/code&gt; method. &lt;code&gt;buildModelDefaultValue()&lt;/code&gt; now delegates to it, so subclasses that need a second provider selector (as &lt;code&gt;AiAudioConstraintFieldValidationRule&lt;/code&gt; does for its &lt;code&gt;chat_provider&lt;/code&gt; key) can call &lt;code&gt;buildProviderDefaultValue()&lt;/code&gt; with any config key without duplicating the decode logic. In &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt;, &lt;code&gt;loadImageFile()&lt;/code&gt; was renamed to &lt;code&gt;loadFile()&lt;/code&gt; to reflect that it handles any file type, and a new &lt;code&gt;transcribeAudio(mixed $data, string $option)&lt;/code&gt; helper was added alongside the existing &lt;code&gt;loadFile()&lt;/code&gt; and &lt;code&gt;runBooleanChat()&lt;/code&gt; helpers. All three existing image-constraint validators (&lt;code&gt;AiImageConstraintValidator&lt;/code&gt;, &lt;code&gt;AiImageClassificationConstraintValidator&lt;/code&gt;, &lt;code&gt;AiObjectDetectionConstraintValidator&lt;/code&gt;) were updated to call &lt;code&gt;loadFile()&lt;/code&gt; instead of &lt;code&gt;loadImageFile()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Custom validators that extend &lt;code&gt;AiConstraintValidatorBase&lt;/code&gt; and call &lt;code&gt;loadImageFile()&lt;/code&gt; must rename the call to &lt;code&gt;loadFile()&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-$file = $this-&amp;gt;loadImageFile($data);
-
-// After
-$file = $this-&amp;gt;loadFile($data);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 15, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 1, 2026 (16 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;abhisekmazumdar documented two design choices beyond the original plan in comment &lt;a href="https://www.drupal.org/node/16647960"&gt;#16647960&lt;/a&gt;: exposing two independent &lt;code&gt;ai_provider_configuration&lt;/code&gt; selectors (speech-to-text and chat) rather than a single one, because the two operation types are commonly served by different providers, and adding &lt;code&gt;transcribeAudio()&lt;/code&gt; to the shared base class rather than scoping it to the new validator alone, so future constraints can reuse it without duplication. marcus_johansson reviewed the patch, suggested one minor refinement, and marked it ready to commit.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
