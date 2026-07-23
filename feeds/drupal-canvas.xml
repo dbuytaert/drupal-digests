@@ -5,6 +5,45 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3573022: [upstream] Data loss: `drush config:import` deletes config (e.g. code component + component config entities) and bypasses config system data integrity checks</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573022.md</link>
+      <guid isPermaLink="false">019f8c76-6840-77f7-b9f1-45c7aa476634</guid>
+      <pubDate>Wed, 22 Jul 2026 22:07:53 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3573022"&gt;#3573022&lt;/a&gt; · 3 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Running &lt;code&gt;drush config:import&lt;/code&gt; could silently delete in-use Canvas code components without triggering Canvas's built-in safety mechanisms, leaving dangling references in page content and producing a white screen of death (WSOD) on every page that referenced those components. There was no way to recover without directly editing the database. Canvas now blocks any config import that would delete a component still in use on a page, giving site owners a clear error message and keeping the site intact. Unused components can still be removed via config import.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is in Drupal core's &lt;code&gt;ConfigImporter::importConfig()&lt;/code&gt;, which uses the low-level &lt;code&gt;Config::delete()&lt;/code&gt; to remove configuration entries rather than calling &lt;code&gt;ConfigEntityBase::delete()&lt;/code&gt;. That bypass means &lt;code&gt;ConfigEntityBase::preDelete()&lt;/code&gt; is never invoked, and therefore &lt;code&gt;Component::onDependencyRemoval()&lt;/code&gt; never runs. That method is what Canvas relies on to switch an in-use component to its fallback source; without it, deleting a &lt;code&gt;canvas.js_component.*&lt;/code&gt; or &lt;code&gt;canvas.component.js.*&lt;/code&gt; config entity via &lt;code&gt;drush config:import&lt;/code&gt; leaves live page content pointing at configuration that no longer exists.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;ComponentConfigImportValidator&lt;/code&gt;, a final class extending &lt;code&gt;ConfigImportValidateEventSubscriberBase&lt;/code&gt;, registered as a service in &lt;code&gt;canvas.services.yml&lt;/code&gt;. During &lt;code&gt;ConfigEvents::IMPORT_VALIDATE&lt;/code&gt; it inspects the deletion list for two danger vectors: (A) a &lt;code&gt;Component&lt;/code&gt; config entity is itself scheduled for deletion, and (B) non-component configuration that a retained &lt;code&gt;Component&lt;/code&gt; depends on is being deleted (detected via &lt;code&gt;ConfigManagerInterface::findConfigEntityDependenciesAsEntities()&lt;/code&gt;). For every endangered &lt;code&gt;Component&lt;/code&gt; the subscriber calls &lt;code&gt;ComponentAudit::hasUsages()&lt;/code&gt; for both published revisions and auto-save drafts; if either returns &lt;code&gt;true&lt;/code&gt;, the import is aborted via &lt;code&gt;ConfigImporter::logError()&lt;/code&gt; with an explanatory message naming the affected component.&lt;/p&gt;
+&lt;p&gt;This is explicitly a stopgap until core is fixed. The class docblock references two upstream issues: one to route config-import deletions through &lt;code&gt;onDependencyRemoval()&lt;/code&gt; and one (&lt;code&gt;#2414951&lt;/code&gt;) that would add this class of detection to core itself, at which point the subscriber could be removed rather than just adjusted.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;bernardm28&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;wim leers traced the failure through both Drush and Drupal core source code before any patch existed. He identified that &lt;code&gt;ConfigImporter&lt;/code&gt; calls the storage-layer &lt;code&gt;Config::delete()&lt;/code&gt; rather than the entity-layer &lt;code&gt;ConfigEntityBase::delete()&lt;/code&gt;, which is what bypasses &lt;code&gt;onDependencyRemoval()&lt;/code&gt;. He then found Drupal core's &lt;code&gt;content_moderation&lt;/code&gt; module using &lt;code&gt;ConfigEvents::IMPORT_VALIDATE&lt;/code&gt; for a related-but-different purpose and concluded that the same mechanism was the only mitigation Canvas could apply unilaterally. bernardm28's original report confirmed, in response to wim leers' direct question, that both &lt;code&gt;canvas.js_component.foo&lt;/code&gt; and &lt;code&gt;canvas.component.js.foo&lt;/code&gt; were wiped together, making the two-vector design of the validator necessary.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591667: Add `canvas:doctor` Drupal CLI command to check health of Canvas' data: validate every Canvas (content|config) entity + translation, validate every non-Canvas content entity component tree field revision+translation, and more</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591667.md</link>
       <guid isPermaLink="false">019f8b88-6a10-70d9-87d3-89cec2d7b75f</guid>
@@ -857,52 +896,6 @@ dataDependencies:
 &lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591745: Enabling content translation of Canvas pages results in an unsupported state (asymmetrical translations) by default: force the known valid state if the field is marked as translatable</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591745.md</link>
-      <guid isPermaLink="false">019f4456-0f78-7746-a245-fcb306336cae</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 09 Jul 2026 00:01:58 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591745"&gt;#3591745&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When site builders enabled content translation on Canvas pages, the standard Drupal &amp;quot;Content language and translation&amp;quot; settings form presented checkboxes for both the component input values and the component tree, allowing asymmetrical configurations that Canvas does not support. This fix enforces the only valid state: component input values are translatable, the component tree is shared across languages. The form now hides the column-group checkboxes and renames the field label to &amp;quot;Component input values&amp;quot; to clarify what is actually being translated. A post-update hook (&lt;code&gt;canvas_post_update_0022&lt;/code&gt;) repairs any site that previously reached an invalid configuration. Going forward, the correct state is also set automatically on module install and rejected at config import time.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update hook &lt;code&gt;canvas_post_update_0022_enforce_symmetrical_canvas_page_components_translation&lt;/code&gt; creates or corrects the &lt;code&gt;components&lt;/code&gt; base field override to enforce symmetrical translation settings.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;core.base_field_override.canvas_page.canvas_page.components&lt;/code&gt; config object is created on install and enforced by a post-update hook; config schema constraints and a config import validator reject the asymmetrical &lt;code&gt;translation_sync&lt;/code&gt; combination.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;components&lt;/code&gt; base field of the &lt;code&gt;canvas_page&lt;/code&gt; entity type stores both the component tree (which instances exist, in what order) and per-instance input values. Content translation's &lt;code&gt;FieldTranslationSynchronizer&lt;/code&gt; uses the &lt;code&gt;translation_sync&lt;/code&gt; third-party setting on a &lt;code&gt;BaseFieldOverride&lt;/code&gt; to decide which column groups to synchronize across translations. The only supported combination is &lt;code&gt;inputs =&amp;gt; 'inputs'&lt;/code&gt; (translatable) and &lt;code&gt;tree =&amp;gt; '0'&lt;/code&gt; (shared). Previously the UI exposed checkboxes for both, so any user could accidentally enable the unsupported asymmetrical mode.&lt;/p&gt;
-&lt;p&gt;Enforcement is now layered across four surfaces. First, &lt;code&gt;ModuleHooks::afterBuildCanvasPageLanguageSettings()&lt;/code&gt; removes the &lt;code&gt;components&lt;/code&gt; column-group sub-checkboxes from the form, renames the field label, and &lt;code&gt;ModuleHooks::validateCanvasPageLanguageSettings()&lt;/code&gt; (a new form validator) hard-codes the symmetrical values into form state before the settings are saved. Second, a &lt;code&gt;hook_modules_installed&lt;/code&gt; implementation in &lt;code&gt;ContentTranslationHooks&lt;/code&gt; calls &lt;code&gt;ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()&lt;/code&gt; to create or update the &lt;code&gt;BaseFieldOverride&lt;/code&gt; whenever either &lt;code&gt;canvas&lt;/code&gt; or &lt;code&gt;content_translation&lt;/code&gt; is installed while the other is already present. Third, a new config schema file &lt;code&gt;canvas_symmetrical_translations_only.schema.yml&lt;/code&gt; defines &lt;code&gt;Choice&lt;/code&gt; constraints on the &lt;code&gt;translation_sync&lt;/code&gt; mapping, making the valid state machine-checkable. Fourth, &lt;code&gt;SymmetricalTranslationsConfigImportValidator&lt;/code&gt; (registered as an event subscriber on &lt;code&gt;ConfigImporterEvent&lt;/code&gt;) validates the staged override before any config import and logs an error to abort the import if the &lt;code&gt;tree&lt;/code&gt; column group is set to translatable. The post-update hook &lt;code&gt;canvas_post_update_0022&lt;/code&gt; handles four distinct cases: no &lt;code&gt;content_translation&lt;/code&gt; installed (no-op), an existing override with invalid settings (corrected), an existing override already valid (no-op), and &lt;code&gt;content_translation&lt;/code&gt; present but no override yet (created). All of this is marked &lt;code&gt;@todo Remove in&lt;/code&gt; issue &lt;a href="https://www.drupal.org/node/3571130"&gt;#3571130&lt;/a&gt;, which tracks a planned core fix that would make the form-level workaround unnecessary.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites running Canvas with &lt;code&gt;content_translation&lt;/code&gt; enabled should run database updates to trigger &lt;code&gt;canvas_post_update_0022&lt;/code&gt;, which will create or fix the &lt;code&gt;core.base_field_override.canvas_page.canvas_page.components&lt;/code&gt; config object:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you manage config with Config Management (CMI/recipes), be aware that importing a staged override with &lt;code&gt;translation_sync.tree&lt;/code&gt; set to &lt;code&gt;'tree'&lt;/code&gt; (the asymmetrical value) will now be rejected at import time with a message containing &amp;quot;Canvas Pages support only symmetrical translations&amp;quot;. Correct the staged config to &lt;code&gt;translation_sync: { inputs: inputs, tree: '0' }&lt;/code&gt; before importing.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 29, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
