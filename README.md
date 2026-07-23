@@ -14,7 +14,7 @@ _227 summaries · 116 new this week_
 
 ### Drupal AI
 
-_113 summaries · 17 new this week_
+_113 summaries · 15 new this week_
 
 - [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
 - [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
