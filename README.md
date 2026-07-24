@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_459 summaries · 14 new this week_
+_459 summaries · 13 new this week_
 
 - [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
 - [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
