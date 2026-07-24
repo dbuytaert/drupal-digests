@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_458 summaries · 17 new this week_
+_458 summaries · 16 new this week_
 
 - [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
 - [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
