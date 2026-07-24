@@ -1,24 +1,24 @@
-**TL;DR:** [887 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [889 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Core
-
-_459 summaries · 13 new this week_
-
-- [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
-- [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
-- [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
-
 ### Drupal Canvas
 
-_227 summaries · 116 new this week_
+_228 summaries · 116 new this week_
 
+- [#3591716: Boolean props auto-enable when another prop is changed in the Canvas form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591716.md)
 - [#3573022: [upstream] Data loss: `drush config:import` deletes config (e.g. code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573022.md)
 - [#3591667: Add `canvas:doctor` Drupal CLI command to check health of Canvas' data:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591667.md)
-- [#3591674: Explicitly support `comment` as a referenceable content entity type (stop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591674.md)
+
+### Drupal Core
+
+_460 summaries · 14 new this week_
+
+- [#3608184: Load multiple cardinality fields with a smaller result set](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608184.md)
+- [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
+- [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
 
 ### Drupal AI
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_181 rules · 2 new this week_
+_181 rules · 1 new this week_
 
 - [Replace module_set_weight() and module_config_sort() with ModuleWeight service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php)
 - [Replace Htmx::triggerAfterSettleHeader() and triggerAfterSwapHeader() with...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-htmx-triggeraftersettleheader-and-3607711.php)

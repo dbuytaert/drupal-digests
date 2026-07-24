@@ -5,6 +5,48 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3608184: Load multiple cardinality fields with a smaller result set</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608184.md</link>
+      <guid isPermaLink="false">019f94ff-b432-774a-81ca-3d1cee579bb6</guid>
+      <pubDate>Fri, 24 Jul 2026 14:01:45 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +191/−64 · php +191/−64&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/35c7c095385617caddaac77c47696b074c132cbb"&gt;35c7c09&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608184"&gt;#3608184&lt;/a&gt; · 7 contributors · 47 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When an entity has several multi-value (&amp;quot;multiple cardinality&amp;quot;) fields, Drupal core previously ran one query per field and then re-sorted the results in PHP. This change combines those queries into a single, more efficient query per chunk of fields, cutting down the number of database queries needed to load such entities. This is a purely internal performance optimization to entity loading. There is nothing for site owners or module developers to configure or change; Drupal's own performance tests recorded fewer queries on pages like the front page and node pages after this change.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This is a follow-up to &lt;a href="https://www.drupal.org/node/3607938"&gt;#3607938&lt;/a&gt;, which found that naively joining multiple multi-value field tables together in one query produces a cartesian product (a row for every combination of deltas across fields). This issue's fix, in &lt;code&gt;SqlContentEntityStorage::loadMultipleCardinalityFields()&lt;/code&gt;, avoids that by building a &amp;quot;delta spine&amp;quot;: a subselect that &lt;code&gt;UNION&lt;/code&gt;s the &lt;code&gt;(entity_id, langcode, delta)&lt;/code&gt; rows from each dedicated field table in the chunk, giving the full set of valid delta combinations for the loaded entities. Each field's dedicated table is then &lt;code&gt;LEFT JOIN&lt;/code&gt;ed onto that spine (aliased &lt;code&gt;delta_join&lt;/code&gt;) matching on ID, langcode and delta, so every field's value lines up on the correct row without multiplying against other fields. When a chunk contains only one multiple-cardinality field, the union step is skipped entirely and the query selects straight from that field's table, since a single table can't multiply against itself.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; now chunks the multiple-cardinality fields together (via &lt;code&gt;array_chunk()&lt;/code&gt; using the same &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE&lt;/code&gt; used for single-cardinality fields) and calls &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; once per chunk instead of once per field, and the previous PHP-side &lt;code&gt;ksort()&lt;/code&gt; re-sort of deltas is removed since the query now does &lt;code&gt;ORDER BY&lt;/code&gt; on the delta from the spine. The method signature was reworked accordingly: the &lt;code&gt;$base_query&lt;/code&gt;, &lt;code&gt;$base_table&lt;/code&gt;, &lt;code&gt;$base_id_key&lt;/code&gt;, and &lt;code&gt;$base_langcode_alias&lt;/code&gt; parameters were dropped since the query is now built independently of the base entity query, and an &lt;code&gt;$ids&lt;/code&gt; parameter was added to constrain the spine and field tables directly. &lt;code&gt;EXPLAIN&lt;/code&gt; output shared in the issue confirmed the union/join query hits indexes on every branch, and Drupal's &lt;code&gt;PerformanceTest&lt;/code&gt; suites were updated to reflect the reduced query counts (for example the Umami front page cold cache dropped from 184 to 178 queries, and the standard profile node page cold cache dropped from 204 to 195).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 3, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 24, 2026 (20 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch explored several alternatives before landing on this approach: a new database table pre-populated with sequential delta values to join against (rejected as &amp;quot;a bit painful&amp;quot; and hard to size for sites with very high cardinality), and separately ruled out &lt;code&gt;UNION&lt;/code&gt; of the actual field data (column type mismatches), a temporary table, a MySQL sequence, and &lt;code&gt;GROUP BY&lt;/code&gt; (no reliable delta to group on), documenting why each wouldn't work. alexpott then proposed building the delta spine from a &lt;code&gt;UNION&lt;/code&gt; subselect of just the &lt;code&gt;(id, langcode, delta)&lt;/code&gt; tuples instead of a physical table, and further simplified it to drop the join to the base entity table entirely. catch called this approach avoiding &amp;quot;the crime against databases&amp;quot; of the earlier table-based idea and moved the issue to RTBC. After commit, real-world benchmarking by nicxvan and scott_euser on sites with large multi-value fields showed a lower query count but not a clear wall-time win in their tests; catch explained that the benefit shows up mainly as reduced per-query overhead and database connection headroom rather than raw execution time, which matters more at scale and when the database is on a separate server from the web head.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3569316: Client connection ($clientConnection) must be of type object, null given when deleting a node</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md</link>
       <guid isPermaLink="false">019f935a-cb26-710c-8132-709a13b94bea</guid>
@@ -1053,47 +1095,6 @@ $instance-&amp;gt;doSomething();
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3152267: Invalid use of array union operator</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3152267.md</link>
-      <guid isPermaLink="false">019f5d30-7ac6-7420-b611-7c8c92602757</guid>
-      <pubDate>Mon, 13 Jul 2026 19:11:15 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +76/−1 · php +76/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8976ec40b089535d35b503e2ffd25471bbbf3f47"&gt;8976ec4&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3152267"&gt;#3152267&lt;/a&gt; · 8 contributors · 31 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A bug in the Views module caused the &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; token types to be silently dropped whenever additional token types were passed to &lt;code&gt;getAvailableGlobalTokens()&lt;/code&gt;. For example, a view using date tokens alongside the expected site tokens would lose all site tokens, producing empty output instead of the intended replacements. The fix ensures that &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; are always included in the available token set regardless of what other types are requested.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The method &lt;code&gt;PluginBase::getAvailableGlobalTokens()&lt;/code&gt; in &lt;code&gt;core/modules/views/src/Plugin/views/PluginBase.php&lt;/code&gt; used PHP's array union operator (&lt;code&gt;$types += ['site', 'view']&lt;/code&gt;) to guarantee that &lt;code&gt;site&lt;/code&gt; and &lt;code&gt;view&lt;/code&gt; token types are always present. Because &lt;code&gt;$types&lt;/code&gt; is a numerically-indexed array, the union operator compares by index: index 0 is already occupied by whatever the caller passed, so &lt;code&gt;'site'&lt;/code&gt; (which would go to index 0) is never appended. The fix replaces the union with &lt;code&gt;array_merge($types, ['site', 'view'])&lt;/code&gt;, which appends unconditionally and lets &lt;code&gt;array_intersect_key&lt;/code&gt; downstream select the correct tokens. The proposed &lt;code&gt;array_unique&lt;/code&gt; wrapper was dropped during review because the token info array is multi-dimensional and &lt;code&gt;array_unique()&lt;/code&gt; raises an &amp;quot;array to string conversion&amp;quot; error on such structures. A &lt;code&gt;@DataProvider&lt;/code&gt;-driven unit test was added to &lt;code&gt;PluginBaseTest&lt;/code&gt; covering combinations of zero, one, and multiple token types to prevent regression.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 16, 2020&lt;/li&gt;
-&lt;li&gt;Committed: July 13, 2026 (6 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;s_bhandari (Material)&lt;/li&gt;
-&lt;li&gt;jayelless (Xequals)&lt;/li&gt;
-&lt;li&gt;quietone (Xequals)&lt;/li&gt;
-&lt;li&gt;lendude (iO)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, quietone attempted to add &lt;code&gt;array_unique()&lt;/code&gt; as suggested in the issue body, but discovered that the token info array is multi-dimensional, causing PHP to throw an &amp;quot;array to string conversion&amp;quot; error. lendude acknowledged this as a good reason to drop &lt;code&gt;array_unique&lt;/code&gt;, and the MR was approved without it.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
