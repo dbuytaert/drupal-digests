@@ -1,4 +1,4 @@
-**TL;DR:** [886 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [887 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_458 summaries · 16 new this week_
+_459 summaries · 14 new this week_
 
+- [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
 - [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
 - [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
-- [#3593123: Add BatchStorageInterface::getId()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593123.md)
 
 ### Drupal Canvas
 
