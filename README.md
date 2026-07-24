@@ -1,8 +1,16 @@
-**TL;DR:** [885 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [886 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_458 summaries · 17 new this week_
+
+- [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
+- [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
+- [#3593123: Add BatchStorageInterface::getId()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593123.md)
 
 ### Drupal Canvas
 
@@ -19,14 +27,6 @@ _113 summaries · 14 new this week_
 - [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
 - [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
 - [#3584903: Migrate the inner workings of Surge into AI Best Practices](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3584903.md)
-
-### Drupal Core
-
-_457 summaries · 16 new this week_
-
-- [#3612247: Update guzzlehttp/guzzle to 7.15.1 and guzzlehttp/psr7 to 2.12.3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612247.md)
-- [#3593123: Add BatchStorageInterface::getId()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593123.md)
-- [#2880374: Experimental modules and themes should not have warnings after being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2880374.md)
 
 ### Drupal CMS
 
