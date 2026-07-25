@@ -5,6 +5,84 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace StubPDO::class with \PDO::class in tests</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-stubpdo-class-with-pdo-class-in-tests-3585476.php</link>
+      <guid isPermaLink="false">019f9a1e-992c-7713-aa51-ac2e959e4c24</guid>
+      <pubDate>Sat, 25 Jul 2026 16:32:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585476"&gt;#3585476&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;Drupal\Tests\Core\Database\Stub\StubPDO&lt;/code&gt; is deprecated with no replacement: it existed only because older PHPUnit could not mock &lt;code&gt;\PDO&lt;/code&gt; directly, so core wrapped it in a no-op subclass. Now that PHPUnit can stub &lt;code&gt;\PDO&lt;/code&gt; itself, tests that pass &lt;code&gt;StubPDO::class&lt;/code&gt; to &lt;code&gt;createStub()&lt;/code&gt;/&lt;code&gt;createMock()&lt;/code&gt;/&lt;code&gt;getMockBuilder()&lt;/code&gt; should reference &lt;code&gt;\PDO::class&lt;/code&gt; directly. This rule rewrites the &lt;code&gt;::class&lt;/code&gt; constant fetch only, since &lt;code&gt;StubPDO&lt;/code&gt;'s constructor is a no-op while &lt;code&gt;\PDO&lt;/code&gt;'s is not: rewriting &lt;code&gt;new StubPDO()&lt;/code&gt;, &lt;code&gt;extends StubPDO&lt;/code&gt;, or &lt;code&gt;instanceof StubPDO&lt;/code&gt; would change runtime behavior, so those forms are intentionally left untouched.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$mock_pdo = $this-&amp;gt;createStub(\Drupal\Tests\Core\Database\Stub\StubPDO::class);
+$connection = new StubConnection($mock_pdo, []);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$mock_pdo = $this-&amp;gt;createStub(\PDO::class);
+$connection = new StubConnection($mock_pdo, []);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites the &lt;code&gt;::class&lt;/code&gt; constant fetch. Direct instantiation (&lt;code&gt;new StubPDO()&lt;/code&gt;), &lt;code&gt;extends StubPDO&lt;/code&gt;, and &lt;code&gt;instanceof StubPDO&lt;/code&gt; are left untouched because &lt;code&gt;StubPDO&lt;/code&gt;'s constructor is a no-op while &lt;code&gt;\PDO&lt;/code&gt;'s real constructor requires connection arguments; blindly renaming those forms could produce a fatal error. Leftover unused &lt;code&gt;use Drupal\Tests\Core\Database\Stub\StubPDO;&lt;/code&gt; imports are not removed.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceStubPdoClassConstantRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace \Drupal\Tests\Core\Database\Stub\StubPDO::class with \PDO::class.',
+            [new CodeSample(
+                '$mock = $this-&amp;gt;createStub(\Drupal\Tests\Core\Database\Stub\StubPDO::class);',
+                '$mock = $this-&amp;gt;createStub(\PDO::class);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ClassConstFetch::class];
+    }
+
+    /** @param ClassConstFetch $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof ClassConstFetch) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'class')) {
+            return null;
+        }
+        if (!$node-&amp;gt;class instanceof Node\Name) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Tests\\Core\\Database\\Stub\\StubPDO')) {
+            return null;
+        }
+
+        return new ClassConstFetch(new FullyQualified('PDO'), 'class');
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceStubPdoClassConstantRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace module_set_weight() and module_config_sort() with ModuleWeight service</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php</link>
       <guid isPermaLink="false">019f7ed7-9155-7340-8211-75776a4b1521</guid>
@@ -1932,152 +2010,6 @@ final class GetDrupalRootToRootPropertyRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([GetDrupalRootToRootPropertyRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated locale.compare.inc functions with service calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-compare-inc-functions-with-3037031.php</link>
-      <guid isPermaLink="false">019e18c6-fd07-733e-a1cc-8389ed244484</guid>
-      <pubDate>Mon, 11 May 2026 20:42:34 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037031"&gt;#3037031&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces four deprecated procedural functions from &lt;code&gt;locale.compare.inc&lt;/code&gt; with calls on the new &lt;code&gt;LocaleProjectRepository&lt;/code&gt; and &lt;code&gt;LocaleProjectChecker&lt;/code&gt; services introduced in Drupal 11.4. &lt;code&gt;locale_translation_flush_projects()&lt;/code&gt; and &lt;code&gt;locale_translation_build_projects()&lt;/code&gt; delegate to &lt;code&gt;LocaleProjectRepository&lt;/code&gt;, while &lt;code&gt;locale_translation_check_projects()&lt;/code&gt; and &lt;code&gt;locale_translation_check_projects_local()&lt;/code&gt; delegate to &lt;code&gt;LocaleProjectChecker&lt;/code&gt;. When called with no arguments, the rule expands the call to pass all projects explicitly.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;locale_translation_flush_projects();
-locale_translation_build_projects();
-locale_translation_check_projects();
-locale_translation_check_projects_local(['drupal'], ['de']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;deleteAll();
-\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;buildProjects();
-\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkProjects(array_keys(\Drupal::service(\Drupal\locale\LocaleProjectRepository::class)-&amp;gt;getAll()));
-\Drupal::service(\Drupal\locale\LocaleProjectChecker::class)-&amp;gt;checkLocalProjects(['drupal'], ['de']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;The functions &lt;code&gt;locale_translation_project_list()&lt;/code&gt;, &lt;code&gt;_locale_translation_prepare_project_list()&lt;/code&gt;, and &lt;code&gt;locale_translation_default_translation_server()&lt;/code&gt; are also deprecated in this issue but have no replacement, so they are not handled by this rule.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-/**
- * Replaces deprecated locale.compare.inc functions with service calls.
- *
- * locale_translation_flush_projects() -&amp;gt; LocaleProjectRepository::deleteAll()
- * locale_translation_build_projects() -&amp;gt; LocaleProjectRepository::buildProjects()
- * locale_translation_check_projects() -&amp;gt; LocaleProjectChecker::checkProjects()
- * locale_translation_check_projects_local() -&amp;gt; LocaleProjectChecker::checkLocalProjects()
- */
-final class LocaleCompareIncToServiceRector extends AbstractRector
-{
-    private const LOCALE_PROJECT_REPOSITORY = 'Drupal\\locale\\LocaleProjectRepository';
-    private const LOCALE_PROJECT_CHECKER = 'Drupal\\locale\\LocaleProjectChecker';
-
-    // Functions that map directly: name -&amp;gt; [serviceClass, method]
-    // (no special empty-projects handling needed)
-    private const DIRECT_MAP = [
-        'locale_translation_flush_projects' =&amp;gt; [self::LOCALE_PROJECT_REPOSITORY, 'deleteAll'],
-        'locale_translation_build_projects' =&amp;gt; [self::LOCALE_PROJECT_REPOSITORY, 'buildProjects'],
-    ];
-
-    // Functions that accept ($projects, $langcodes) and need empty-project expansion
-    private const PROJECT_CHECKER_MAP = [
-        'locale_translation_check_projects' =&amp;gt; [self::LOCALE_PROJECT_CHECKER, 'checkProjects'],
-        'locale_translation_check_projects_local' =&amp;gt; [self::LOCALE_PROJECT_CHECKER, 'checkLocalProjects'],
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated locale.compare.inc functions with LocaleProjectRepository and LocaleProjectChecker service methods.',
-            [new CodeSample(
-                'locale_translation_flush_projects();
-locale_translation_build_projects();
-locale_translation_check_projects();
-locale_translation_check_projects_local([\'drupal\'], [\'de\']);',
-                '\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;deleteAll();
-\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;buildProjects();
-\\Drupal::service(\\Drupal\\locale\\LocaleProjectChecker::class)-&amp;gt;checkProjects(array_keys(\\Drupal::service(\\Drupal\\locale\\LocaleProjectRepository::class)-&amp;gt;getAll()));
-\\Drupal::service(\\Drupal\\locale\\LocaleProjectChecker::class)-&amp;gt;checkLocalProjects([\'drupal\'], [\'de\']);',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-
-        $name = $this-&amp;gt;getName($node-&amp;gt;name);
-        if ($name === null) {
-            return null;
-        }
-
-        // Simple no-args or pass-through rewrites.
-        if (isset(self::DIRECT_MAP[$name])) {
-            [$serviceClass, $method] = self::DIRECT_MAP[$name];
-            return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, $node-&amp;gt;args);
-        }
-
-        // Functions with ($projects, $langcodes) that need empty-projects expansion.
-        if (isset(self::PROJECT_CHECKER_MAP[$name])) {
-            [$serviceClass, $method] = self::PROJECT_CHECKER_MAP[$name];
-
-            if (count($node-&amp;gt;args) === 0) {
-                // When called with no arguments, the deprecated wrapper fetched all
-                // projects first. Mirror that by passing array_keys(getAll()).
-                $allProjects = new FuncCall(
-                    new FullyQualified('array_keys'),
-                    [new Arg(new MethodCall($this-&amp;gt;buildServiceCall(self::LOCALE_PROJECT_REPOSITORY), 'getAll', []))]
-                );
-                return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, [new Arg($allProjects)]);
-            }
-
-            // When called with explicit arguments, pass them through unchanged.
-            return new MethodCall($this-&amp;gt;buildServiceCall($serviceClass), $method, $node-&amp;gt;args);
-        }
-
-        return null;
-    }
-
-    /**
-     * Builds a \Drupal::service(ClassName::class) static call expression.
-     */
-    private function buildServiceCall(string $serviceClass): StaticCall
-    {
-        $classConst = new ClassConstFetch(new FullyQualified($serviceClass), 'class');
-        return new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg($classConst)]);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([LocaleCompareIncToServiceRector::class]);
-
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
