@@ -1,8 +1,16 @@
-**TL;DR:** [889 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [890 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [181 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_461 summaries · 15 new this week_
+
+- [#3612963: Drop older dependency versions in Drupal 12](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612963.md)
+- [#3608184: Load multiple cardinality fields with a smaller result set](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608184.md)
+- [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
 
 ### Drupal Canvas
 
@@ -12,17 +20,9 @@ _228 summaries · 116 new this week_
 - [#3573022: [upstream] Data loss: `drush config:import` deletes config (e.g. code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573022.md)
 - [#3591667: Add `canvas:doctor` Drupal CLI command to check health of Canvas' data:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591667.md)
 
-### Drupal Core
-
-_460 summaries · 14 new this week_
-
-- [#3608184: Load multiple cardinality fields with a smaller result set](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608184.md)
-- [#3569316: Client connection ($clientConnection) must be of type object, null given when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md)
-- [#3612544: Update to Guzzle 8](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md)
-
 ### Drupal AI
 
-_113 summaries · 14 new this week_
+_113 summaries · 12 new this week_
 
 - [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
 - [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
