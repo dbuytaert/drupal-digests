@@ -1,4 +1,4 @@
-**TL;DR:** [894 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [895 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_464 summaries · 16 new this week_
+_465 summaries · 16 new this week_
 
+- [#2951046: Allow parsing and writing PHP class constants and enums in YAML files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md)
 - [#3588379: Move search from user module to Search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md)
 - [#3579778: Removed modules should be included as a replace in composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579778.md)
-- [#3611847: Deprecate unused PdoTrait code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611847.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _88 summaries · 71 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [183 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_183 rules · 2 new this week_
+_184 rules · 3 new this week_
 
+- [Replace FileStorageFactory::getSync() with the config.storage.sync service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-filestoragefactory-getsync-with-the-config-storage-2951046.php)
 - [Rename UserSearch to SearchUser from search_user module](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-usersearch-to-searchuser-from-search-user-module-3588379.php)
 - [Replace StubPDO::class with \PDO::class in tests](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-stubpdo-class-with-pdo-class-in-tests-3585476.php)
-- [Replace module_set_weight() and module_config_sort() with ModuleWeight service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php)
 
 
 ## RSS feeds

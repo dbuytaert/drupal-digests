@@ -5,6 +5,88 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2951046: Allow parsing and writing PHP class constants and enums in YAML files</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md</link>
+      <guid isPermaLink="false">019fa47b-425b-72ff-ba7d-e3ef2cd11e07</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 27 Jul 2026 16:31:49 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 39 files, +921/−13 · php +835/−11 · yml +86/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2884bf374c6d1f94d2a7ea12981b20d2607947a8"&gt;2884bf3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2951046"&gt;#2951046&lt;/a&gt; · 29 contributors · 139 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 58&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's YAML parser now understands PHP class constants and enum cases, so configuration, service definitions, and recipe files can reference &lt;code&gt;SomeClass::SOME_CONSTANT&lt;/code&gt; or &lt;code&gt;SomeEnum::SomeCase&lt;/code&gt; instead of hard-coding literal values that have to be kept in sync by hand. A companion &lt;code&gt;enum&lt;/code&gt; config schema type lets module authors declare that a config value must be an instance of a specific PHP enum, with validation enforcing it. To make this safe during module installation and config import, when a module or recipe is being installed its enums and constants are made autoloadable even before the module is fully active, so its own default configuration can reference them. Support is deliberately limited to class-based constants and enums; global constants defined in procedural &lt;code&gt;.module&lt;/code&gt; files are not supported.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\Core\Config\FileStorageFactory&lt;/code&gt; and its &lt;code&gt;getSync()&lt;/code&gt; method are deprecated in favor of the &lt;code&gt;config.storage.sync&lt;/code&gt; service.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; YAML (including configuration, services and recipes) can now contain &lt;code&gt;!php/const Some\Class::CONST&lt;/code&gt; and &lt;code&gt;!php/enum Some\Enum::Case&lt;/code&gt; tags; a new &lt;code&gt;enum&lt;/code&gt; config schema type with an &lt;code&gt;enum_class&lt;/code&gt; key validates that a config value is an instance of that enum.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change is small: &lt;code&gt;Drupal\Component\Serialization\YamlSymfony::decode()&lt;/code&gt; now passes &lt;code&gt;SymfonyYaml::PARSE_CONSTANT&lt;/code&gt; alongside the existing flags, which enables Symfony's &lt;code&gt;!php/const&lt;/code&gt; and &lt;code&gt;!php/enum&lt;/code&gt; YAML tags. &lt;code&gt;Yaml::encode()&lt;/code&gt; (Symfony writer) serializes PHP enums using &lt;code&gt;!php/const&lt;/code&gt;, which the parser also accepts back, and &lt;code&gt;!php/enum&lt;/code&gt; is additionally supported on decode for compatibility with Symfony's documented syntax and to keep behavior consistent regardless of which YAML backend is in use.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;Drupal\Core\TypedData\Plugin\DataType\Enum&lt;/code&gt; primitive type (schema id &lt;code&gt;enum&lt;/code&gt;) plus &lt;code&gt;EnumConstraint&lt;/code&gt;/&lt;code&gt;EnumConstraintValidator&lt;/code&gt; validate that a decoded value is a &lt;code&gt;\UnitEnum&lt;/code&gt; instance of the class named in the schema's &lt;code&gt;enum_class&lt;/code&gt; key; &lt;code&gt;Comparator::checkValue()&lt;/code&gt; and &lt;code&gt;TypedConfig::castValue()&lt;/code&gt; were updated to recognize &lt;code&gt;\UnitEnum&lt;/code&gt; values.&lt;/p&gt;
+&lt;p&gt;The harder problem was config install/import: enums and constants referenced in a module's or recipe's own default configuration are not autoloadable via Composer until the providing module is installed. This is solved with a new &lt;code&gt;Drupal\Core\Config\AutoloadingStorage&lt;/code&gt; decorator that temporarily registers a throwaway &lt;code&gt;ClassLoader&lt;/code&gt; (PSR-4 mapped to the extension's &lt;code&gt;src&lt;/code&gt; directory) around &lt;code&gt;read()&lt;/code&gt;/&lt;code&gt;readMultiple()&lt;/code&gt; calls. The &lt;code&gt;config.storage.sync&lt;/code&gt; service is now produced by a new &lt;code&gt;SyncFactory&lt;/code&gt; class, which diffs the &lt;code&gt;core.extension&lt;/code&gt; list in the sync storage against the active storage to find newly-appearing modules/themes and wraps the sync &lt;code&gt;FileStorage&lt;/code&gt; in &lt;code&gt;AutoloadingStorage&lt;/code&gt; for just those extensions. &lt;code&gt;ModuleInstaller::checkConfigurationToInstall()&lt;/code&gt; does the same for the module(s) currently being installed. &lt;code&gt;StorageComparer&lt;/code&gt; was updated to treat &lt;code&gt;AutoloadingStorage&lt;/code&gt; the same as &lt;code&gt;FileStorage&lt;/code&gt; for its static-cache optimization. Recipes get analogous handling: &lt;code&gt;parseRecipeContents()&lt;/code&gt; in &lt;code&gt;Drupal\Core\Recipe\RecipeData&lt;/code&gt; catches the &lt;code&gt;InvalidDataTypeException&lt;/code&gt; Symfony throws for an unresolvable &lt;code&gt;Drupal\{extension}\...&lt;/code&gt; constant/enum, and if that extension exists on disk but isn't installed yet, registers a temporary classloader for it and retries parsing.&lt;/p&gt;
+&lt;p&gt;Support for constants defined in procedural &lt;code&gt;.module&lt;/code&gt; files was explicitly dropped rather than solved, since it would require preloading &lt;code&gt;.module&lt;/code&gt; files before parsing config, a complication the maintainers decided wasn't worth it for a legacy pattern that's being phased out.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Prefer &lt;code&gt;!php/const&lt;/code&gt; and &lt;code&gt;!php/enum&lt;/code&gt; over literal values in your own config/service YAML, e.g.:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;cardinality: !php/const Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+status: !php/enum Drupal\my_module\MyEnum::SomeCase
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Declare a matching config schema for enum-typed values:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;my_module.settings:
+  mapping:
+    status:
+      type: enum
+      enum_class: '\Drupal\my_module\MyEnum'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your code calls &lt;code&gt;Drupal\Core\Config\FileStorageFactory::getSync()&lt;/code&gt; directly, switch to the service instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$storage = FileStorageFactory::getSync();
+// After:
+$storage = \Drupal::service('config.storage.sync');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 8, 2018&lt;/li&gt;
+&lt;li&gt;Committed: July 27, 2026 (8 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcoscano (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;dawehner (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;neclimdul (APQC)&lt;/li&gt;
+&lt;li&gt;gapple&lt;/li&gt;
+&lt;li&gt;narendrar (Acquia)&lt;/li&gt;
+&lt;li&gt;mikelutz (Four Kitchens)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;eduardo morales alberti (Metadrop)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;borisson_ (Calibrate)&lt;/li&gt;
+&lt;li&gt;bircher (Nuvole)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design took years to settle because of a real safety concern: alexpott identified in comment #46 that reading config during import can require autoloading code for a module that isn't installed yet, which risks crashing on missing classes. neclimdul (#78) and phenaproxima (#84) pushed back hard, worried that letting config schema influence what gets autoloaded was a &amp;quot;danger zone&amp;quot; that could snowball to cover removed modules, themes and profiles too. alexpott resolved the disagreement by scoping &lt;code&gt;AutoloadingStorage&lt;/code&gt; narrowly: it only wraps the sync storage (never active storage) and only for extensions genuinely being installed, and argued failures in this area should fail loudly rather than be silently tolerated. Wim Leers separately pushed for decoding &lt;code&gt;!php/enum&lt;/code&gt; (not just &lt;code&gt;!php/const&lt;/code&gt;) to match Symfony's own documented behavior and keep the PECL and Symfony YAML backends consistent, which alexpott agreed to add. Late in the process mondrake decided that supporting global constants declared in procedural &lt;code&gt;.module&lt;/code&gt; files, a gap mikelutz had surfaced with a failing test, wasn't worth the added complexity and dropped it before the final commit.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588379: Move search from user module to Search</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md</link>
       <guid isPermaLink="false">019f9cd8-e90d-73bc-8d9e-7a29a26f847f</guid>
@@ -1054,64 +1136,6 @@ class MyKernelTest extends KernelTestBase {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;smustgrave caught a real bug during local testing before the change landed: &lt;code&gt;KernelTestAttributeRouteDiscovery&lt;/code&gt; was calling &lt;code&gt;createControllerRouteCollection()&lt;/code&gt;, which was still &lt;code&gt;private&lt;/code&gt; in the parent class, producing a fatal error. godotislate responded by widening both &lt;code&gt;private&lt;/code&gt; methods to &lt;code&gt;protected&lt;/code&gt; and refactoring the constructor to accept a class name string rather than an object. dcam verified the feature by converting a real existing route (&lt;code&gt;binary_file_response_test.download&lt;/code&gt;) to an in-test route and confirming the test still passed. joachim raised the question of how to share a route across multiple kernel tests; godotislate suggested placing the &lt;code&gt;#[Route]&lt;/code&gt;-annotated method in a PHP trait.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3547724: Throw an exception when unsupported procedural functions are defined in views</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3547724.md</link>
-      <guid isPermaLink="false">019f6f49-52b6-76e0-9b5b-e672bb29002d</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 17 Jul 2026 08:24:56 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +17/−107 · php +17/−107&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a06956c97b5c05e823e4a82f34c22d9e836c29a6"&gt;a06956c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3547724"&gt;#3547724&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Support for the &lt;code&gt;access callback&lt;/code&gt; key in Views handler plugin definitions has been removed in Drupal 12.0.0. Any custom Views handler that still declares an &lt;code&gt;access callback&lt;/code&gt; in its definition array will now throw an &lt;code&gt;AccessException&lt;/code&gt; when &lt;code&gt;access()&lt;/code&gt; is called, rather than silently invoking the procedural function. Developers must replace procedural access callbacks with a custom &lt;code&gt;access()&lt;/code&gt; method on their handler class.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;HandlerBase::access()&lt;/code&gt; now throws &lt;code&gt;AccessException&lt;/code&gt; (rather than invoking the callback or returning &lt;code&gt;TRUE&lt;/code&gt;) when &lt;code&gt;access callback&lt;/code&gt; is present in the handler definition; the key is no longer supported.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;HandlerBase::access()&lt;/code&gt; (located in &lt;code&gt;core/modules/views/src/Plugin/views/HandlerBase.php&lt;/code&gt;), the old code checked &lt;code&gt;function_exists($this-&amp;gt;definition['access callback'])&lt;/code&gt;, triggered a &lt;code&gt;@trigger_error&lt;/code&gt; deprecation, and then called the procedural function. The new code replaces all of that with a single unconditional &lt;code&gt;throw new AccessException(...)&lt;/code&gt; whenever the &lt;code&gt;access callback&lt;/code&gt; key is present in the definition at all, regardless of whether the function exists. The check for &lt;code&gt;function_exists&lt;/code&gt; is gone, meaning there is no longer any execution path that runs the callback.&lt;/p&gt;
-&lt;p&gt;The two test helper functions &lt;code&gt;views_test_data_handler_test_access_callback()&lt;/code&gt; and &lt;code&gt;views_test_data_handler_test_access_callback_argument()&lt;/code&gt; have been deleted from &lt;code&gt;core/modules/views/tests/modules/views_test_data/views_test_data.module&lt;/code&gt;, and the corresponding functional &lt;code&gt;testAccess()&lt;/code&gt; test in &lt;code&gt;HandlerTest&lt;/code&gt; has been removed. A new unit test &lt;code&gt;testAccessThrowsExceptionWithAccessCallback()&lt;/code&gt; in &lt;code&gt;HandlerTest&lt;/code&gt; (unit variant) covers the exception path. The original deprecation was introduced in drupal:11.3.0 referencing &lt;a href="https://www.drupal.org/node/3539918"&gt;#3539918&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any custom Views handler definition that sets &lt;code&gt;access callback&lt;/code&gt; must be updated. Instead of:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Old: in hook_views_data() or a derived views data class
-$data['my_table']['my_field']['field']['access callback'] = 'my_module_access_callback';
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Remove the &lt;code&gt;access callback&lt;/code&gt; key entirely and override &lt;code&gt;access()&lt;/code&gt; on the handler class:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// New: in the handler plugin class
-public function access(AccountInterface $account) {
-  // Your access logic here.
-  return $account-&amp;gt;hasPermission('my permission');
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 20, 2025&lt;/li&gt;
-&lt;li&gt;Committed: July 17, 2026 (10 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;lendude (iO)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, nicxvan noted that the &lt;code&gt;function_exists()&lt;/code&gt; guard in the original deprecation code should also be dropped to prevent accidentally granting access if the callback no longer existed. berdir and lendude discussed whether to keep the functional test coverage: berdir explained that removing the generic mechanism meant every handler type would need its own custom test plugin to exercise access logic, making coverage retention high-effort. lendude agreed that removing the tests made sense given that trade-off, and catch re-titled the issue to reflect that the final approach throws an exception rather than silently defaulting to false.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
