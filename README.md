@@ -1,8 +1,16 @@
-**TL;DR:** [895 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [896 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_114 summaries · 9 new this week_
+
+- [#3613451: Make it possible to select agent supplied/default model](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613451.md)
+- [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
+- [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _229 summaries · 117 new this week_
 - [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
 - [#3591716: Boolean props auto-enable when another prop is changed in the Canvas form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591716.md)
 - [#3573022: [upstream] Data loss: `drush config:import` deletes config (e.g. code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573022.md)
-
-### Drupal AI
-
-_113 summaries · 8 new this week_
-
-- [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
-- [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
-- [#3584903: Migrate the inner workings of Surge into AI Best Practices](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3584903.md)
 
 ### Drupal CMS
 
