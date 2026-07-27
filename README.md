@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_464 summaries · 17 new this week_
+_464 summaries · 16 new this week_
 
 - [#3588379: Move search from user module to Search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md)
 - [#3579778: Removed modules should be included as a replace in composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579778.md)
@@ -22,7 +22,7 @@ _229 summaries · 117 new this week_
 
 ### Drupal AI
 
-_113 summaries · 11 new this week_
+_113 summaries · 10 new this week_
 
 - [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
 - [#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601384.md)
