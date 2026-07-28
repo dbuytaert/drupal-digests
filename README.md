@@ -1,8 +1,16 @@
-**TL;DR:** [896 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [898 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_231 summaries · 94 new this week_
+
+- [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
+- [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
+- [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
 
 ### Drupal AI
 
@@ -14,23 +22,15 @@ _114 summaries · 9 new this week_
 
 ### Drupal Core
 
-_465 summaries · 16 new this week_
+_465 summaries · 14 new this week_
 
 - [#2951046: Allow parsing and writing PHP class constants and enums in YAML files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md)
 - [#3588379: Move search from user module to Search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md)
 - [#3579778: Removed modules should be included as a replace in composer.json](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579778.md)
 
-### Drupal Canvas
-
-_229 summaries · 92 new this week_
-
-- [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
-- [#3591716: Boolean props auto-enable when another prop is changed in the Canvas form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591716.md)
-- [#3573022: [upstream] Data loss: `drush config:import` deletes config (e.g. code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3573022.md)
-
 ### Drupal CMS
 
-_88 summaries · 71 new this week_
+_88 summaries · 46 new this week_
 
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
 - [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
