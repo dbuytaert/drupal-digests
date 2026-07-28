@@ -22,7 +22,7 @@ _467 summaries · 14 new this week_
 
 ### Drupal Canvas
 
-_231 summaries · 91 new this week_
+_231 summaries · 69 new this week_
 
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
 - [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
