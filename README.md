@@ -22,7 +22,7 @@ _114 summaries · 9 new this week_
 
 ### Drupal Core
 
-_465 summaries · 14 new this week_
+_465 summaries · 13 new this week_
 
 - [#2951046: Allow parsing and writing PHP class constants and enums in YAML files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md)
 - [#3588379: Move search from user module to Search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md)
@@ -30,7 +30,7 @@ _465 summaries · 14 new this week_
 
 ### Drupal CMS
 
-_88 summaries · 46 new this week_
+_88 summaries · 22 new this week_
 
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
 - [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
