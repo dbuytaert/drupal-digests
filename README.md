@@ -22,7 +22,7 @@ _465 summaries · 16 new this week_
 
 ### Drupal Canvas
 
-_229 summaries · 117 new this week_
+_229 summaries · 92 new this week_
 
 - [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
 - [#3591716: Boolean props auto-enable when another prop is changed in the Canvas form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591716.md)
