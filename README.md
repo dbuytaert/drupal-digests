@@ -1,8 +1,16 @@
-**TL;DR:** [901 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [903 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_89 summaries · 1 new this week_
+
+- [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
+- [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
+- [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
 
 ### Drupal AI
 
@@ -14,7 +22,7 @@ _115 summaries · 10 new this week_
 
 ### Drupal Core
 
-_467 summaries · 14 new this week_
+_468 summaries · 14 new this week_
 
 - [#3585886: Outdated _method requirement in CsrfRequestHeaderAccessCheck::applies()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585886.md)
 - [#3588847: Update to Symfony 8.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588847.md)
@@ -22,19 +30,11 @@ _467 summaries · 14 new this week_
 
 ### Drupal Canvas
 
-_231 summaries · 69 new this week_
+_231 summaries · 43 new this week_
 
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
 - [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
 - [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
-
-### Drupal CMS
-
-_88 summaries · 0 new this week_
-
-- [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
-- [#3542339: Make the blank site option usable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3542339.md)
-- [#3526844: [meta] Implement the first real-world site template](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3526844.md)
 
 
 ## Rector rules
