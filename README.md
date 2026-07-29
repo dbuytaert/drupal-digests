@@ -14,7 +14,7 @@ _89 summaries · 1 new this week_
 
 ### Drupal AI
 
-_115 summaries · 3 new this week_
+_115 summaries · 2 new this week_
 
 - [#3601386: Support multiple configs in one repo: order the picker by a weight key, falling...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601386.md)
 - [#3613451: Make it possible to select agent supplied/default model](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613451.md)
