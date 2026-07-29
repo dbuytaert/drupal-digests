@@ -14,7 +14,7 @@ _89 summaries · 1 new this week_
 
 ### Drupal AI
 
-_115 summaries · 10 new this week_
+_115 summaries · 3 new this week_
 
 - [#3601386: Support multiple configs in one repo: order the picker by a weight key, falling...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601386.md)
 - [#3613451: Make it possible to select agent supplied/default model](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613451.md)
@@ -22,7 +22,7 @@ _115 summaries · 10 new this week_
 
 ### Drupal Core
 
-_468 summaries · 13 new this week_
+_468 summaries · 11 new this week_
 
 - [#3585886: Outdated _method requirement in CsrfRequestHeaderAccessCheck::applies()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585886.md)
 - [#3588847: Update to Symfony 8.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588847.md)
@@ -30,7 +30,7 @@ _468 summaries · 13 new this week_
 
 ### Drupal Canvas
 
-_231 summaries · 20 new this week_
+_231 summaries · 6 new this week_
 
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
 - [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
