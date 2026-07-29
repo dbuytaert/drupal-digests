@@ -5,6 +5,161 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3209204: Adding existing translation throws "Invalid translation language specified"</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3209204.md</link>
+      <guid isPermaLink="false">019faebe-f10b-7390-b9a2-4c9d960821e2</guid>
+      <pubDate>Wed, 29 Jul 2026 13:45:15 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +96/−1 · php +96/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e179038b408bea2467a49f9e29e0a497dfc2887c"&gt;e179038&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3209204"&gt;#3209204&lt;/a&gt; · 13 contributors · 34 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Content editors could get a fatal PHP error (&amp;quot;Invalid translation language specified&amp;quot;, a 500 error page) simply by opening the &amp;quot;Add translation&amp;quot; link for a language that had already been translated, for example by clicking it in two browser tabs, or navigating back after saving a translation. This was easy to hit in ordinary editing workflows for both content entities and menu links. The fix makes &lt;code&gt;ContentTranslationController::add()&lt;/code&gt; detect that the target translation already exists before building the add form, and instead shows the message &amp;quot;A translation already exists for [language]&amp;quot; and redirects the editor to the existing translation's edit form.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The crash happened because &lt;code&gt;ContentTranslationController::add()&lt;/code&gt; unconditionally cloned the entity and called &lt;code&gt;addTranslation()&lt;/code&gt; for the target language, which throws an &lt;code&gt;InvalidArgumentException&lt;/code&gt; in &lt;code&gt;ContentEntityBase::addTranslation()&lt;/code&gt; if that translation already exists. This could occur through races such as two open tabs each adding the same translation, a browser &amp;quot;back&amp;quot; navigation returning to a stale add-translation URL, or another user saving the same translation concurrently.&lt;/p&gt;
+&lt;p&gt;The fix adds a guard in &lt;code&gt;add()&lt;/code&gt;: if &lt;code&gt;$entity-&amp;gt;hasTranslation($target-&amp;gt;getId())&lt;/code&gt; is true, it calls &lt;code&gt;$this-&amp;gt;messenger()-&amp;gt;addError()&lt;/code&gt; with a translated message and returns a &lt;code&gt;Symfony\Component\HttpFoundation\RedirectResponse&lt;/code&gt; to &lt;code&gt;$entity-&amp;gt;getTranslation($target-&amp;gt;getId())-&amp;gt;toUrl('edit-form')-&amp;gt;toString()&lt;/code&gt; instead of proceeding to build the form. The method's return type was widened from &lt;code&gt;array&lt;/code&gt; to &lt;code&gt;array|\Symfony\Component\HttpFoundation\RedirectResponse&lt;/code&gt; to reflect this. A new kernel test, &lt;code&gt;ContentTranslationConcurrencyTest&lt;/code&gt;, exercises this by creating an entity with an existing French translation and calling the controller's &lt;code&gt;add()&lt;/code&gt; method directly, asserting a redirect response and the error message text.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 16, 2021&lt;/li&gt;
+&lt;li&gt;Committed: July 29, 2026 (5 years and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;trevorbradley&lt;/li&gt;
+&lt;li&gt;randalv&lt;/li&gt;
+&lt;li&gt;johnwebdev&lt;/li&gt;
+&lt;li&gt;dieterholvoet (Minsky)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;andras_szilagyi (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;DieterHolvoet revised the fix so that it redirects to the existing translation's edit form rather than back to the translation overview, judging it more user friendly, and confirmed the same fix also resolved the equivalent crash for menu link translations reported by johnwebdev and mpp. Andras Szilagyi later added the kernel test covering the redirect and error message. Claudiu Cristea, investigating a related report of the same error on macOS/Safari, traced an additional trigger: another user saving the same translation concurrently while the current user is still on the add-translation form, which explained why the fix needed to be a defensive check rather than only a client-side navigation issue.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3590917: Introduce a common ancestor class to all Core base test classes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590917.md</link>
+      <guid isPermaLink="false">019faebe-51fc-7074-9a5c-507c3936fba6</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 29 Jul 2026 13:34:10 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +114/−77 · php +114/−77&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fc3581f413051ec473b62d016299afb629ffff85"&gt;fc3581f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3590917"&gt;#3590917&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's PHPUnit test base classes, &lt;code&gt;UnitTestCase&lt;/code&gt;, &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;BrowserTestBase&lt;/code&gt;, and &lt;code&gt;Drupal\BuildTests\Framework\BuildTestBase&lt;/code&gt;, now all extend a single common ancestor, &lt;code&gt;Drupal\Tests\DrupalTestCase&lt;/code&gt;, instead of each separately extending &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt; and using &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt;. For the vast majority of unit, kernel, functional, functional-javascript, and build tests in contrib and custom code, which extend one of these existing base classes, nothing changes. The change mainly matters if you write PHPUnit tests for a &lt;code&gt;Drupal\Component&lt;/code&gt; library that extend &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt; directly (as is required, since Component code must not depend on Core code): if such a test wants Drupal's PHPUnit extensions, it now has to import &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; explicitly rather than getting it automatically.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The already-deprecated &lt;code&gt;getDrupalRoot()&lt;/code&gt; method moved from &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; to &lt;code&gt;DrupalTestCase&lt;/code&gt; and lost its &lt;code&gt;static&lt;/code&gt; modifier, becoming a regular instance method.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New abstract &lt;code&gt;Drupal\Tests\DrupalTestCase&lt;/code&gt; class is the common ancestor of &lt;code&gt;UnitTestCase&lt;/code&gt;, &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;BrowserTestBase&lt;/code&gt; and &lt;code&gt;Drupal\BuildTests\Framework\BuildTestBase&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Previously, &lt;code&gt;UnitTestCase&lt;/code&gt;, &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;BrowserTestBase&lt;/code&gt;, and &lt;code&gt;BuildTestBase&lt;/code&gt; each independently extended &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt; and separately used &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; for shared behavior, most notably setting the &lt;code&gt;$root&lt;/code&gt; property via a &lt;code&gt;#[Before(100)]&lt;/code&gt;-tagged &lt;code&gt;setUpRoot()&lt;/code&gt; hook and exposing the deprecated &lt;code&gt;getDrupalRoot()&lt;/code&gt; accessor. The new &lt;code&gt;Drupal\Tests\DrupalTestCase&lt;/code&gt; abstract class centralizes that: it extends &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt;, uses &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; once, and declares the &lt;code&gt;$root&lt;/code&gt; property, &lt;code&gt;setUpRoot()&lt;/code&gt;, and &lt;code&gt;getDrupalRoot()&lt;/code&gt; itself. All four base classes now extend &lt;code&gt;DrupalTestCase&lt;/code&gt; instead of &lt;code&gt;TestCase&lt;/code&gt; directly, and dropped their own &lt;code&gt;use DrupalTestCaseTrait;&lt;/code&gt; statements.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; itself was trimmed down to the remaining cross-cutting helpers (such as registering the dumper CLI handler) and re-documented as something you only need to import directly when writing a &lt;code&gt;Drupal\Component&lt;/code&gt; test that extends &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt; and still wants Drupal's PHPUnit extensions. As part of moving &lt;code&gt;getDrupalRoot()&lt;/code&gt; onto &lt;code&gt;DrupalTestCase&lt;/code&gt;, it dropped the &lt;code&gt;static&lt;/code&gt; modifier it had on the trait, since &lt;code&gt;$this-&amp;gt;root&lt;/code&gt; is an instance property.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you maintain a &lt;code&gt;Drupal\Component&lt;/code&gt; PHPUnit test that extends &lt;code&gt;PHPUnit\Framework\TestCase&lt;/code&gt; directly and relies on Drupal's PHPUnit extensions (previously available for free via &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt;), import the trait explicitly:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Tests\DrupalTestCaseTrait;
+use PHPUnit\Framework\TestCase;
+
+class MyComponentTest extends TestCase {
+  use DrupalTestCaseTrait;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Tests that already extend &lt;code&gt;UnitTestCase&lt;/code&gt;, &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;BrowserTestBase&lt;/code&gt;, or &lt;code&gt;BuildTestBase&lt;/code&gt; require no changes.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 19, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 29, 2026 (2 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;kingdutch (Open Social)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;kingdutch reviewed the change as a recent contributor to the test scaffolding, noting that tracing properties across the previously separate traits had been difficult, and that the new shared &lt;code&gt;DrupalTestCase&lt;/code&gt; base class makes explicit what is minimally needed to test Drupal code. He discussed with mondrake why &lt;code&gt;BuildTestBase&lt;/code&gt; still needed its own PHPStan baseline entry for the deprecated &lt;code&gt;getDrupalRoot()&lt;/code&gt; call, and pointed to &lt;a href="https://www.drupal.org/node/1792310"&gt;#1792310&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3590337"&gt;#3590337&lt;/a&gt; as candidates for resolving that inconsistency later. Separately, quietone found the new docblock added to &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; too dense and asked for plain-language wording; mondrake rewrote it, and quietone confirmed the revision was clearer before restoring RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3613344: Remove update_fetch_with_http_fallback</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613344.md</link>
+      <guid isPermaLink="false">019faebc-bb76-774d-aa9d-13a5347f22d2</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 29 Jul 2026 13:12:18 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +14/−317 · php +14/−316 · yml +0/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5a7489d2a923481e586a429030a854207f56c40c"&gt;5a7489d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3613344"&gt;#3613344&lt;/a&gt; · 5 contributors · 11 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal 12 removes the &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; setting, which previously let a site fall back to plain HTTP when HTTPS requests to updates.drupal.org failed while checking for available updates or security advisories. This insecure fallback option was deprecated in Drupal 11.5 (&lt;a href="https://www.drupal.org/node/3591513"&gt;#3591513&lt;/a&gt;) and is now gone with no replacement. Sites that still have this setting uncommented in &lt;code&gt;settings.php&lt;/code&gt; should remove it; it no longer has any effect and update/security-advisory checks will always use HTTPS.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Drupal\update\UpdateFetcher::__construct()&lt;/code&gt; and &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher::__construct()&lt;/code&gt; no longer accept a &lt;code&gt;Settings&lt;/code&gt; argument; the internal &lt;code&gt;Drupal\package_manager\Validator\SettingsValidator&lt;/code&gt; class and its service definition were removed entirely.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; settings.php setting, deprecated in Drupal 11.5, is removed in Drupal 12 with no replacement.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change strips the &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; handling out of the two places that read it: &lt;code&gt;Drupal\update\UpdateFetcher::doRequest()&lt;/code&gt; and &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher::doRequest()&lt;/code&gt; (formerly &lt;code&gt;Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher&lt;/code&gt;) now issue a single HTTPS &lt;code&gt;GET&lt;/code&gt; and no longer catch a failed HTTPS attempt to retry over &lt;code&gt;http://&lt;/code&gt;. Both classes' constructors drop the injected &lt;code&gt;Settings $settings&lt;/code&gt; parameter along with the &lt;code&gt;$withHttpFallback&lt;/code&gt; property. The corresponding entry in &lt;code&gt;Drupal\Core\Site\Settings::$deprecatedSettings&lt;/code&gt; is removed, leaving that array empty.&lt;/p&gt;
+&lt;p&gt;Package Manager's &lt;code&gt;Drupal\package_manager\Validator\SettingsValidator&lt;/code&gt;, which existed solely to block updates while the fallback setting was enabled, is deleted along with its service definition and &lt;code&gt;SettingsValidatorTest&lt;/code&gt;. The commented-out documentation block for the setting is removed from &lt;code&gt;default.settings.php&lt;/code&gt;. Test coverage for the HTTP-fallback code paths (&lt;code&gt;testHttpFallback&lt;/code&gt;, &lt;code&gt;testUpdateFetcherHttpFallback&lt;/code&gt;) was removed accordingly, and &lt;code&gt;Drupal\Tests\Core\Site\SettingsTest::testRealDeprecatedSettings&lt;/code&gt; is marked skipped rather than deleted outright, since it needs at least one real &amp;quot;deprecated with no replacement&amp;quot; setting to exercise its data provider and none currently exists for the Drupal 12 transition.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Remove any uncommented &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; line from &lt;code&gt;settings.php&lt;/code&gt;; it has no effect on Drupal 12 and update checks always use HTTPS:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;# $settings['update_fetch_with_http_fallback'] = TRUE;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If custom code instantiates or extends &lt;code&gt;Drupal\update\UpdateFetcher&lt;/code&gt; or &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher&lt;/code&gt; directly, remove the &lt;code&gt;Settings $settings&lt;/code&gt; constructor argument, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+new UpdateFetcher($config_factory, $http_client, $settings, $logger);
+// After:
+new UpdateFetcher($config_factory, $http_client, $logger);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 29, 2026 (2 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;macsim&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, macsim flagged that removing the setting also removed the only entry in &lt;code&gt;Settings::$deprecatedSettings&lt;/code&gt;, breaking &lt;code&gt;testRealDeprecatedSettings&lt;/code&gt; since its data provider needs at least one real deprecated-without-replacement setting to run. mstrelan considered a couple of options (adding a test-only fake entry, or using reflection) before settling on restoring the test but marking it skipped with &lt;code&gt;markTestSkipped()&lt;/code&gt;, so it is ready to be reactivated once a future deprecation without a replacement exists.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585886: Outdated _method requirement in CsrfRequestHeaderAccessCheck::applies()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585886.md</link>
       <guid isPermaLink="false">019fa99a-f912-7257-8b38-0c03e8c3e0ad</guid>
@@ -927,183 +1082,6 @@ recipes:
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The thread had been open for over seven years and went through several design pivots. The original report flagged that plain-text URLs were being broken, but the issue stalled partly because the bug was hard to reproduce on a fresh install without a specific template. The key design shift came from alexpott (comment &lt;a href="https://www.drupal.org/node/15621679"&gt;#15621679&lt;/a&gt;), who argued that the formatter does two fundamentally different things: rendering an anchor tag (where trimming the visible text is harmless) versus emitting raw text (where trimming produces a broken URL). That framing redirected the fix from simply removing the 80-character default entirely to a targeted bypass that only skips the trim in plain-text display modes, preserving the trim for anchor-tag rendering where it still makes sense.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3284817: Adopt vincentlanglet/twig-cs-fixer for Twig coding standards</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3284817.md</link>
-      <guid isPermaLink="false">019f8317-5e57-774c-afc7-bb38c85e81d7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 21 Jul 2026 02:00:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 184 files, +527/−308 · twig +300/−303 · lock +78/−1 · yml +50/−1 · sh +46 · php +39 · json +8/−3 · gitignore +3 · txt +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f9bfac3ace713981e7ca656eb302a618f1786e56"&gt;f9bfac3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3284817"&gt;#3284817&lt;/a&gt; · 21 contributors · 82 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 35&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core has adopted &lt;code&gt;vincentlanglet/twig-cs-fixer&lt;/code&gt; as a &lt;code&gt;require-dev&lt;/code&gt; dependency to enforce Twig coding standards, closing the last gap in core's automated linting suite alongside PHP_CodeSniffer, ESLint, and Stylelint. As part of the change, approximately 176 existing core Twig files were reformatted to comply with the new rules. Developers contributing Twig templates to core (or wanting to follow core conventions in contrib or custom themes) now have an official tool and a reference configuration to work from. Site owners are not affected; the reformatted templates produce identical rendered output.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New Composer scripts &lt;code&gt;composer twigcs&lt;/code&gt; and &lt;code&gt;composer twigcs-fix&lt;/code&gt; for checking and auto-fixing Twig coding standard violations.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;core/.twig-cs-fixer.php&lt;/code&gt; configuration file registers Drupal's &lt;code&gt;TwigTransTokenParser&lt;/code&gt; so the linter understands the &lt;code&gt;{% trans %}&lt;/code&gt; tag, excludes &lt;code&gt;tests/&lt;/code&gt; directories from linting, and applies the &lt;code&gt;TwigCsFixer&lt;/code&gt; standard (which implements the official Twig coding standards at twig.symfony.com). Two rules are overridden for Drupal: &lt;code&gt;IndentRule(spaceRatio: 2)&lt;/code&gt; for 2-space indentation and &lt;code&gt;CompactHashRule(TRUE)&lt;/code&gt; to require no spaces around inline hash literals (e.g. &lt;code&gt;{key: value}&lt;/code&gt; rather than &lt;code&gt;{ 'key': value }&lt;/code&gt;). &lt;code&gt;allowNonFixableRules()&lt;/code&gt; is called so the config works in both lint and fix modes.&lt;/p&gt;
-&lt;p&gt;Two Composer scripts are added: &lt;code&gt;composer twigcs&lt;/code&gt; runs a lint check and &lt;code&gt;composer twigcs-fix&lt;/code&gt; auto-fixes violations. A new &lt;code&gt;🧹 Twig Coding standards (twig-cs-fixer)&lt;/code&gt; job is added to the GitLab CI Lint stage; on merge-request pipelines it only triggers when &lt;code&gt;.twig&lt;/code&gt; files, &lt;code&gt;core/.twig-cs-fixer.php&lt;/code&gt;, or &lt;code&gt;composer.json&lt;/code&gt;/&lt;code&gt;composer.lock&lt;/code&gt; change. Cache artifacts use the file &lt;code&gt;core/.twigcsfixercache&lt;/code&gt;, which is added to &lt;code&gt;.gitignore&lt;/code&gt; and wired into the existing CI cache download/upload pattern alongside the PHP and JS caches. The &lt;code&gt;commit-code-check.sh&lt;/code&gt; pre-commit script is also updated to run the linter against any staged &lt;code&gt;.twig&lt;/code&gt; files, and to re-lint all files when the config itself changes.&lt;/p&gt;
-&lt;p&gt;The bulk reformatting of the ~176 existing core files normalized four categories of style: &lt;code&gt;{% include 'tmpl' %}&lt;/code&gt; tags became &lt;code&gt;{{ include('tmpl') }}&lt;/code&gt; function calls; &lt;code&gt;{% include 'tmpl' with {...} only %}&lt;/code&gt; became &lt;code&gt;{{ include('tmpl', {...}, with_context: false) }}&lt;/code&gt;; double-quoted string literals became single-quoted; and hash array keys were converted from quoted form (&lt;code&gt;{'key': value}&lt;/code&gt;) to unquoted form (&lt;code&gt;{key: value}&lt;/code&gt;) where the key is a valid identifier. Trailing commas were also added to multi-line array and argument lists.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No changes are required for existing sites. Developers contributing Twig templates to Drupal core can check their files with:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;composer twigcs
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;And auto-fix violations with:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;composer twigcs-fix
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The configuration lives in &lt;code&gt;core/.twig-cs-fixer.php&lt;/code&gt;. Custom modules or themes that want to adopt the same standards can reference that file as a starting point, though the &lt;code&gt;TwigTransTokenParser&lt;/code&gt; registration it contains is only needed when linting templates that use Drupal's &lt;code&gt;{% trans %}&lt;/code&gt; tag.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 9, 2022&lt;/li&gt;
-&lt;li&gt;Committed: July 21, 2026 (4 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;saidatom (Squarebit)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;rodrigoaguilera&lt;/li&gt;
-&lt;li&gt;xjm (HeroDevs)&lt;/li&gt;
-&lt;li&gt;feuerwagen (Keen On Digital)&lt;/li&gt;
-&lt;li&gt;papagrande (VTP Ventures)&lt;/li&gt;
-&lt;li&gt;thejimbirch (Kanopi Studios)&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;alex.skrypnyk (DrevOps)&lt;/li&gt;
-&lt;li&gt;lisa.rae (Vardot)&lt;/li&gt;
-&lt;li&gt;grimreaper (Smile)&lt;/li&gt;
-&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
-&lt;li&gt;johnalbin&lt;/li&gt;
-&lt;li&gt;murz (EPAM)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;pdureau (Beyris)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was open for nearly three years and required sustained effort from several contributors. feuerwagen noticed the upstream &lt;code&gt;vincentlanglet/twig-cs-fixer&lt;/code&gt; project lacked a published security policy (a blocker for adding any new Drupal core dependency) and filed a GitHub issue to request one; the maintainer adopted it within days, allowing the evaluation to proceed. grimreaper carried the MR through multiple rebases across major version changes, ultimately creating fresh MRs each time the old branches became impossible to rebase, and updated the dependency to version 4.0.0 for the final round. johnalbin joined late and reviewed every non-Twig file in the diff, resolved the &lt;code&gt;with_context: false&lt;/code&gt; naming question, added the CI optimization that limits the linting job to pipelines where Twig files actually changed, and pushed the last round of corrections before RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3485030: Avoid saving menu links through node form when they do not change</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3485030.md</link>
-      <guid isPermaLink="false">019f8063-425f-711a-8094-03ca70f92edb</guid>
-      <pubDate>Mon, 20 Jul 2026 12:57:42 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +43/−2 · php +43/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c4d7966964ef69920693b7771292d26b5241de05"&gt;c4d7966&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3485030"&gt;#3485030&lt;/a&gt; · 11 contributors · 48 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 22&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When an editor saves a node through the node edit form without making any changes to the associated menu link, Drupal previously saved the &lt;code&gt;menu_link_content&lt;/code&gt; entity unconditionally, triggering &lt;code&gt;postSave()&lt;/code&gt; and invalidating the &lt;code&gt;config:system.menu.MENUNAME&lt;/code&gt; cache tag every time. Because menus are rendered on most pages, this caused broad, unnecessary cache invalidation across CDNs and page caches. After this fix, the menu link entity is only saved when something actually changed, preventing spurious invalidation of menu cache tags on unrelated node saves.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;MenuUiHelper::menuUiNodeSave()&lt;/code&gt; in &lt;code&gt;menu_ui&lt;/code&gt;. Previously, &lt;code&gt;$entity-&amp;gt;save()&lt;/code&gt; was called unconditionally at the end of the function regardless of whether any menu link fields had changed. The fix splits that single save call into two paths. For the branch that handles updating an existing &lt;code&gt;menu_link_content&lt;/code&gt; entity (when &lt;code&gt;$values['entity_id']&lt;/code&gt; is set), &lt;code&gt;$entity-&amp;gt;setOriginal(clone $entity)&lt;/code&gt; is called immediately after loading, which arms the entity's change tracking. For the else branch (pending-revision handling), a &lt;code&gt;$default_revision_change&lt;/code&gt; flag is computed by comparing &lt;code&gt;$entity-&amp;gt;isDefaultRevision()&lt;/code&gt; with &lt;code&gt;$node-&amp;gt;isDefaultRevision()&lt;/code&gt;, and &lt;code&gt;$entity-&amp;gt;save()&lt;/code&gt; is now gated on &lt;code&gt;$default_revision_change || $entity-&amp;gt;hasTranslationChanges()&lt;/code&gt;. Using &lt;code&gt;hasTranslationChanges()&lt;/code&gt; alone was not sufficient because it does not detect a default-to-non-default revision transition; that required the explicit separate flag. An earlier approach proposed implementing the skip logic inside &lt;code&gt;MenuTreeStorage::doSave()&lt;/code&gt;, but that was rejected because the storage layer is not declared internal and because &lt;code&gt;MenuLinkContent::postSave()&lt;/code&gt; writes only the active-language title into the tree storage, making a purely storage-level comparison unreliable for multilingual sites (see comment #26). The new test coverage in &lt;code&gt;MenuNodeFormWidgetTest&lt;/code&gt; verifies the &lt;code&gt;cache_tags.invalidator.checksum&lt;/code&gt; service before and after various scenarios: no-op saves do not increment the checksum; adding, modifying weight, and deleting a menu link do. The fix also uncovered a separate bug in how content moderation and non-default revisions interacted, which was resolved as a prerequisite in &lt;a href="https://www.drupal.org/node/3499181"&gt;#3499181&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 1, 2024&lt;/li&gt;
-&lt;li&gt;Committed: July 20, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;achap&lt;/li&gt;
-&lt;li&gt;kristiaanvandeneynde (Factorial.io)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;andy_w (Numiko)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir drove the final implementation after the original approach (changing &lt;code&gt;MenuTreeStorage::doSave()&lt;/code&gt; return value, proposed by achap) was found to be a risky behavior change for multilingual sites. In comment #26, berdir explained that &lt;code&gt;MenuLinkContent::postSave()&lt;/code&gt; only writes the active-language title into the tree storage, so any storage-level equality check would silently drop multilingual data. berdir opened a new MR targeting &lt;code&gt;menu_ui&lt;/code&gt; instead, then hit a test failure tracing back to a content-moderation bug introduced years earlier (credited partly to berdir's own past work) that allowed saving a default revision as a non-default revision. That was spun out and fixed as a prerequisite in &lt;a href="https://www.drupal.org/node/3499181"&gt;#3499181&lt;/a&gt;. After that blocker landed, berdir switched the change-detection logic from explicit field comparisons to &lt;code&gt;hasTranslationChanges()&lt;/code&gt;, then discovered that method misses the default-revision flag, requiring the explicit &lt;code&gt;$default_revision_change&lt;/code&gt; guard. achap closed the original MR once the community agreed the storage-layer approach was not safe.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3595652: Deprecate module.inc contents</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595652.md</link>
-      <guid isPermaLink="false">019f7ecf-9de9-729c-ad52-241e7c34fa0d</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 20 Jul 2026 08:32:24 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +158/−112 · php +155/−111 · yml +3/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/daf0e8e3a1e877a44451bd8974ae39b3f08bdbf4"&gt;daf0e8e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595652"&gt;#3595652&lt;/a&gt; · 6 contributors · 27 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The two procedural functions in &lt;code&gt;module.inc&lt;/code&gt; that manage module weights, &lt;code&gt;module_set_weight()&lt;/code&gt; and &lt;code&gt;module_config_sort()&lt;/code&gt;, are deprecated in Drupal 11.5.0 and will be removed in Drupal 13.0.0. Their logic has been moved into a new &lt;code&gt;Drupal\Core\Extension\ModuleWeight&lt;/code&gt; service, which provides equivalent &lt;code&gt;set()&lt;/code&gt; and &lt;code&gt;sort()&lt;/code&gt; methods. Modules that call either procedural function directly need to switch to the service before upgrading to Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ModuleInstaller::__construct()&lt;/code&gt; gained a new nullable &lt;code&gt;?ModuleWeight $moduleWeight&lt;/code&gt; parameter; it will be required in drupal:12.0.0.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;module_set_weight()&lt;/code&gt; and &lt;code&gt;module_config_sort()&lt;/code&gt; in &lt;code&gt;module.inc&lt;/code&gt; deprecated in drupal:11.5.0 and removed in drupal:13.0.0; replaced by &lt;code&gt;Drupal\Core\Extension\ModuleWeight::set()&lt;/code&gt; and &lt;code&gt;::sort()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Extension\ModuleWeight&lt;/code&gt; service with &lt;code&gt;set(string $module, int $weight): void&lt;/code&gt; and &lt;code&gt;sort(array $data): array&lt;/code&gt; methods.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;Drupal\Core\Extension\ModuleWeight&lt;/code&gt; class lives in &lt;code&gt;core/lib/Drupal/Core/Extension/ModuleWeight.php&lt;/code&gt; and is registered as an autowired service. It accepts &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; and &lt;code&gt;ConfigFactoryInterface&lt;/code&gt; via constructor injection. &lt;code&gt;ModuleWeight::set(string $module, int $weight): void&lt;/code&gt; replicates the logic previously in &lt;code&gt;module_set_weight()&lt;/code&gt;, including writing to &lt;code&gt;core.extension&lt;/code&gt; config and updating the live module list in the module handler. &lt;code&gt;ModuleWeight::sort(array $data): array&lt;/code&gt; replicates the sign-prefix plus zero-padded integer plus name string-sort algorithm from &lt;code&gt;module_config_sort()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The procedural functions in &lt;code&gt;module.inc&lt;/code&gt; now contain only a &lt;code&gt;@trigger_error&lt;/code&gt; deprecation notice followed by a delegation call to &lt;code&gt;\Drupal::service(ModuleWeight::class)&lt;/code&gt;. All internal callers across Drupal core (including &lt;code&gt;ModuleInstaller&lt;/code&gt;, &lt;code&gt;ExcludedModulesEventSubscriber&lt;/code&gt;, the installer's &lt;code&gt;install_finished()&lt;/code&gt;, &lt;code&gt;content_translation.install&lt;/code&gt;, &lt;code&gt;views.install&lt;/code&gt;, and several test classes) have been updated to use the service directly.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ModuleInstaller::__construct()&lt;/code&gt; gained a new nullable &lt;code&gt;?ModuleWeight $moduleWeight&lt;/code&gt; parameter at the end of its signature; a deprecation notice is triggered if the argument is absent when the class is constructed, and the argument will be required in Drupal 12.0.0. &lt;code&gt;ExcludedModulesEventSubscriber&lt;/code&gt; similarly gained &lt;code&gt;ModuleWeight&lt;/code&gt; as a new constructor argument and its service definition in &lt;code&gt;core.services.yml&lt;/code&gt; was updated accordingly.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace calls to &lt;code&gt;module_set_weight()&lt;/code&gt; with the &lt;code&gt;ModuleWeight&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated since 11.5.0):
-module_set_weight('mymodule', 10);
-
-// After:
-use Drupal\Core\Extension\ModuleWeight;
-\Drupal::service(ModuleWeight::class)-&amp;gt;set('mymodule', 10);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Replace calls to &lt;code&gt;module_config_sort()&lt;/code&gt; with the &lt;code&gt;ModuleWeight&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated since 11.5.0):
-$sorted = module_config_sort($modules);
-
-// After:
-use Drupal\Core\Extension\ModuleWeight;
-$sorted = \Drupal::service(ModuleWeight::class)-&amp;gt;sort($modules);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you extend or directly instantiate &lt;code&gt;ModuleInstaller&lt;/code&gt;, add &lt;code&gt;ModuleWeight&lt;/code&gt; as the final constructor argument. See the change record at https://www.drupal.org/node/3595653.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 11, 2026&lt;/li&gt;
-&lt;li&gt;First commit: July 14, 2026 (1 month later)&lt;/li&gt;
-&lt;li&gt;Last commit: July 20, 2026 (5 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

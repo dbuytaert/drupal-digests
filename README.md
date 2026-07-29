@@ -1,8 +1,24 @@
-**TL;DR:** [903 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [907 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_471 summaries · 14 new this week_
+
+- [#3209204: Adding existing translation throws "Invalid translation language specified"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3209204.md)
+- [#3590917: Introduce a common ancestor class to all Core base test classes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590917.md)
+- [#3613344: Remove update_fetch_with_http_fallback](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613344.md)
+
+### Drupal Canvas
+
+_232 summaries · 7 new this week_
+
+- [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
+- [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
+- [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
 
 ### Drupal CMS
 
@@ -19,22 +35,6 @@ _115 summaries · 2 new this week_
 - [#3601386: Support multiple configs in one repo: order the picker by a weight key, falling...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601386.md)
 - [#3613451: Make it possible to select agent supplied/default model](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613451.md)
 - [#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601381.md)
-
-### Drupal Core
-
-_468 summaries · 11 new this week_
-
-- [#3585886: Outdated _method requirement in CsrfRequestHeaderAccessCheck::applies()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585886.md)
-- [#3588847: Update to Symfony 8.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588847.md)
-- [#2951046: Allow parsing and writing PHP class constants and enums in YAML files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md)
-
-### Drupal Canvas
-
-_231 summaries · 6 new this week_
-
-- [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
-- [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
-- [#3591857: Removing a media item from one image prop deletes the stored value of every...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md)
 
 
 ## Rector rules
