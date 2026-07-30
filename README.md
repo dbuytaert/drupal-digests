@@ -1,4 +1,4 @@
-**TL;DR:** [907 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [908 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_471 summaries · 14 new this week_
+_472 summaries · 15 new this week_
 
+- [#3050199: Remove entity level constraint MenuSettingsConstraint that validates property...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3050199.md)
 - [#3209204: Adding existing translation throws "Invalid translation language specified"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3209204.md)
 - [#3590917: Introduce a common ancestor class to all Core base test classes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590917.md)
-- [#3613344: Remove update_fetch_with_http_fallback](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613344.md)
 
 ### Drupal Canvas
 
-_232 summaries · 6 new this week_
+_232 summaries · 5 new this week_
 
 - [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
