@@ -14,7 +14,7 @@ _471 summaries · 14 new this week_
 
 ### Drupal Canvas
 
-_232 summaries · 7 new this week_
+_232 summaries · 6 new this week_
 
 - [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
