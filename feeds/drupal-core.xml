@@ -5,6 +5,70 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3584238: Deprecate implicit commit-on-destruct</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584238.md</link>
+      <guid isPermaLink="false">019fb243-cd6f-76d1-bf59-e73626330f6a</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 30 Jul 2026 07:47:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +117/−15 · php +117/−15&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9a20b9c4195dce61e3f1ea32b28def8a59b4b2a0"&gt;9a20b9c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584238"&gt;#3584238&lt;/a&gt; · 6 contributors · 29 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's database transaction system has, since its inception, committed a transaction automatically when the PHP &lt;code&gt;Transaction&lt;/code&gt; object holding it went out of scope and was garbage collected. This implicit &amp;quot;commit on destruct&amp;quot; behavior is now deprecated: code should instead call &lt;code&gt;$transaction-&amp;gt;commitOrRelease()&lt;/code&gt; explicitly once the wrapped database operations have completed. The old behavior still works for now (it's removed only in Drupal 13.0.0), so most sites and contributed modules will keep working unchanged, but developers writing custom code that opens transactions directly should update it to avoid deprecation notices and to avoid relying on PHP's unpredictable object destruction order. A few internal helper methods added earlier as a workaround for this same destruction-order problem (&lt;code&gt;Connection::commitAll()&lt;/code&gt;, &lt;code&gt;Database::commitAllOnShutdown()&lt;/code&gt;, &lt;code&gt;TransactionManagerBase::commitAll()&lt;/code&gt;) are also deprecated with no replacement, since they exist only to support the mechanism being phased out.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Implicit commit of a &lt;code&gt;Transaction&lt;/code&gt; object on destruction is deprecated (removed in Drupal 13.0.0). Also deprecated for removal: &lt;code&gt;Connection::commitAll()&lt;/code&gt;, &lt;code&gt;Database::commitAllOnShutdown()&lt;/code&gt;, &lt;code&gt;TransactionManagerBase::commitAll()&lt;/code&gt;, with no replacement.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;TransactionManagerBase::purge()&lt;/code&gt;, called when a &lt;code&gt;Transaction&lt;/code&gt; object's destructor runs, now emits &lt;code&gt;@trigger_error(..., E_USER_DEPRECATED)&lt;/code&gt; pointing to &lt;code&gt;Transaction::commitOrRelease()&lt;/code&gt; as the replacement, unless a new private &lt;code&gt;$exceptionThrown&lt;/code&gt; flag is set. That flag is set whenever &lt;code&gt;push()&lt;/code&gt;, &lt;code&gt;unpile()&lt;/code&gt;, &lt;code&gt;commit()&lt;/code&gt;, &lt;code&gt;rollback()&lt;/code&gt;, &lt;code&gt;addPostTransactionCallback()&lt;/code&gt;, or &lt;code&gt;processRootCommit()&lt;/code&gt; throws (&lt;code&gt;TransactionNameNonUniqueException&lt;/code&gt;, &lt;code&gt;TransactionOutOfOrderException&lt;/code&gt;, &lt;code&gt;TransactionCommitFailedException&lt;/code&gt;, &lt;code&gt;LogicException&lt;/code&gt;), so that objects destroyed during exception unwinding don't produce a spurious deprecation notice, and is reset to &lt;code&gt;FALSE&lt;/code&gt; whenever a new root transaction begins. &lt;code&gt;TransactionManagerBase::commitAll()&lt;/code&gt;, &lt;code&gt;Connection::commitAll()&lt;/code&gt;, and &lt;code&gt;Database::commitAllOnShutdown()&lt;/code&gt; are marked &lt;code&gt;@deprecated in drupal:11.5.0 ... removed from drupal:13.0.0&lt;/code&gt; using only doc-comment deprecation (no &lt;code&gt;@trigger_error&lt;/code&gt;), since these run implicitly on every request shutdown and would otherwise flood deprecation logs; PHPStan (&lt;code&gt;@phpstan-ignore&lt;/code&gt;) is relied on instead to catch remaining usages statically.&lt;/p&gt;
+&lt;p&gt;Separately, &lt;code&gt;ContentEntityStorageBase::save()&lt;/code&gt; now catches &lt;code&gt;\Throwable&lt;/code&gt; instead of &lt;code&gt;\Exception&lt;/code&gt; around the save operation before rolling back its transaction. Per mondrake's comment on the issue, the narrower &lt;code&gt;\Exception&lt;/code&gt; catch could let a PHP &lt;code&gt;Error&lt;/code&gt; escape without rolling back, leaving the transaction to be released (committed) via destruction instead of rolled back, exactly the kind of bug this deprecation effort is meant to surface and prevent.&lt;/p&gt;
+&lt;p&gt;Class doc comments on &lt;code&gt;Transaction&lt;/code&gt; and &lt;code&gt;Connection&lt;/code&gt; were updated to no longer describe destruction-triggered commit as the intended usage pattern, directing developers toward calling &lt;code&gt;commitOrRelease()&lt;/code&gt; explicitly instead. See the change record at drupal.org/node/3524461. Related issues &lt;a href="https://www.drupal.org/node/3569127"&gt;#3569127&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3569316"&gt;#3569316&lt;/a&gt; dealt with fallout from the underlying destruction-order transaction work this deprecation follows up on.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that opens a transaction directly and lets it commit implicitly when the variable goes out of scope should call &lt;code&gt;commitOrRelease()&lt;/code&gt; explicitly instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;try {
+  $transaction = \Drupal::database()-&amp;gt;startTransaction();
+  // ... perform database operations ...
+  my_other_function($id);
+
+  // The transaction has completed, commit it here.
+  $transaction-&amp;gt;commitOrRelease();
+
+  return $id;
+}
+catch (Exception $e) {
+  $transaction-&amp;gt;rollback();
+  throw $e;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Do not call &lt;code&gt;Connection::commitAll()&lt;/code&gt;, &lt;code&gt;Database::commitAllOnShutdown()&lt;/code&gt;, or &lt;code&gt;TransactionManagerBase::commitAll()&lt;/code&gt;: they are deprecated with no replacement and will be removed in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: July 30, 2026 (3 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;mondrake, who authored the fix, noted mid-review that &amp;quot;another commit-on-destruct has leaked in the code base&amp;quot; and traced a subtle bug: a &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch(\Exception)&lt;/code&gt; in &lt;code&gt;ContentEntityStorageBase::save()&lt;/code&gt; failed to intercept a PHP &lt;code&gt;Error&lt;/code&gt;, causing a savepoint to be released instead of rolled back. mondrake called this &amp;quot;tough&amp;quot; to track down and said it drove the broader improvement of catching &lt;code&gt;\Throwable&lt;/code&gt; there. mradcliffe reviewed the change, manually tested installation under PostgreSQL 18 and checked for performance regressions before marking it RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3050199: Remove entity level constraint MenuSettingsConstraint that validates property only added in a form</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3050199.md</link>
       <guid isPermaLink="false">019fb16f-482b-71d0-bbb0-7229950e66c5</guid>
@@ -1025,60 +1089,6 @@ base theme: stable
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Review by &lt;code&gt;dcam&lt;/code&gt; was substantive enough to block the merge twice. On the first pass, &lt;code&gt;dcam&lt;/code&gt; noted that the theme had not been added to &lt;code&gt;DRUPAL_CORE_REMOVED_THEME_LIST&lt;/code&gt; because the constant had silently moved from &lt;code&gt;system.install&lt;/code&gt; to &lt;code&gt;SystemRequirements.php&lt;/code&gt; since earlier theme removals. On a second review pass, &lt;code&gt;dcam&lt;/code&gt; ran CSpell locally and identified that the word &lt;code&gt;necolas&lt;/code&gt; (from stable9's vendored &lt;code&gt;normalize.css&lt;/code&gt; attribution) still appeared in the core dictionary and needed to be removed. Both issues were corrected before the issue was set to RTBC and committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3605549: Allow install profiles to specify a list of recipes that should be applied</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605549.md</link>
-      <guid isPermaLink="false">019f84b1-f51e-76aa-b4fb-bdd251394858</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 21 Jul 2026 03:38:11 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +59/−0 · php +50 · yml +9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b0f28bf138ee0ad366369bec2d3a8009a1178cd0"&gt;b0f28bf&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3605549"&gt;#3605549&lt;/a&gt; · 3 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Install profiles can now list recipes in their &lt;code&gt;.info.yml&lt;/code&gt; file under a &lt;code&gt;recipes&lt;/code&gt; key, and Drupal will apply those recipes automatically as part of the installation batch, immediately after modules are installed. Previously, a profile that wanted to apply a recipe had to use workarounds like Drupal CMS does. This change eliminates that need and lets profiles combine traditional module installation with recipe-based configuration in a single, declarative step.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Profile &lt;code&gt;.info.yml&lt;/code&gt; files gain an optional &lt;code&gt;recipes&lt;/code&gt; list key recognized by &lt;code&gt;install_profile_modules()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;recipes&lt;/code&gt; key supported in install profile &lt;code&gt;.info.yml&lt;/code&gt; files; lists recipe directory paths to apply during installation.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is a small addition to &lt;code&gt;install_profile_modules()&lt;/code&gt; in the installer. After the module-install batch is assembled, the function reads &lt;code&gt;$install_state['profile_info']['recipes']&lt;/code&gt; and maps each path to a &lt;code&gt;Recipe&lt;/code&gt; object using &lt;code&gt;Recipe::createFromDirectory(...)&lt;/code&gt;. It then calls &lt;code&gt;RecipeRunner::toBatchOperations()&lt;/code&gt; on each recipe and appends the resulting operations to the same &lt;code&gt;BatchBuilder&lt;/code&gt;, so recipes run in the order listed, back-to-back with module installs.&lt;/p&gt;
-&lt;p&gt;Path resolution follows the existing convention: core recipe paths (e.g. &lt;code&gt;core/recipes/audio_media_type&lt;/code&gt;) work as-is because &lt;code&gt;RecipeConfigurator&lt;/code&gt; already has special handling for the &lt;code&gt;core/&lt;/code&gt; prefix. Paths to contributed recipes require the caller to provide a fully-resolvable directory path; a dedicated follow-up (&lt;a href="https://www.drupal.org/node/3612240"&gt;#3612240&lt;/a&gt;) will address resolving contributed recipe paths via Composer configuration. Recipe translation during install (downloading &lt;code&gt;.po&lt;/code&gt; files before applying) is also deferred to a separate issue.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To use this feature in a custom install profile, add a &lt;code&gt;recipes&lt;/code&gt; key to the profile's &lt;code&gt;.info.yml&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;name: My Profile
-type: profile
-install:
-  - some_module
-recipes:
-  - core/recipes/audio_media_type
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Recipes are applied in the listed order after module installation completes. Core recipe paths (prefixed with &lt;code&gt;core/&lt;/code&gt;) resolve out of the box. Contributed recipe paths must currently be absolute or relative to the web root; a path-resolution follow-up is tracked in &lt;a href="https://www.drupal.org/node/3612240"&gt;#3612240&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 21, 2026 (28 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
