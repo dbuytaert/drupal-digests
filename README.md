@@ -1,4 +1,4 @@
-**TL;DR:** [913 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [914 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_474 summaries · 15 new this week_
+_475 summaries · 15 new this week_
 
 - [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
 - [#3584238: Deprecate implicit commit-on-destruct](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584238.md)
@@ -22,7 +22,7 @@ _118 summaries · 5 new this week_
 
 ### Drupal Canvas
 
-_232 summaries · 5 new this week_
+_232 summaries · 4 new this week_
 
 - [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
