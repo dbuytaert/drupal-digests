@@ -1,8 +1,16 @@
-**TL;DR:** [912 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [913 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [184 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_474 summaries · 16 new this week_
+
+- [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
+- [#3584238: Deprecate implicit commit-on-destruct](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584238.md)
+- [#3050199: Remove entity level constraint MenuSettingsConstraint that validates property...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3050199.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _118 summaries · 5 new this week_
 - [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
 - [#3568659: Support batched embeddings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md)
 - [#3613982: Bug with GPT 5.6 Luna](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613982.md)
-
-### Drupal Core
-
-_473 summaries · 16 new this week_
-
-- [#3584238: Deprecate implicit commit-on-destruct](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584238.md)
-- [#3050199: Remove entity level constraint MenuSettingsConstraint that validates property...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3050199.md)
-- [#3209204: Adding existing translation throws "Invalid translation language specified"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3209204.md)
 
 ### Drupal Canvas
 
