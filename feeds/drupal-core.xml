@@ -5,6 +5,80 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3607968: Promote defaults._title to top level in route attributes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md</link>
+      <guid isPermaLink="false">019fbacf-77fd-7078-987d-2286dea2c3d7</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 01 Aug 2026 00:08:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 17 files, +415/−47 · php +415/−37 · yml +0/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c51fe139f8aa221666c9df4bda54dd81e321de03"&gt;c51fe13&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607968"&gt;#3607968&lt;/a&gt; · 5 contributors · 33 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Following up on the introduction of PHP attributes for route discovery (&lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;), Drupal core now provides its own &lt;code&gt;#[Route]&lt;/code&gt; attribute that extends Symfony's, adding a top level &lt;code&gt;title&lt;/code&gt; property. Previously, setting a page title on an attribute-based route required nesting it inside &lt;code&gt;defaults: ['_title' =&amp;gt; ...]&lt;/code&gt;; now it can be written as &lt;code&gt;title: new TranslatableMarkup('...')&lt;/code&gt; directly on the attribute. The new attribute also supports closures for dynamic titles, letting modules avoid writing a separate &lt;code&gt;_title_callback&lt;/code&gt; controller method just to compute a title. This is a developer-facing convenience change with no end-user visible effect, aside from the many core routes (&lt;code&gt;system.module&lt;/code&gt;'s admin pages, block content add form, etc.) that were converted to use it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;BlockContentController::getAddFormTitle()&lt;/code&gt; is deprecated in favor of a title closure on the route attribute.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;title&lt;/code&gt; property on Drupal's &lt;code&gt;#[Route]&lt;/code&gt; attribute (&lt;code&gt;Drupal\Core\Routing\Attribute\Route&lt;/code&gt;, extending Symfony's), accepting a string, &lt;code&gt;TranslatableMarkup&lt;/code&gt;, or closure for the page title.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\Core\Routing\Attribute\Route&lt;/code&gt; class extends &lt;code&gt;Symfony\Component\Routing\Attribute\Route&lt;/code&gt; and, in its constructor, moves a passed &lt;code&gt;title&lt;/code&gt; argument into &lt;code&gt;$this-&amp;gt;defaults['_title']&lt;/code&gt;. Passing both &lt;code&gt;title&lt;/code&gt; and a &lt;code&gt;_title&lt;/code&gt; default simultaneously trips an assertion. Because closures cannot be serialized into the router table, &lt;code&gt;AttributeRouteDiscovery::getAttributes()&lt;/code&gt; detects a closure title and replaces it in the stored defaults with a &lt;code&gt;_title_closure&lt;/code&gt; reference tuple of &lt;code&gt;[class, method, index]&lt;/code&gt; (the &lt;code&gt;index&lt;/code&gt; disambiguates multiple &lt;code&gt;#[Route]&lt;/code&gt; attributes on the same method). &lt;code&gt;TitleResolver::getTitle()&lt;/code&gt; was updated to recognize &lt;code&gt;_title_closure&lt;/code&gt; and resolve the actual closure at render time via the new static method &lt;code&gt;Route::getTitleClosure()&lt;/code&gt;, which re-reflects the method's attributes to retrieve the closure (since it can't be persisted) and resolves controller arguments the same way &lt;code&gt;_title_callback&lt;/code&gt; does, except without container access.&lt;/p&gt;
+&lt;p&gt;All core routes previously using &lt;code&gt;defaults: ['_title' =&amp;gt; ...]&lt;/code&gt; on attribute-based routes were converted to the top level &lt;code&gt;title&lt;/code&gt; property, including the &lt;code&gt;system.module&lt;/code&gt; admin controllers and &lt;code&gt;SiteInformationForm&lt;/code&gt;. &lt;code&gt;BlockContentController::addForm()&lt;/code&gt;'s route was converted to use a closure title (&lt;code&gt;title: static function (BlockContentTypeInterface $block_content_type) {...}&lt;/code&gt;), and its old &lt;code&gt;getAddFormTitle()&lt;/code&gt; method was deprecated for removal in Drupal 13.0.0, with the accompanying &lt;code&gt;block_content.add_form&lt;/code&gt; YAML route definition removed since discovery now happens purely through the attribute.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Modules converting &lt;code&gt;*.routing.yml&lt;/code&gt; route definitions to &lt;code&gt;#[Route]&lt;/code&gt; attributes (per &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;) can now write, instead of:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
+  path: '/admin/config/system/site-information',
+  name: 'system.site_information_settings',
+  requirements: ['_permission' =&amp;gt; 'administer site configuration'],
+  defaults: ['_title' =&amp;gt; new TranslatableMarkup('Basic site settings')],
+)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;the shorter:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
+  path: '/admin/config/system/site-information',
+  name: 'system.site_information_settings',
+  title: new TranslatableMarkup('Basic site settings'),
+  requirements: ['_permission' =&amp;gt; 'administer site configuration'],
+)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;For dynamic titles that don't need injected services, a closure can replace a separate &lt;code&gt;_title_callback&lt;/code&gt; method:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
+  path: '/block/add/{block_content_type}',
+  name: 'block_content.add_form',
+  title: static function (BlockContentTypeInterface $block_content_type) {
+    return new TranslatableMarkup('Add %type content block', ['%type' =&amp;gt; $block_content_type-&amp;gt;label()]);
+  },
+  requirements: ['_entity_create_access' =&amp;gt; 'block_content:{block_content_type}'],
+)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code calling &lt;code&gt;Drupal\block_content\Controller\BlockContentController::getAddFormTitle()&lt;/code&gt; should stop using it before Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 1, 2026 (29 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design went through several iterations before landing. longwave initially proposed extending the Symfony &lt;code&gt;Route&lt;/code&gt; attribute, but also floated an alternative of a separate &lt;code&gt;#[PageTitle]&lt;/code&gt; attribute (mirroring how Symfony handles access control via a separate &lt;code&gt;#[IsGranted]&lt;/code&gt; attribute). godotislate and mstrelan weighed in on the tradeoffs, and godotislate pointed out the deciding issue: &lt;code&gt;SystemController::systemAdminMenuBlockPage()&lt;/code&gt; has several different &lt;code&gt;#[Route]&lt;/code&gt; attributes stacked on one method, each needing its own title, which rules out a single class or method level &lt;code&gt;#[PageTitle]&lt;/code&gt; attribute since there would be no way to tell which title belongs to which route. This led longwave to add closure support directly to the &lt;code&gt;#[Route]&lt;/code&gt; attribute and solve the &amp;quot;which attribute&amp;quot; ambiguity by recording an &lt;code&gt;[class, method, index]&lt;/code&gt; reference during route discovery. godotislate reviewed the resulting MR, confirmed the route discovery skip-file logic still worked with the new attribute, and catch merged it, noting it was &amp;quot;soft-blocking a lot of route conversions from YAML.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3593472: Insecure Direct Object Reference in Private File Uploads</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md</link>
       <guid isPermaLink="false">019fb5a9-d8d9-73d1-a999-0ba127c210f8</guid>
@@ -1023,56 +1097,6 @@ public function getId(): int {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;dcam's review caught two required follow-ups: the &lt;code&gt;BatchStorage::getId()&lt;/code&gt; docblock should use &lt;code&gt;{@inheritdoc}&lt;/code&gt;, and the interface declaration must document the &lt;code&gt;\Exception&lt;/code&gt; that the implementation can throw. luissousa21, a first-time contributor, took over the patch, worked through PHPCS alignment issues, published a change record, and addressed all of dcam's review points before the issue was committed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2880374: Experimental modules and themes should not have warnings after being installed</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2880374.md</link>
-      <guid isPermaLink="false">019f883d-725c-75c2-80a6-3167abbc1dc5</guid>
-      <pubDate>Wed, 22 Jul 2026 01:30:45 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +13/−6 · php +13/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2968ff8207c3ea007bc61a1373aeb883ebf1997e"&gt;2968ff8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2880374"&gt;#2880374&lt;/a&gt; · 21 contributors · 76 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 41&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;After an experimental module or theme is installed, Drupal's status report and module help pages no longer display orange warning-level notices. Those notices are now shown at the blue informational level. The warning shown at install time is unchanged. This reflects the reality that experimental modules in core now always ship with a supported upgrade path, so their ongoing presence on a site is something to be aware of rather than a problem to fix.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two runtime-phase locations are changed. In &lt;code&gt;HelpController::helpPage()&lt;/code&gt;, the &lt;code&gt;addWarning()&lt;/code&gt; call for modules whose &lt;code&gt;ExtensionLifecycle::LIFECYCLE_IDENTIFIER&lt;/code&gt; equals &lt;code&gt;ExtensionLifecycle::EXPERIMENTAL&lt;/code&gt; is replaced with &lt;code&gt;addMessage()&lt;/code&gt;, downgrading the notice to status level. In the system requirements checker (&lt;code&gt;checkRequirements()&lt;/code&gt;), the &lt;code&gt;severity&lt;/code&gt; key for both the &lt;code&gt;experimental_modules&lt;/code&gt; and &lt;code&gt;experimental_themes&lt;/code&gt; requirement entries is changed from &lt;code&gt;RequirementSeverity::Warning&lt;/code&gt; to &lt;code&gt;RequirementSeverity::Info&lt;/code&gt;, moving them from the &amp;quot;Warnings&amp;quot; group to the &amp;quot;Checked&amp;quot; group on &lt;code&gt;/admin/reports/status&lt;/code&gt;. These changes apply only to the runtime phase; install and update phase warnings are unaffected. Tests are updated to assert the presence of a &lt;code&gt;status&lt;/code&gt;-type message rather than a &lt;code&gt;warning&lt;/code&gt;-type message, and a new browser assertion verifies the status report entry lands in the &amp;quot;Checked&amp;quot; group (&lt;code&gt;h3#checked&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 22, 2017&lt;/li&gt;
-&lt;li&gt;Committed: July 22, 2026 (9 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;japerry&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;David_Rothstein&lt;/li&gt;
-&lt;li&gt;yoroy (Roy Scholten)&lt;/li&gt;
-&lt;li&gt;jofitz (ComputerMinds)&lt;/li&gt;
-&lt;li&gt;adinac&lt;/li&gt;
-&lt;li&gt;ptmkenny&lt;/li&gt;
-&lt;li&gt;tanubansal (Salsa Digital)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;jcnventura (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;xjm (xjm)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue had a notable arc spanning nearly eight years. When japerry filed it in 2017, xjm opposed it directly, posting a screenshot of a site broken beyond recovery after an 8.2→8.3 upgrade with Content Moderation installed, and argued that sites were under-warned about experimental modules, not over-warned. That opposition was well-founded at the time and effectively stalled the issue. By 2023, catch revisited it and noted that core's policies had fundamentally changed: experimental modules no longer ship in tagged releases without a supported upgrade path, which removed the original rationale for the warning. With that blocker gone, ptmkenny returned to the issue in 2025 after encountering the warning again on a fresh install, created an MR based on the existing patch, added the screenshots and positive test assertion that catch had asked for in comment #58, and pushed it to final review. dcam contributed clearer before/after screenshots and confirmed the install-phase warning was still intact, and quietone coordinated release manager agreement before the issue was committed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
