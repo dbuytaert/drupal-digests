@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_476 summaries · 14 new this week_
+_476 summaries · 13 new this week_
 
 - [#3607968: Promote defaults._title to top level in route attributes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md)
 - [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
@@ -22,7 +22,7 @@ _118 summaries · 5 new this week_
 
 ### Drupal Canvas
 
-_232 summaries · 4 new this week_
+_232 summaries · 3 new this week_
 
 - [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
 - [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_185 rules · 4 new this week_
+_185 rules · 3 new this week_
 
 - [Promote defaults._title to top-level title on #[Route] attributes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/promote-defaults-title-to-top-level-title-on-route-3607968.php)
 - [Replace FileStorageFactory::getSync() with the config.storage.sync service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-filestoragefactory-getsync-with-the-config-storage-2951046.php)
