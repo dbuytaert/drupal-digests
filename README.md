@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_476 summaries · 15 new this week_
+_476 summaries · 14 new this week_
 
 - [#3607968: Promote defaults._title to top level in route attributes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md)
 - [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
