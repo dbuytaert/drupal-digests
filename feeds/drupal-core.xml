@@ -5,6 +5,68 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3604286: Upsert - Allow to customize the behavior of the update when the insert fails and use more Upsert queries in core</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md</link>
+      <guid isPermaLink="false">019fce7e-bacb-77ee-b563-6d790d43e463</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 04 Aug 2026 17:53:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +283/−32 · php +283/−32&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/047e314b510819d848d4a000a01921b3f1ae4a16"&gt;047e314&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3604286"&gt;#3604286&lt;/a&gt; · 3 contributors · 34 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's database &lt;code&gt;Upsert&lt;/code&gt; query (insert-or-update in one statement) previously always fell back to overwriting a row with the values that were meant to be inserted whenever the insert half of the operation hit an existing key. There was no way to say &amp;quot;update this column based on its current value&amp;quot; (for example, incrementing a counter atomically). This change extends &lt;code&gt;Upsert&lt;/code&gt; so a per-column update expression can be supplied, and several core subsystems that previously used the older, less efficient &lt;code&gt;Merge&lt;/code&gt; query (which does a separate select plus insert/update) were converted to use it: cache tag invalidation counters, file usage counts, and the search index word score. As a bonus, cache tag invalidations, and the other converted operations, now happen in a single atomic database round trip instead of two.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Database\Expression&lt;/code&gt; value object and &lt;code&gt;Drupal\Core\Database\Query\UpsertUpdateExpression&lt;/code&gt; subclass let an &lt;code&gt;Upsert&lt;/code&gt; query run a column specific SQL expression (e.g. incrementing a counter) instead of overwriting the column with the insert value when a row already exists.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core addition is &lt;code&gt;Drupal\Core\Database\Expression&lt;/code&gt;, a simple value object holding an expression string plus keyed arguments, and &lt;code&gt;Drupal\Core\Database\Query\UpsertUpdateExpression&lt;/code&gt;, a thin subclass of it used specifically for upsert update overrides. &lt;code&gt;Upsert::fields()&lt;/code&gt; was extended so entries can mix plain column names (for the insert list) with &lt;code&gt;column =&amp;gt; new UpsertUpdateExpression(...)&lt;/code&gt; pairs; the latter are collected into a new &lt;code&gt;$updateExpressions&lt;/code&gt; property and their arguments are merged into the bound query parameters in &lt;code&gt;execute()&lt;/code&gt;. If &lt;code&gt;fields()&lt;/code&gt; receives an associative array mixing plain insert values with an &lt;code&gt;UpsertUpdateExpression&lt;/code&gt;, or an expression entry without a string column key, it throws &lt;code&gt;\InvalidArgumentException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Each driver's &lt;code&gt;Upsert::__toString()&lt;/code&gt; (mysql's &lt;code&gt;ON DUPLICATE KEY UPDATE&lt;/code&gt;, pgsql's and sqlite's &lt;code&gt;ON CONFLICT ... DO UPDATE&lt;/code&gt;) now substitutes the raw expression for a column instead of &lt;code&gt;VALUES($field)&lt;/code&gt; / &lt;code&gt;EXCLUDED.$field&lt;/code&gt; when one was supplied. The mysql driver's &lt;code&gt;execute()&lt;/code&gt; binds expression arguments with &lt;code&gt;bindValue()&lt;/code&gt; rather than &lt;code&gt;bindParam()&lt;/code&gt;, since by-reference binding inside a loop would make every placeholder share the same final loop variable.&lt;/p&gt;
+&lt;p&gt;Using this, &lt;code&gt;Drupal\Core\Cache\CacheTagsChecksum::doInvalidateTags()&lt;/code&gt;, &lt;code&gt;Drupal\file\FileUsage\DatabaseFileUsageBackend::add()&lt;/code&gt;, and &lt;code&gt;search_index&lt;/code&gt; word scoring in &lt;code&gt;search.module&lt;/code&gt; were converted from &lt;code&gt;merge()&lt;/code&gt;/&lt;code&gt;expression()&lt;/code&gt; to &lt;code&gt;upsert()&lt;/code&gt; with an &lt;code&gt;UpsertUpdateExpression&lt;/code&gt; for the incrementing column. Conversions of &lt;code&gt;Drupal\Core\KeyValueStore\DatabaseStorage&lt;/code&gt;, &lt;code&gt;StringDatabaseStorage&lt;/code&gt;, and &lt;code&gt;TaxonomyHooks&lt;/code&gt; were explicitly left out of scope, per discussion in the issue, and remain on &lt;code&gt;Merge&lt;/code&gt;. &lt;code&gt;hook_entity_predelete()&lt;/code&gt; and &lt;code&gt;hook_ENTITY_TYPE_predelete()&lt;/code&gt; example code in &lt;code&gt;core/lib/Drupal/Core/Entity/entity.api.php&lt;/code&gt; was updated to demonstrate the &lt;code&gt;Upsert&lt;/code&gt; equivalent of the old &lt;code&gt;Merge&lt;/code&gt; pattern.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom code using &lt;code&gt;Merge&lt;/code&gt; purely to emulate an atomic counter or expression based update can switch to &lt;code&gt;Upsert&lt;/code&gt; with an &lt;code&gt;UpsertUpdateExpression&lt;/code&gt;, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$connection-&amp;gt;upsert('example_deleted_entity_statistics')
+  -&amp;gt;key(['type', 'id'])
+  -&amp;gt;fields([
+    'type',
+    'id',
+    'count' =&amp;gt; new UpsertUpdateExpression('{example_deleted_entity_statistics}.[count] + :count', [':count' =&amp;gt; $count]),
+  ])
+  -&amp;gt;values([
+    'type' =&amp;gt; $type,
+    'id' =&amp;gt; $id,
+    'count' =&amp;gt; $count,
+  ])
+  -&amp;gt;execute();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is not a breaking change: &lt;code&gt;Upsert::fields()&lt;/code&gt; remains backward compatible for plain column/value usage.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 19, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 4, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, mondrake found and reverted an in-progress attempt to also convert &lt;code&gt;StringDatabaseStorage&lt;/code&gt;, after discovering it produced duplicate key errors from a unique index added on all non &lt;code&gt;lid&lt;/code&gt; columns, deciding to leave that conversion for a separate follow-up. The design of the update expression API itself changed mid-review: mondrake initially attached the expression to the insert values, then realized that didn't work when a single upsert call queues multiple value sets, and reworked it so the expression is specified once per column alongside the field list instead. Later, amateescu's review caught an actual bug in the mysql driver's parameter binding (&lt;code&gt;bindParam()&lt;/code&gt; versus &lt;code&gt;bindValue()&lt;/code&gt;), which mondrake fixed by binding by value to avoid all placeholders sharing the same loop variable reference.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3565258: Support library-specific aggregates</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md</link>
       <guid isPermaLink="false">019fcdaa-bd0b-7643-b086-08046aba2806</guid>
@@ -1018,58 +1080,6 @@ use Drupal\search_user\Plugin\Search\SearchUser;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;berdir reported that the missing replace entry for History was breaking downstream testing of the Forum module (and in turn Pathauto and Metatag), pushing this from a theoretical concern to an active breakage affecting the 11.2 branch as well. catch worked out the phased branch strategy: since a site on 11.3+ could already be using the contrib releases of Contact, Ban, Field Layout or History directly, adding those to the 11.x/11.4.x replace list would wrongly force Composer back to the bundled core version, so only modules without existing contrib releases (Search, Settings Tray, Shortcut, Toolbar) were added there, while 10.6.x got the full list. cmlara additionally argued for reconsidering the earlier removal of core's replace mechanism (&lt;a href="https://www.drupal.org/node/3292380"&gt;#3292380&lt;/a&gt;) and filed &lt;a href="https://www.drupal.org/node/3582324"&gt;#3582324&lt;/a&gt; to think about the underlying Composer facade for future major versions. smustgrave did the legwork of opening the separate merge requests for the 11.x, 11.4.x and 10.6.x branches, and godotislate committed the changes, dropping some unrelated &amp;quot;allowed plugins&amp;quot; entries from the 10.6.x branch after review and waiting for catch's confirmation before committing that branch.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3611847: Deprecate unused PdoTrait code</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3611847.md</link>
-      <guid isPermaLink="false">019f9a18-5cb6-7481-8a3b-e690f3166875</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sat, 25 Jul 2026 11:40:59 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +28/−0 · php +28&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ed2f6816551cc4a6fb8c01c1106a9a777c4cd971"&gt;ed2f681&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3611847"&gt;#3611847&lt;/a&gt; · 4 contributors · 21 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Several protected helper methods and a property in Drupal core's &lt;code&gt;PdoTrait&lt;/code&gt; (used by PDO-based database drivers) were found to be dead code, no longer called anywhere in core. They are now formally deprecated and will be removed in Drupal 13. There is no replacement, since nothing in core needs them anymore. Sites and modules are unaffected unless they maintain a custom database driver that extends or calls into these internals.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;PdoTrait::$fetchModeLiterals&lt;/code&gt;, &lt;code&gt;pdoToFetchAs()&lt;/code&gt;, &lt;code&gt;clientFetchColumn()&lt;/code&gt;, &lt;code&gt;clientFetchObject()&lt;/code&gt;, and &lt;code&gt;clientQueryString()&lt;/code&gt; are deprecated for removal in Drupal 13, with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;pdoToFetchAs()&lt;/code&gt; became unused once &lt;a href="https://www.drupal.org/node/3522561"&gt;#3522561&lt;/a&gt; fully typed &lt;code&gt;StatementInterface&lt;/code&gt; method parameters, removing the need to convert legacy &lt;code&gt;\PDO::FETCH_*&lt;/code&gt; integer constants to the &lt;code&gt;FetchAs&lt;/code&gt; enum at that call site. &lt;code&gt;clientFetchColumn()&lt;/code&gt;, &lt;code&gt;clientFetchObject()&lt;/code&gt;, and &lt;code&gt;clientQueryString()&lt;/code&gt; were likewise found to have no remaining callers in core. Each now carries an &lt;code&gt;@deprecated in drupal:11.5.0 and is removed from drupal:13.0.0&lt;/code&gt; docblock and, for the three methods, an &lt;code&gt;@trigger_error()&lt;/code&gt; call emitting an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice pointing to the change record at drupal.org/node/3611848.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;protected array $fetchModeLiterals&lt;/code&gt; property (used only for building deprecation/error messages, mapping &lt;code&gt;\PDO::FETCH_*&lt;/code&gt; constants to their literal names) is deprecated too. As discussed in the issue thread, this property had been moved from &lt;code&gt;FetchModeTrait&lt;/code&gt; into &lt;code&gt;PdoTrait&lt;/code&gt; five months earlier in &lt;a href="https://www.drupal.org/node/3525077"&gt;#3525077&lt;/a&gt;, so the deprecation was applied at its current location in &lt;code&gt;PdoTrait&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Custom database drivers or contrib code that override or call &lt;code&gt;PdoTrait::pdoToFetchAs()&lt;/code&gt;, &lt;code&gt;clientFetchColumn()&lt;/code&gt;, &lt;code&gt;clientFetchObject()&lt;/code&gt;, &lt;code&gt;clientQueryString()&lt;/code&gt;, or read &lt;code&gt;PdoTrait::$fetchModeLiterals&lt;/code&gt; should remove that usage before Drupal 13, since there is no replacement:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated, will be removed in Drupal 13 with no replacement:
-protected function pdoToFetchAs(int $mode): FetchAs { ... }
-protected function clientFetchColumn(int $column = 0): int|float|string|bool|NULL { ... }
-protected function clientFetchObject(?string $class = NULL, array $constructorArguments = []): object|FALSE { ... }
-protected function clientQueryString(): string { ... }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 19, 2026&lt;/li&gt;
-&lt;li&gt;First commit: July 22, 2026 (3 days later)&lt;/li&gt;
-&lt;li&gt;Last commit: July 25, 2026 (2 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;danielveza (PreviousNext)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

@@ -1,4 +1,4 @@
-**TL;DR:** [921 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [923 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_482 summaries · 15 new this week_
+_484 summaries · 17 new this week_
 
+- [#3604286: Upsert - Allow to customize the behavior of the update when the insert fails...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md)
 - [#3565258: Support library-specific aggregates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md)
 - [#3524971: Defend against \GuzzleHttp\Cookie\FileCookieJar gadget chain](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524971.md)
-- [#3515403: Update to selenium/standalone-chrome:133](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3515403.md)
 
 ### Drupal AI
 
