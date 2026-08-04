@@ -1,4 +1,4 @@
-**TL;DR:** [915 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [916 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_476 summaries · 11 new this week_
+_477 summaries · 12 new this week_
 
+- [#3589894: Remove the archive, glossary and recent content block views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589894.md)
 - [#3607968: Promote defaults._title to top level in route attributes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md)
 - [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
-- [#3584238: Deprecate implicit commit-on-destruct](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584238.md)
 
 ### Drupal AI
 
-_118 summaries · 5 new this week_
+_118 summaries · 4 new this week_
 
 - [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
 - [#3568659: Support batched embeddings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md)
