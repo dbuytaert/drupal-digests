@@ -5,6 +5,205 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3565258: Support library-specific aggregates</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md</link>
+      <guid isPermaLink="false">019fcdaa-bd0b-7643-b086-08046aba2806</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 04 Aug 2026 16:17:44 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +624/−116 · php +573/−102 · yml +51/−14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d9cc50913855384497604427078b340f792ff690"&gt;d9cc509&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3565258"&gt;#3565258&lt;/a&gt; · 9 contributors · 122 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 23&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's asset library system can now mark specific CSS or JavaScript libraries so their files are always bundled into their own aggregate, regardless of which other libraries happen to be attached on a given page. Previously, the exact set of libraries in an aggregate, and therefore its URL and query string, varied depending on everything else loaded on that particular page, so browsers and CDNs often re-downloaded effectively the same CSS or JS just because the query string differed slightly from page to page. By setting the new &lt;code&gt;aggregate_target&lt;/code&gt; key on a library, its aggregate gets a predictable, page-independent URL, which increases browser and CDN cache hit rates for repeat and multi-page visits. Core has already applied this to several always-loaded libraries (&lt;code&gt;core/drupal&lt;/code&gt;, &lt;code&gt;core/drupalSettings&lt;/code&gt;, &lt;code&gt;system/base&lt;/code&gt;, parts of Umami and Claro) and switched some small vendor JS libraries to &lt;code&gt;preprocess: false&lt;/code&gt; instead, since aggregating a single already-minified file offers no benefit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AssetResolverInterface::getCssAssets()&lt;/code&gt; and &lt;code&gt;::getJsAssets()&lt;/code&gt; gained an optional &lt;code&gt;$with_dependencies&lt;/code&gt; parameter (default &lt;code&gt;TRUE&lt;/code&gt;); custom implementations of the interface must add it to stay compatible.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;aggregate_target&lt;/code&gt; library definition key (with &lt;code&gt;css&lt;/code&gt; and &lt;code&gt;js&lt;/code&gt; sub-keys, each accepting &lt;code&gt;true&lt;/code&gt; or an arbitrary string) forces a library's assets into a dedicated, page-independent aggregate.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Library definitions can now declare &lt;code&gt;aggregate_target: {css: ..., js: ...}&lt;/code&gt;, where the value is either &lt;code&gt;true&lt;/code&gt; (unique per library) or an arbitrary string shared by several libraries meant to be co-located. &lt;code&gt;LibraryDiscoveryParser::buildByExtension()&lt;/code&gt; normalizes this to &lt;code&gt;['css' =&amp;gt; FALSE, 'js' =&amp;gt; FALSE]&lt;/code&gt; when absent, and also records each CSS file's SMACSS &lt;code&gt;category&lt;/code&gt; so it can be checked later. &lt;code&gt;CssCollectionGrouper::group()&lt;/code&gt; and &lt;code&gt;JsCollectionGrouper::group()&lt;/code&gt; track, per group, whether all files belonging to a targeted library (and, for CSS, a given category) landed contiguously in a single group via a &lt;code&gt;$first_seen_libraries&lt;/code&gt;/&lt;code&gt;$seen_index&lt;/code&gt; mechanism; if a library's files get split across groups because of per-file weights or other libraries interleaving, the &lt;code&gt;libraries&lt;/code&gt; key is dropped from those groups and the aggregate silently falls back to the pre-existing include/exclude/delta behavior.&lt;/p&gt;
+&lt;p&gt;When a group does carry a &lt;code&gt;libraries&lt;/code&gt; key, &lt;code&gt;CssCollectionOptimizerLazy::optimize()&lt;/code&gt; and &lt;code&gt;JsCollectionOptimizerLazy::optimize()&lt;/code&gt; build the asset URL using a compressed &lt;code&gt;libraries&lt;/code&gt; query argument (and, for CSS, a &lt;code&gt;category&lt;/code&gt; argument, since a single library can still span multiple categories) instead of &lt;code&gt;include&lt;/code&gt;/&lt;code&gt;exclude&lt;/code&gt;/&lt;code&gt;delta&lt;/code&gt;. &lt;code&gt;CssAssetsController&lt;/code&gt;/&lt;code&gt;JsAssetsController::deliver()&lt;/code&gt; and their shared &lt;code&gt;AssetControllerBase&lt;/code&gt; were updated to accept these new parameters and, when present, call &lt;code&gt;AssetResolverInterface::getCssAssets()&lt;/code&gt;/&lt;code&gt;getJsAssets()&lt;/code&gt; with the new &lt;code&gt;$with_dependencies = FALSE&lt;/code&gt; argument so the aggregate is rebuilt from exactly the listed libraries rather than pulling in their full dependency trees.&lt;/p&gt;
+&lt;p&gt;Core's &lt;code&gt;core.libraries.yml&lt;/code&gt;, &lt;code&gt;system.libraries.yml&lt;/code&gt;, &lt;code&gt;big_pipe.libraries.yml&lt;/code&gt;, Umami's and Claro's &lt;code&gt;.libraries.yml&lt;/code&gt; files were updated to use &lt;code&gt;aggregate_target&lt;/code&gt; on libraries that are effectively always loaded together (e.g. &lt;code&gt;core/drupal&lt;/code&gt; and &lt;code&gt;core/drupalSettings&lt;/code&gt; share &lt;code&gt;js: 'drupal'&lt;/code&gt;; &lt;code&gt;loadjs&lt;/code&gt;, &lt;code&gt;drupal.htmx&lt;/code&gt;, and &lt;code&gt;htmx&lt;/code&gt; share &lt;code&gt;js: 'htmx'&lt;/code&gt;). Umami's global library was split into &lt;code&gt;global&lt;/code&gt; and a new &lt;code&gt;global_tweaks&lt;/code&gt; dependency to isolate files whose custom weights would otherwise have prevented the aggregate target from applying.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To opt a library into a dedicated aggregate, add &lt;code&gt;aggregate_target&lt;/code&gt; to its definition in a &lt;code&gt;*.libraries.yml&lt;/code&gt; file:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;mylibrary:
+  aggregate_target:
+    css: true
+    js: 'mygroup'
+  css:
+    theme:
+      css/mylibrary.css: {}
+  js:
+    js/mylibrary.js: {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Use &lt;code&gt;true&lt;/code&gt; for a library-specific aggregate, or an arbitrary string shared across libraries that are always expected to load together. This only takes effect if all of the library's files end up contiguous within a single asset group; libraries that set custom per-file weights, or that get split apart by other libraries' weights, transparently fall back to the previous aggregation behavior.&lt;/p&gt;
+&lt;p&gt;Code that implements &lt;code&gt;AssetResolverInterface&lt;/code&gt; directly (rather than extending &lt;code&gt;AssetResolver&lt;/code&gt;) needs to add the new &lt;code&gt;bool $with_dependencies = TRUE&lt;/code&gt; parameter to &lt;code&gt;getCssAssets()&lt;/code&gt; and &lt;code&gt;getJsAssets()&lt;/code&gt; to remain compatible with the interface.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 31, 2025&lt;/li&gt;
+&lt;li&gt;First commit: June 21, 2026 (5 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 4, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;grimreaper&lt;/li&gt;
+&lt;li&gt;pdureau (Beyris)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;neclimdul (APQC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir tested the in-progress patch against a real multi-theme project and reported that adding the new key to a global library increased the CSS file count more than expected, because the library spanned multiple SMACSS CSS groups and had per-file weights (e.g. &lt;code&gt;drupal.progress&lt;/code&gt;'s negative weight forced it into its own aggregate). That real-world testing led catch to trace the root cause to legacy CSS group/weight handling and to open a follow-up, &lt;a href="https://www.drupal.org/node/3568157"&gt;#3568157&lt;/a&gt;, to strip unnecessary explicit weights from core CSS files. The back-and-forth between catch and berdir over several comments also settled the final naming: berdir proposed renaming the key from &lt;code&gt;unique_css_aggregate&lt;/code&gt; to something like &amp;quot;target&amp;quot;, and catch followed up by renaming it to &lt;code&gt;css_aggregate_target&lt;/code&gt;/&lt;code&gt;js_aggregate_target&lt;/code&gt; (which later became the nested &lt;code&gt;aggregate_target: {css, js}&lt;/code&gt; structure) and changing the &lt;code&gt;every_page&lt;/code&gt; value to &lt;code&gt;global&lt;/code&gt;, since the aggregate is still varied by theme and language regardless.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3524971: Defend against \GuzzleHttp\Cookie\FileCookieJar gadget chain</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524971.md</link>
+      <guid isPermaLink="false">019fcdac-48e5-7587-90b2-a2f390663819</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 04 Aug 2026 15:10:10 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +304/−3 · php +299 · lock +3/−2 · json +2/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b05412fc21ce56ae48c404f60d6162cf399bb72c"&gt;b05412f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3524971"&gt;#3524971&lt;/a&gt; · 7 contributors · 34 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal 11.x now ships a hardened replacement for Guzzle's &lt;code&gt;\GuzzleHttp\Cookie\FileCookieJar&lt;/code&gt; class, closing off a publicly known &amp;quot;gadget chain&amp;quot; that can be abused to write an arbitrary file to the server. On its own this class isn't reachable by an attacker, it only becomes dangerous if a site (core or, more likely, a contrib or custom module) also has a PHP Object Injection vulnerability that lets attacker-controlled data reach &lt;code&gt;unserialize()&lt;/code&gt;. With this fix in place, even if such a vulnerability existed elsewhere, this particular gadget chain would no longer be usable to write files. This is defense in depth, not a fix for a standalone vulnerability, and requires no action from site owners beyond updating.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Backports Guzzle 8.0's hardening of &lt;code&gt;\GuzzleHttp\Cookie\FileCookieJar&lt;/code&gt; (a private &lt;code&gt;autoSave&lt;/code&gt; flag disabled by &lt;code&gt;__wakeup()&lt;/code&gt;) into an early-loaded shim, closing a PHP Object Injection-chained arbitrary file write gadget on Drupal 11.x. Not independently exploitable; requires a separate deserialization vulnerability.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The underlying issue is in Guzzle itself: &lt;code&gt;FileCookieJar::__destruct()&lt;/code&gt; calls &lt;code&gt;save()&lt;/code&gt;, which writes &lt;code&gt;$this-&amp;gt;filename&lt;/code&gt; to disk. If an attacker can get arbitrary serialized data into &lt;code&gt;unserialize()&lt;/code&gt; (via some other PHP Object Injection bug), they can craft a &lt;code&gt;FileCookieJar&lt;/code&gt; instance with an attacker-chosen &lt;code&gt;$filename&lt;/code&gt; and cookie payload; when PHP garbage-collects it, &lt;code&gt;__destruct()&lt;/code&gt; writes that payload to the attacker's chosen path, a classic deserialization file-write gadget (documented in PHPGGC's &lt;code&gt;Guzzle/FW/1&lt;/code&gt; chain). Guzzle's maintainers eventually landed a fix for Guzzle 8.0 (https://github.com/guzzle/guzzle/pull/3334) adding a private &lt;code&gt;$autoSave&lt;/code&gt; flag that &lt;code&gt;__wakeup()&lt;/code&gt; sets to &lt;code&gt;false&lt;/code&gt; and &lt;code&gt;__destruct()&lt;/code&gt; checks before saving, so an unserialized instance never persists to disk. Drupal core was still on Guzzle 7.x, which lacks this hardening.&lt;/p&gt;
+&lt;p&gt;Rather than removing or aliasing the class (approaches discussed earlier in the issue, including using the &lt;code&gt;core.moved_classes&lt;/code&gt; mechanism from &lt;a href="https://www.drupal.org/node/3502882"&gt;#3502882&lt;/a&gt;), the committed fix backports the Guzzle 8.0 hardened implementation verbatim into a new &lt;code&gt;core/includes/guzzle_file_cookie_jar_shim.php&lt;/code&gt;, registered in &lt;code&gt;composer.json&lt;/code&gt;'s &lt;code&gt;autoload.files&lt;/code&gt; list alongside &lt;code&gt;bootstrap.inc&lt;/code&gt;. Composer's &lt;code&gt;files&lt;/code&gt; autoload entries are &lt;code&gt;require&lt;/code&gt;d unconditionally and very early, before PSR-4 autoloading for anything else kicks in, so this shim's &lt;code&gt;class GuzzleHttp\Cookie\FileCookieJar&lt;/code&gt; (guarded by a &lt;code&gt;class_exists(..., false)&lt;/code&gt; check) gets declared first and pre-empts the classloader from ever loading Guzzle's own, unhardened copy of the file. The shim preserves full functionality, normal instantiation still auto-saves on &lt;code&gt;__destruct()&lt;/code&gt;, but any instance produced via &lt;code&gt;unserialize()&lt;/code&gt; has &lt;code&gt;autoSave&lt;/code&gt; forced to &lt;code&gt;false&lt;/code&gt; by &lt;code&gt;__wakeup()&lt;/code&gt;, so the file-write gadget is inert. This is a temporary measure: the &lt;code&gt;@todo&lt;/code&gt; in the shim notes it should be removed once Drupal updates to Guzzle 8, which already happened on the &lt;code&gt;main&lt;/code&gt; branch in &lt;a href="https://www.drupal.org/node/3612544"&gt;#3612544&lt;/a&gt;; this fix was committed only to the &lt;code&gt;11.x&lt;/code&gt; branch since it will still be supported for some time and the composer.json changes did not backport cleanly to older branches.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 16, 2025&lt;/li&gt;
+&lt;li&gt;Committed: August 4, 2026 (1 year later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mcdruid (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
+&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The approach evolved considerably over the issue's life. mcdruid initially explored removing the class from the autoloader or aliasing it via the &lt;code&gt;core.moved_classes&lt;/code&gt; mechanism from &lt;a href="https://www.drupal.org/node/3502882"&gt;#3502882&lt;/a&gt;, but found in testing that if the original vendor file was still present on disk, PHP would still autoload the real class instead of the alias, undermining that approach. cmlara pushed back on the earlier &amp;quot;just remove it&amp;quot; direction, pointing out that auditing only Drupal-namespace contrib code for usage risks false negatives since the class could be used anywhere in a site's full dependency stack, and that removing the class without a replacement risked white-screen-of-death failures for sites that do legitimately use it. This feedback steered the fix away from removal and toward the front-running shim approach that longwave suggested (citing the precedent in &lt;a href="https://www.drupal.org/node/3224421"&gt;#3224421&lt;/a&gt;), which preserves the class's full API while neutralizing the gadget.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3515403: Update to selenium/standalone-chrome:133</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3515403.md</link>
+      <guid isPermaLink="false">019fcdae-3956-71d1-b987-f966412c9b64</guid>
+      <pubDate>Tue, 04 Aug 2026 15:07:08 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +12/−9 · php +7/−7 · js +4/−1 · yml +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7a4b1cb6be0e3099847456b0f06d9103195b36ca"&gt;7a4b1cb&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3515403"&gt;#3515403&lt;/a&gt; · 5 contributors · 28 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This issue upgrades the Selenium/Chrome version used by Drupal core's automated JavaScript test suite from 127 to 133, and adjusts several tests to match newer Chrome behavior. As a side effect of testing against the newer Chrome, it uncovered and fixed a real bug in the Olivero theme: the &lt;code&gt;secondLevelNavMenus&lt;/code&gt; variable in the second-level navigation script was left &lt;code&gt;undefined&lt;/code&gt; whenever a site's primary menu had no top-level items with children, causing JavaScript errors instead of behaving as an empty menu. This also fixes the Escape-key-does-not-close-mobile-menu problem described in &lt;a href="https://www.drupal.org/node/3584314"&gt;#3584314&lt;/a&gt; for sites combining the search block with an empty or childless main menu. Sites running Olivero are unaffected unless their primary menu has no items with children, in which case menu-closing interactions (Escape key, tap-outside) now work instead of erroring silently in the console.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change bumps &lt;code&gt;.with-selenium-chrome&lt;/code&gt; in &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; from &lt;code&gt;selenium/standalone-chrome:127.0&lt;/code&gt; to &lt;code&gt;133.0&lt;/code&gt;. Several functional JS tests needed adjustment for behavior differences in the newer Chrome/Chromedriver: &lt;code&gt;BrowserWithJavascriptTest::testJavascript&lt;/code&gt; now reads &lt;code&gt;window.outerHeight&lt;/code&gt; instead of &lt;code&gt;window.innerHeight&lt;/code&gt;, because headless Chrome 128+ reports a viewport about 139px smaller than the size requested via &lt;code&gt;resizeWindow()&lt;/code&gt;. &lt;code&gt;LayoutBuilderDisableInteractionsTest::testFormsLinksDisabled&lt;/code&gt; resizes to &lt;code&gt;1339&lt;/code&gt; instead of &lt;code&gt;1200&lt;/code&gt; for the same reason. Several CKEditor 5 tests (&lt;code&gt;CKEditor5AllowedTagsTest&lt;/code&gt;, &lt;code&gt;CKEditor5Test&lt;/code&gt;, &lt;code&gt;AdminUiTest&lt;/code&gt;, &lt;code&gt;TableTest&lt;/code&gt;) swap &lt;code&gt;responseContains()&lt;/code&gt; assertions for &lt;code&gt;waitForText()&lt;/code&gt;/&lt;code&gt;waitForElementVisible()&lt;/code&gt; because content updates now render asynchronously relative to form submission in the newer browser. The Nightwatch &lt;code&gt;drupalCreateRole&lt;/code&gt; command now resizes the browser to &lt;code&gt;1024x768&lt;/code&gt; before toggling permission checkboxes.&lt;/p&gt;
+&lt;p&gt;Separately, &lt;code&gt;core/themes/olivero/js/second-level-navigation.js&lt;/code&gt; initializes &lt;code&gt;secondLevelNavMenus&lt;/code&gt; to &lt;code&gt;[]&lt;/code&gt; instead of leaving it declared but unassigned. Previously it was only assigned inside &lt;code&gt;init()&lt;/code&gt;, which only runs when a &lt;code&gt;[data-drupal-selector=&amp;quot;primary-nav-menu--level-1&amp;quot;]&lt;/code&gt; element with children exists; without one, &lt;code&gt;closeAllSubNav()&lt;/code&gt; and &lt;code&gt;areAnySubNavsOpen()&lt;/code&gt; called &lt;code&gt;.forEach()&lt;/code&gt; on &lt;code&gt;undefined&lt;/code&gt; and threw. Chrome 133 started firing resize events in situations where older Chrome versions did not, which is what surfaced this latent bug during the CI upgrade; the root cause traces back to &lt;a href="https://www.drupal.org/node/3568566"&gt;#3568566&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 25, 2025&lt;/li&gt;
+&lt;li&gt;First commit: August 1, 2026 (1 year later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 4, 2026 (3 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;mstrelan investigated Chrome's post-127 resize behavior in depth, testing headless and non-headless modes and considering the now-removed &lt;code&gt;--headless=old&lt;/code&gt; flag before landing on &lt;code&gt;window.outerHeight&lt;/code&gt; as the fix for &lt;code&gt;BrowserWithJavascriptTest&lt;/code&gt;. The issue then stalled for months until longwave revived it, and quietone bisected a remaining &lt;code&gt;SettingsTrayBlockFormTest&lt;/code&gt; failure back to &lt;a href="https://www.drupal.org/node/3568566"&gt;#3568566&lt;/a&gt;, tracing it into Olivero's navigation code. longwave then found that &lt;code&gt;secondLevelNavMenus&lt;/code&gt; was undefined until &lt;code&gt;init()&lt;/code&gt; ran and that Chrome 133 exposed the bug because it fires resize events that older Chrome versions did not, noting that Claude Code assisted with that debugging session.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3604071: Change default to auto for light/dark mode</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604071.md</link>
+      <guid isPermaLink="false">019fcda9-918c-771b-9115-8c9729f7d7cf</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 04 Aug 2026 13:14:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +6/−6 · php +5/−5 · yml +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/73524b05a7f06b2772d9022a397f73c6fac6b547"&gt;73524b0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3604071"&gt;#3604071&lt;/a&gt; · 7 contributors · 19 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The default admin theme (&lt;code&gt;default_admin&lt;/code&gt;) now defaults its light/dark mode setting to &amp;quot;Auto&amp;quot; instead of &amp;quot;Light&amp;quot;. Previously, every new site forced the admin interface into light mode until an administrator manually changed it. Now the admin interface follows the visitor's operating system or browser color scheme preference out of the box, which is more accessible for people who need dark mode for visual comfort. The &amp;quot;Auto&amp;quot; option was also moved to the top of the settings list, ahead of &amp;quot;Light&amp;quot; and &amp;quot;Dark&amp;quot;, to reflect that it's the recommended choice.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;default_admin&lt;/code&gt; theme's &lt;code&gt;enable_dark_mode&lt;/code&gt; setting now defaults to &lt;code&gt;auto&lt;/code&gt; (follow system/browser preference) instead of &lt;code&gt;0&lt;/code&gt; (light mode).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change is a one-line default flip in &lt;code&gt;core/themes/default_admin/config/install/default_admin.settings.yml&lt;/code&gt;, where &lt;code&gt;enable_dark_mode: '0'&lt;/code&gt; becomes &lt;code&gt;enable_dark_mode: 'auto'&lt;/code&gt;. The corresponding &lt;code&gt;#options&lt;/code&gt; array in &lt;code&gt;Settings::getSettingsForm()&lt;/code&gt; (&lt;code&gt;default_admin/src/Settings.php&lt;/code&gt;) was reordered to list &lt;code&gt;auto&lt;/code&gt; before the numeric &lt;code&gt;0&lt;/code&gt;/&lt;code&gt;1&lt;/code&gt; (Light/Dark) options. This only affects the shipped default configuration and new installs; existing sites that already have &lt;code&gt;default_admin.settings&lt;/code&gt; configured keep their current &lt;code&gt;enable_dark_mode&lt;/code&gt; value unless reset. Functional tests in &lt;code&gt;AdminTest.php&lt;/code&gt; were updated to assert &lt;code&gt;&amp;quot;dark_mode&amp;quot;:&amp;quot;auto&amp;quot;&lt;/code&gt; in the rendered settings JSON instead of &lt;code&gt;&amp;quot;dark_mode&amp;quot;:&amp;quot;0&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;This was landed ahead of the broader dark-mode rework tracked in &lt;a href="https://www.drupal.org/node/3606655"&gt;#3606655&lt;/a&gt;, which the maintainer noted would make these specific settings redundant; &lt;a href="https://www.drupal.org/node/3604071"&gt;#3604071&lt;/a&gt; was still committed separately as an accessibility improvement in case the larger issue does not land before the next release.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 4, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jmstair&lt;/li&gt;
+&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
+&lt;li&gt;mgifford&lt;/li&gt;
+&lt;li&gt;kentr&lt;/li&gt;
+&lt;li&gt;bernardm28&lt;/li&gt;
+&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3589894: Remove the archive, glossary and recent content block views</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589894.md</link>
       <guid isPermaLink="false">019fca43-82a0-7519-a97e-ba93051306d1</guid>
@@ -870,221 +1069,6 @@ protected function clientQueryString(): string { ... }
 &lt;li&gt;danielveza (PreviousNext)&lt;/li&gt;
 &lt;li&gt;dcam&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3612963: Drop older dependency versions in Drupal 12</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612963.md</link>
-      <guid isPermaLink="false">019f96c1-822c-73e0-ba3b-07560e6cda8e</guid>
-      <category>Site owners</category>
-      <pubDate>Fri, 24 Jul 2026 21:44:22 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +18/−18 · json +10/−10 · lock +8/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/87de7098664fd7bb741f51d47ec750ab0a178c5a"&gt;87de709&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3612963"&gt;#3612963&lt;/a&gt; · 3 contributors · 10 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;For Drupal 12, core's &lt;code&gt;composer.json&lt;/code&gt; now pins several third-party PHP dependencies to a single, newer major version instead of allowing a range spanning older and newer majors. This tidies up the dependency graph now that Drupal 12 no longer needs to support the older majors for backward compatibility, but it means any site or contributed project that still requires the older major version of one of these libraries will need to update before it can run on Drupal 12.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Drupal 12 core now requires &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt; ^8.0 (dropping ^7.10), &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; ^3.0 (dropping ^2.8), &lt;code&gt;doctrine/lexer&lt;/code&gt; ^3 (dropping ^2), &lt;code&gt;egulias/email-validator&lt;/code&gt; ^4.0 (dropping ^3.2.1), &lt;code&gt;sebastian/diff&lt;/code&gt; ^7 (dropping ^4/^5/^6), and &lt;code&gt;justinrainbow/json-schema&lt;/code&gt; ^6.5.2 (dropping ^5.2).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is confined to &lt;code&gt;composer.json&lt;/code&gt; (and the corresponding &lt;code&gt;composer.lock&lt;/code&gt;/&lt;code&gt;composer.json&lt;/code&gt; in &lt;code&gt;core&lt;/code&gt;). Constraints were narrowed from dual-major ranges to single majors: &lt;code&gt;doctrine/lexer&lt;/code&gt; from &lt;code&gt;^2 || ^3&lt;/code&gt; to &lt;code&gt;^3&lt;/code&gt;, &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt; from &lt;code&gt;^7.10 || ^8.0&lt;/code&gt; to &lt;code&gt;^8.0&lt;/code&gt;, &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; from &lt;code&gt;^2.8.0 || ^3.0&lt;/code&gt; to &lt;code&gt;^3.0&lt;/code&gt;, &lt;code&gt;egulias/email-validator&lt;/code&gt; from &lt;code&gt;^3.2.1|^4.0&lt;/code&gt; to &lt;code&gt;^4.0&lt;/code&gt;, &lt;code&gt;sebastian/diff&lt;/code&gt; from &lt;code&gt;^4 || ^5 || ^6 || ^7&lt;/code&gt; to &lt;code&gt;^7&lt;/code&gt;, and &lt;code&gt;justinrainbow/json-schema&lt;/code&gt; from &lt;code&gt;^5.2 || ^6.5.2&lt;/code&gt; to &lt;code&gt;^6.5.2&lt;/code&gt;. The dev-only &lt;code&gt;micheh/phpcs-gitlab&lt;/code&gt; requirement was similarly narrowed from &lt;code&gt;^1.1 || ^2.0&lt;/code&gt; to &lt;code&gt;^2.0&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The motivation, per the issue, was that &lt;a href="https://www.drupal.org/node/3612544"&gt;#3612544&lt;/a&gt; added Guzzle 8 support while still nominally allowing Guzzle 7, but it wasn't clear the code actually supported both. Rather than audit for true dual-version compatibility, this issue takes the opportunity of the Drupal 12 major release to require a clean, single version of each of these libraries going forward.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Sites and contributed projects targeting Drupal 12 must ensure their &lt;code&gt;composer.json&lt;/code&gt; allows the newer major versions of these libraries:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;&amp;quot;doctrine/lexer&amp;quot;: &amp;quot;^3&amp;quot;,
-&amp;quot;guzzlehttp/guzzle&amp;quot;: &amp;quot;^8.0&amp;quot;,
-&amp;quot;guzzlehttp/psr7&amp;quot;: &amp;quot;^3.0&amp;quot;,
-&amp;quot;egulias/email-validator&amp;quot;: &amp;quot;^4.0&amp;quot;,
-&amp;quot;sebastian/diff&amp;quot;: &amp;quot;^7&amp;quot;,
-&amp;quot;justinrainbow/json-schema&amp;quot;: &amp;quot;^6.5.2&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that relied on APIs only present in the dropped major versions (for example Guzzle 7) should be updated to the versions above.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3608184: Load multiple cardinality fields with a smaller result set</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3608184.md</link>
-      <guid isPermaLink="false">019f94ff-b432-774a-81ca-3d1cee579bb6</guid>
-      <pubDate>Fri, 24 Jul 2026 14:01:45 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +191/−64 · php +191/−64&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/35c7c095385617caddaac77c47696b074c132cbb"&gt;35c7c09&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3608184"&gt;#3608184&lt;/a&gt; · 7 contributors · 47 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When an entity has several multi-value (&amp;quot;multiple cardinality&amp;quot;) fields, Drupal core previously ran one query per field and then re-sorted the results in PHP. This change combines those queries into a single, more efficient query per chunk of fields, cutting down the number of database queries needed to load such entities. This is a purely internal performance optimization to entity loading. There is nothing for site owners or module developers to configure or change; Drupal's own performance tests recorded fewer queries on pages like the front page and node pages after this change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This is a follow-up to &lt;a href="https://www.drupal.org/node/3607938"&gt;#3607938&lt;/a&gt;, which found that naively joining multiple multi-value field tables together in one query produces a cartesian product (a row for every combination of deltas across fields). This issue's fix, in &lt;code&gt;SqlContentEntityStorage::loadMultipleCardinalityFields()&lt;/code&gt;, avoids that by building a &amp;quot;delta spine&amp;quot;: a subselect that &lt;code&gt;UNION&lt;/code&gt;s the &lt;code&gt;(entity_id, langcode, delta)&lt;/code&gt; rows from each dedicated field table in the chunk, giving the full set of valid delta combinations for the loaded entities. Each field's dedicated table is then &lt;code&gt;LEFT JOIN&lt;/code&gt;ed onto that spine (aliased &lt;code&gt;delta_join&lt;/code&gt;) matching on ID, langcode and delta, so every field's value lines up on the correct row without multiplying against other fields. When a chunk contains only one multiple-cardinality field, the union step is skipped entirely and the query selects straight from that field's table, since a single table can't multiply against itself.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;loadFromDedicatedTables()&lt;/code&gt; now chunks the multiple-cardinality fields together (via &lt;code&gt;array_chunk()&lt;/code&gt; using the same &lt;code&gt;FIELD_MINIMUM_CHUNK_SIZE&lt;/code&gt; used for single-cardinality fields) and calls &lt;code&gt;loadMultipleCardinalityFields()&lt;/code&gt; once per chunk instead of once per field, and the previous PHP-side &lt;code&gt;ksort()&lt;/code&gt; re-sort of deltas is removed since the query now does &lt;code&gt;ORDER BY&lt;/code&gt; on the delta from the spine. The method signature was reworked accordingly: the &lt;code&gt;$base_query&lt;/code&gt;, &lt;code&gt;$base_table&lt;/code&gt;, &lt;code&gt;$base_id_key&lt;/code&gt;, and &lt;code&gt;$base_langcode_alias&lt;/code&gt; parameters were dropped since the query is now built independently of the base entity query, and an &lt;code&gt;$ids&lt;/code&gt; parameter was added to constrain the spine and field tables directly. &lt;code&gt;EXPLAIN&lt;/code&gt; output shared in the issue confirmed the union/join query hits indexes on every branch, and Drupal's &lt;code&gt;PerformanceTest&lt;/code&gt; suites were updated to reflect the reduced query counts (for example the Umami front page cold cache dropped from 184 to 178 queries, and the standard profile node page cold cache dropped from 204 to 195).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 3, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 24, 2026 (20 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch explored several alternatives before landing on this approach: a new database table pre-populated with sequential delta values to join against (rejected as &amp;quot;a bit painful&amp;quot; and hard to size for sites with very high cardinality), and separately ruled out &lt;code&gt;UNION&lt;/code&gt; of the actual field data (column type mismatches), a temporary table, a MySQL sequence, and &lt;code&gt;GROUP BY&lt;/code&gt; (no reliable delta to group on), documenting why each wouldn't work. alexpott then proposed building the delta spine from a &lt;code&gt;UNION&lt;/code&gt; subselect of just the &lt;code&gt;(id, langcode, delta)&lt;/code&gt; tuples instead of a physical table, and further simplified it to drop the join to the base entity table entirely. catch called this approach avoiding &amp;quot;the crime against databases&amp;quot; of the earlier table-based idea and moved the issue to RTBC. After commit, real-world benchmarking by nicxvan and scott_euser on sites with large multi-value fields showed a lower query count but not a clear wall-time win in their tests; catch explained that the benefit shows up mainly as reduced per-query overhead and database connection headroom rather than raw execution time, which matters more at scale and when the database is on a separate server from the web head.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3569316: Client connection ($clientConnection) must be of type object, null given when deleting a node</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569316.md</link>
-      <guid isPermaLink="false">019f935a-cb26-710c-8132-709a13b94bea</guid>
-      <pubDate>Fri, 24 Jul 2026 05:28:27 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +34/−0 · php +34&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/478fb3746e5a941211c3b4fafb2565c9518215a9"&gt;478fb37&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569316"&gt;#3569316&lt;/a&gt; · 14 contributors · 41 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 24&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A fatal &lt;code&gt;TypeError&lt;/code&gt; could occur during common content operations (saving or deleting nodes, flushing caches, language switches) on Drupal 11.3+, causing the &lt;code&gt;cachetags&lt;/code&gt; table to not be updated and leaving caches permanently stale until manually rebuilt. The error was intermittent but reliably reproducible on PHP 8.4 and in multi-replica PHP-FPM setups. This fix ensures cache tag invalidation and all other post-transaction callbacks complete correctly on every request.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;PHP's object destruction order during request shutdown is undefined. If &lt;code&gt;Connection::__destruct()&lt;/code&gt; executed before &lt;code&gt;Transaction::__destruct()&lt;/code&gt;, the &lt;code&gt;Connection&lt;/code&gt; would set its internal &lt;code&gt;$this-&amp;gt;connection&lt;/code&gt; PDO property to &lt;code&gt;NULL&lt;/code&gt;. When &lt;code&gt;Transaction::__destruct()&lt;/code&gt; subsequently ran &lt;code&gt;purge()&lt;/code&gt; → &lt;code&gt;processPostTransactionCallbacks()&lt;/code&gt;, any registered callback that used the database (such as &lt;code&gt;DatabaseCacheTagsChecksum::rootTransactionEndCallback&lt;/code&gt; → &lt;code&gt;doInvalidateTags()&lt;/code&gt;) would call &lt;code&gt;Connection::prepareStatement()&lt;/code&gt; with a null PDO, throwing &lt;code&gt;StatementWrapperIterator::__construct(): Argument #2 ($clientConnection) must be of type object, null given&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix adds a &lt;code&gt;$this-&amp;gt;processPostTransactionCallbacks()&lt;/code&gt; call at the end of &lt;code&gt;TransactionManagerBase::commitAll()&lt;/code&gt;. &lt;code&gt;commitAll()&lt;/code&gt; is already invoked during PHP shutdown via &lt;code&gt;commitAllOnShutdown&lt;/code&gt; to unwind any open transaction stack. By also draining the post-transaction callback queue there, all callbacks execute while the &lt;code&gt;Connection&lt;/code&gt; object is still fully initialized, before any destructors can run. The same pattern applies to any module that registers its own callbacks via &lt;code&gt;TransactionManagerInterface::addPostTransactionCallback()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A new kernel test &lt;code&gt;testPostTransactionsAlwaysExecutedBeforeConnectionIsDestroyed&lt;/code&gt; in &lt;code&gt;TransactionTest&lt;/code&gt; verifies the scenario: it closes the connection and unsets the transaction in the same destructor-race order, then confirms the callback's side-effects are present after reopening the connection. A one-line PHPStan suppression comment (&lt;code&gt;// @phpstan-ignore unset.possiblyHookedProperty&lt;/code&gt;) was removed from the test file in the 11.x and 11.4.x follow-up commits to pass static analysis. The related cleanup issue &lt;a href="https://www.drupal.org/node/3406985"&gt;#3406985&lt;/a&gt; (converting core transactions to explicit &lt;code&gt;commitOrRelease()&lt;/code&gt;) was a related but separate effort and did not fix this callback-ordering problem.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 23, 2026 (6 months and 7 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;titouille&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;sdjili&lt;/li&gt;
-&lt;li&gt;adraco&lt;/li&gt;
-&lt;li&gt;duaelfr&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Contributor sdjili wrote a detailed root-cause analysis in comment #11, tracing the exact shutdown sequence step by step, identifying that &lt;code&gt;commitAll()&lt;/code&gt; was the right place for the fix, and providing a minimal one-line patch that was ultimately what landed. The analysis was thorough enough that it was promoted into the issue summary. Contributor jsutta then turned that patch into a merge request after independently hitting the bug and confirming the fix. Multiple community members (agoradesign, bobooon, duaelfr, swild-ma, spfaffly, astutonet) confirmed the MR resolved their distinct failure scenarios (node saves, language switches, cache flushes, update.php), which helped build confidence before maintainer review.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3612544: Update to Guzzle 8</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612544.md</link>
-      <guid isPermaLink="false">019f9199-7f87-77c9-a41b-d75435ff7d96</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 23 Jul 2026 23:51:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +78/−307 · lock +42/−257 · php +34/−42 · json +2/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6e1efec8ae61f2cf3bf2057cd71d2f980ff6060d"&gt;6e1efec&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3612544"&gt;#3612544&lt;/a&gt; · 4 contributors · 16 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core now ships with Guzzle 8.0, upgraded from 7.x. The &lt;code&gt;composer.json&lt;/code&gt; constraint is broadened to &lt;code&gt;^7.10 || ^8.0&lt;/code&gt; (and &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; to &lt;code&gt;^2.8.0 || ^3.0&lt;/code&gt;), so sites can still resolve Guzzle 7 when other dependencies force it. The installed lock file pins &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt; 8.0.0, &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; 3.0.0, and &lt;code&gt;guzzlehttp/promises&lt;/code&gt; 3.0.0. The dev dependency &lt;code&gt;php-http/guzzle7-adapter&lt;/code&gt; is removed because no Guzzle 8 compatible release exists for it.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Guzzle 8.0.0, guzzlehttp/psr7 3.0.0, and guzzlehttp/promises 3.0.0 are now locked; core composer.json allows ^7.10 || ^8.0 for guzzle and ^2.8.0 || ^3.0 for psr7.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;composer.json&lt;/code&gt; version constraints for &lt;code&gt;guzzlehttp/guzzle&lt;/code&gt; and &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; are widened to accept both major versions. &lt;code&gt;ralouphie/getallheaders&lt;/code&gt; drops out of the lock file because &lt;code&gt;guzzlehttp/psr7&lt;/code&gt; 3.x no longer depends on it.&lt;/p&gt;
-&lt;p&gt;Guzzle 8 removes &lt;code&gt;ClientInterface::getConfig()&lt;/code&gt; entirely, so three PHPStan &lt;code&gt;$ignoreErrors&lt;/code&gt; entries suppressing that deprecation warning (in &lt;code&gt;BrowserTestBase&lt;/code&gt;, &lt;code&gt;ClientFactoryTest&lt;/code&gt;, and &lt;code&gt;DrupalTestBrowser&lt;/code&gt;) are deleted. In &lt;code&gt;DrupalTestBrowser::doRequest()&lt;/code&gt;, the catch block previously caught &lt;code&gt;RequestException&lt;/code&gt; and had to guard against a null response; Guzzle 8's &lt;code&gt;BadResponseException&lt;/code&gt; (covering 4xx and 5xx responses) always carries a response, so the null-response branch and the old &lt;code&gt;RequestException&lt;/code&gt; import are removed.&lt;/p&gt;
-&lt;p&gt;Guzzle 8 requires handler callables to return a &lt;code&gt;PromiseInterface&lt;/code&gt; rather than a &lt;code&gt;ResponseInterface&lt;/code&gt; directly. A mock handler in &lt;code&gt;LocaleTranslationTest&lt;/code&gt; is updated to wrap its &lt;code&gt;Response&lt;/code&gt; in &lt;code&gt;Create::promiseFor()&lt;/code&gt; and declare the correct return type signature &lt;code&gt;function(RequestInterface $request, array $options): PromiseInterface&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Guzzle 8's &lt;code&gt;CookieJar&lt;/code&gt; no longer stores a &lt;code&gt;Secure&lt;/code&gt;-flagged cookie received over a non-HTTPS connection (the HTTPS mock used in browser tests is not a real TLS connection). &lt;code&gt;LoginHttpsTest::loginHttps()&lt;/code&gt; is updated to parse the &lt;code&gt;Set-Cookie&lt;/code&gt; response header directly with &lt;code&gt;SetCookie::fromString()&lt;/code&gt; instead of calling &lt;code&gt;CookieJar::getCookieByName()&lt;/code&gt;. A companion fix in &lt;code&gt;BrowserTestBase::getSessionCookies()&lt;/code&gt; guards against a &lt;code&gt;null&lt;/code&gt; session ID before building the cookie jar.&lt;/p&gt;
-&lt;p&gt;Guzzle 8 also trims the trailing newline that earlier versions appended to the response body excerpt in exception messages, so several test string assertions drop the trailing &lt;code&gt;\n&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Custom Guzzle handlers&lt;/strong&gt; must return a &lt;code&gt;PromiseInterface&lt;/code&gt; instead of a &lt;code&gt;ResponseInterface&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (Guzzle 7)
-$handler = function (RequestInterface $request, array $options): ResponseInterface {
-    return new Response(200, [], 'body');
-};
-
-// After (Guzzle 8)
-use GuzzleHttp\Promise\Create;
-use GuzzleHttp\Promise\PromiseInterface;
-
-$handler = function (RequestInterface $request, array $options): PromiseInterface {
-    return Create::promiseFor(new Response(200, [], 'body'));
-};
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;Exception handling&lt;/strong&gt; for 4xx/5xx responses should use &lt;code&gt;BadResponseException&lt;/code&gt; instead of &lt;code&gt;RequestException&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (Guzzle 7)
-use GuzzleHttp\Exception\RequestException;
-catch (RequestException $e) {
-    if (!$e-&amp;gt;hasResponse()) {
-        throw $e;
-    }
-    $response = $e-&amp;gt;getResponse();
-}
-
-// After (Guzzle 8)
-use GuzzleHttp\Exception\BadResponseException;
-catch (BadResponseException $e) {
-    $response = $e-&amp;gt;getResponse();
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;strong&gt;Remove any calls to &lt;code&gt;getConfig()&lt;/code&gt;&lt;/strong&gt; on &lt;code&gt;GuzzleHttp\Client&lt;/code&gt; or &lt;code&gt;GuzzleHttp\ClientInterface&lt;/code&gt;; that method is removed in Guzzle 8. Store configuration values your code needs at construction time instead of reading them back from the client.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 23, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
