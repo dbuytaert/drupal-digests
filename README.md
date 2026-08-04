@@ -1,4 +1,4 @@
-**TL;DR:** [916 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [917 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_477 summaries · 12 new this week_
+_478 summaries · 13 new this week_
 
 - [#3589894: Remove the archive, glossary and recent content block views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589894.md)
+- [#3612448: Widen constraints in core-recommended for 11.3.x and 10.6.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3612448.md)
 - [#3607968: Promote defaults._title to top level in route attributes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md)
-- [#3593472: Insecure Direct Object Reference in Private File Uploads](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md)
 
 ### Drupal AI
 
