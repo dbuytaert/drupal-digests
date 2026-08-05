@@ -5,6 +5,116 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md</link>
+      <guid isPermaLink="false">019fd3a3-db18-719f-8f6d-4bcba31622a5</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 05 Aug 2026 20:13:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +123/−198 · php +111/−195 · yml +12/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/42747abc41e83807d52dee474a1e6c481ab4443c"&gt;42747ab&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593485"&gt;#3593485&lt;/a&gt; · 5 contributors · 26 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal now reuses parsed menu link, local task, and local action YAML definitions across cache clears instead of re-parsing the underlying &lt;code&gt;.links.menu.yml&lt;/code&gt;, &lt;code&gt;.links.task.yml&lt;/code&gt;, and &lt;code&gt;.links.action.yml&lt;/code&gt; files from every module on each cache rebuild. This follows up on the file-parsing cache collector introduced in &lt;a href="https://www.drupal.org/node/3486503"&gt;#3486503&lt;/a&gt; and shaves measurable time off cold-cache page requests (profiling on an Umami install showed roughly a net 12ms saving per cold-cache request from this change alone, out of a total ~90ms available from YAML parsing overall), with bigger gains expected on sites with more modules.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Constructing &lt;code&gt;MenuLinkManager&lt;/code&gt;, &lt;code&gt;LocalActionManager&lt;/code&gt;, or &lt;code&gt;LocalTaskManager&lt;/code&gt; without the new &lt;code&gt;$yaml_cache_collector&lt;/code&gt; argument is deprecated in Drupal 11.5.0 and will be required in Drupal 12.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;MenuLinkManager&lt;/code&gt;, &lt;code&gt;LocalActionManager&lt;/code&gt;, and &lt;code&gt;LocalTaskManager&lt;/code&gt; each get a new &lt;code&gt;YamlCacheCollectorDiscovery&lt;/code&gt; (in &lt;code&gt;Drupal\Core\Plugin\Discovery&lt;/code&gt;) in place of the plain &lt;code&gt;YamlDiscovery&lt;/code&gt; they previously used in &lt;code&gt;getDiscovery()&lt;/code&gt;. This new discovery class wraps the component-level &lt;code&gt;Drupal\Core\Discovery\YamlCacheCollectorDiscovery&lt;/code&gt; with a &lt;code&gt;Drupal\Core\Utility\YamlCacheCollector&lt;/code&gt; instance, so parsed YAML definitions persist in the &lt;code&gt;cache.file_parsing&lt;/code&gt; bin rather than being reparsed from disk on every cache rebuild.&lt;/p&gt;
+&lt;p&gt;Three new services back this: &lt;code&gt;menu_link.yaml_cache_collector&lt;/code&gt;, &lt;code&gt;local_action.yaml_cache_collector&lt;/code&gt;, and &lt;code&gt;local_task.yaml_cache_collector&lt;/code&gt;, each a &lt;code&gt;Drupal\Core\Utility\YamlCacheCollector&lt;/code&gt; keyed to &lt;code&gt;menu.link.yaml&lt;/code&gt;, &lt;code&gt;menu.local_action.yaml&lt;/code&gt;, or &lt;code&gt;menu.local_task.yaml&lt;/code&gt; respectively, using &lt;code&gt;@cache.file_parsing&lt;/code&gt;, &lt;code&gt;@lock&lt;/code&gt;, and &lt;code&gt;@datetime.time&lt;/code&gt;. The three manager constructors were converted to promoted properties and gained a new optional &lt;code&gt;?CacheCollectorInterface $yaml_cache_collector = NULL&lt;/code&gt; parameter; when omitted, each manager triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice and falls back to pulling the corresponding collector service directly from the container via &lt;code&gt;\Drupal::service()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Existing kernel performance tests (&lt;code&gt;PageCacheTest&lt;/code&gt;/related &lt;code&gt;TestFrontPageColdCache&lt;/code&gt;, &lt;code&gt;testNodePageColdCache&lt;/code&gt;, &lt;code&gt;doTestNodePageAdministrator&lt;/code&gt;) had their expected &lt;code&gt;CacheGetCount&lt;/code&gt; and per-bin &lt;code&gt;file_parsing&lt;/code&gt; counts bumped by one to account for the new collector's cache lookup.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that instantiates &lt;code&gt;MenuLinkManager&lt;/code&gt;, &lt;code&gt;LocalActionManager&lt;/code&gt;, or &lt;code&gt;LocalTaskManager&lt;/code&gt; directly (for example in a custom service definition that decorates or replaces one of these) should pass the new argument to avoid the deprecation notice:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function __construct(
+  MenuTreeStorageInterface $tree_storage,
+  StaticMenuLinkOverridesInterface $overrides,
+  ModuleHandlerInterface $module_handler,
+  ?CacheCollectorInterface $yaml_cache_collector = NULL,
+) {
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pass the matching core service (&lt;code&gt;menu_link.yaml_cache_collector&lt;/code&gt;, &lt;code&gt;local_action.yaml_cache_collector&lt;/code&gt;, or &lt;code&gt;local_task.yaml_cache_collector&lt;/code&gt;) as the new argument in your service definition's &lt;code&gt;arguments&lt;/code&gt; list.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 3, 2026&lt;/li&gt;
+&lt;li&gt;First commit: August 4, 2026 (2 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 5, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#1945262: Introduce "before" and "after" for conditional ordering in library definitions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1945262.md</link>
+      <guid isPermaLink="false">019fd3a5-4501-7001-a46e-da70c79787d3</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 05 Aug 2026 19:29:27 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +245/−365 · php +145/−291 · yml +96/−72 · js +4/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f9289baf18f15a122ad7181a86c8fdd9cbee098a"&gt;f9289ba&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1945262"&gt;#1945262&lt;/a&gt; · 25 contributors · 184 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 98&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's asset library system now lets a library declare that it must load &lt;code&gt;before&lt;/code&gt; or &lt;code&gt;after&lt;/code&gt; another library, in addition to the existing &lt;code&gt;dependencies&lt;/code&gt; key. This gives module and theme authors a reliable way to control asset ordering for cases where a real dependency relationship doesn't exist (for example, a library that only reacts to another library if it happens to be present), without resorting to fragile per-file &lt;code&gt;weight&lt;/code&gt; values or custom &lt;code&gt;hook_js_alter()&lt;/code&gt;/&lt;code&gt;hook_css_alter()&lt;/code&gt; code. As part of this change, many long-standing &lt;code&gt;weight&lt;/code&gt; overrides and ordering workarounds in core library definitions (jQuery UI assets, &lt;code&gt;contextual&lt;/code&gt;, &lt;code&gt;views&lt;/code&gt;, &lt;code&gt;settings_tray&lt;/code&gt;, CKEditor 5 translations, &lt;code&gt;locale&lt;/code&gt;, &lt;code&gt;form_test&lt;/code&gt;, and others) were replaced with explicit &lt;code&gt;dependencies&lt;/code&gt;, &lt;code&gt;before&lt;/code&gt;, or &lt;code&gt;after&lt;/code&gt; declarations, or removed outright where dependencies already implied the correct order.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Asset library definitions in &lt;code&gt;*.libraries.yml&lt;/code&gt; now support &lt;code&gt;before&lt;/code&gt; and &lt;code&gt;after&lt;/code&gt; keys, listing other libraries that must load after or before the declaring library, respectively.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core mechanism for resolving library load order was rewritten around a directed graph instead of ad hoc weight math. &lt;code&gt;LibraryDependencyResolver::doGetDependencies()&lt;/code&gt; now builds a graph of libraries and their &lt;code&gt;dependencies&lt;/code&gt; as edges, &lt;code&gt;doProcessBeforeAfter()&lt;/code&gt; adds extra edges for any &lt;code&gt;before&lt;/code&gt;/&lt;code&gt;after&lt;/code&gt; keys found in each library's definition (only when the referenced library is already part of the graph), and &lt;code&gt;getLibrariesWithDependencies()&lt;/code&gt; runs the result through &lt;code&gt;Drupal\Component\Graph\Graph::searchAndSort()&lt;/code&gt; and then sorts by the resulting weight to produce the final load order. &lt;code&gt;getMinimalRepresentativeSubset()&lt;/code&gt; was similarly reworked to use the graph's edges rather than repeatedly calling &lt;code&gt;getLibrariesWithDependencies()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AssetResolver::getCssAssets()&lt;/code&gt; and &lt;code&gt;getJsAssets()&lt;/code&gt; no longer nudge weights by &lt;code&gt;count($css) / 30000&lt;/code&gt; to preserve insertion order; instead they skip re-adding an asset file that has already been added, so the first occurrence (which reflects the correct dependency/before/after order) wins. &lt;code&gt;ckeditor5_js_alter()&lt;/code&gt; no longer manipulates a synthetic &lt;code&gt;weight&lt;/code&gt; to group translation files for aggregation, it just filters out translation files that don't match the current language via &lt;code&gt;array_filter()&lt;/code&gt;. Similarly, &lt;code&gt;locale_js_alter()&lt;/code&gt; no longer sets a &lt;code&gt;weight&lt;/code&gt; to force the translation file to load first, and &lt;code&gt;settings_tray&lt;/code&gt; drops its &lt;code&gt;cssAlter()&lt;/code&gt; hook and &lt;code&gt;group: 200&lt;/code&gt; override in favor of an &lt;code&gt;after: [core/drupal.dialog]&lt;/code&gt; declaration.&lt;/p&gt;
+&lt;p&gt;Several core libraries were updated to use &lt;code&gt;before&lt;/code&gt;/&lt;code&gt;after&lt;/code&gt;: &lt;code&gt;drupal.contextual-links&lt;/code&gt; now declares &lt;code&gt;before: [contextual/drupal.context-toolbar]&lt;/code&gt;, &lt;code&gt;drupal.vertical-tabs&lt;/code&gt; gets &lt;code&gt;before: [core/drupal.collapse]&lt;/code&gt; (moved from &lt;code&gt;form_test&lt;/code&gt;'s own weight hack), and test fixture libraries (&lt;code&gt;common_test&lt;/code&gt;, &lt;code&gt;js_testing_ajax_request_test&lt;/code&gt;) were added to exercise the new keys directly.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 17, 2013&lt;/li&gt;
+&lt;li&gt;First commit: August 3, 2026 (13 years later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 5, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nod_ (Eclipse Foundation)&lt;/li&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;li&gt;sun&lt;/li&gt;
+&lt;li&gt;webchick&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;penyaskito&lt;/li&gt;
+&lt;li&gt;amol_tatkare&lt;/li&gt;
+&lt;li&gt;taran2l (Lemberg Solutions)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;luenemann (FlexiFlow GmbH)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;liam morland (OpenPlus)&lt;/li&gt;
+&lt;li&gt;neclimdul (APQC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This task sat open for over a decade, blocked mainly on how to remove per-file &lt;code&gt;weight&lt;/code&gt; overrides without breaking ordering guarantees that weights had been silently providing. &lt;code&gt;wim leers&lt;/code&gt; repeatedly identified edge cases where dependency declarations alone couldn't express the needed ordering (&lt;code&gt;contextual.toolbar.js&lt;/code&gt; needing to run after &lt;code&gt;contextual.js&lt;/code&gt; without formally depending on it, and the analogous &lt;code&gt;tour.js&lt;/code&gt;/overlay case), which is what motivated the &lt;code&gt;before&lt;/code&gt;/&lt;code&gt;after&lt;/code&gt; design discussed with &lt;code&gt;sdboyer&lt;/code&gt; and &lt;code&gt;nod_&lt;/code&gt; back in comment #4. Early attempts to remove weights outright (&lt;code&gt;nod_&lt;/code&gt;'s and &lt;code&gt;penyaskito&lt;/code&gt;'s patches) were committed and then reverted by &lt;code&gt;webchick&lt;/code&gt; after &lt;code&gt;wim leers&lt;/code&gt; reported breakage on &lt;code&gt;/admin/config/development/testing&lt;/code&gt;, and &lt;code&gt;wim leers&lt;/code&gt;'s review in comment #38 caught several library comments that would have become lies (&lt;code&gt;contextual.js&lt;/code&gt;, &lt;code&gt;views-contextual.js&lt;/code&gt;) had the weights simply been dropped without replacement ordering guarantees. The eventual approach, proposed by &lt;code&gt;wim leers&lt;/code&gt; in comment #76 (keep weights for BC while adding &lt;code&gt;before&lt;/code&gt;/&lt;code&gt;after&lt;/code&gt;, then deprecate weights separately), matched what &lt;code&gt;catch&lt;/code&gt; suggested and was later implemented by &lt;code&gt;taran2l&lt;/code&gt; in the merge request, building on &lt;code&gt;nod_&lt;/code&gt;'s earlier groundwork of adding &lt;code&gt;before&lt;/code&gt; keys without yet acting on them.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3411490: Replace array-based DB Schema API with a value object structure</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3411490.md</link>
       <guid isPermaLink="false">019fd055-8b40-72e9-ae55-dffd5af78930</guid>
@@ -1015,108 +1125,6 @@ $storage = \Drupal::service('config.storage.sync');
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The design took years to settle because of a real safety concern: alexpott identified in comment #46 that reading config during import can require autoloading code for a module that isn't installed yet, which risks crashing on missing classes. neclimdul (#78) and phenaproxima (#84) pushed back hard, worried that letting config schema influence what gets autoloaded was a &amp;quot;danger zone&amp;quot; that could snowball to cover removed modules, themes and profiles too. alexpott resolved the disagreement by scoping &lt;code&gt;AutoloadingStorage&lt;/code&gt; narrowly: it only wraps the sync storage (never active storage) and only for extensions genuinely being installed, and argued failures in this area should fail loudly rather than be silently tolerated. Wim Leers separately pushed for decoding &lt;code&gt;!php/enum&lt;/code&gt; (not just &lt;code&gt;!php/const&lt;/code&gt;) to match Symfony's own documented behavior and keep the PECL and Symfony YAML backends consistent, which alexpott agreed to add. Late in the process mondrake decided that supporting global constants declared in procedural &lt;code&gt;.module&lt;/code&gt; files, a gap mikelutz had surfaced with a failing test, wasn't worth the added complexity and dropped it before the final commit.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591513: Deprecate the update_fetch_with_http_fallback setting</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3591513.md</link>
-      <guid isPermaLink="false">019fab59-69bf-7207-ae2c-2366a9f0ea4f</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 27 Jul 2026 01:02:07 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +25/−6 · php +25/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/618e547ffdd858a4f7a44c2e9de43eb966c50453"&gt;618e547&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3591513"&gt;#3591513&lt;/a&gt; · 10 contributors · 45 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; setting, which lets a site fall back to insecure HTTP when it can't reach updates.drupal.org over HTTPS, is now deprecated with no planned replacement. It still works exactly as before, but any site that has explicitly set this in its &lt;code&gt;settings.php&lt;/code&gt; will see a deprecation warning, and the setting itself will be removed entirely in Drupal 12. In practice, few sites should have this enabled, since it exists only as an insecure fallback for connectivity problems that HTTPS-everywhere has mostly made obsolete.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; settings.php key is deprecated in Drupal 11.5.0 for removal in Drupal 12.0.0, with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The actual fetch logic in &lt;code&gt;\Drupal\update\UpdateFetcher&lt;/code&gt; and &lt;code&gt;\Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher&lt;/code&gt; is untouched: this is a pure deprecation, not a behavior change. The setting was registered in &lt;code&gt;Drupal\Core\Site\Settings::$deprecatedSettings&lt;/code&gt; with an empty &lt;code&gt;replacement&lt;/code&gt; key (since there is nothing to migrate to) and a message pointing to the change record. This relies on the &lt;code&gt;Settings::handleDeprecations()&lt;/code&gt; mechanism to emit the deprecation at bootstrap when the setting is actually configured.&lt;/p&gt;
-&lt;p&gt;Getting this landed required a companion fix in &lt;a href="https://www.drupal.org/node/3592037"&gt;#3592037&lt;/a&gt;: originally &lt;code&gt;Settings::get()&lt;/code&gt; triggered the deprecation warning unconditionally for any key listed in &lt;code&gt;$deprecatedSettings&lt;/code&gt;, even when the caller was just requesting the default value because the setting was never set in &lt;code&gt;settings.php&lt;/code&gt;. That caused every kernel test instantiating &lt;code&gt;UpdateFetcher&lt;/code&gt; or &lt;code&gt;SecurityAdvisoriesFetcher&lt;/code&gt; to emit a spurious deprecation. Once &lt;a href="https://www.drupal.org/node/3592037"&gt;#3592037&lt;/a&gt; fixed &lt;code&gt;Settings::get()&lt;/code&gt; to only fire when the setting is actually present in storage, this issue could proceed. Several test methods that intentionally set the value (&lt;code&gt;SettingsValidatorTest&lt;/code&gt;, &lt;code&gt;UpdateFetcherTest&lt;/code&gt;, &lt;code&gt;SecurityAdvisoriesFetcherTest&lt;/code&gt;, &lt;code&gt;SettingsTest::testRealDeprecatedSettings&lt;/code&gt;) were annotated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; since they exercise the deprecated code path on purpose.&lt;/p&gt;
-&lt;p&gt;A follow-up issue, &lt;a href="https://www.drupal.org/node/3613344"&gt;#3613344&lt;/a&gt;, has been opened to remove the setting entirely on the 12.x branch.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If your site's &lt;code&gt;settings.php&lt;/code&gt; contains:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$settings['update_fetch_with_http_fallback'] = TRUE;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;remove it before upgrading to Drupal 12. There is no replacement setting: resolve the underlying HTTPS connectivity issue to updates.drupal.org instead (see the PHP/OpenSSL requirements documentation linked in the setting's own doc comment).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 27, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;ishani patel&lt;/li&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;macsim&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;macsim found and diagnosed a subtle problem while implementing the deprecation: registering the setting in &lt;code&gt;Settings::$deprecatedSettings&lt;/code&gt; caused &lt;code&gt;Settings::get()&lt;/code&gt; to fire a deprecation warning on every call, even for sites that never configured it, breaking unrelated kernel tests that merely instantiate &lt;code&gt;UpdateFetcher&lt;/code&gt; or &lt;code&gt;SecurityAdvisoriesFetcher&lt;/code&gt;. Macsim laid out two possible fixes in detail and, after discussion with mstrelan, they agreed the root-cause fix belonged in &lt;code&gt;Settings::get()&lt;/code&gt; itself rather than being patched around. Macsim split that off into &lt;a href="https://www.drupal.org/node/3592037"&gt;#3592037&lt;/a&gt; and postponed this issue on it rather than trying to work around the problem locally.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588379: Move search from user module to Search</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588379.md</link>
-      <guid isPermaLink="false">019f9cd8-e90d-73bc-8d9e-7a29a26f847f</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sun, 26 Jul 2026 01:13:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +345/−120 · php +332/−114 · yml +12/−5 · twig +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/dc2a1d8d24c9472b0aa2bdad878ca96aedb8d525"&gt;dc2a1d8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588379"&gt;#3588379&lt;/a&gt; · 6 contributors · 34 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;Users&amp;quot; search plugin, previously bundled inside the User module, has been moved into a new core submodule called Search user, following the same pattern already used to split search functionality out of the Node and Help modules. Existing sites are upgraded automatically: a database update enables the new &lt;code&gt;search_user&lt;/code&gt; module whenever &lt;code&gt;user&lt;/code&gt; is already installed, and the &lt;code&gt;user_search&lt;/code&gt; search page configuration now depends on &lt;code&gt;search_user&lt;/code&gt; instead of &lt;code&gt;user&lt;/code&gt;. No end user visible change is expected; the Users search page and its results work the same as before.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\user\Plugin\Search\UserSearch&lt;/code&gt; is deprecated in favor of &lt;code&gt;Drupal\search_user\Plugin\Search\SearchUser&lt;/code&gt; in the new &lt;code&gt;search_user&lt;/code&gt; module; the old plugin now returns no results and denies access.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The old &lt;code&gt;Drupal\user\Plugin\Search\UserSearch&lt;/code&gt; plugin in &lt;code&gt;user.module&lt;/code&gt; is now &lt;code&gt;@deprecated&lt;/code&gt; (removed in Drupal 12.0.0, see the linked change record) and its &lt;code&gt;execute()&lt;/code&gt; and &lt;code&gt;access()&lt;/code&gt; methods are stubbed out to return no results and deny access respectively; the real implementation moved verbatim to &lt;code&gt;Drupal\search_user\Plugin\Search\SearchUser&lt;/code&gt; in the new &lt;code&gt;search_user&lt;/code&gt; module.&lt;/p&gt;
-&lt;p&gt;Unlike the earlier node and help extractions, &lt;code&gt;search_user&lt;/code&gt; sorts alphabetically before &lt;code&gt;user&lt;/code&gt;, so normal module-precedence rules would let the old, now-inert &lt;code&gt;UserSearch&lt;/code&gt; plugin win when both modules are enabled. To avoid that, &lt;code&gt;search_user&lt;/code&gt; implements &lt;code&gt;hook_search_plugin_alter()&lt;/code&gt; (&lt;code&gt;SearchUserHooks::searchPluginAlter()&lt;/code&gt;) to force the &lt;code&gt;user_search&lt;/code&gt; plugin definition's class to the new &lt;code&gt;SearchUser&lt;/code&gt; regardless of load order. A new &lt;code&gt;search_update_11403()&lt;/code&gt; installs &lt;code&gt;search_user&lt;/code&gt; automatically for any site that has &lt;code&gt;user&lt;/code&gt; enabled but not yet &lt;code&gt;search_user&lt;/code&gt;, and &lt;code&gt;search.schema.yml&lt;/code&gt;'s &lt;code&gt;search.plugin.user_search&lt;/code&gt; config schema moved from &lt;code&gt;user.module&lt;/code&gt; to the new module. &lt;code&gt;search.module&lt;/code&gt;'s help text was also hardened with a &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch&lt;/code&gt; around &lt;code&gt;Url::fromRoute('search.view')&lt;/code&gt;, since that route only exists once a default search page is configured, which was surfacing as a fatal error in the generic module test.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Update references to the deprecated plugin class:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-use Drupal\user\Plugin\Search\UserSearch;
-
-// After
-use Drupal\search_user\Plugin\Search\SearchUser;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Contrib modules and custom code that enable Search functionality for users should depend on &lt;code&gt;search_user&lt;/code&gt; (not just &lt;code&gt;user&lt;/code&gt;), and any &lt;code&gt;.info.yml&lt;/code&gt; or test &lt;code&gt;$modules&lt;/code&gt; list that expects the &lt;code&gt;user_search&lt;/code&gt; search page to work must include &lt;code&gt;search_user&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 26, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Catch flagged a design issue partway through review: because &lt;code&gt;search_user&lt;/code&gt; sorts alphabetically before &lt;code&gt;user&lt;/code&gt; (unlike the node/help precedents, where the new module came later), the deprecated plugin would otherwise win by module precedence. That observation led to adding &lt;code&gt;hook_search_plugin_alter()&lt;/code&gt; in &lt;code&gt;search_user&lt;/code&gt; to force the correct plugin class, which quietone and dcam then verified worked via manual before/after upgrade testing.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

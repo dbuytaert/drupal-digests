@@ -5,6 +5,210 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Add $yaml_cache_collector argument to Local Action/Task/MenuLink manager constructors</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-yaml-cache-collector-argument-to-local-action-task-3593485.php</link>
+      <guid isPermaLink="false">019fd3ab-9e6f-74ed-a76a-5b13c2bb3aaa</guid>
+      <pubDate>Wed, 05 Aug 2026 20:44:27 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593485"&gt;#3593485&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 adds an optional &lt;code&gt;$yaml_cache_collector&lt;/code&gt; constructor argument to &lt;code&gt;LocalActionManager&lt;/code&gt;, &lt;code&gt;LocalTaskManager&lt;/code&gt;, and &lt;code&gt;MenuLinkManager&lt;/code&gt; so they can use &lt;code&gt;YamlCacheCollectorDiscovery&lt;/code&gt;. Omitting it triggers a deprecation warning and it becomes required in Drupal 12. This rule appends the matching &lt;code&gt;\Drupal::service(...)&lt;/code&gt; call as the trailing argument on direct &lt;code&gt;new&lt;/code&gt; instantiations of these three classes and on &lt;code&gt;parent::__construct()&lt;/code&gt; calls inside subclasses that extend them, only when the exact prior positional argument count is present.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Menu\LocalActionManager($argument_resolver, $request_stack, $route_match, $route_provider, $module_handler, $cache_backend, $language_manager, $access_manager, $account);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Menu\LocalActionManager($argument_resolver, $request_stack, $route_match, $route_provider, $module_handler, $cache_backend, $language_manager, $access_manager, $account, \Drupal::service('local_action.yaml_cache_collector'));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites direct instantiations and &lt;code&gt;parent::__construct()&lt;/code&gt; calls whose positional argument count exactly matches the pre-change signature (9 for &lt;code&gt;LocalActionManager&lt;/code&gt;/&lt;code&gt;LocalTaskManager&lt;/code&gt;, 3 for &lt;code&gt;MenuLinkManager&lt;/code&gt;); calls with too few arguments, &lt;code&gt;...$args&lt;/code&gt; unpacking, or first-class callable syntax are left untouched for manual review. Subclasses that extend an intermediate class rather than the manager directly are not matched, since the intermediate class's constructor signature is not verified.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Expression;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddYamlCacheCollectorArgumentToMenuManagersRector extends AbstractRector
+{
+    /**
+     * Maps the manager FQCN to [service id for the new arg, position of the new (last) arg].
+     * All three manager constructors name the new parameter `$yaml_cache_collector`.
+     *
+     * @var array&amp;lt;string, array{0: string, 1: int}&amp;gt;
+     */
+    private const MANAGERS = [
+        'Drupal\Core\Menu\LocalActionManager' =&amp;gt; ['local_action.yaml_cache_collector', 9],
+        'Drupal\Core\Menu\LocalTaskManager' =&amp;gt; ['local_task.yaml_cache_collector', 9],
+        'Drupal\Core\Menu\MenuLinkManager' =&amp;gt; ['menu_link.yaml_cache_collector', 3],
+    ];
+
+    private const ARGUMENT_NAME = 'yaml_cache_collector';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add the new $yaml_cache_collector constructor argument to LocalActionManager, LocalTaskManager, and MenuLinkManager instantiations and to parent::__construct() calls in subclasses, since omitting it is deprecated.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+new \Drupal\Core\Menu\LocalActionManager($argument_resolver, $request_stack, $route_match, $route_provider, $module_handler, $cache_backend, $language_manager, $access_manager, $account);
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+new \Drupal\Core\Menu\LocalActionManager($argument_resolver, $request_stack, $route_match, $route_provider, $module_handler, $cache_backend, $language_manager, $access_manager, $account, \Drupal::service('local_action.yaml_cache_collector'));
+CODE_SAMPLE
+            )]
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class, Class_::class];
+    }
+
+    /**
+     * @param New_|Class_ $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        if ($node instanceof New_) {
+            return $this-&amp;gt;refactorNew($node);
+        }
+
+        if ($node instanceof Class_) {
+            return $this-&amp;gt;refactorSubclassConstructor($node);
+        }
+
+        return null;
+    }
+
+    private function refactorNew(New_ $node): ?Node
+    {
+        foreach (self::MANAGERS as $fqcn =&amp;gt; [$serviceId, $position]) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;class, $fqcn)) {
+                continue;
+            }
+
+            return $this-&amp;gt;appendArgumentIfMissing($node, $position, $serviceId) ? $node : null;
+        }
+
+        return null;
+    }
+
+    private function refactorSubclassConstructor(Class_ $node): ?Node
+    {
+        if (!$node-&amp;gt;extends instanceof Node\Name) {
+            return null;
+        }
+
+        $target = null;
+        foreach (self::MANAGERS as $fqcn =&amp;gt; $config) {
+            if ($this-&amp;gt;isName($node-&amp;gt;extends, $fqcn)) {
+                $target = $config;
+                break;
+            }
+        }
+
+        if ($target === null) {
+            return null;
+        }
+        [$serviceId, $position] = $target;
+
+        $constructMethod = $node-&amp;gt;getMethod('__construct');
+        if (!$constructMethod instanceof ClassMethod || $constructMethod-&amp;gt;stmts === null) {
+            return null;
+        }
+
+        $hasChanged = false;
+        foreach ($constructMethod-&amp;gt;stmts as $stmt) {
+            if (!$stmt instanceof Expression) {
+                continue;
+            }
+            if (!$stmt-&amp;gt;expr instanceof StaticCall) {
+                continue;
+            }
+            $staticCall = $stmt-&amp;gt;expr;
+            if (!$this-&amp;gt;isName($staticCall-&amp;gt;class, 'parent')) {
+                continue;
+            }
+            if (!$this-&amp;gt;isName($staticCall-&amp;gt;name, '__construct')) {
+                continue;
+            }
+            if ($this-&amp;gt;appendArgumentIfMissing($staticCall, $position, $serviceId)) {
+                $hasChanged = true;
+            }
+        }
+
+        return $hasChanged ? $node : null;
+    }
+
+    /**
+     * @param New_|StaticCall $call
+     */
+    private function appendArgumentIfMissing($call, int $position, string $serviceId): bool
+    {
+        if ($call-&amp;gt;isFirstClassCallable()) {
+            return false;
+        }
+
+        $hasNamedArgs = false;
+        foreach ($call-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg) {
+                // Unpacked/variadic args make position counting unreliable.
+                return false;
+            }
+            if ($arg-&amp;gt;name !== null) {
+                $hasNamedArgs = true;
+                if ($this-&amp;gt;isName($arg-&amp;gt;name, self::ARGUMENT_NAME)) {
+                    // Argument already present as a named argument.
+                    return false;
+                }
+            }
+        }
+
+        $newArgValue = new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg(new String_($serviceId))]);
+        $newArg = new Arg($newArgValue);
+
+        if ($hasNamedArgs) {
+            $newArg-&amp;gt;name = new Identifier(self::ARGUMENT_NAME);
+            $call-&amp;gt;args[] = $newArg;
+            return true;
+        }
+
+        // Only append when exactly the required positional arguments are present;
+        // anything else (too few, or the new argument already present) is left alone.
+        if (count($call-&amp;gt;args) !== $position) {
+            return false;
+        }
+
+        $call-&amp;gt;args[] = $newArg;
+        return true;
+    }
+}
+
+return RectorConfig::configure()
+    -&amp;gt;withRules([AddYamlCacheCollectorArgumentToMenuManagersRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Promote defaults._title to top-level title on #[Route] attributes</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/promote-defaults-title-to-top-level-title-on-route-3607968.php</link>
       <guid isPermaLink="false">019fbad8-6428-744c-b0f7-5b695911fbf5</guid>
@@ -1929,122 +2133,6 @@ CODE_SAMPLE
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([AddSymfonyConstraintConstructorRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace check_markup() with processed_text render array</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-check-markup-with-processed-text-render-array-455724.php</link>
-      <guid isPermaLink="false">019e215f-ef60-71b2-8814-ada1c0fff96e</guid>
-      <pubDate>Wed, 13 May 2026 12:46:35 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/455724"&gt;#455724&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces calls to the deprecated &lt;code&gt;check_markup()&lt;/code&gt; function (removed in Drupal 13) with an equivalent &lt;code&gt;['#type' =&amp;gt; 'processed_text', ...]&lt;/code&gt; render array. The render array preserves all passed arguments — &lt;code&gt;$text&lt;/code&gt;, &lt;code&gt;$format_id&lt;/code&gt;, &lt;code&gt;$langcode&lt;/code&gt;, and &lt;code&gt;$filter_types_to_skip&lt;/code&gt; — mapping them to the corresponding render element keys. Both positional and named argument styles are handled.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;check_markup($text, $format_id);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; $text, '#format' =&amp;gt; $format_id];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;The return type changes from &lt;code&gt;MarkupInterface&lt;/code&gt; to a render array. Any call site that uses the result as a string (concatenation, &lt;code&gt;echo&lt;/code&gt;, cast to string) needs additional manual updates to pass the render array through a renderer. Call sites that return the render array directly or nest it inside another render array are fully handled by this rule.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\ArrayItem;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class CheckMarkupToProcessedTextRector extends AbstractRector
-{
-    // Maps check_markup() parameter names to processed_text render array keys.
-    private const PARAM_MAP = [
-        'text'                 =&amp;gt; '#text',
-        'format_id'            =&amp;gt; '#format',
-        'langcode'             =&amp;gt; '#langcode',
-        'filter_types_to_skip' =&amp;gt; '#filter_types_to_skip',
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated check_markup() calls with a processed_text render array.',
-            [new CodeSample(
-                &amp;quot;check_markup(\$text, \$format_id);&amp;quot;,
-                &amp;quot;['#type' =&amp;gt; 'processed_text', '#text' =&amp;gt; \$text, '#format' =&amp;gt; \$format_id];&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'check_markup')) {
-            return null;
-        }
-
-        $args = $node-&amp;gt;args;
-        if (count($args) === 0) {
-            return null;
-        }
-
-        $items = [
-            new ArrayItem(new String_('processed_text'), new String_('#type')),
-        ];
-
-        $paramNames = array_keys(self::PARAM_MAP);
-        $positionalIndex = 0;
-
-        foreach ($args as $arg) {
-            // Skip variadic/unpack placeholders.
-            if (!$arg instanceof Arg) {
-                continue;
-            }
-
-            if ($arg-&amp;gt;name !== null) {
-                // Named argument: map by parameter name.
-                $paramName = $arg-&amp;gt;name-&amp;gt;toString();
-                if (isset(self::PARAM_MAP[$paramName])) {
-                    $items[] = new ArrayItem($arg-&amp;gt;value, new String_(self::PARAM_MAP[$paramName]));
-                }
-            } else {
-                // Positional argument: map by position.
-                if (isset($paramNames[$positionalIndex])) {
-                    $key = self::PARAM_MAP[$paramNames[$positionalIndex]];
-                    $items[] = new ArrayItem($arg-&amp;gt;value, new String_($key));
-                }
-                $positionalIndex++;
-            }
-        }
-
-        return new Array_($items);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([CheckMarkupToProcessedTextRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
