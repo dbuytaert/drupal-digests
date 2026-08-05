@@ -1,4 +1,4 @@
-**TL;DR:** [925 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [926 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -14,11 +14,11 @@ _234 summaries · 3 new this week_
 
 ### Drupal Core
 
-_484 summaries · 16 new this week_
+_485 summaries · 17 new this week_
 
+- [#3411490: Replace array-based DB Schema API with a value object structure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3411490.md)
 - [#3604286: Upsert - Allow to customize the behavior of the update when the insert fails...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md)
 - [#3565258: Support library-specific aggregates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md)
-- [#3524971: Defend against \GuzzleHttp\Cookie\FileCookieJar gadget chain](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3524971.md)
 
 ### Drupal AI
 

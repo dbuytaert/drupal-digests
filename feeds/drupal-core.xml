@@ -5,6 +5,91 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3411490: Replace array-based DB Schema API with a value object structure</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3411490.md</link>
+      <guid isPermaLink="false">019fd055-8b40-72e9-ae55-dffd5af78930</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 04 Aug 2026 21:01:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 30 files, +2436/−288 · php +2435/−288 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/689e58565cd4e63f9db749edb8255562ed2e1499"&gt;689e585&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt; · 15 contributors · 139 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 29&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal now offers a second, object-oriented way to define database table structures for &lt;code&gt;hook_schema()&lt;/code&gt; and similar schema-defining code, alongside the traditional nested associative array. Instead of building a &lt;code&gt;$schema['mytable'] = ['fields' =&amp;gt; [...], 'primary key' =&amp;gt; [...]]&lt;/code&gt; array, module developers can construct a &lt;code&gt;Table&lt;/code&gt; object made up of &lt;code&gt;Column&lt;/code&gt;, &lt;code&gt;Index&lt;/code&gt;, &lt;code&gt;PrimaryKey&lt;/code&gt;, &lt;code&gt;UniqueKey&lt;/code&gt;, and &lt;code&gt;ForeignKey&lt;/code&gt; value objects. These objects validate their own arguments when created (for example, rejecting a &lt;code&gt;length&lt;/code&gt; argument on an &lt;code&gt;int&lt;/code&gt; column, or a string default on a numeric column), which surfaces schema definition mistakes immediately instead of failing later or silently producing a wrong table. This is purely additive: existing &lt;code&gt;hook_schema()&lt;/code&gt; implementations that return arrays keep working exactly as before, nothing needs to change immediately. Core's own conversion of its &lt;code&gt;hook_schema()&lt;/code&gt; implementations to the new objects is being done incrementally in follow-up issues.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Database\SchemaDefinition&lt;/code&gt; namespace (&lt;code&gt;Table&lt;/code&gt;, &lt;code&gt;Column&lt;/code&gt;, &lt;code&gt;Index&lt;/code&gt;, &lt;code&gt;PrimaryKey&lt;/code&gt;, &lt;code&gt;UniqueKey&lt;/code&gt;, &lt;code&gt;ForeignKey&lt;/code&gt;, &lt;code&gt;Schema&lt;/code&gt;, plus &lt;code&gt;ColumnType&lt;/code&gt;/&lt;code&gt;ColumnSize&lt;/code&gt;/&lt;code&gt;SchemaDefinitionType&lt;/code&gt; enums) and &lt;code&gt;Schema::createSchemaFromDefinition()&lt;/code&gt;/&lt;code&gt;createTableFromDefinition()&lt;/code&gt; for defining database table structures as an alternative to nested arrays.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new value objects live under &lt;code&gt;Drupal\Core\Database\SchemaDefinition&lt;/code&gt; and are immutable and database-abstract: &lt;code&gt;Table&lt;/code&gt; holds &lt;code&gt;columns&lt;/code&gt;, &lt;code&gt;primaryKey&lt;/code&gt;, &lt;code&gt;uniqueKeys&lt;/code&gt;, &lt;code&gt;indexes&lt;/code&gt;, &lt;code&gt;foreignKeys&lt;/code&gt;, and &lt;code&gt;description&lt;/code&gt;; &lt;code&gt;Column&lt;/code&gt; carries type (&lt;code&gt;ColumnType&lt;/code&gt; enum: &lt;code&gt;Char&lt;/code&gt;, &lt;code&gt;Varchar&lt;/code&gt;, &lt;code&gt;VarcharAscii&lt;/code&gt;, &lt;code&gt;Text&lt;/code&gt;, &lt;code&gt;Int&lt;/code&gt;, &lt;code&gt;Serial&lt;/code&gt;, &lt;code&gt;Float&lt;/code&gt;, &lt;code&gt;Numeric&lt;/code&gt;, &lt;code&gt;Blob&lt;/code&gt;), &lt;code&gt;size&lt;/code&gt; (&lt;code&gt;ColumnSize&lt;/code&gt; enum), and validated modifiers like &lt;code&gt;length&lt;/code&gt;, &lt;code&gt;unsigned&lt;/code&gt;, &lt;code&gt;precision&lt;/code&gt;/&lt;code&gt;scale&lt;/code&gt;, &lt;code&gt;binary&lt;/code&gt;, &lt;code&gt;serialize&lt;/code&gt;. Column defaults are typed &lt;code&gt;StringValue|IntValue|FloatValue|NullValue|null&lt;/code&gt;, which lets the API distinguish &amp;quot;no default specified&amp;quot; (PHP &lt;code&gt;null&lt;/code&gt;, the argument omitted) from &amp;quot;the default is explicitly &lt;code&gt;NULL&lt;/code&gt;&amp;quot; (&lt;code&gt;new NullValue()&lt;/code&gt;), a distinction the array API could not make cleanly. Every object exposes &lt;code&gt;toArray()&lt;/code&gt;, converting itself back to the legacy array shape, so &lt;code&gt;Schema::createTable()&lt;/code&gt; and the database drivers do not need to change at all: &lt;code&gt;Schema::createSchemaFromDefinition(Schema $schema)&lt;/code&gt; and the new final &lt;code&gt;createTableFromDefinition()&lt;/code&gt; method simply call &lt;code&gt;$table-&amp;gt;toArray()&lt;/code&gt; under the hood. Constructor-time validation throws &lt;code&gt;SchemaDefinitionException&lt;/code&gt; (a &lt;code&gt;DatabaseException&lt;/code&gt;) for invalid combinations, e.g. &lt;code&gt;notNull&lt;/code&gt; on a &lt;code&gt;Serial&lt;/code&gt; column, &lt;code&gt;unsigned&lt;/code&gt; on a non-numeric column, or a &lt;code&gt;NULL&lt;/code&gt; default combined with &lt;code&gt;notNull: TRUE&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ModuleHandler::installSchema()&lt;/code&gt;/&lt;code&gt;uninstallSchema()&lt;/code&gt; were updated to accept either an array or a &lt;code&gt;Schema&lt;/code&gt; object back from &lt;code&gt;hook_schema()&lt;/code&gt;, so both styles can coexist during migration. &lt;code&gt;Drupal\Core\Batch\BatchStorage::schemaDefinition()&lt;/code&gt; and &lt;code&gt;locale_schema()&lt;/code&gt; were converted as worked examples, along with the &lt;code&gt;hook_schema()&lt;/code&gt; documentation in &lt;code&gt;database.api.php&lt;/code&gt;. A &lt;code&gt;SchemaDefinitionType&lt;/code&gt; enum (&lt;code&gt;Module&lt;/code&gt;, &lt;code&gt;Storage&lt;/code&gt;, &lt;code&gt;Entity&lt;/code&gt;, &lt;code&gt;Migrate&lt;/code&gt;, &lt;code&gt;Test&lt;/code&gt;) tags where a &lt;code&gt;Schema&lt;/code&gt; came from, anticipating a future registry of abstract schema definitions discussed in the issue. Extensibility for database-driver-specific needs (e.g. PostgreSQL GIN/GIST indexes) is handled via a &lt;code&gt;dbSpecificExtra&lt;/code&gt; array property on &lt;code&gt;Column&lt;/code&gt;/&lt;code&gt;Table&lt;/code&gt;/&lt;code&gt;Index&lt;/code&gt; rather than by subclassing, since the value object classes are &lt;code&gt;final&lt;/code&gt;. Follow-ups &lt;a href="https://www.drupal.org/node/3557481"&gt;#3557481&lt;/a&gt; (converting core's &lt;code&gt;hook_schema()&lt;/code&gt; implementations) and &lt;a href="https://www.drupal.org/node/3568040"&gt;#3568040&lt;/a&gt; (converting storage classes' &lt;code&gt;ensureTableExists()&lt;/code&gt; methods) build directly on this API.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;No action is required: existing &lt;code&gt;hook_schema()&lt;/code&gt; implementations returning arrays continue to work unchanged. To opt in to the new API, return a &lt;code&gt;Schema&lt;/code&gt; object instead, for example (adapted from the updated &lt;code&gt;hook_schema()&lt;/code&gt; documentation):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function hook_schema(): Schema {
+  $tables[] = new Table(
+    name: 'users_data',
+    description: 'Stores module data as key/value pairs per user.',
+    columns: [
+      Column::int(
+        name: 'uid',
+        description: 'The {users}.uid this record affects.',
+        unsigned: TRUE,
+        notNull: TRUE,
+        default: new IntValue(0),
+      ),
+      Column::varcharAscii(
+        name: 'name',
+        description: 'The identifier of the data.',
+        length: 128,
+        notNull: TRUE,
+        default: new StringValue(''),
+      ),
+    ],
+    primaryKey: new PrimaryKey(['uid', 'name']),
+    indexes: [
+      new Index(name: 'name', columns: ['name']),
+    ],
+  );
+
+  return new Schema(
+    type: SchemaDefinitionType::Module,
+    name: 'hook',
+    tables: $tables,
+  );
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 31, 2023&lt;/li&gt;
+&lt;li&gt;First commit: August 2, 2026 (2 years later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 4, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;geek-merlin (Geeks4Change)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;joachim (Chicken)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design went through substantial back and forth on how to keep the value objects extensible without sacrificing type safety. Daffie flagged that making &lt;code&gt;Column&lt;/code&gt;/&lt;code&gt;Table&lt;/code&gt;/&lt;code&gt;Index&lt;/code&gt; &lt;code&gt;final&lt;/code&gt; would block the PostgreSQL driver from adding GIN/GIST index support (&lt;a href="https://www.drupal.org/node/3397622"&gt;#3397622&lt;/a&gt;); mondrake held that db-specific concerns belong outside this &amp;quot;abstract&amp;quot; schema layer, and the two converged on adding a &lt;code&gt;dbSpecificExtra&lt;/code&gt; property (an &lt;code&gt;indexes extra&lt;/code&gt; array key when converted to the legacy shape) rather than removing &lt;code&gt;final&lt;/code&gt; or allowing subclassing. geek-merlin separately proposed keying such extras by &lt;code&gt;class-string&lt;/code&gt; for better static-analysis inference, which mondrake acknowledged as useful for a future iteration. Alexpott pushed to keep the legacy array output completely untouched by this issue and questioned an early &lt;code&gt;Property::Undefined&lt;/code&gt; sentinel; mondrake replaced it with dedicated &lt;code&gt;StringValue&lt;/code&gt;/&lt;code&gt;IntValue&lt;/code&gt;/&lt;code&gt;FloatValue&lt;/code&gt;/&lt;code&gt;NullValue&lt;/code&gt; wrapper objects so that &amp;quot;no default given&amp;quot; and &amp;quot;default is explicitly NULL&amp;quot; could be distinguished without a special enum case.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3604286: Upsert - Allow to customize the behavior of the update when the insert fails and use more Upsert queries in core</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md</link>
       <guid isPermaLink="false">019fce7e-bacb-77ee-b563-6d790d43e463</guid>
@@ -1032,54 +1117,6 @@ use Drupal\search_user\Plugin\Search\SearchUser;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Catch flagged a design issue partway through review: because &lt;code&gt;search_user&lt;/code&gt; sorts alphabetically before &lt;code&gt;user&lt;/code&gt; (unlike the node/help precedents, where the new module came later), the deprecated plugin would otherwise win by module precedence. That observation led to adding &lt;code&gt;hook_search_plugin_alter()&lt;/code&gt; in &lt;code&gt;search_user&lt;/code&gt; to force the correct plugin class, which quietone and dcam then verified worked via manual before/after upgrade testing.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3579778: Removed modules should be included as a replace in composer.json</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579778.md</link>
-      <guid isPermaLink="false">019f9a19-ae7b-72f6-ab13-e17359d17488</guid>
-      <category>Site owners</category>
-      <pubDate>Sat, 25 Jul 2026 14:59:42 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +5/−1 · json +4 · lock +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9a68ba60cb5e7179c0df447910b9f10a172aa890"&gt;9a68ba6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3579778"&gt;#3579778&lt;/a&gt; · 12 contributors · 54 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 21&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Several modules that used to live only in Drupal core (Ban, Contact, Field Layout, History, Search, Settings Tray, Shortcut, Stable9, Telephone, Toolbar) have been split out, or are being prepared to split out, into standalone contrib projects with their own &lt;code&gt;drupal/&amp;lt;module&amp;gt;&lt;/code&gt; Composer package. Because core's &lt;code&gt;composer.json&lt;/code&gt; did not declare these as &amp;quot;replaced&amp;quot; packages, Composer could get confused when a site or another dependency (as reported for the Forum, Pathauto and Metatag modules depending on History) required the new standalone release: it would try to resolve both the core-bundled code and the contrib package under the same name, producing conflicts. This change adds the appropriate entries to core's &lt;code&gt;composer.json&lt;/code&gt; &lt;code&gt;replace&lt;/code&gt; section so Composer knows the bundled core version already satisfies that package name, avoiding the conflict for site owners who add these contrib releases as dependencies.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Core's &lt;code&gt;composer.json&lt;/code&gt; &lt;code&gt;replace&lt;/code&gt; section now lists formerly core-only modules that have separate contrib releases (varies by branch), telling Composer that installing &lt;code&gt;drupal/core-recommended&lt;/code&gt;/core already satisfies that package name.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Core's &lt;code&gt;composer.json&lt;/code&gt; &lt;code&gt;replace&lt;/code&gt; array previously contained only Symfony polyfill entries; a general module &lt;code&gt;replace&lt;/code&gt; mechanism had been removed from core in &lt;a href="https://www.drupal.org/node/3292380"&gt;#3292380&lt;/a&gt;. This issue restores targeted entries, but with different lists per branch because of version-specific risk: on &lt;code&gt;10.6.x&lt;/code&gt;, the &lt;code&gt;replace&lt;/code&gt; list gained &lt;code&gt;drupal/ban&lt;/code&gt;, &lt;code&gt;drupal/contact&lt;/code&gt;, &lt;code&gt;drupal/field_layout&lt;/code&gt;, &lt;code&gt;drupal/history&lt;/code&gt;, &lt;code&gt;drupal/search&lt;/code&gt;, &lt;code&gt;drupal/settings_tray&lt;/code&gt;, &lt;code&gt;drupal/shortcut&lt;/code&gt;, &lt;code&gt;drupal/stable9&lt;/code&gt;, &lt;code&gt;drupal/telephone&lt;/code&gt; and &lt;code&gt;drupal/toolbar&lt;/code&gt;, all modules already deprecated in Drupal 10 with stable contrib releases. On &lt;code&gt;11.x&lt;/code&gt; (main/12.0-dev) and &lt;code&gt;11.4.x&lt;/code&gt;, only &lt;code&gt;drupal/search&lt;/code&gt;, &lt;code&gt;drupal/settings_tray&lt;/code&gt;, &lt;code&gt;drupal/shortcut&lt;/code&gt; and &lt;code&gt;drupal/toolbar&lt;/code&gt; were added: modules that don't yet have a contrib release. Ban, Contact, Field Layout, History, Stable9 and Telephone were deliberately left out of the 11.x/11.4.x replace list because sites on those branches may already be requiring the contrib releases directly (see &lt;a href="https://www.drupal.org/node/3482198"&gt;#3482198&lt;/a&gt; for Ban's deprecation), and adding a core-side replace there would force Composer to fall back to the bundled core version instead of the contrib package a site had intentionally installed. &lt;code&gt;composer.lock&lt;/code&gt;'s &lt;code&gt;content-hash&lt;/code&gt; was regenerated in each commit to match.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 25, 2026 (4 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pcambra (Cambrico)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir reported that the missing replace entry for History was breaking downstream testing of the Forum module (and in turn Pathauto and Metatag), pushing this from a theoretical concern to an active breakage affecting the 11.2 branch as well. catch worked out the phased branch strategy: since a site on 11.3+ could already be using the contrib releases of Contact, Ban, Field Layout or History directly, adding those to the 11.x/11.4.x replace list would wrongly force Composer back to the bundled core version, so only modules without existing contrib releases (Search, Settings Tray, Shortcut, Toolbar) were added there, while 10.6.x got the full list. cmlara additionally argued for reconsidering the earlier removal of core's replace mechanism (&lt;a href="https://www.drupal.org/node/3292380"&gt;#3292380&lt;/a&gt;) and filed &lt;a href="https://www.drupal.org/node/3582324"&gt;#3582324&lt;/a&gt; to think about the underlying Composer facade for future major versions. smustgrave did the legwork of opening the separate merge requests for the 11.x, 11.4.x and 10.6.x branches, and godotislate committed the changes, dropping some unrelated &amp;quot;allowed plugins&amp;quot; entries from the 10.6.x branch after review and waiting for catch's confirmation before committing that branch.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
