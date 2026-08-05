@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3553475: Deletion of chunks vectors fails upon saving a node after editing</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md</link>
+      <guid isPermaLink="false">019fd2cc-3772-77d9-8dba-422ec6bba10d</guid>
+      <pubDate>Wed, 05 Aug 2026 14:52:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +17/−13 · php +17/−13&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_vdb_provider_postgres/-/commit/8582cb6f7cea4d785c9db60ca4a68d2ca494dcd4"&gt;8582cb6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3553475"&gt;#3553475&lt;/a&gt; · 5 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a node indexed with the Postgres pgvector Search API backend was edited and re-saved, the old vector chunks for that item were never actually removed before the new ones were inserted. Each re-save doubled the stored rows for that content, and searches could keep returning stale, outdated chunks alongside the current ones. The fix ensures the old chunks for an item are correctly deleted before the new chunks are written, so re-saving content keeps the row count stable and removes outdated text from search results. Sites that indexed and re-saved content on an affected version should re-index to clear out any duplicate or stale rows that already accumulated in their Postgres vector tables.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in &lt;code&gt;PostgresProvider::deleteItems()&lt;/code&gt;. It first called &lt;code&gt;getVdbIds()&lt;/code&gt; to look up the numeric primary key &lt;code&gt;id&lt;/code&gt; values matching the given Search API item IDs (queried via &lt;code&gt;drupal_entity_id&lt;/code&gt;), then passed those primary keys into &lt;code&gt;deleteFromCollection()&lt;/code&gt;, whose underlying &lt;code&gt;PostgresPgvectorClient::deleteFromCollection()&lt;/code&gt; query deletes &lt;code&gt;WHERE drupal_entity_id IN (...)&lt;/code&gt;. Because the ids passed in were numeric primary keys rather than &lt;code&gt;drupal_entity_id&lt;/code&gt; strings, the &lt;code&gt;WHERE&lt;/code&gt; clause never matched, so nothing was actually deleted and old chunks piled up on every re-save.&lt;/p&gt;
+&lt;p&gt;The committed fix removes the primary-key lookup entirely: &lt;code&gt;deleteItems()&lt;/code&gt; now passes the Search API item IDs (e.g. &lt;code&gt;entity:node/1174:en&lt;/code&gt;) directly to &lt;code&gt;deleteFromCollection()&lt;/code&gt;, matching the column it actually filters on. This also sidesteps a fixed row-limit on the old lookup query that could have silently truncated which chunks got deleted for large items.&lt;/p&gt;
+&lt;p&gt;A second change in the same commit fixes &lt;code&gt;indexItems()&lt;/code&gt; for progressive/batched indexing: it now excludes IDs listed in &lt;code&gt;skipDeleteItemIds&lt;/code&gt; (from AI core) from the delete pass via &lt;code&gt;array_diff()&lt;/code&gt;, so chunks written by earlier passes of the same indexing operation are not deleted again on later passes, only stale chunks from a previous, completed indexing run are removed.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
+&lt;li&gt;Committed: August 5, 2026 (9 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;calmforce&lt;/li&gt;
+&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;calmforce reported the bug and submitted an initial patch that matched the issue's original diagnosis (changing the &lt;code&gt;DELETE&lt;/code&gt; query's column from &lt;code&gt;drupal_entity_id&lt;/code&gt; to &lt;code&gt;id&lt;/code&gt;), plus a follow-up patch raising the lookup limit. nikro later investigated further and found a different underlying cause: rather than changing the query column, the real fix was to stop looking up primary keys at all and pass the Search API item IDs straight into &lt;code&gt;deleteFromCollection()&lt;/code&gt;, since that query already filters on &lt;code&gt;drupal_entity_id&lt;/code&gt;. nikro also added a follow-up commit so progressive indexing honors AI core's &lt;code&gt;skipDeleteItemIds&lt;/code&gt;, preventing newly-written chunks from being deleted again on later passes of the same indexing operation. abhisekmazumdar reviewed the merge request and manually verified re-saving unchanged and edited nodes kept row counts stable with no stale content, marking it RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3612042: Enable RateLimits</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md</link>
       <guid isPermaLink="false">019fb30f-5522-735d-b15e-3bccf8565b85</guid>
@@ -796,38 +837,6 @@ $transporter = new CustomHeadersHttpTransporter($endpoint, $headers, $logger);
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: July 9, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601371: Make the build script only move the main script on tags</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601371.md</link>
-      <guid isPermaLink="false">019f60a4-4d35-7032-b592-441c9e48d870</guid>
-      <pubDate>Tue, 14 Jul 2026 11:19:27 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601371"&gt;#3601371&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The one-line installer's GitLab Pages publish step now fires only when a Git tag is pushed. Before this change the CI &lt;code&gt;pages&lt;/code&gt; job ran on every merge to the default branch, meaning the public URL &lt;code&gt;https://project.pages.drupalcode.org/one_line_installer/drupalaibp&lt;/code&gt; could serve unreleased, in-progress work to anyone running the one-liner. After this change that URL always reflects the most recent tagged release. The workflow for maintainers is now: merge the change, then tag the commit to publish it.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;pages&lt;/code&gt; job in &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; gained a &lt;code&gt;rules: - if: '$CI_COMMIT_TAG'&lt;/code&gt; guard. The job builds the MkDocs docs site and copies &lt;code&gt;drupalaibp&lt;/code&gt; alongside it (&lt;code&gt;cp drupalaibp public/drupalaibp&lt;/code&gt;), then publishes the whole &lt;code&gt;public/&lt;/code&gt; directory to GitLab Pages.&lt;/p&gt;
-&lt;p&gt;The entire job is tag-gated rather than just the &lt;code&gt;cp&lt;/code&gt; line because a Pages deploy replaces the whole site: a docs-only deploy from the default branch would publish a &lt;code&gt;public/&lt;/code&gt; directory without &lt;code&gt;drupalaibp&lt;/code&gt; in it, deleting the installer from the live URL until the next tag. Keeping docs and script together and shipping both only on a tag avoids that window.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;bashly_verify&lt;/code&gt; job still runs on every pipeline (merge or tag), so drift between &lt;code&gt;src/&lt;/code&gt; and the committed &lt;code&gt;drupalaibp&lt;/code&gt; is caught continuously. The tag pipeline runs &lt;code&gt;bashly_verify&lt;/code&gt; as a prerequisite for &lt;code&gt;pages&lt;/code&gt; (via &lt;code&gt;needs&lt;/code&gt;), so a drifted script cannot be published even if a tag is pushed without regenerating.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 14, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

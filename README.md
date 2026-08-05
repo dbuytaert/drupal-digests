@@ -1,8 +1,16 @@
-**TL;DR:** [926 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [927 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_119 summaries · 4 new this week_
+
+- [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
+- [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
+- [#3568659: Support batched embeddings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md)
 
 ### Drupal Canvas
 
@@ -14,19 +22,11 @@ _234 summaries · 3 new this week_
 
 ### Drupal Core
 
-_485 summaries · 17 new this week_
+_485 summaries · 14 new this week_
 
 - [#3411490: Replace array-based DB Schema API with a value object structure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3411490.md)
 - [#3604286: Upsert - Allow to customize the behavior of the update when the insert fails...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md)
 - [#3565258: Support library-specific aggregates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md)
-
-### Drupal AI
-
-_118 summaries · 3 new this week_
-
-- [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
-- [#3568659: Support batched embeddings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md)
-- [#3613982: Bug with GPT 5.6 Luna](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613982.md)
 
 ### Drupal CMS
 
