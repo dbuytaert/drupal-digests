@@ -1,12 +1,20 @@
-**TL;DR:** [923 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [925 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [185 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_234 summaries · 3 new this week_
+
+- [#3591905: `drush config:import` can fail to update a Component whose `active_version`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591905.md)
+- [#3591851: Allow patterns to be edited](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591851.md)
+- [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
+
 ### Drupal Core
 
-_484 summaries · 17 new this week_
+_484 summaries · 16 new this week_
 
 - [#3604286: Upsert - Allow to customize the behavior of the update when the insert fails...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3604286.md)
 - [#3565258: Support library-specific aggregates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565258.md)
@@ -20,17 +28,9 @@ _118 summaries · 3 new this week_
 - [#3568659: Support batched embeddings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md)
 - [#3613982: Bug with GPT 5.6 Luna](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613982.md)
 
-### Drupal Canvas
-
-_232 summaries · 1 new this week_
-
-- [#3591656: Support multi-target-bundle references in code component...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md)
-- [#3582200: component_tree sequence keys sorted lexicographically instead of numerically,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md)
-- [#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md)
-
 ### Drupal CMS
 
-_89 summaries · 1 new this week_
+_89 summaries · 0 new this week_
 
 - [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
