@@ -22,7 +22,7 @@ _487 summaries · 14 new this week_
 
 ### Drupal AI
 
-_119 summaries · 4 new this week_
+_119 summaries · 2 new this week_
 
 - [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
 - [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
