@@ -14,7 +14,7 @@ _235 summaries · 3 new this week_
 
 ### Drupal Core
 
-_487 summaries · 13 new this week_
+_487 summaries · 12 new this week_
 
 - [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
 - [#1945262: Introduce "before" and "after" for conditional ordering in library definitions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1945262.md)
