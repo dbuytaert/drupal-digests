@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_488 summaries · 13 new this week_
+_488 summaries · 12 new this week_
 
 - [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
 - [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_186 rules · 2 new this week_
+_186 rules · 1 new this week_
 
 - [Add $yaml_cache_collector argument to Local Action/Task/MenuLink manager...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yaml-cache-collector-argument-to-local-action-task-3593485.php)
 - [Promote defaults._title to top-level title on #[Route] attributes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/promote-defaults-title-to-top-level-title-on-route-3607968.php)
