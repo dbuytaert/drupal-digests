@@ -5,6 +5,62 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3614153: Install system module alongside other modules in the installer</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md</link>
+      <guid isPermaLink="false">019fdec7-2928-72dc-92f3-500b728386aa</guid>
+      <pubDate>Fri, 07 Aug 2026 21:05:31 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 44 files, +197/−100 · php +197/−90 · yml +0/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6c4592b1936a13496d145ab6b0ef219c851ed2a5"&gt;6c4592b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt; · 6 contributors · 35 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's installer previously installed the System module as its own dedicated step before installing anything else, a pattern that dates back to Drupal's early history. This change installs System alongside the other required modules (and, for profiles that declare modules, alongside those too) in the same batch, eliminating an extra service-container rebuild during every installation. As part of removing the special-casing this required, the core &amp;quot;testing&amp;quot; install profile (used by Drupal's own and many contrib functional tests) no longer automatically enables the &lt;code&gt;page_cache&lt;/code&gt; and &lt;code&gt;dynamic_page_cache&lt;/code&gt; modules. Tests that rely on those modules being present for cache tag or cache header assertions now need to enable them explicitly. Reported savings were significant, one job's test run time dropped from 90 seconds to well under that, and a full functional test job went from over a minute to about two minutes total.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Previously &lt;code&gt;drupal_install_system()&lt;/code&gt; called &lt;code&gt;module_installer-&amp;gt;install(['system'], FALSE)&lt;/code&gt; directly as an isolated step, and both &lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; explicitly filtered &lt;code&gt;system&lt;/code&gt; out of the module list they installed afterwards (&lt;code&gt;array_diff(array_unique($modules), ['system'])&lt;/code&gt;). Now &lt;code&gt;system&lt;/code&gt; is simply left in those module lists and installed together with the rest in the normal batch via &lt;code&gt;_install_module_batch()&lt;/code&gt;, cutting one container rebuild out of the install path (and, for profiles with declared modules, another).&lt;/p&gt;
+&lt;p&gt;Because the default language config write (&lt;code&gt;system.site&lt;/code&gt; &lt;code&gt;langcode&lt;/code&gt;/&lt;code&gt;default_langcode&lt;/code&gt;) used to happen right after installing System in &lt;code&gt;drupal_install_system()&lt;/code&gt;, that logic moved into &lt;code&gt;_install_module_batch()&lt;/code&gt;, which gained a new &lt;code&gt;$install_state&lt;/code&gt; parameter (also threaded through &lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt;) so it can still set the language once &lt;code&gt;system&lt;/code&gt; shows up in whichever batch group installs it. Since the service container can now be compiled before System module (and its config) exists, &lt;code&gt;DrupalKernel::compileContainer()&lt;/code&gt; gained a fallback that reads &lt;code&gt;$GLOBALS['install_state']['parameters']['langcode']&lt;/code&gt; to seed &lt;code&gt;language.default_values&lt;/code&gt; when &lt;code&gt;system.site&lt;/code&gt; config isn't available yet; this is flagged with a &lt;code&gt;@todo&lt;/code&gt; as a temporary workaround pending moving default-language config out of System module entirely (tracked in &lt;a href="https://www.drupal.org/node/3337864"&gt;#3337864&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;install_config_import_batch()&lt;/code&gt; no longer needs to copy the site UUID from the sync storage into the freshly-created &lt;code&gt;system.site&lt;/code&gt; config (the &amp;quot;UUID juggle&amp;quot;), because System module's config is now imported directly rather than being created fresh and then overwritten. Correspondingly, &lt;code&gt;ConfigImporter::validateSiteUuid()&lt;/code&gt; now returns &lt;code&gt;TRUE&lt;/code&gt; when there's no target &lt;code&gt;system.site&lt;/code&gt; config yet, since that indicates a fresh install-from-config rather than a UUID mismatch.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;testing.info.yml&lt;/code&gt;/&lt;code&gt;testing_multilingual.info.yml&lt;/code&gt; profiles' &lt;code&gt;install:&lt;/code&gt; keys for &lt;code&gt;drupal:page_cache&lt;/code&gt; and &lt;code&gt;dynamic_page_cache&lt;/code&gt; were removed, and many core functional test classes (JSON:API, REST, Views, Block, error/session tests, etc.) were updated to add &lt;code&gt;page_cache&lt;/code&gt; and/or &lt;code&gt;dynamic_page_cache&lt;/code&gt; to their &lt;code&gt;$modules&lt;/code&gt; property, or install them at runtime, wherever the test actually depends on page or dynamic-page caching behavior. This groundwork is what makes &lt;a href="https://www.drupal.org/node/3428372"&gt;#3428372&lt;/a&gt;, open for over fifteen years, finally achievable, and several immediate follow-ups were spun off: &lt;a href="https://www.drupal.org/node/3615455"&gt;#3615455&lt;/a&gt; (install database driver modules alongside others), &lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt; (allow install profiles to opt out of being installed), &lt;a href="https://www.drupal.org/node/3614825"&gt;#3614825&lt;/a&gt; (allow additional modules to be installed alongside profile modules), and &lt;a href="https://www.drupal.org/node/3614817"&gt;#3614817&lt;/a&gt; (reduce parallel functional test jobs given the speedup).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If your module's functional tests rely on Drupal core's &amp;quot;testing&amp;quot; install profile having &lt;code&gt;page_cache&lt;/code&gt; or &lt;code&gt;dynamic_page_cache&lt;/code&gt; enabled by default (for example, to assert cache tags/contexts or &lt;code&gt;X-Drupal-Cache&lt;/code&gt; headers), add them explicitly to the test class:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected static $modules = [
+  'your_module',
+  'page_cache',
+  'dynamic_page_cache',
+];
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or install them at runtime where needed:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('module_installer')-&amp;gt;install(['page_cache']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This change is only present on Drupal core's &lt;code&gt;main&lt;/code&gt; branch (targeting Drupal 12) and was not backported to 10.x/11.x.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 31, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 7, 2026 (7 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch did the initial profiling and iterative work, tracking down a &amp;quot;three line hack&amp;quot; needed in &lt;code&gt;DrupalKernel&lt;/code&gt; for the default language to survive the reordering, and progressively removing special-casing of the System module across the installer and tests. mstrelan's review caught remaining stray &lt;code&gt;page_cache&lt;/code&gt;/&lt;code&gt;dynamic_page_cache&lt;/code&gt; uninstalls in &lt;code&gt;SessionTest&lt;/code&gt; and &lt;code&gt;DisplayFeedTest&lt;/code&gt; and questioned whether &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; could still assume System was already installed, prompting further fixes. During a later review, amateescu found that &lt;code&gt;_install_module_batch()&lt;/code&gt; still needed to rely on &lt;code&gt;$install_state&lt;/code&gt; and reverted a commit that had removed that dependency, adding test coverage to lock in the requirement. godotislate then suggested an approach to avoid passing &lt;code&gt;$install_state&lt;/code&gt; around further and flagged an unresolved &lt;code&gt;@todo&lt;/code&gt;; catch applied the suggestions, opened a follow-up issue for the &lt;code&gt;@todo&lt;/code&gt; (referenced in the &lt;code&gt;AssertPageCacheContextsAndTagsTrait::enablePageCaching&lt;/code&gt; cleanup discussion), and godotislate ultimately committed the change.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md</link>
       <guid isPermaLink="false">019fd3a3-db18-719f-8f6d-4bcba31622a5</guid>
@@ -1043,88 +1099,6 @@ new UpdateFetcher($config_factory, $http_client, $logger);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;longwave opened and repeatedly rebased this issue over several months as Symfony 8.1 moved through beta and RC releases, at one point bumping priority to critical &amp;quot;in the hope I can avoid rerolling this yet again.&amp;quot; godotislate reviewed and asked whether Symfony really intended for Request/Response objects not to be mockable; longwave explained it was a side effect of Symfony adopting property hooks on those classes (tied to sebastianbergmann/phpunit&lt;a href="https://www.drupal.org/node/6545"&gt;#6545&lt;/a&gt;, which forced the PHPUnit bump), adding that using real Request/Response objects instead of mocks &amp;quot;makes the code cleaner&amp;quot; and that the properties &amp;quot;were never meant to be set from outside anyway.&amp;quot; catch, on committing, noted that the phpstan baseline additions are &amp;quot;eventual Symfony 9 blockers&amp;quot; and better addressed early.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2951046: Allow parsing and writing PHP class constants and enums in YAML files</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2951046.md</link>
-      <guid isPermaLink="false">019fa47b-425b-72ff-ba7d-e3ef2cd11e07</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 27 Jul 2026 16:31:49 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 39 files, +921/−13 · php +835/−11 · yml +86/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2884bf374c6d1f94d2a7ea12981b20d2607947a8"&gt;2884bf3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2951046"&gt;#2951046&lt;/a&gt; · 29 contributors · 139 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 58&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's YAML parser now understands PHP class constants and enum cases, so configuration, service definitions, and recipe files can reference &lt;code&gt;SomeClass::SOME_CONSTANT&lt;/code&gt; or &lt;code&gt;SomeEnum::SomeCase&lt;/code&gt; instead of hard-coding literal values that have to be kept in sync by hand. A companion &lt;code&gt;enum&lt;/code&gt; config schema type lets module authors declare that a config value must be an instance of a specific PHP enum, with validation enforcing it. To make this safe during module installation and config import, when a module or recipe is being installed its enums and constants are made autoloadable even before the module is fully active, so its own default configuration can reference them. Support is deliberately limited to class-based constants and enums; global constants defined in procedural &lt;code&gt;.module&lt;/code&gt; files are not supported.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\Core\Config\FileStorageFactory&lt;/code&gt; and its &lt;code&gt;getSync()&lt;/code&gt; method are deprecated in favor of the &lt;code&gt;config.storage.sync&lt;/code&gt; service.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; YAML (including configuration, services and recipes) can now contain &lt;code&gt;!php/const Some\Class::CONST&lt;/code&gt; and &lt;code&gt;!php/enum Some\Enum::Case&lt;/code&gt; tags; a new &lt;code&gt;enum&lt;/code&gt; config schema type with an &lt;code&gt;enum_class&lt;/code&gt; key validates that a config value is an instance of that enum.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The core change is small: &lt;code&gt;Drupal\Component\Serialization\YamlSymfony::decode()&lt;/code&gt; now passes &lt;code&gt;SymfonyYaml::PARSE_CONSTANT&lt;/code&gt; alongside the existing flags, which enables Symfony's &lt;code&gt;!php/const&lt;/code&gt; and &lt;code&gt;!php/enum&lt;/code&gt; YAML tags. &lt;code&gt;Yaml::encode()&lt;/code&gt; (Symfony writer) serializes PHP enums using &lt;code&gt;!php/const&lt;/code&gt;, which the parser also accepts back, and &lt;code&gt;!php/enum&lt;/code&gt; is additionally supported on decode for compatibility with Symfony's documented syntax and to keep behavior consistent regardless of which YAML backend is in use.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;Drupal\Core\TypedData\Plugin\DataType\Enum&lt;/code&gt; primitive type (schema id &lt;code&gt;enum&lt;/code&gt;) plus &lt;code&gt;EnumConstraint&lt;/code&gt;/&lt;code&gt;EnumConstraintValidator&lt;/code&gt; validate that a decoded value is a &lt;code&gt;\UnitEnum&lt;/code&gt; instance of the class named in the schema's &lt;code&gt;enum_class&lt;/code&gt; key; &lt;code&gt;Comparator::checkValue()&lt;/code&gt; and &lt;code&gt;TypedConfig::castValue()&lt;/code&gt; were updated to recognize &lt;code&gt;\UnitEnum&lt;/code&gt; values.&lt;/p&gt;
-&lt;p&gt;The harder problem was config install/import: enums and constants referenced in a module's or recipe's own default configuration are not autoloadable via Composer until the providing module is installed. This is solved with a new &lt;code&gt;Drupal\Core\Config\AutoloadingStorage&lt;/code&gt; decorator that temporarily registers a throwaway &lt;code&gt;ClassLoader&lt;/code&gt; (PSR-4 mapped to the extension's &lt;code&gt;src&lt;/code&gt; directory) around &lt;code&gt;read()&lt;/code&gt;/&lt;code&gt;readMultiple()&lt;/code&gt; calls. The &lt;code&gt;config.storage.sync&lt;/code&gt; service is now produced by a new &lt;code&gt;SyncFactory&lt;/code&gt; class, which diffs the &lt;code&gt;core.extension&lt;/code&gt; list in the sync storage against the active storage to find newly-appearing modules/themes and wraps the sync &lt;code&gt;FileStorage&lt;/code&gt; in &lt;code&gt;AutoloadingStorage&lt;/code&gt; for just those extensions. &lt;code&gt;ModuleInstaller::checkConfigurationToInstall()&lt;/code&gt; does the same for the module(s) currently being installed. &lt;code&gt;StorageComparer&lt;/code&gt; was updated to treat &lt;code&gt;AutoloadingStorage&lt;/code&gt; the same as &lt;code&gt;FileStorage&lt;/code&gt; for its static-cache optimization. Recipes get analogous handling: &lt;code&gt;parseRecipeContents()&lt;/code&gt; in &lt;code&gt;Drupal\Core\Recipe\RecipeData&lt;/code&gt; catches the &lt;code&gt;InvalidDataTypeException&lt;/code&gt; Symfony throws for an unresolvable &lt;code&gt;Drupal\{extension}\...&lt;/code&gt; constant/enum, and if that extension exists on disk but isn't installed yet, registers a temporary classloader for it and retries parsing.&lt;/p&gt;
-&lt;p&gt;Support for constants defined in procedural &lt;code&gt;.module&lt;/code&gt; files was explicitly dropped rather than solved, since it would require preloading &lt;code&gt;.module&lt;/code&gt; files before parsing config, a complication the maintainers decided wasn't worth it for a legacy pattern that's being phased out.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Prefer &lt;code&gt;!php/const&lt;/code&gt; and &lt;code&gt;!php/enum&lt;/code&gt; over literal values in your own config/service YAML, e.g.:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;cardinality: !php/const Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
-status: !php/enum Drupal\my_module\MyEnum::SomeCase
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Declare a matching config schema for enum-typed values:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;my_module.settings:
-  mapping:
-    status:
-      type: enum
-      enum_class: '\Drupal\my_module\MyEnum'
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your code calls &lt;code&gt;Drupal\Core\Config\FileStorageFactory::getSync()&lt;/code&gt; directly, switch to the service instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$storage = FileStorageFactory::getSync();
-// After:
-$storage = \Drupal::service('config.storage.sync');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 8, 2018&lt;/li&gt;
-&lt;li&gt;Committed: July 27, 2026 (8 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcoscano (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;dawehner (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;neclimdul (APQC)&lt;/li&gt;
-&lt;li&gt;gapple&lt;/li&gt;
-&lt;li&gt;narendrar (Acquia)&lt;/li&gt;
-&lt;li&gt;mikelutz (Four Kitchens)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;eduardo morales alberti (Metadrop)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;borisson_ (Calibrate)&lt;/li&gt;
-&lt;li&gt;bircher (Nuvole)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design took years to settle because of a real safety concern: alexpott identified in comment #46 that reading config during import can require autoloading code for a module that isn't installed yet, which risks crashing on missing classes. neclimdul (#78) and phenaproxima (#84) pushed back hard, worried that letting config schema influence what gets autoloaded was a &amp;quot;danger zone&amp;quot; that could snowball to cover removed modules, themes and profiles too. alexpott resolved the disagreement by scoping &lt;code&gt;AutoloadingStorage&lt;/code&gt; narrowly: it only wraps the sync storage (never active storage) and only for extensions genuinely being installed, and argued failures in this area should fail loudly rather than be silently tolerated. Wim Leers separately pushed for decoding &lt;code&gt;!php/enum&lt;/code&gt; (not just &lt;code&gt;!php/const&lt;/code&gt;) to match Symfony's own documented behavior and keep the PECL and Symfony YAML backends consistent, which alexpott agreed to add. Late in the process mondrake decided that supporting global constants declared in procedural &lt;code&gt;.module&lt;/code&gt; files, a gap mikelutz had surfaced with a failing test, wasn't worth the added complexity and dropped it before the final commit.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

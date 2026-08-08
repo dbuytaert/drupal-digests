@@ -1,8 +1,16 @@
-**TL;DR:** [930 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [931 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_488 summaries · 13 new this week_
+
+- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
+- [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
+- [#1945262: Introduce "before" and "after" for conditional ordering in library definitions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1945262.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _235 summaries · 3 new this week_
 - [#3591785: Strengthen AutoSaveManager to generate stable hashes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md)
 - [#3591905: `drush config:import` can fail to update a Component whose `active_version`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591905.md)
 - [#3591851: Allow patterns to be edited](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591851.md)
-
-### Drupal Core
-
-_487 summaries · 12 new this week_
-
-- [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
-- [#1945262: Introduce "before" and "after" for conditional ordering in library definitions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1945262.md)
-- [#3411490: Replace array-based DB Schema API with a value object structure](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3411490.md)
 
 ### Drupal AI
 
