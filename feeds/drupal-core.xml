@@ -5,6 +5,47 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3587565: Static cache entities that aren't loaded</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md</link>
+      <guid isPermaLink="false">019fe917-f940-752e-8392-7fe06e3ff710</guid>
+      <pubDate>Sun, 09 Aug 2026 22:01:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +130/−11 · php +130/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2ab239c5048deb3f04f6a120943375999fe50f22"&gt;2ab239c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587565"&gt;#3587565&lt;/a&gt; · 4 contributors · 34 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Entity storage previously had no memory of failed load attempts within a request: if code tried to load an entity ID that doesn't exist (a common case for config entities, such as per-bundle language content settings that not every bundle defines), it would query the persistent cache backend again on every subsequent attempt for that same ID. Now the fact that an ID was not found is also recorded in the per-request static cache, so repeated lookups of the same missing ID skip the cache backend entirely for the rest of the request. Drupal core's performance test suite shows this measurably reduces cache backend reads on real pages: cold-cache node page requests dropped from 225 to 217 cache gets, cold-cache front page requests from 233 to 225, and the administrator node page from 265 to 257 (mostly in the &lt;code&gt;config&lt;/code&gt; cache bin), with no change in database query counts.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;EntityStorageBase::loadMultiple()&lt;/code&gt;, after &lt;code&gt;doLoadMultiple()&lt;/code&gt; runs, any requested IDs that are still missing are now recorded via a new &lt;code&gt;setNotFoundStaticCache()&lt;/code&gt; method, and checked on subsequent calls via &lt;code&gt;getNotFoundFromStaticCache()&lt;/code&gt;. Both use a new &lt;code&gt;buildNotFoundCacheId()&lt;/code&gt; helper that wraps &lt;code&gt;buildCacheId()&lt;/code&gt; with a &lt;code&gt;not_found:&lt;/code&gt; prefix, so a storage's own &lt;code&gt;buildCacheId()&lt;/code&gt; override (for example &lt;code&gt;ConfigEntityStorage::buildCacheId()&lt;/code&gt;, which appends config override keys) is automatically reflected in the not-found cache key too. &lt;code&gt;resetCache()&lt;/code&gt; now clears both the entity cache and the not-found cache entries for the given IDs. &lt;code&gt;setStaticCache()&lt;/code&gt; was also changed to iterate &lt;code&gt;$entities&lt;/code&gt; by its array key (&lt;code&gt;foreach ($entities as $id =&amp;gt; $entity)&lt;/code&gt;) rather than deriving the cache key from &lt;code&gt;$entity-&amp;gt;id()&lt;/code&gt;, since the not-found bookkeeping needs to track the originally requested ID.&lt;/p&gt;
+&lt;p&gt;A new unit test, &lt;code&gt;testLoadMultipleNoResult()&lt;/code&gt;, asserts that loading the same nonexistent ID twice in a request results in only a single persistent-cache &lt;code&gt;getMultiple()&lt;/code&gt; call. This builds on the earlier bulk-loading work in &lt;a href="https://www.drupal.org/node/3560633"&gt;#3560633&lt;/a&gt; that reduced repeated config entity lookups for per-bundle settings.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
+&lt;li&gt;First commit: August 6, 2026 (3 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 9, 2026 (3 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch initially considered adding separate load methods for not-found entities but was concerned it would complicate cache invalidation; noticing that the existing UUID lookup cache already followed a similar pattern, they instead added a distinct &lt;code&gt;not_found:&lt;/code&gt; cache key prefix with dedicated get/set methods. During development this approach broke &lt;code&gt;ConfigEntityStorage&lt;/code&gt;, which overrides &lt;code&gt;buildCacheId()&lt;/code&gt; to append config override keys, catch fixed it by having &lt;code&gt;buildNotFoundCacheId()&lt;/code&gt; delegate through &lt;code&gt;buildCacheId()&lt;/code&gt; in the base class, so storage-specific overrides are automatically honored without needing their own fix.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3614153: Install system module alongside other modules in the installer</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md</link>
       <guid isPermaLink="false">019fdec7-2928-72dc-92f3-500b728386aa</guid>
@@ -1051,54 +1092,6 @@ new UpdateFetcher($config_factory, $http_client, $logger);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The initial patch by sourav_paul just added a &lt;code&gt;methods&lt;/code&gt;-based check alongside the &lt;code&gt;_method&lt;/code&gt; fallback. Months later longwood, while working on the related &lt;a href="https://www.drupal.org/node/3613245"&gt;#3613245&lt;/a&gt;, reconsidered the whole approach: rather than patching the method-detection logic, he proposed converting the checker to a static &lt;code&gt;applies_to&lt;/code&gt; access check keyed on &lt;code&gt;_csrf_request_header_token&lt;/code&gt;, which let the entire &lt;code&gt;applies()&lt;/code&gt; method be deleted. catch, who committed the change, noted it was &amp;quot;nice to be able to replace all that code with a one-liner.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588847: Update to Symfony 8.1</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3588847.md</link>
-      <guid isPermaLink="false">019fa999-168b-7354-8ddd-827e1f25f254</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 28 Jul 2026 13:31:02 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 25 files, +647/−432 · lock +364/−268 · php +207/−98 · json +66/−66 · txt +10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/169100e382067ea54112e0788fa27bcf9ca6090e"&gt;169100e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588847"&gt;#3588847&lt;/a&gt; · 4 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core's development branch (targeting Drupal 12) updates its bundled Symfony components from the 8.0.x series to 8.1.1, along with a matching PHPUnit bump. There is no behavioral change for end users. The practical impact is for developers who write PHPUnit tests: Symfony 8.1 changed how &lt;code&gt;Request&lt;/code&gt; and &lt;code&gt;Response&lt;/code&gt; expose their public properties (&lt;code&gt;query&lt;/code&gt;, &lt;code&gt;request&lt;/code&gt;, &lt;code&gt;server&lt;/code&gt;, &lt;code&gt;headers&lt;/code&gt;), and the old pattern of mocking these classes and assigning those properties directly, which Drupal core's own test suite used extensively, no longer works reliably. Tests need to construct real &lt;code&gt;Request&lt;/code&gt;/&lt;code&gt;Response&lt;/code&gt; objects instead. Symfony's validator component also deprecates the old &lt;code&gt;ConstraintValidator::initialize()&lt;/code&gt;/&lt;code&gt;::validate()&lt;/code&gt; methods in favor of &lt;code&gt;validateInContext()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Drupal core (main, targeting Drupal 12) now requires &lt;code&gt;symfony/*&lt;/code&gt; packages &lt;code&gt;^8.1&lt;/code&gt; instead of &lt;code&gt;^8.0&lt;/code&gt;, and bumps &lt;code&gt;phpunit/phpunit&lt;/code&gt; to &lt;code&gt;^12.5.15&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Symfony 8.1 deprecates directly setting public properties like &lt;code&gt;$response-&amp;gt;headers&lt;/code&gt; or &lt;code&gt;$request-&amp;gt;query&lt;/code&gt; on &lt;code&gt;Request&lt;/code&gt;/&lt;code&gt;Response&lt;/code&gt;/&lt;code&gt;CacheableResponse&lt;/code&gt; (now property hooks), and deprecates &lt;code&gt;ConstraintValidator::initialize()&lt;/code&gt;/&lt;code&gt;::validate()&lt;/code&gt; in favor of &lt;code&gt;validateInContext()&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The diff bumps version constraints in &lt;code&gt;composer.json&lt;/code&gt;/&lt;code&gt;core/composer.json&lt;/code&gt; (and the corresponding &lt;code&gt;composer.lock&lt;/code&gt;) for &lt;code&gt;symfony/console&lt;/code&gt;, &lt;code&gt;dependency-injection&lt;/code&gt;, &lt;code&gt;event-dispatcher&lt;/code&gt;, &lt;code&gt;filesystem&lt;/code&gt;, &lt;code&gt;finder&lt;/code&gt;, &lt;code&gt;http-foundation&lt;/code&gt;, &lt;code&gt;http-kernel&lt;/code&gt;, &lt;code&gt;mailer&lt;/code&gt;, &lt;code&gt;mime&lt;/code&gt;, &lt;code&gt;process&lt;/code&gt;, &lt;code&gt;routing&lt;/code&gt;, &lt;code&gt;runtime&lt;/code&gt;, &lt;code&gt;serializer&lt;/code&gt;, &lt;code&gt;validator&lt;/code&gt;, and &lt;code&gt;yaml&lt;/code&gt; from &lt;code&gt;^8.0&lt;/code&gt; to &lt;code&gt;^8.1&lt;/code&gt;, plus dev dependencies (&lt;code&gt;phpunit/phpunit&lt;/code&gt; to satisfy sebastianbergmann/phpunit&lt;a href="https://www.drupal.org/node/6545"&gt;#6545&lt;/a&gt;, &lt;code&gt;symfony/browser-kit&lt;/code&gt;, &lt;code&gt;css-selector&lt;/code&gt;, &lt;code&gt;dom-crawler&lt;/code&gt;, &lt;code&gt;error-handler&lt;/code&gt;, &lt;code&gt;lock&lt;/code&gt;, &lt;code&gt;var-dumper&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;Two small production fixes were needed for compatibility: &lt;code&gt;ConsoleCompilerPass::process()&lt;/code&gt; now calls &lt;code&gt;addTag('console.command')&lt;/code&gt; instead of &lt;code&gt;setTags(['console.command' =&amp;gt; []])&lt;/code&gt;, since &lt;code&gt;symfony/console&lt;/code&gt; 8.1 conflicts with &lt;code&gt;symfony/dependency-injection&lt;/code&gt; below 8.1 and expects the new tagging API (this also absorbs the fix from &lt;a href="https://www.drupal.org/node/3607060"&gt;#3607060&lt;/a&gt;, &amp;quot;ConsoleCompilerPass incompatible with symfony/console ≥ 8.1&amp;quot;). &lt;code&gt;PhpMail::mail()&lt;/code&gt; now passes an explicit &lt;code&gt;''&lt;/code&gt; default to &lt;code&gt;$this-&amp;gt;request-&amp;gt;server-&amp;gt;get('SERVER_SOFTWARE', '')&lt;/code&gt;, since calling &lt;code&gt;ServerBag::get()&lt;/code&gt; without a default is newly deprecated.&lt;/p&gt;
-&lt;p&gt;The bulk of the remaining diff is test suite fallout: &lt;code&gt;BrowserTestBase&lt;/code&gt;, &lt;code&gt;FinishResponseSubscriberTest&lt;/code&gt;, &lt;code&gt;NegotiationMiddlewareTest&lt;/code&gt;, &lt;code&gt;LoggerChannelTest&lt;/code&gt;, &lt;code&gt;PhpMailTest&lt;/code&gt;, and &lt;code&gt;RoutePathGenerationTraitTest&lt;/code&gt; were rewritten to stop stubbing &lt;code&gt;Request&lt;/code&gt;/&lt;code&gt;Response&lt;/code&gt; and setting properties like &lt;code&gt;-&amp;gt;query&lt;/code&gt;, &lt;code&gt;-&amp;gt;server&lt;/code&gt;, &lt;code&gt;-&amp;gt;headers&lt;/code&gt; directly on the mock, using real &lt;code&gt;new Request()&lt;/code&gt;/&lt;code&gt;new Response()&lt;/code&gt; (or &lt;code&gt;new CacheableResponse()&lt;/code&gt;) instances instead, since Symfony 8.1 turns those properties into property hooks that reject external writes. &lt;code&gt;BrowserTestBase::getTestMethodCaller()&lt;/code&gt; was also adjusted to recognize PHPUnit's new &lt;code&gt;invokeTestMethod()&lt;/code&gt; caller frame alongside &lt;code&gt;runTest()&lt;/code&gt;. New entries were added to &lt;code&gt;core/.deprecation-ignore.txt&lt;/code&gt; and &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; to suppress the newly surfaced Symfony 8.1 deprecations (tagged-service indexing in dependency injection, the HttpFoundation property-hook writes, and &lt;code&gt;ConstraintValidator::initialize()&lt;/code&gt;/&lt;code&gt;validate()&lt;/code&gt;) until they can be addressed properly.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 28, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;longwave opened and repeatedly rebased this issue over several months as Symfony 8.1 moved through beta and RC releases, at one point bumping priority to critical &amp;quot;in the hope I can avoid rerolling this yet again.&amp;quot; godotislate reviewed and asked whether Symfony really intended for Request/Response objects not to be mockable; longwave explained it was a side effect of Symfony adopting property hooks on those classes (tied to sebastianbergmann/phpunit&lt;a href="https://www.drupal.org/node/6545"&gt;#6545&lt;/a&gt;, which forced the PHPUnit bump), adding that using real Request/Response objects instead of mocks &amp;quot;makes the code cleaner&amp;quot; and that the properties &amp;quot;were never meant to be set from outside anyway.&amp;quot; catch, on committing, noted that the phpstan baseline additions are &amp;quot;eventual Symfony 9 blockers&amp;quot; and better addressed early.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

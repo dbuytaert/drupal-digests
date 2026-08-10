@@ -1,8 +1,16 @@
-**TL;DR:** [932 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [933 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_489 summaries · 13 new this week_
+
+- [#3587565: Static cache entities that aren't loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md)
+- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
+- [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _120 summaries · 2 new this week_
 - [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
 - [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
 - [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
-
-### Drupal Core
-
-_488 summaries · 12 new this week_
-
-- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
-- [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
-- [#1945262: Introduce "before" and "after" for conditional ordering in library definitions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1945262.md)
 
 ### Drupal Canvas
 
