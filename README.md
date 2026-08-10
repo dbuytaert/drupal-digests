@@ -1,8 +1,16 @@
-**TL;DR:** [934 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [935 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_490 summaries · 14 new this week_
+
+- [#3517430: Add an attribute for skipping PHPUnit tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md)
+- [#3587565: Static cache entities that aren't loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md)
+- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
 
 ### Drupal CMS
 
@@ -11,14 +19,6 @@ _90 summaries · 1 new this week_
 - [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
 - [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
-
-### Drupal Core
-
-_489 summaries · 13 new this week_
-
-- [#3587565: Static cache entities that aren't loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md)
-- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
-- [#3593485: Use YamlCacheCollectorDiscovery for links, tasks, and actions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593485.md)
 
 ### Drupal AI
 
