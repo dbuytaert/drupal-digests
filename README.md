@@ -1,4 +1,4 @@
-**TL;DR:** [935 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [936 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_490 summaries · 14 new this week_
+_491 summaries · 15 new this week_
 
+- [#2171397: Deprecate remaining options.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md)
 - [#3517430: Add an attribute for skipping PHPUnit tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md)
 - [#3587565: Static cache entities that aren't loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md)
-- [#3614153: Install system module alongside other modules in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md)
 
 ### Drupal CMS
 
@@ -39,7 +39,7 @@ _235 summaries · 3 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [186 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_186 rules · 1 new this week_
+_187 rules · 2 new this week_
 
+- [Replace options_allowed_values() with the OptionsAllowedValuesInterface service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-options-allowed-values-with-the-2171397.php)
 - [Add $yaml_cache_collector argument to Local Action/Task/MenuLink manager...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yaml-cache-collector-argument-to-local-action-task-3593485.php)
 - [Promote defaults._title to top-level title on #[Route] attributes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/promote-defaults-title-to-top-level-title-on-route-3607968.php)
-- [Replace FileStorageFactory::getSync() with the config.storage.sync service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-filestoragefactory-getsync-with-the-config-storage-2951046.php)
 
 
 ## RSS feeds

@@ -5,6 +5,87 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2171397: Deprecate remaining options.module functions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md</link>
+      <guid isPermaLink="false">019fee3b-81c5-756e-a3e5-e5b40e7646e1</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 10 Aug 2026 20:39:40 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +345/−69 · php +340/−69 · yml +5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fc676da8bf185edbbc0c32e753958f0afa130a1c"&gt;fc676da&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2171397"&gt;#2171397&lt;/a&gt; · 23 contributors · 97 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 29&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Two of the last remaining procedural functions in &lt;code&gt;options.module&lt;/code&gt; are now deprecated, continuing core's effort to eliminate legacy &lt;code&gt;.module&lt;/code&gt; files. Code calling &lt;code&gt;options_allowed_values()&lt;/code&gt; to fetch a list field's allowed values should switch to the new &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; service. &lt;code&gt;_options_values_in_use()&lt;/code&gt; is also deprecated with no public replacement, since its only use was internal to the module's own field-storage-update-forbid check. &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; is deprecated too, since allowed values are no longer cached in a static variable. There is no behavior change for site owners; this only affects code that calls these low-level functions directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;options_allowed_values()&lt;/code&gt;, &lt;code&gt;_options_values_in_use()&lt;/code&gt;, and &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; are deprecated in Drupal 11.5.0 for removal in Drupal 13.0.0.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; service (&lt;code&gt;getAllowedValues()&lt;/code&gt;) replaces &lt;code&gt;options_allowed_values()&lt;/code&gt;, caching results per field via the &lt;code&gt;cache.memory&lt;/code&gt; backend instead of a static variable.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The original design challenge, visible across years of discussion on this issue, was that &lt;code&gt;options_allowed_values()&lt;/code&gt; is called both from field item plugins (which have an entity available) and from the options module's Views filter/argument plugins (&lt;code&gt;ListField&lt;/code&gt;, &lt;code&gt;NumberListField&lt;/code&gt;, &lt;code&gt;StringListField&lt;/code&gt;), which call it without an entity. Earlier patches tried folding the logic directly into &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt;, but that didn't work for the Views handlers, so the logic was extracted into a new service instead.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt;, implemented by &lt;code&gt;Drupal\options\OptionsAllowedValues&lt;/code&gt; and registered as an autowired service, exposes &lt;code&gt;getAllowedValues(FieldStorageDefinitionInterface $definition, ?FieldableEntityInterface $entity = NULL): array&lt;/code&gt;. It replaces the old &lt;code&gt;drupal_static()&lt;/code&gt; cache in &lt;code&gt;options_allowed_values()&lt;/code&gt; with per-field entries in the &lt;code&gt;cache.memory&lt;/code&gt; backend, keyed by entity type, field name, and whether an entity was passed, and tagged with the field storage's own cache tags plus a new &lt;code&gt;options_allowed_values&lt;/code&gt; cache tag so invalidating one field doesn't wipe every field's cached values. &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt;, &lt;code&gt;ListItemBase::generateSampleValue()&lt;/code&gt;, and the three Views plugins now call this service (the Views plugins receive it via constructor dependency injection, with a deprecated fallback to &lt;code&gt;\Drupal::service()&lt;/code&gt; for callers that don't yet pass it).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;_options_values_in_use()&lt;/code&gt;'s logic moved into a new protected method, &lt;code&gt;Drupal\options\Hook\OptionsHooks::hasValuesInUse()&lt;/code&gt;, used only by the module's own &lt;code&gt;field_storage_config_update_forbid&lt;/code&gt; hook implementation; no public API replaces it. The &lt;code&gt;hook_field_storage_config_update_forbid()&lt;/code&gt; example in &lt;code&gt;options.api.php&lt;/code&gt; was updated to query the entity directly with &lt;code&gt;\Drupal::entityQuery()&lt;/code&gt; instead of calling the deprecated function.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct calls to the deprecated function:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$values = options_allowed_values($field_storage_definition, $entity);
+
+// After:
+$values = \Drupal::service(\Drupal\options\OptionsAllowedValuesInterface::class)
+  -&amp;gt;getAllowedValues($field_storage_definition, $entity);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Prefer constructor injection of &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; over &lt;code&gt;\Drupal::service()&lt;/code&gt; where possible (e.g. in plugins or services).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;_options_values_in_use()&lt;/code&gt; has no replacement; if custom code relied on it, reimplement the entity query directly:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$result = \Drupal::entityQuery($entity_type_id)
+  -&amp;gt;accessCheck(FALSE)
+  -&amp;gt;condition($field_name . '.value', $values, 'IN')
+  -&amp;gt;count()
+  -&amp;gt;range(0, 1)
+  -&amp;gt;execute();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; calls with cache tag invalidation, e.g.:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal\Core\Cache\Cache::invalidateTags([\Drupal\options\OptionsAllowedValues::CACHE_TAG]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 11, 2014&lt;/li&gt;
+&lt;li&gt;Committed: August 10, 2026 (12 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;yched&lt;/li&gt;
+&lt;li&gt;plopesc (Cocomore AG)&lt;/li&gt;
+&lt;li&gt;sun&lt;/li&gt;
+&lt;li&gt;berdir&lt;/li&gt;
+&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
+&lt;li&gt;ankithashetty (Specbee)&lt;/li&gt;
+&lt;li&gt;joachim&lt;/li&gt;
+&lt;li&gt;vsujeetkumar (Material)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;dhirendra.mishra (Valuebound)&lt;/li&gt;
+&lt;li&gt;geek-merlin (Geeks4Change)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;oily&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design was debated at length before landing. larowlan questioned in a review comment whether introducing a whole new &lt;code&gt;OptionsAllowedValuesInterface&lt;/code&gt; service was the right call, versus consolidating the logic into &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt; and having the Views plugins use &lt;code&gt;FieldStorageDefinitionInterface::getOptionsProvider()-&amp;gt;getSettableOptions()&lt;/code&gt;, an approach explored years earlier in &lt;a href="https://www.drupal.org/node/2329937"&gt;#2329937&lt;/a&gt;. nicxvan confirmed that had in fact been the original approach in this issue but was abandoned because it broke the Views handlers, which call the allowed-values logic without an entity available. After longwave raised a caching concern on the merge request, daffie rebased the branch and fixed the cache invalidation so each field's allowed values are cached and invalidated independently rather than sharing one cache entry, a fix nicxvan explicitly credited to daffie when marking the issue RTBC again.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3517430: Add an attribute for skipping PHPUnit tests</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md</link>
       <guid isPermaLink="false">019fec7c-9ed6-7526-97d9-84ad8dd2b989</guid>
@@ -1050,60 +1131,6 @@ class MyComponentTest extends TestCase {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;kingdutch reviewed the change as a recent contributor to the test scaffolding, noting that tracing properties across the previously separate traits had been difficult, and that the new shared &lt;code&gt;DrupalTestCase&lt;/code&gt; base class makes explicit what is minimally needed to test Drupal code. He discussed with mondrake why &lt;code&gt;BuildTestBase&lt;/code&gt; still needed its own PHPStan baseline entry for the deprecated &lt;code&gt;getDrupalRoot()&lt;/code&gt; call, and pointed to &lt;a href="https://www.drupal.org/node/1792310"&gt;#1792310&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3590337"&gt;#3590337&lt;/a&gt; as candidates for resolving that inconsistency later. Separately, quietone found the new docblock added to &lt;code&gt;DrupalTestCaseTrait&lt;/code&gt; too dense and asked for plain-language wording; mondrake rewrote it, and quietone confirmed the revision was clearer before restoring RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3613344: Remove update_fetch_with_http_fallback</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613344.md</link>
-      <guid isPermaLink="false">019faebc-bb76-774d-aa9d-13a5347f22d2</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 29 Jul 2026 13:12:18 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +14/−317 · php +14/−316 · yml +0/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5a7489d2a923481e586a429030a854207f56c40c"&gt;5a7489d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3613344"&gt;#3613344&lt;/a&gt; · 5 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal 12 removes the &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; setting, which previously let a site fall back to plain HTTP when HTTPS requests to updates.drupal.org failed while checking for available updates or security advisories. This insecure fallback option was deprecated in Drupal 11.5 (&lt;a href="https://www.drupal.org/node/3591513"&gt;#3591513&lt;/a&gt;) and is now gone with no replacement. Sites that still have this setting uncommented in &lt;code&gt;settings.php&lt;/code&gt; should remove it; it no longer has any effect and update/security-advisory checks will always use HTTPS.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Drupal\update\UpdateFetcher::__construct()&lt;/code&gt; and &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher::__construct()&lt;/code&gt; no longer accept a &lt;code&gt;Settings&lt;/code&gt; argument; the internal &lt;code&gt;Drupal\package_manager\Validator\SettingsValidator&lt;/code&gt; class and its service definition were removed entirely.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; settings.php setting, deprecated in Drupal 11.5, is removed in Drupal 12 with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change strips the &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; handling out of the two places that read it: &lt;code&gt;Drupal\update\UpdateFetcher::doRequest()&lt;/code&gt; and &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher::doRequest()&lt;/code&gt; (formerly &lt;code&gt;Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher&lt;/code&gt;) now issue a single HTTPS &lt;code&gt;GET&lt;/code&gt; and no longer catch a failed HTTPS attempt to retry over &lt;code&gt;http://&lt;/code&gt;. Both classes' constructors drop the injected &lt;code&gt;Settings $settings&lt;/code&gt; parameter along with the &lt;code&gt;$withHttpFallback&lt;/code&gt; property. The corresponding entry in &lt;code&gt;Drupal\Core\Site\Settings::$deprecatedSettings&lt;/code&gt; is removed, leaving that array empty.&lt;/p&gt;
-&lt;p&gt;Package Manager's &lt;code&gt;Drupal\package_manager\Validator\SettingsValidator&lt;/code&gt;, which existed solely to block updates while the fallback setting was enabled, is deleted along with its service definition and &lt;code&gt;SettingsValidatorTest&lt;/code&gt;. The commented-out documentation block for the setting is removed from &lt;code&gt;default.settings.php&lt;/code&gt;. Test coverage for the HTTP-fallback code paths (&lt;code&gt;testHttpFallback&lt;/code&gt;, &lt;code&gt;testUpdateFetcherHttpFallback&lt;/code&gt;) was removed accordingly, and &lt;code&gt;Drupal\Tests\Core\Site\SettingsTest::testRealDeprecatedSettings&lt;/code&gt; is marked skipped rather than deleted outright, since it needs at least one real &amp;quot;deprecated with no replacement&amp;quot; setting to exercise its data provider and none currently exists for the Drupal 12 transition.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Remove any uncommented &lt;code&gt;update_fetch_with_http_fallback&lt;/code&gt; line from &lt;code&gt;settings.php&lt;/code&gt;; it has no effect on Drupal 12 and update checks always use HTTPS:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;# $settings['update_fetch_with_http_fallback'] = TRUE;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If custom code instantiates or extends &lt;code&gt;Drupal\update\UpdateFetcher&lt;/code&gt; or &lt;code&gt;Drupal\Core\Update\SecurityAdvisoriesFetcher&lt;/code&gt; directly, remove the &lt;code&gt;Settings $settings&lt;/code&gt; constructor argument, for example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-new UpdateFetcher($config_factory, $http_client, $settings, $logger);
-// After:
-new UpdateFetcher($config_factory, $http_client, $logger);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 29, 2026 (2 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;macsim&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, macsim flagged that removing the setting also removed the only entry in &lt;code&gt;Settings::$deprecatedSettings&lt;/code&gt;, breaking &lt;code&gt;testRealDeprecatedSettings&lt;/code&gt; since its data provider needs at least one real deprecated-without-replacement setting to run. mstrelan considered a couple of options (adding a test-only fake entry, or using reflection) before settling on restoring the test but marking it skipped with &lt;code&gt;markTestSkipped()&lt;/code&gt;, so it is ready to be reactivated once a future deprecation without a replacement exists.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
