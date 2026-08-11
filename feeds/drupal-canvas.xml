@@ -5,6 +5,59 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3569120: Canvas AI: Expose Props of Blocks to the Agent</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md</link>
+      <guid isPermaLink="false">019feff0-0543-73f3-b97f-3d4398105990</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 11 Aug 2026 04:47:43 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +253/−8 · php +246/−8 · js +6 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3569120"&gt;#3569120&lt;/a&gt; · 5 contributors · 46 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When Canvas AI's page builder agent places a Block component (for example the Site Branding block), it can now see and set that block's actual configuration options instead of just its id and label. Previously the agent only received a block's id, name, and description, so it either produced validation errors when trying to place blocks with required settings, or the values it tried to set (like &lt;code&gt;use_site_logo&lt;/code&gt; or &lt;code&gt;use_site_name&lt;/code&gt;) were silently dropped and the block was always placed with its default configuration. Now the &amp;quot;Get component context&amp;quot; tool includes each block's available properties (name, description, type, default value, required flag, and allowed choices where applicable), so the agent can configure blocks correctly. Internal-only settings that have no effect on the rendered block (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;) are still left out.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Sites with previously saved block descriptions in &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; have that config automatically rebuilt by &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; to include the newly exposed props, while any custom-edited descriptions are preserved.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public &lt;code&gt;CanvasAiPageBuilderHelper::getEnabledBlockComponentsFromStorage()&lt;/code&gt; returns enabled block components with prop metadata, loaded directly from storage independent of the current user's access, for use by update hooks and other server-side code.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;CanvasAiPageBuilderHelper::getAllComponentsKeyedBySource()&lt;/code&gt; previously only branched into rich prop extraction for SDC and JS component sources (&lt;code&gt;processSdc()&lt;/code&gt;, &lt;code&gt;processCodeComponents()&lt;/code&gt;); everything else, including Block components, fell into a generic branch that emitted only &lt;code&gt;id&lt;/code&gt;/&lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt;. A new &lt;code&gt;processBlock()&lt;/code&gt; method now builds prop metadata for blocks by reading the block's config schema definition (&lt;code&gt;block.settings.&amp;lt;plugin_id&amp;gt;&lt;/code&gt;) via the newly injected &lt;code&gt;TypedConfigManagerInterface&lt;/code&gt;, mapping each schema key to a prop with &lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt; (from the schema label), &lt;code&gt;type&lt;/code&gt;, &lt;code&gt;default&lt;/code&gt; (preferring the component's saved &lt;code&gt;default_settings&lt;/code&gt; over the schema default), a &lt;code&gt;required&lt;/code&gt; flag (true unless the schema marks &lt;code&gt;requiredKey === FALSE&lt;/code&gt;), and &lt;code&gt;enum&lt;/code&gt; values pulled from any &lt;code&gt;Choice&lt;/code&gt; constraint. Keys that Canvas can't act on (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;, the latter because Canvas doesn't apply context mappings at render time) are filtered out via &lt;code&gt;isBlockPropExcluded()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because the AI update path (&lt;code&gt;drush updb&lt;/code&gt;) runs as the anonymous user, and the access-checked component listing returns nothing in that context, a new public &lt;code&gt;getEnabledBlockComponentsFromStorage()&lt;/code&gt; method loads enabled block components directly from the &lt;code&gt;Component&lt;/code&gt; storage instead. It backs a new &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; hook that rebuilds any previously saved &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; block data with the new prop structure, re-layering each block's previously customized &lt;code&gt;description&lt;/code&gt; text on top of the rebuilt data.&lt;/p&gt;
+&lt;p&gt;Two related bugs surfaced by the missing propSources on blocks were also fixed: &lt;code&gt;AiResponseValidator::validateComponentStructure()&lt;/code&gt; dereferenced &lt;code&gt;$clientNormalized['propSources']&lt;/code&gt; unconditionally, which is unset for blocks, now guarded with &lt;code&gt;?? []&lt;/code&gt;; and the UI's &lt;code&gt;removeMediaFields()&lt;/code&gt; (used by &lt;code&gt;AiWizard.tsx&lt;/code&gt; when placing AI-suggested components) now short-circuits with &lt;code&gt;isPropSourceComponent()&lt;/code&gt; since block component definitions have no &lt;code&gt;propSources&lt;/code&gt; to filter.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code integrating with Canvas AI's page builder helper can now fetch block component prop data directly from storage, independent of the current user's permissions:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$blocks = \Drupal::service('canvas_ai.page_builder_helper')
+  -&amp;gt;getEnabledBlockComponentsFromStorage();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Sites that previously saved custom block descriptions via the component description settings form will have that config automatically migrated by the &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; update hook; no manual action is required.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;prabha1997 (QED42)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, mglaman suggested that guarding &lt;code&gt;isPropSourceComponent&lt;/code&gt; in &lt;code&gt;ui/src/components/aiExtension/AiWizard.tsx&lt;/code&gt; was a targeted fix that could avoid related bugs without needing to expose block inputs, along with some test and code-style nits. Scott Falconer followed up by making the enum-extraction helper always return an array (with the caller checking &lt;code&gt;count($enum) &amp;gt; 0&lt;/code&gt;), switching the kernel test to build the current user via &lt;code&gt;User::create(['uid' =&amp;gt; 1])&lt;/code&gt;, and confirming the &lt;code&gt;isPropSourceComponent&lt;/code&gt; guard mglaman asked for was already present in the MR.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591785: Strengthen AutoSaveManager to generate stable hashes</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md</link>
       <guid isPermaLink="false">019fd652-1f88-76c8-88ca-c46cf080ebd4</guid>
@@ -799,48 +852,6 @@ src:
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;wim leers pointed out in the issue thread that the regex had already been removed in commit &lt;code&gt;9048ab8&lt;/code&gt; as part of a broader refactor (with a linked change record at drupal.org/node/3542579), and asked larowlan to retest against HEAD. larowlan confirmed the issue was resolved after doing so.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3541033: Add ability to switch content used by template using top navigation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3541033.md</link>
-      <guid isPermaLink="false">019f8750-dce7-74a2-80f0-f2739a05a8d7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 20 Jul 2026 23:31:11 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +347/−3 · js +340/−3 · css +7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3541033"&gt;#3541033&lt;/a&gt; · 5 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When building or editing a content template in Canvas, site builders can now select which content entity to use for previewing that template directly from the top navigation bar. A new dropdown lists all available entities of the matching bundle; choosing one navigates the canvas to that entity. When no content exists yet for the template's bundle, a dedicated full-screen notice explains the situation and provides an &amp;quot;Add new {bundle}&amp;quot; button that opens Drupal's content creation UI in a new tab.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;useGetPreviewContentEntitiesQuery&lt;/code&gt; hook and &lt;code&gt;PreviewContentEntitiesResponse&lt;/code&gt; type for listing preview-eligible entities by entity type and bundle.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;TopBar&lt;/code&gt; component now conditionally renders a new &lt;code&gt;ContentPreviewSelector&lt;/code&gt; dropdown on any route starting with &lt;code&gt;/template/&lt;/code&gt;. It feeds the dropdown by calling &lt;code&gt;useGetPreviewContentEntitiesQuery&lt;/code&gt;, a new RTK Query endpoint that hits &lt;code&gt;canvas/api/v0/ui/content_template/suggestions/preview/{entityTypeId}/{bundle}&lt;/code&gt;. Selecting an item navigates to &lt;code&gt;/template/:entityType/:bundle/:viewMode/:previewEntityId&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A new route &lt;code&gt;/template/:entityType/:bundle/:viewMode&lt;/code&gt; (without &lt;code&gt;previewEntityId&lt;/code&gt;) is registered alongside the existing &lt;code&gt;:previewEntityId&lt;/code&gt; route. It renders the new &lt;code&gt;TemplateRoot&lt;/code&gt; component, which on mount queries &lt;code&gt;useGetContentTemplatesQuery&lt;/code&gt; and immediately redirects (with &lt;code&gt;replace&lt;/code&gt;) to the suggested entity if one is available. When none is found, it renders the no-content notice; the &amp;quot;Add new&amp;quot; button constructs a URL as &lt;code&gt;{baseUrl}{entityType}/add/{bundle}&lt;/code&gt; using &lt;code&gt;getBaseUrl()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;PageInfo&lt;/code&gt; gains template-route awareness: it shows a &lt;code&gt;FileIcon&lt;/code&gt; and a caption of the form &lt;code&gt;{bundleLabel} - {viewModeLabel} template&lt;/code&gt;, resolved by looking up bundle and view mode labels from the existing &lt;code&gt;useGetContentTemplatesQuery&lt;/code&gt; response.&lt;/p&gt;
-&lt;p&gt;New types &lt;code&gt;PreviewContentEntity&lt;/code&gt; and &lt;code&gt;PreviewContentEntitiesResponse&lt;/code&gt; are added in the services file, and &lt;code&gt;PreviewContentEntities&lt;/code&gt; is registered as a new RTK cache tag. The &lt;code&gt;TemplateListItem&lt;/code&gt; link fallback is also corrected from &lt;code&gt;0&lt;/code&gt; to an empty string for cases where &lt;code&gt;suggestedPreviewEntityId&lt;/code&gt; is absent.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 12, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mred9&lt;/li&gt;
-&lt;li&gt;jessebaker&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
