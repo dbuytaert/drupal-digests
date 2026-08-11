@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_491 summaries · 15 new this week_
+_491 summaries · 14 new this week_
 
 - [#2171397: Deprecate remaining options.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md)
 - [#3517430: Add an attribute for skipping PHPUnit tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md)
