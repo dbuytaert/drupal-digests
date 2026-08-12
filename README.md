@@ -30,7 +30,7 @@ _90 summaries · 1 new this week_
 
 ### Drupal AI
 
-_120 summaries · 2 new this week_
+_120 summaries · 1 new this week_
 
 - [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
 - [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
