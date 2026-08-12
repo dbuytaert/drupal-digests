@@ -1,4 +1,4 @@
-**TL;DR:** [938 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [940 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_492 summaries · 8 new this week_
+_493 summaries · 8 new this week_
 
+- [#3615308: Use Service Closure in ResourceResponseSubscriber](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md)
 - [#3581218: Deprecate .theme file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md)
 - [#2171397: Deprecate remaining options.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md)
-- [#3517430: Add an attribute for skipping PHPUnit tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md)
 
 ### Drupal Canvas
 
-_236 summaries · 2 new this week_
+_237 summaries · 3 new this week_
 
+- [#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md)
 - [#3569120: Canvas AI: Expose Props of Blocks to the Agent](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md)
 - [#3591785: Strengthen AutoSaveManager to generate stable hashes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md)
-- [#3591905: `drush config:import` can fail to update a Component whose `active_version`...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591905.md)
 
 ### Drupal CMS
 

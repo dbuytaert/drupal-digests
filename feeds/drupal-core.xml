@@ -5,6 +5,58 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3615308: Use Service Closure in ResourceResponseSubscriber</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md</link>
+      <guid isPermaLink="false">019ff51e-4e88-764b-a439-450abf9dcff3</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 12 Aug 2026 08:26:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +10/−9 · php +10/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7fce6988de98e8cb06855c5f9d7390822087561a"&gt;7fce698&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615308"&gt;#3615308&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When the &lt;code&gt;rest&lt;/code&gt; or &lt;code&gt;jsonapi&lt;/code&gt; module is enabled, their &lt;code&gt;ResourceResponseSubscriber&lt;/code&gt; event subscribers run on every single HTTP response. Previously each one had the full &lt;code&gt;serializer&lt;/code&gt; service injected eagerly, which in turn pulled in every registered normalizer service and all of their own dependencies, even on requests that never produce a REST or JSON:API resource response. That serializer is now wrapped in a service closure and only instantiated the first time it is actually needed to serialize a response body. One reporter measured about 160 fewer classes loaded per request on a site with many normalizers registered. There is no behavior change for REST or JSON:API responses themselves.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;$serializer&lt;/code&gt; constructor parameter of &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; changed from &lt;code&gt;Symfony\Component\Serializer\SerializerInterface&lt;/code&gt; to &lt;code&gt;\Closure&lt;/code&gt;; call &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt; to obtain the serializer instance. The equivalent &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\jsonapi\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; class changed identically.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Both &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; and &lt;code&gt;Drupal\jsonapi\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; now request their serializer service via Symfony's &lt;code&gt;#[AutowireServiceClosure('serializer')]&lt;/code&gt; (&lt;code&gt;jsonapi.serializer&lt;/code&gt; for the JSON:API variant) instead of &lt;code&gt;#[Autowire(service: ...)]&lt;/code&gt;, and the constructor property type changed from &lt;code&gt;SerializerInterface&lt;/code&gt; to &lt;code&gt;\Closure&lt;/code&gt;. The subscribers' &lt;code&gt;onResponse()&lt;/code&gt; methods invoke the closure, &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt;, only at the point where &lt;code&gt;renderResponseBody()&lt;/code&gt; actually needs the serializer, so the serializer (and the chain of normalizer services it aggregates) is only constructed when a resource response is genuinely being serialized rather than on every request the subscriber is invoked for.&lt;/p&gt;
+&lt;p&gt;Test doubles in &lt;code&gt;ResourceResponseSubscriberTest&lt;/code&gt; were updated to pass closures (&lt;code&gt;fn () =&amp;gt; $this-&amp;gt;prophesize(SerializerInterface::class)-&amp;gt;reveal()&lt;/code&gt;) instead of the serializer instance directly, matching the new constructor signature.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that directly instantiates or subclasses &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; and passes or reads the &lt;code&gt;$serializer&lt;/code&gt; constructor argument must adapt to the new &lt;code&gt;\Closure&lt;/code&gt; type:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+new ResourceResponseSubscriber($serializer, $renderer, $routeMatch);
+
+// After:
+new ResourceResponseSubscriber(fn () =&amp;gt; $serializer, $renderer, $routeMatch);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Any code reading &lt;code&gt;$this-&amp;gt;serializer&lt;/code&gt; directly must call it as a closure: &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt;. The &lt;code&gt;jsonapi&lt;/code&gt; subscriber is &lt;code&gt;@internal&lt;/code&gt; and carries no BC guarantee.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 12, 2026 (5 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir opened the issue after observing the eager serializer injection on a site with 25 normalizer-related services, and measured (via a preload script generated from dynamic page cache hits) that the closure approach loads about 160 fewer classes per request. berdir then extended the same fix to jsonapi's near-identical subscriber. When smustgrave asked whether a change record was needed, berdir argued no: event subscribers are, like hooks, conventionally excluded from Drupal's BC policy, and no subclasses of either class exist in core. catch, committing the patch, agreed with that BC reasoning for event subscribers, but noted the merge produced unexpected commit conflicts, suggesting some other unbackported constructor change to these classes, and flagged that a separate 11.x backport MR would be needed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3581218: Deprecate .theme file extension</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md</link>
       <guid isPermaLink="false">019ff366-c9da-7379-981a-833da774c7a5</guid>
@@ -1092,51 +1144,6 @@ catch (Exception $e) {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;smustgrave revisited the issue during queue triage and confirmed the concern was still valid, then opened the MR that converted the entity-level &lt;code&gt;MenuSettingsConstraint&lt;/code&gt; into the &lt;code&gt;formNodeFormValidate()&lt;/code&gt; form validation handler that shipped.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3209204: Adding existing translation throws "Invalid translation language specified"</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3209204.md</link>
-      <guid isPermaLink="false">019faebe-f10b-7390-b9a2-4c9d960821e2</guid>
-      <pubDate>Wed, 29 Jul 2026 13:45:15 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +96/−1 · php +96/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e179038b408bea2467a49f9e29e0a497dfc2887c"&gt;e179038&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3209204"&gt;#3209204&lt;/a&gt; · 13 contributors · 34 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Content editors could get a fatal PHP error (&amp;quot;Invalid translation language specified&amp;quot;, a 500 error page) simply by opening the &amp;quot;Add translation&amp;quot; link for a language that had already been translated, for example by clicking it in two browser tabs, or navigating back after saving a translation. This was easy to hit in ordinary editing workflows for both content entities and menu links. The fix makes &lt;code&gt;ContentTranslationController::add()&lt;/code&gt; detect that the target translation already exists before building the add form, and instead shows the message &amp;quot;A translation already exists for [language]&amp;quot; and redirects the editor to the existing translation's edit form.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The crash happened because &lt;code&gt;ContentTranslationController::add()&lt;/code&gt; unconditionally cloned the entity and called &lt;code&gt;addTranslation()&lt;/code&gt; for the target language, which throws an &lt;code&gt;InvalidArgumentException&lt;/code&gt; in &lt;code&gt;ContentEntityBase::addTranslation()&lt;/code&gt; if that translation already exists. This could occur through races such as two open tabs each adding the same translation, a browser &amp;quot;back&amp;quot; navigation returning to a stale add-translation URL, or another user saving the same translation concurrently.&lt;/p&gt;
-&lt;p&gt;The fix adds a guard in &lt;code&gt;add()&lt;/code&gt;: if &lt;code&gt;$entity-&amp;gt;hasTranslation($target-&amp;gt;getId())&lt;/code&gt; is true, it calls &lt;code&gt;$this-&amp;gt;messenger()-&amp;gt;addError()&lt;/code&gt; with a translated message and returns a &lt;code&gt;Symfony\Component\HttpFoundation\RedirectResponse&lt;/code&gt; to &lt;code&gt;$entity-&amp;gt;getTranslation($target-&amp;gt;getId())-&amp;gt;toUrl('edit-form')-&amp;gt;toString()&lt;/code&gt; instead of proceeding to build the form. The method's return type was widened from &lt;code&gt;array&lt;/code&gt; to &lt;code&gt;array|\Symfony\Component\HttpFoundation\RedirectResponse&lt;/code&gt; to reflect this. A new kernel test, &lt;code&gt;ContentTranslationConcurrencyTest&lt;/code&gt;, exercises this by creating an entity with an existing French translation and calling the controller's &lt;code&gt;add()&lt;/code&gt; method directly, asserting a redirect response and the error message text.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 16, 2021&lt;/li&gt;
-&lt;li&gt;Committed: July 29, 2026 (5 years and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;trevorbradley&lt;/li&gt;
-&lt;li&gt;randalv&lt;/li&gt;
-&lt;li&gt;johnwebdev&lt;/li&gt;
-&lt;li&gt;dieterholvoet (Minsky)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;andras_szilagyi (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;DieterHolvoet revised the fix so that it redirects to the existing translation's edit form rather than back to the translation overview, judging it more user friendly, and confirmed the same fix also resolved the equivalent crash for menu link translations reported by johnwebdev and mpp. Andras Szilagyi later added the kernel test covering the redirect and error message. Claudiu Cristea, investigating a related report of the same error on macOS/Safari, traced an additional trigger: another user saving the same translation concurrently while the current user is still on the add-translation form, which explained why the fix needed to be a defensive check rather than only a client-side navigation issue.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
