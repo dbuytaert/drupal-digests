@@ -14,7 +14,7 @@ _492 summaries · 8 new this week_
 
 ### Drupal Canvas
 
-_236 summaries · 4 new this week_
+_236 summaries · 2 new this week_
 
 - [#3569120: Canvas AI: Expose Props of Blocks to the Agent](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md)
 - [#3591785: Strengthen AutoSaveManager to generate stable hashes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md)
