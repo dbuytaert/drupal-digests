@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_493 summaries · 8 new this week_
+_493 summaries · 6 new this week_
 
 - [#3615308: Use Service Closure in ResourceResponseSubscriber](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md)
 - [#3581218: Deprecate .theme file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_187 rules · 2 new this week_
+_187 rules · 1 new this week_
 
 - [Replace options_allowed_values() with the OptionsAllowedValuesInterface service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-options-allowed-values-with-the-2171397.php)
 - [Add $yaml_cache_collector argument to Local Action/Task/MenuLink manager...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yaml-cache-collector-argument-to-local-action-task-3593485.php)
