@@ -1,4 +1,4 @@
-**TL;DR:** [940 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [941 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_493 summaries · 6 new this week_
+_494 summaries · 7 new this week_
 
+- [#2171395: OptionsWidgetBase should use WidgetInterface::massageFormValues()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171395.md)
 - [#3615308: Use Service Closure in ResourceResponseSubscriber](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md)
 - [#3581218: Deprecate .theme file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md)
-- [#2171397: Deprecate remaining options.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md)
 
 ### Drupal Canvas
 
