@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_494 summaries · 7 new this week_
+_494 summaries · 6 new this week_
 
 - [#2171395: OptionsWidgetBase should use WidgetInterface::massageFormValues()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171395.md)
 - [#3615308: Use Service Closure in ResourceResponseSubscriber](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md)
