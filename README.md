@@ -1,4 +1,4 @@
-**TL;DR:** [941 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [942 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [187 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_494 summaries · 6 new this week_
+_495 summaries · 7 new this week_
 
+- [#3615749: Exclude ckeditor5.css from aggregation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615749.md)
 - [#2171395: OptionsWidgetBase should use WidgetInterface::massageFormValues()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171395.md)
 - [#3615308: Use Service Closure in ResourceResponseSubscriber](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md)
-- [#3581218: Deprecate .theme file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _90 summaries · 1 new this week_
 
 ### Drupal AI
 
-_120 summaries · 1 new this week_
+_120 summaries · 0 new this week_
 
 - [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
 - [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
