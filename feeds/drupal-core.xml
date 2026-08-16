@@ -5,6 +5,119 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3581816: Move uses of Shortcut from Navigation to Shortcut</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581816.md</link>
+      <guid isPermaLink="false">01a009a2-0a65-7637-9fe7-6fefbf5b5912</guid>
+      <category>Site owners</category>
+      <pubDate>Sun, 16 Aug 2026 05:56:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +562/−91 · php +555/−81 · yml +7/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7926fc32a00942ca432bd76b5ec3ff14027d65cd"&gt;7926fc3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581816"&gt;#3581816&lt;/a&gt; · 11 contributors · 54 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 11 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Navigation module's &amp;quot;Shortcuts&amp;quot; block used to reach directly into the Shortcut module's render logic, and Shortcut had no awareness of the block it powered in Navigation's layout. This left a gap: if a site uninstalled the Shortcut module while keeping Navigation, the Shortcuts block placement stayed behind in Navigation's block layout configuration, pointing at a module that no longer provided it. This issue moves ownership of the Shortcuts navigation block, its lazy builder, and its layout defaults into the Shortcut module itself, so installing or uninstalling either module now correctly adds or removes the block from Navigation's layout. Existing sites get an update hook that removes any orphaned Shortcuts block left over from before this change.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;navigation_post_update_remove_shortcut_block()&lt;/code&gt; update hook strips any leftover &lt;code&gt;navigation_shortcuts&lt;/code&gt; block component from &lt;code&gt;navigation.block_layout&lt;/code&gt; config on sites where Navigation is installed but Shortcut is not.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The block plugin backing &lt;code&gt;navigation_shortcuts&lt;/code&gt; now lives as &lt;code&gt;Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;). &lt;code&gt;Drupal\navigation\Plugin\Block\NavigationShortcutsBlock&lt;/code&gt; becomes a thin subclass kept only for backward compatibility, carries &lt;code&gt;@deprecated in drupal:11.5.0 and is removed from drupal:12.0.0&lt;/code&gt;, and no longer carries the &lt;code&gt;#[Block]&lt;/code&gt; attribute itself, so plugin discovery resolves to the Shortcut class. The lazy builder moved from &lt;code&gt;Drupal\navigation\ShortcutLazyBuilder&lt;/code&gt; to &lt;code&gt;Drupal\shortcut\ShortcutNavigationLazyBuilder&lt;/code&gt;, and the container registration of the &lt;code&gt;navigation.shortcut_lazy_builder&lt;/code&gt; service moved from &lt;code&gt;NavigationServiceProvider&lt;/code&gt; to a new &lt;code&gt;Drupal\shortcut\ShortcutServiceProvider&lt;/code&gt;, keyed off the &lt;code&gt;navigation.renderer&lt;/code&gt; service existing rather than a shortcut-specific one.&lt;/p&gt;
+&lt;p&gt;Shortcut now implements &lt;code&gt;hook_navigation_defaults()&lt;/code&gt; and &lt;code&gt;hook_block_alter()&lt;/code&gt; (previously implemented in &lt;code&gt;NavigationHooks&lt;/code&gt;) to supply the default block placement and the &lt;code&gt;allow_in_navigation&lt;/code&gt;/&lt;code&gt;_block_ui_hidden&lt;/code&gt; flags for &lt;code&gt;navigation_shortcuts&lt;/code&gt;. Because Navigation stores this plugin placement in simple config (&lt;code&gt;navigation.block_layout&lt;/code&gt;), which per &lt;a href="https://www.drupal.org/node/3587499"&gt;#3587499&lt;/a&gt; can't formally express a dependency on Shortcut, &lt;code&gt;shortcut_install()&lt;/code&gt; and &lt;code&gt;shortcut_uninstall()&lt;/code&gt; now directly add or remove the block component from that config, with a duplicate check for the case where both modules install in the same request. A new &lt;code&gt;navigation_post_update_remove_shortcut_block()&lt;/code&gt; post-update cleans up any leftover placement on existing sites. The commit initially shipped with a wrong namespace on the new &lt;code&gt;NavigationUpdateTest&lt;/code&gt; fixture test, was reverted, and recommitted with the namespace corrected to &lt;code&gt;Drupal\Tests\navigation\Functional\Update&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that instantiates or type-hints &lt;code&gt;Drupal\navigation\Plugin\Block\NavigationShortcutsBlock&lt;/code&gt; directly should switch to the new class before Drupal 12.0.0:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in 11.5.0, removed in 12.0.0):
+use Drupal\navigation\Plugin\Block\NavigationShortcutsBlock;
+
+// After:
+use Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code referencing the internal &lt;code&gt;Drupal\navigation\ShortcutLazyBuilder&lt;/code&gt; class directly (not the &lt;code&gt;navigation.shortcut_lazy_builder&lt;/code&gt; service, which keeps its name) must update to &lt;code&gt;Drupal\shortcut\ShortcutNavigationLazyBuilder&lt;/code&gt;; no deprecation shim was left for this internal class.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 27, 2026&lt;/li&gt;
+&lt;li&gt;First commit: August 14, 2026 (4 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 16, 2026 (1 day and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir diagnosed the underlying design problem (comment &lt;a href="https://www.drupal.org/node/16568255"&gt;#16568255&lt;/a&gt;): Navigation stores plugin configuration with cross-module dependencies in simple config, which can't formally declare those dependencies, so removing Shortcut broke &lt;code&gt;ConfigImportAllTest&lt;/code&gt;. He recommended a quick test exclusion rather than a full refactor, and quietone filed the follow-up &lt;a href="https://www.drupal.org/node/3587499"&gt;#3587499&lt;/a&gt; to track the proper fix. godotislate reviewed the install/uninstall ordering in detail (comments &lt;a href="https://www.drupal.org/node/16602087"&gt;#16602087&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/16609667"&gt;#16609667&lt;/a&gt;) and found that &lt;code&gt;hook_navigation_defaults&lt;/code&gt; already fires on &lt;code&gt;hook_modules_installed&lt;/code&gt;, which meant an initially-proposed change to &lt;code&gt;shortcut_install()&lt;/code&gt; wasn't actually needed. smustgrave reported using Claude to help add the duplicate-block check that finally made the test suite pass. After the fix first landed, quietone caught that it had to be reverted because of a namespace error in the new update-path test, matching a pattern seen in a similar Olivero test-migration issue, and it was recommitted with the namespace corrected.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3576669: Deprecate Settings Tray module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576669.md</link>
+      <guid isPermaLink="false">01a009a2-6a1a-754b-ae5f-5745749c241a</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 16 Aug 2026 05:38:18 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +14/−0 · php +12 · yml +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/46f947f9d192a64f4222203182300e5f35927097"&gt;46f947f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576669"&gt;#3576669&lt;/a&gt; · 4 contributors · 16 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Settings Tray module (the off-canvas dialog for quickly editing block settings from the front end) is now formally deprecated in Drupal core, following approval in &lt;a href="https://www.drupal.org/node/3576315"&gt;#3576315&lt;/a&gt; to move it to a contributed project. Sites currently using Settings Tray will continue to work for now, but should plan to move to the contributed version of the module once it is available, since the module will eventually be removed from core entirely.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;settings_tray&lt;/code&gt; module is marked &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and will be removed from core; sites using it should migrate to the contributed Settings Tray project.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and a &lt;code&gt;lifecycle_link&lt;/code&gt; pointing to the core deprecated/obsolete modules documentation page (https://www.drupal.org/node/3223395#s-settings-tray) to &lt;code&gt;settings_tray.info.yml&lt;/code&gt;. This triggers core's standard deprecated-extension machinery (deprecation notices when the module is installed, listing in the deprecated modules UI, etc.).&lt;/p&gt;
+&lt;p&gt;The module's own PHPUnit tests (&lt;code&gt;GenericTest&lt;/code&gt;, &lt;code&gt;SettingsTrayTest&lt;/code&gt;, &lt;code&gt;ConfigAccessTest&lt;/code&gt;, &lt;code&gt;OverriddenConfigurationTest&lt;/code&gt;, &lt;code&gt;SettingsTrayBlockFormTest&lt;/code&gt;, &lt;code&gt;BlockPluginHasSettingsTrayFormAccessCheckTest&lt;/code&gt;) were annotated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; so the module's own tests don't fail on its own deprecation notices. No functional code in &lt;code&gt;settings_tray.module&lt;/code&gt; changed; this is purely a lifecycle/status marking commit. A follow-up comment from &lt;code&gt;smustgrave&lt;/code&gt; noted a search of core for remaining references to &lt;code&gt;settings_tray&lt;/code&gt; turned up nothing beyond &lt;code&gt;phpstan-baseline&lt;/code&gt;, ignore-deprecations lists, and &lt;code&gt;MAINTAINERS.txt&lt;/code&gt;, so no further cleanup issues were needed.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;No code changes are required immediately, but sites and modules relying on Settings Tray should plan to switch to the contributed Settings Tray project once available, since core's &lt;code&gt;settings_tray&lt;/code&gt; module now carries:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;lifecycle: deprecated
+lifecycle_link: https://www.drupal.org/node/3223395#s-settings-tray
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;and will eventually be removed from core.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 3, 2026&lt;/li&gt;
+&lt;li&gt;First commit: August 14, 2026 (5 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: August 16, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3615749: Exclude ckeditor5.css from aggregation</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615749.md</link>
       <guid isPermaLink="false">01a008c8-f708-74b0-b2d7-65dbbd3c005e</guid>
@@ -1005,133 +1118,6 @@ public function testSomething(): void {
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
 &lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3607968: Promote defaults._title to top level in route attributes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3607968.md</link>
-      <guid isPermaLink="false">019fbacf-77fd-7078-987d-2286dea2c3d7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sat, 01 Aug 2026 00:08:43 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 17 files, +415/−47 · php +415/−37 · yml +0/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c51fe139f8aa221666c9df4bda54dd81e321de03"&gt;c51fe13&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3607968"&gt;#3607968&lt;/a&gt; · 5 contributors · 33 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Following up on the introduction of PHP attributes for route discovery (&lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;), Drupal core now provides its own &lt;code&gt;#[Route]&lt;/code&gt; attribute that extends Symfony's, adding a top level &lt;code&gt;title&lt;/code&gt; property. Previously, setting a page title on an attribute-based route required nesting it inside &lt;code&gt;defaults: ['_title' =&amp;gt; ...]&lt;/code&gt;; now it can be written as &lt;code&gt;title: new TranslatableMarkup('...')&lt;/code&gt; directly on the attribute. The new attribute also supports closures for dynamic titles, letting modules avoid writing a separate &lt;code&gt;_title_callback&lt;/code&gt; controller method just to compute a title. This is a developer-facing convenience change with no end-user visible effect, aside from the many core routes (&lt;code&gt;system.module&lt;/code&gt;'s admin pages, block content add form, etc.) that were converted to use it.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;BlockContentController::getAddFormTitle()&lt;/code&gt; is deprecated in favor of a title closure on the route attribute.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;title&lt;/code&gt; property on Drupal's &lt;code&gt;#[Route]&lt;/code&gt; attribute (&lt;code&gt;Drupal\Core\Routing\Attribute\Route&lt;/code&gt;, extending Symfony's), accepting a string, &lt;code&gt;TranslatableMarkup&lt;/code&gt;, or closure for the page title.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;Drupal\Core\Routing\Attribute\Route&lt;/code&gt; class extends &lt;code&gt;Symfony\Component\Routing\Attribute\Route&lt;/code&gt; and, in its constructor, moves a passed &lt;code&gt;title&lt;/code&gt; argument into &lt;code&gt;$this-&amp;gt;defaults['_title']&lt;/code&gt;. Passing both &lt;code&gt;title&lt;/code&gt; and a &lt;code&gt;_title&lt;/code&gt; default simultaneously trips an assertion. Because closures cannot be serialized into the router table, &lt;code&gt;AttributeRouteDiscovery::getAttributes()&lt;/code&gt; detects a closure title and replaces it in the stored defaults with a &lt;code&gt;_title_closure&lt;/code&gt; reference tuple of &lt;code&gt;[class, method, index]&lt;/code&gt; (the &lt;code&gt;index&lt;/code&gt; disambiguates multiple &lt;code&gt;#[Route]&lt;/code&gt; attributes on the same method). &lt;code&gt;TitleResolver::getTitle()&lt;/code&gt; was updated to recognize &lt;code&gt;_title_closure&lt;/code&gt; and resolve the actual closure at render time via the new static method &lt;code&gt;Route::getTitleClosure()&lt;/code&gt;, which re-reflects the method's attributes to retrieve the closure (since it can't be persisted) and resolves controller arguments the same way &lt;code&gt;_title_callback&lt;/code&gt; does, except without container access.&lt;/p&gt;
-&lt;p&gt;All core routes previously using &lt;code&gt;defaults: ['_title' =&amp;gt; ...]&lt;/code&gt; on attribute-based routes were converted to the top level &lt;code&gt;title&lt;/code&gt; property, including the &lt;code&gt;system.module&lt;/code&gt; admin controllers and &lt;code&gt;SiteInformationForm&lt;/code&gt;. &lt;code&gt;BlockContentController::addForm()&lt;/code&gt;'s route was converted to use a closure title (&lt;code&gt;title: static function (BlockContentTypeInterface $block_content_type) {...}&lt;/code&gt;), and its old &lt;code&gt;getAddFormTitle()&lt;/code&gt; method was deprecated for removal in Drupal 13.0.0, with the accompanying &lt;code&gt;block_content.add_form&lt;/code&gt; YAML route definition removed since discovery now happens purely through the attribute.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Modules converting &lt;code&gt;*.routing.yml&lt;/code&gt; route definitions to &lt;code&gt;#[Route]&lt;/code&gt; attributes (per &lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;) can now write, instead of:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
-  path: '/admin/config/system/site-information',
-  name: 'system.site_information_settings',
-  requirements: ['_permission' =&amp;gt; 'administer site configuration'],
-  defaults: ['_title' =&amp;gt; new TranslatableMarkup('Basic site settings')],
-)]
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;the shorter:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
-  path: '/admin/config/system/site-information',
-  name: 'system.site_information_settings',
-  title: new TranslatableMarkup('Basic site settings'),
-  requirements: ['_permission' =&amp;gt; 'administer site configuration'],
-)]
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;For dynamic titles that don't need injected services, a closure can replace a separate &lt;code&gt;_title_callback&lt;/code&gt; method:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;#[Route(
-  path: '/block/add/{block_content_type}',
-  name: 'block_content.add_form',
-  title: static function (BlockContentTypeInterface $block_content_type) {
-    return new TranslatableMarkup('Add %type content block', ['%type' =&amp;gt; $block_content_type-&amp;gt;label()]);
-  },
-  requirements: ['_entity_create_access' =&amp;gt; 'block_content:{block_content_type}'],
-)]
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code calling &lt;code&gt;Drupal\block_content\Controller\BlockContentController::getAddFormTitle()&lt;/code&gt; should stop using it before Drupal 13.0.0.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 1, 2026 (29 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;mcdruid (Acquia)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design went through several iterations before landing. longwave initially proposed extending the Symfony &lt;code&gt;Route&lt;/code&gt; attribute, but also floated an alternative of a separate &lt;code&gt;#[PageTitle]&lt;/code&gt; attribute (mirroring how Symfony handles access control via a separate &lt;code&gt;#[IsGranted]&lt;/code&gt; attribute). godotislate and mstrelan weighed in on the tradeoffs, and godotislate pointed out the deciding issue: &lt;code&gt;SystemController::systemAdminMenuBlockPage()&lt;/code&gt; has several different &lt;code&gt;#[Route]&lt;/code&gt; attributes stacked on one method, each needing its own title, which rules out a single class or method level &lt;code&gt;#[PageTitle]&lt;/code&gt; attribute since there would be no way to tell which title belongs to which route. This led longwave to add closure support directly to the &lt;code&gt;#[Route]&lt;/code&gt; attribute and solve the &amp;quot;which attribute&amp;quot; ambiguity by recording an &lt;code&gt;[class, method, index]&lt;/code&gt; reference during route discovery. godotislate reviewed the resulting MR, confirmed the route discovery skip-file logic still worked with the new attribute, and catch merged it, noting it was &amp;quot;soft-blocking a lot of route conversions from YAML.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3593472: Insecure Direct Object Reference in Private File Uploads</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593472.md</link>
-      <guid isPermaLink="false">019fb5a9-d8d9-73d1-a999-0ba127c210f8</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 30 Jul 2026 20:55:52 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +140/−2 · php +140/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/83a5f2b486af21158d0a75f6c90e7b937172d105"&gt;83a5f2b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593472"&gt;#3593472&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Fixes a security vulnerability in the file upload widget used by file and image fields. Previously, a logged in user could tamper with the file ID submitted by the upload form (for example by editing the hidden &lt;code&gt;fids&lt;/code&gt; input in browser dev tools) and cause another user's private file, one they had no permission to view or download, to be attached to their own content. An attacker did not need to know the file's contents, only its numeric ID, which is easy to guess since file IDs are sequential. Sites using private file storage for file or image fields should update to receive this fix.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Insecure Direct Object Reference (IDOR) in the &lt;code&gt;ManagedFile&lt;/code&gt; upload widget allowed a user to attach a private file they do not have download access to (identified only by guessing its &lt;code&gt;fid&lt;/code&gt;) to their own content.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;ManagedFile::valueCallback()&lt;/code&gt; in &lt;code&gt;core/modules/file/src/Element/ManagedFile.php&lt;/code&gt;. When processing newly uploaded files for multi-value widgets, the code now loads all candidate files with &lt;code&gt;File::loadMultiple($fids)&lt;/code&gt; and filters out any whose &lt;code&gt;$file-&amp;gt;access('download')&lt;/code&gt; check fails for the current user, removing those denied fids from the array before they are stored on the field. The same access check was added to the code path that reconstructs &lt;code&gt;$fids&lt;/code&gt; from &lt;code&gt;$default_fids&lt;/code&gt; (used when redisplaying a form after validation errors or AJAX rebuilds), replacing a bare &lt;code&gt;File::load($fid)&lt;/code&gt; existence check with an &lt;code&gt;access('download')&lt;/code&gt; check via &lt;code&gt;File::loadMultiple()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A new test, &lt;code&gt;ManagedFileFidValidationTest&lt;/code&gt;, exercises this directly: it creates a private, temporary file owned by one user, then logs in as a second user and confirms that submitting a form with the first user's fid injected via the URL (simulating a tampered request) does not result in that fid being accepted, whether or not the second user also performs a legitimate upload in the same request. An existing image test (&lt;code&gt;testDefaultImages&lt;/code&gt;) needed a &lt;code&gt;setOwner()&lt;/code&gt; call added so its private test images remain accessible to the test's own user under the new check.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 3, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 30, 2026 (1 month and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
-&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
-&lt;li&gt;starlight-sparkle (Pixel Onion Pte Ltd)&lt;/li&gt;
-&lt;li&gt;drumm (Drupal Association)&lt;/li&gt;
-&lt;li&gt;greggles (Colorado Governor's Office of Information Technology - Colorado Digital Service)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

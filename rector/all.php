@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 
 // Not included (standalone configs, run separately):
+//   rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php
 //   rules/rename-usersearch-to-searchuser-from-search-user-module-3588379.php
 //   rules/replace-htmx-triggeraftersettleheader-and-3607711.php
 //   rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php
