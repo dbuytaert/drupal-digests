@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_498 summaries · 10 new this week_
+_498 summaries · 9 new this week_
 
 - [#2934063: Remove the workaround in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md)
 - [#3581816: Move uses of Shortcut from Navigation to Shortcut](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581816.md)
