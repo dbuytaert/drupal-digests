@@ -1,4 +1,4 @@
-**TL;DR:** [944 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [188 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [945 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_497 summaries · 9 new this week_
+_498 summaries · 10 new this week_
 
+- [#2934063: Remove the workaround in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md)
 - [#3581816: Move uses of Shortcut from Navigation to Shortcut](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581816.md)
 - [#3576669: Deprecate Settings Tray module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576669.md)
-- [#3615749: Exclude ckeditor5.css from aggregation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615749.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _120 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [188 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_188 rules · 2 new this week_
+_189 rules · 3 new this week_
 
+- [Replace deprecated installer-specific extension list classes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php)
 - [Rename NavigationShortcutsBlock to ShortcutNavigationBlock](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php)
 - [Replace options_allowed_values() with the OptionsAllowedValuesInterface service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-options-allowed-values-with-the-2171397.php)
-- [Add $yaml_cache_collector argument to Local Action/Task/MenuLink manager...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-yaml-cache-collector-argument-to-local-action-task-3593485.php)
 
 
 ## RSS feeds
