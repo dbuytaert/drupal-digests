@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_499 summaries · 10 new this week_
+_499 summaries · 9 new this week_
 
 - [#2672340: user_user_role_insert should not exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md)
 - [#2934063: Remove the workaround in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md)
