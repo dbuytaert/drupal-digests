@@ -5,6 +5,73 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2672340: user_user_role_insert should not exist</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md</link>
+      <guid isPermaLink="false">01a00ece-e2ac-7426-9fdc-b536afbb33a6</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 17 Aug 2026 07:08:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +276/−53 · yml +182 · php +94/−53&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c9e3af7cb5f406914f1d87927a9e13913505eb02"&gt;c9e3af7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2672340"&gt;#2672340&lt;/a&gt; · 14 contributors · 70 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 14 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Previously, whenever a user role was created (through the API, a recipe, or during configuration sync), Drupal silently created two extra configuration entities alongside it: a &amp;quot;user_add_role_action&amp;quot; and a &amp;quot;user_remove_role_action&amp;quot;, the actions used for bulk-assigning or removing that role from users. This caused a real bug: an install profile or recipe that already exported both the role and its matching action configuration would fail on install with a &lt;code&gt;ConfigDuplicateUUIDException&lt;/code&gt;, because the hook tried to create the action a second time. Now, these helper actions are only created when a role is added through the admin &amp;quot;Add role&amp;quot; UI form. Programmatic role creation (custom code, drush, recipes, config sync) no longer creates them automatically. Maintainers of install profiles or recipes that define custom roles need to also export the corresponding &lt;code&gt;system.action.user_add_role_action.*&lt;/code&gt; and &lt;code&gt;system.action.user_remove_role_action.*&lt;/code&gt; configuration if they want those bulk actions to exist.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Creating a &lt;code&gt;user_role&lt;/code&gt; entity outside of the admin UI role form (via code, drush, config import, or a recipe) no longer automatically creates the paired &lt;code&gt;system.action.user_add_role_action.&amp;lt;rid&amp;gt;&lt;/code&gt; and &lt;code&gt;system.action.user_remove_role_action.&amp;lt;rid&amp;gt;&lt;/code&gt; config entities.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix removes the &lt;code&gt;#[Hook('user_role_insert')]&lt;/code&gt; implementation (&lt;code&gt;userRoleInsert()&lt;/code&gt;) that lived in the user module's hook class and fired on every &lt;code&gt;user_role&lt;/code&gt; entity insert, config-synced or not. That logic (skip for the anonymous/authenticated roles, create &lt;code&gt;user_add_role_action.&amp;lt;rid&amp;gt;&lt;/code&gt; and &lt;code&gt;user_remove_role_action.&amp;lt;rid&amp;gt;&lt;/code&gt; if not already present) is now inlined directly into &lt;code&gt;RoleForm::save()&lt;/code&gt;, so it only runs when a role is saved through the admin role-add/edit form. Because the hook no longer runs, &lt;code&gt;standard&lt;/code&gt; and &lt;code&gt;demo_umami&lt;/code&gt; install profiles and the &lt;code&gt;administrator_role&lt;/code&gt;/&lt;code&gt;content_editor_role&lt;/code&gt; recipes now ship explicit &lt;code&gt;system.action.user_add_role_action.*&lt;/code&gt; and &lt;code&gt;system.action.user_remove_role_action.*&lt;/code&gt; YAML config files (e.g. for &lt;code&gt;administrator&lt;/code&gt;, &lt;code&gt;author&lt;/code&gt;, &lt;code&gt;editor&lt;/code&gt;, &lt;code&gt;content_editor&lt;/code&gt; roles) instead of relying on the removed hook to generate them at install time. Kernel and functional tests that relied on the old implicit creation (&lt;code&gt;UserActionConfigSchemaTest&lt;/code&gt;, &lt;code&gt;BulkFormTest&lt;/code&gt;) were updated to create the actions explicitly.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If your install profile, recipe, or custom code creates roles programmatically and you want the bulk &amp;quot;add/remove role&amp;quot; actions to exist, export them explicitly as configuration, following the pattern core now ships, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.administrator
+  module:
+    - user
+id: user_add_role_action.administrator
+label: 'Add the Administrator role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: administrator
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Add a matching &lt;code&gt;user_remove_role_action.&amp;lt;rid&amp;gt;&lt;/code&gt; file for the remove action. These actions are otherwise only created automatically when a role is created via the admin &amp;quot;Add role&amp;quot; form.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 20, 2016&lt;/li&gt;
+&lt;li&gt;Committed: August 17, 2026 (10 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;alexpott (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
+&lt;li&gt;marcingy (Examiner.com)&lt;/li&gt;
+&lt;li&gt;therealssj&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;joegraduate (The University of Arizona)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The change sat dormant for years after alexpott clarified in comment #18 that &lt;code&gt;user_user_role_insert()&lt;/code&gt; &amp;quot;is doing something that does not have to happen at all. It's a UI niceness but from an API point-of-view just gets in the way&amp;quot;, distinguishing this from a superficially similar issue (&lt;a href="https://www.drupal.org/node/2980237"&gt;#2980237&lt;/a&gt;) raised by idebr. When joegraduate revived the patch, smustgrave pushed back on backward-compatibility grounds, arguing the change could silently break contrib tests and install profiles that rely on the automatic action creation, and suggested a formal deprecation path. joegraduate and nicxvan discussed why a conventional deprecation wasn't practical here since the behavior lives inside a hook implementation rather than an invokable API, with nicxvan noting hook implementations aren't strictly covered under Drupal's BC policy. The resolution that shipped was to update core's own install profiles and recipes to export the actions explicitly, so the fix's own change record documents the migration path for anyone else relying on the old implicit behavior.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2934063: Remove the workaround in \Drupal\Core\Installer\ExtensionListTrait::setPathname()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md</link>
       <guid isPermaLink="false">01a00d19-dfb4-7563-8bc3-e30c676a416e</guid>
@@ -1085,52 +1152,6 @@ public function testSomething(): void {
 &lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3589894: Remove the archive, glossary and recent content block views</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3589894.md</link>
-      <guid isPermaLink="false">019fca43-82a0-7519-a97e-ba93051306d1</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 04 Aug 2026 00:03:52 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +188/−129 · php +173/−119 · yml +15/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b5c577dd28c080d59c9a60a2d32a9ab1cb1f9c56"&gt;b5c577d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3589894"&gt;#3589894&lt;/a&gt; · 4 contributors · 21 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Node module used to ship three disabled-by-default Views: an Archive view (monthly content listing), a Glossary view (alphabetical content listing), and a &amp;quot;Recent content&amp;quot; block view. These assumed a blog-like site, dated back to early Drupal versions, and were not used anywhere in core, yet they still showed up in the Views UI and were parsed on every request. As of this change, new Drupal installs no longer include these three views at all. Sites that want an archive or glossary style listing will need to build their own view or find one in a contributed or example module. Existing sites are not affected since this only changes what ships with new installs; it does not remove views already present in a site's active configuration.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New sites no longer get the disabled-by-default &lt;code&gt;views.view.archive&lt;/code&gt;, &lt;code&gt;views.view.glossary&lt;/code&gt; and &lt;code&gt;views.view.content_recent&lt;/code&gt; views from &lt;code&gt;node.module&lt;/code&gt;'s &lt;code&gt;config/optional&lt;/code&gt; directory; existing sites that already have them in active config are unaffected.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change deletes &lt;code&gt;core/modules/node/config/optional/views.view.archive.yml&lt;/code&gt;, &lt;code&gt;views.view.glossary.yml&lt;/code&gt;, and &lt;code&gt;views.view.content_recent.yml&lt;/code&gt; outright, and updates &lt;code&gt;core/recipes/standard/recipe.yml&lt;/code&gt; to drop &lt;code&gt;views.view.archive&lt;/code&gt; and &lt;code&gt;views.view.glossary&lt;/code&gt; from its &lt;code&gt;node:&lt;/code&gt; config import list (&lt;code&gt;views.view.content_recent&lt;/code&gt; remains listed there even though the source config file is gone).&lt;/p&gt;
-&lt;p&gt;Since core tests exercised these views directly, the same view configs were carried over as test fixtures under new IDs: &lt;code&gt;test_archive&lt;/code&gt; (added to &lt;code&gt;views_test_config&lt;/code&gt;'s test views, with a new &lt;code&gt;ArchiveTest&lt;/code&gt; in &lt;code&gt;core/modules/views/tests/src/Functional&lt;/code&gt;), &lt;code&gt;test_glossary&lt;/code&gt; (added to &lt;code&gt;views_ui_test&lt;/code&gt;'s config, exercised by &lt;code&gt;GlossaryTest&lt;/code&gt; and views_ui's &lt;code&gt;DefaultViewsTest&lt;/code&gt;), and &lt;code&gt;test_content_recent&lt;/code&gt; (added to &lt;code&gt;node_block_test&lt;/code&gt;, used by &lt;code&gt;NodeBlockFunctionalTest&lt;/code&gt;). Various other tests that referenced the old &lt;code&gt;archive&lt;/code&gt;/&lt;code&gt;glossary&lt;/code&gt;/&lt;code&gt;content_recent&lt;/code&gt; view or block IDs (&lt;code&gt;ContextualLinksTest&lt;/code&gt;, &lt;code&gt;FilterCriteriaTest&lt;/code&gt;, &lt;code&gt;ModuleTest&lt;/code&gt;, &lt;code&gt;BlockDependenciesTest&lt;/code&gt;, &lt;code&gt;ViewsListingTest&lt;/code&gt;, &lt;code&gt;InstallerExistingConfigSyncDirectoryMultilingualTest&lt;/code&gt;, &lt;code&gt;StandardRecipeTest&lt;/code&gt;) were updated to use the new test view IDs or to drop assertions tied to the removed views. A related follow-up, &lt;a href="https://www.drupal.org/node/3592672"&gt;#3592672&lt;/a&gt;, removes the &amp;quot;who's new&amp;quot; and &amp;quot;who's online&amp;quot; views in the same spirit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 13, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 4, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch opened the issue, crediting a Slack discussion with gábor hojtsy about why these blog-oriented views should go. gábor hojtsy did the bulk of the test-adaptation work: he determined that the glossary and archive views had tests validating their actual query/rendering behavior and so needed to survive as dedicated test views rather than just be deleted, and reworked the &lt;code&gt;views_ui&lt;/code&gt; &lt;code&gt;DefaultViewsTest&lt;/code&gt;, which he described as &amp;quot;the trickiest&amp;quot; because it assumed the glossary view existed and had accumulated some outdated, half-commented-out assertions he cleaned up along the way. acbramley later rebased the patch and fixed further breakage in &lt;code&gt;DefaultViewsTest&lt;/code&gt; caused by the unrelated removal of the frontpage view in the interim, tracking down a &lt;code&gt;ViewRenderElementException&lt;/code&gt; that turned out to be a local-environment issue rather than a real bug. smustgrave reviewed and flagged remaining references to the removed views in &lt;code&gt;RecipeRunnerTest&lt;/code&gt;, &lt;code&gt;InstallerExistingConfigSyncDirectoryMultilingualTest&lt;/code&gt;, and a docblock example in &lt;code&gt;ConfigEntityStorageInterface&lt;/code&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

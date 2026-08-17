@@ -1,4 +1,4 @@
-**TL;DR:** [945 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [946 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_498 summaries · 9 new this week_
+_499 summaries · 10 new this week_
 
+- [#2672340: user_user_role_insert should not exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md)
 - [#2934063: Remove the workaround in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md)
 - [#3581816: Move uses of Shortcut from Navigation to Shortcut](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581816.md)
-- [#3576669: Deprecate Settings Tray module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576669.md)
 
 ### Drupal Canvas
 
@@ -22,7 +22,7 @@ _237 summaries · 2 new this week_
 
 ### Drupal CMS
 
-_90 summaries · 1 new this week_
+_90 summaries · 0 new this week_
 
 - [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
 - [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
