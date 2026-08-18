@@ -1,4 +1,4 @@
-**TL;DR:** [947 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [948 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_500 summaries · 9 new this week_
+_501 summaries · 10 new this week_
 
+- [#3592672: Remove the who's new and who's online views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592672.md)
 - [#3582506: Connection::open() should have SensitiveParameter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582506.md)
 - [#2672340: user_user_role_insert should not exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md)
-- [#2934063: Remove the workaround in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md)
 
 ### Drupal Canvas
 
-_237 summaries · 2 new this week_
+_237 summaries · 1 new this week_
 
 - [#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md)
 - [#3569120: Canvas AI: Expose Props of Blocks to the Agent](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md)
