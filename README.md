@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_500 summaries · 10 new this week_
+_500 summaries · 9 new this week_
 
 - [#3582506: Connection::open() should have SensitiveParameter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582506.md)
 - [#2672340: user_user_role_insert should not exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_189 rules · 3 new this week_
+_189 rules · 2 new this week_
 
 - [Replace deprecated installer-specific extension list classes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php)
 - [Rename NavigationShortcutsBlock to ShortcutNavigationBlock](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php)
