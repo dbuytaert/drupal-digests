@@ -1,4 +1,4 @@
-**TL;DR:** [948 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [952 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_501 summaries · 10 new this week_
+_505 summaries · 14 new this week_
 
-- [#3592672: Remove the who's new and who's online views](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592672.md)
-- [#3582506: Connection::open() should have SensitiveParameter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582506.md)
-- [#2672340: user_user_role_insert should not exist](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2672340.md)
+- [#3389365: Fix and re-enable MigrateBlockContentTranslationTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md)
+- [#256287: Give roles a description value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/256287.md)
+- [#3615187: Set names to UTF8 takes an extra round trip to the database](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615187.md)
 
 ### Drupal Canvas
 
