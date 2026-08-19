@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_505 summaries · 14 new this week_
+_505 summaries · 13 new this week_
 
 - [#3389365: Fix and re-enable MigrateBlockContentTranslationTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md)
 - [#256287: Give roles a description value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/256287.md)
