@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_505 summaries · 13 new this week_
+_505 summaries · 12 new this week_
 
 - [#3389365: Fix and re-enable MigrateBlockContentTranslationTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md)
 - [#256287: Give roles a description value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/256287.md)
@@ -14,7 +14,7 @@ _505 summaries · 13 new this week_
 
 ### Drupal Canvas
 
-_237 summaries · 1 new this week_
+_237 summaries · 0 new this week_
 
 - [#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md)
 - [#3569120: Canvas AI: Expose Props of Blocks to the Agent](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md)
