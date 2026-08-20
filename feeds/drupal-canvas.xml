@@ -5,6 +5,46 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591885: Add `document` object $ref for linking locally hosted documents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md</link>
+      <guid isPermaLink="false">01a01ff3-0ee4-71cc-9661-9aae46c5617b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 20 Aug 2026 15:08:55 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591885"&gt;#3591885&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal Canvas code components and Single Directory Components (SDCs) can now declare a &amp;quot;document&amp;quot; prop, the same way they already can for image and video. A component that accepts a &lt;code&gt;document&lt;/code&gt; (or an array of them) gets a file upload widget for content authors, or the Media Library picker when Media Library is enabled and a compatible media type exists, and receives the document's URL, title, filename, size, and MIME type. This was split off from the broader video/embed proposal in &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; because linking a local document has no dependency on the postponed core oEmbed work, unlike remote video.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document&lt;/code&gt; object shape (&lt;code&gt;json-schema-definitions://canvas.module/document&lt;/code&gt;) that code components and SDCs can &lt;code&gt;$ref&lt;/code&gt; to declare a document/file-download prop with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;title&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new shape is defined in &lt;code&gt;schema.json&lt;/code&gt; as &lt;code&gt;document&lt;/code&gt;, requiring only &lt;code&gt;src&lt;/code&gt; (a &lt;code&gt;uri-reference&lt;/code&gt; restricted to &lt;code&gt;http&lt;/code&gt;/&lt;code&gt;https&lt;/code&gt; via &lt;code&gt;x-allowed-schemes&lt;/code&gt;) and adding an &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; annotation listing common office and document formats. It is registered as &lt;code&gt;JsonSchemaObjectRef::Document&lt;/code&gt; and added to the &lt;code&gt;Choice&lt;/code&gt; constraint in &lt;code&gt;config/schema/canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Storage matching is handled in &lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt;, which maps &lt;code&gt;Document&lt;/code&gt; to a &lt;code&gt;file&lt;/code&gt; field (&lt;code&gt;fieldWidget: file_generic&lt;/code&gt;) with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt; resolved from the referenced File entity's &lt;code&gt;uri&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;filemime&lt;/code&gt;; the field's &lt;code&gt;file_extensions&lt;/code&gt; instance setting is derived from the shape's &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; list via the new &lt;code&gt;JsonSchemaObjectRef::allowedFileExtensions()&lt;/code&gt;. &lt;code&gt;title&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; are left unmapped because a plain file field exposes neither.&lt;/p&gt;
+&lt;p&gt;To support Media Library, the media-source-to-schema mapping (previously a private array and method inside &lt;code&gt;ShapeMatchingHooks&lt;/code&gt;) was extracted into a new internal &lt;code&gt;MediaSourceObjectShapes&lt;/code&gt; class shared by both the media library integration and &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt;. It maps &lt;code&gt;Document&lt;/code&gt; to &lt;code&gt;\Drupal\media\Plugin\media\Source\File&lt;/code&gt;, matching any media type whose source is &lt;code&gt;File&lt;/code&gt; (but not a more specific subclass like &lt;code&gt;VideoFile&lt;/code&gt;) and whose source field's allowed extensions intersect the shape's list; this intersection logic is carried by a new no-op &lt;code&gt;UriTargetFileExtensionsConstraint&lt;/code&gt;/validator pair, mirroring how &lt;code&gt;UriTargetMediaTypeConstraint&lt;/code&gt; narrows matches by MIME type. &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt; gained &lt;code&gt;matchDocumentShapeToMediaTypes()&lt;/code&gt; to also suggest existing single-value media reference fields pointing at compatible media types, one reference level deep. Embedding or previewing the document, and remote-video support, remain out of scope, per the split from &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; and the still-postponed &lt;a href="https://www.drupal.org/node/3567249"&gt;#3567249&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;f.mazeikis&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591968: Forbid the reserved component tree root UUID as a component instance `uuid`/`parent_uuid`</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591968.md</link>
       <guid isPermaLink="false">01a01f19-2305-7013-ac78-0f603eca219f</guid>
@@ -779,42 +819,6 @@ npx canvas push --include-regions
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: October 31, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3551271: Add a button to add new pages from pages overview</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3551271.md</link>
-      <guid isPermaLink="false">019f8596-7a5a-768a-a903-bb659cd15fa5</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 20 Jul 2026 23:46:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +66/−1 · php +36 · yml +30/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3551271"&gt;#3551271&lt;/a&gt; · 2 contributors · 2 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 2 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas module's pages overview at &lt;code&gt;/admin/content/pages&lt;/code&gt; now has an &amp;quot;Add page&amp;quot; action button, matching the standard Drupal pattern for content overview pages. Clicking it immediately creates a new unpublished Canvas page titled &amp;quot;Untitled page&amp;quot; and redirects the user to its edit form. The button is only shown to users who have the &lt;code&gt;create canvas_page&lt;/code&gt; entity access.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New route &lt;code&gt;canvas.canvas_page.add&lt;/code&gt; at &lt;code&gt;/admin/content/pages/add&lt;/code&gt; and named overview route &lt;code&gt;canvas.canvas_pages_overview&lt;/code&gt; at &lt;code&gt;/admin/content/pages&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change introduces a new &lt;code&gt;PageController&lt;/code&gt; class in &lt;code&gt;Drupal\canvas\Controller&lt;/code&gt; with a single &lt;code&gt;addPage()&lt;/code&gt; method. The method calls &lt;code&gt;Page::create()&lt;/code&gt; with &lt;code&gt;title = 'Untitled page'&lt;/code&gt; and &lt;code&gt;status = 0&lt;/code&gt; (unpublished), saves the entity, then issues a &lt;code&gt;RedirectResponse&lt;/code&gt; to &lt;code&gt;entity.canvas_page.edit_form&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Two new routes are registered in &lt;code&gt;canvas.routing.yml&lt;/code&gt;. The &lt;code&gt;canvas.canvas_pages_overview&lt;/code&gt; route (path &lt;code&gt;/admin/content/pages&lt;/code&gt;) formalises the existing overview as a named admin route protected by the &lt;code&gt;edit canvas_page&lt;/code&gt; permission. The &lt;code&gt;canvas.canvas_page.add&lt;/code&gt; route (path &lt;code&gt;/admin/content/pages/add&lt;/code&gt;) points to &lt;code&gt;PageController::addPage&lt;/code&gt;, enforces &lt;code&gt;_entity_create_access: 'canvas_page:canvas_page'&lt;/code&gt;, and requires a CSRF token. A local action link (&lt;code&gt;canvas.add_canvas_page&lt;/code&gt;) is wired to appear on the overview route via &lt;code&gt;canvas.links.action.yml&lt;/code&gt;, and a menu link entry for the overview is added to &lt;code&gt;canvas.links.menu.yml&lt;/code&gt; under &lt;code&gt;system.admin_content&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A minor typo was also corrected in &lt;code&gt;canvas.permissions.yml&lt;/code&gt;: a stray backtick was appended to the &amp;quot;Delete Canvas Page&amp;quot; description.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 9, 2025&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

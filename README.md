@@ -1,4 +1,4 @@
-**TL;DR:** [953 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [954 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_238 summaries · 1 new this week_
+_239 summaries · 2 new this week_
 
+- [#3591885: Add `document` object $ref for linking locally hosted documents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md)
 - [#3591968: Forbid the reserved component tree root UUID as a component instance...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591968.md)
 - [#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md)
-- [#3569120: Canvas AI: Expose Props of Blocks to the Agent](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md)
 
 ### Drupal Core
 
