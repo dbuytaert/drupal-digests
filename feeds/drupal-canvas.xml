@@ -5,6 +5,42 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591916: Component version hashes go stale on single-process installs: prop-shape re-resolution is deferred to teardown and skipped on a cold cache</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md</link>
+      <guid isPermaLink="false">01a02518-cc71-7528-b6e4-4d8f06e52c72</guid>
+      <pubDate>Fri, 21 Aug 2026 12:33:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591916"&gt;#3591916&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites built with the Canvas module and installed in a single process (for example via &lt;code&gt;drush site:install&lt;/code&gt; applying recipes, as opposed to the browser installer) could end up with Component config entities whose version hash did not match the site's actual configuration. This happened when one recipe created config that changes how a component's properties are stored, such as the first image media type changing how an image prop is saved. If a later recipe in the same install shipped a component tree (a page region, content template, or pattern) referencing the corrected version hash, that hash did not actually exist yet on the freshly installed site, causing a hard render failure. The bug was invisible in bug reports because running &lt;code&gt;drush cr&lt;/code&gt;, installing another module, or saving a View or Menu afterward silently fixed the stale hashes. This is now corrected: single-process installs produce the same, correct component version history as the browser installer.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt;, which caches &amp;quot;storable prop shapes&amp;quot; (how a component prop is actually stored, e.g. as a plain image field vs. a Media Library reference) and computes Component version hashes from them. When a cache tag invalidation queued a prop shape for re-resolution (&lt;code&gt;resolveBeforeWrite&lt;/code&gt;), that queue was previously only drained at &lt;code&gt;destruct()&lt;/code&gt; (request/process teardown), never before the current process's own component-generation pass read the shapes. Additionally, &lt;code&gt;updateCache()&lt;/code&gt; had a cold-cache guard that skipped &lt;code&gt;generateComponents()&lt;/code&gt; entirely, which is always true on a fresh install, so the corrected shapes got cached without ever regenerating the Components that depend on them.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;resolveInvalidatedPropShapes()&lt;/code&gt; to &lt;code&gt;PropShapeRepositoryInterface&lt;/code&gt;, implemented in &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt; to synchronously drain the queued re-resolutions (and a no-op in &lt;code&gt;EphemeralPropShapeRepository&lt;/code&gt;, which never caches). This is now called from &lt;code&gt;JsonSchemaPropsComponentDiscoveryBase::getPropsForComponentPlugin()&lt;/code&gt;, right before it reads prop shapes to compute prop field definitions and version hashes, so &lt;code&gt;RecipeSubscriber::ensureComponentsExist()&lt;/code&gt;, &lt;code&gt;hook_rebuild()&lt;/code&gt;, and module-install triggers all see up-to-date shapes. &lt;code&gt;updateCache()&lt;/code&gt;'s cold-cache guard was also narrowed: it now only skips regeneration when nothing was actually invalidated during the process (i.e. shapes were merely resolved for the first time), but always regenerates when &lt;code&gt;resolveBeforeWrite&lt;/code&gt; was non-empty, even on a cold cache, since that means the storable shapes genuinely changed mid-process.&lt;/p&gt;
+&lt;p&gt;A related, separate gap, array-item prop shapes not carrying the &lt;code&gt;config:media_type_list&lt;/code&gt; cache tag, is tracked separately in &lt;a href="https://www.drupal.org/node/3591917"&gt;#3591917&lt;/a&gt; and was not addressed here.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591885: Add `document` object $ref for linking locally hosted documents</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md</link>
       <guid isPermaLink="false">01a01ff3-0ee4-71cc-9661-9aae46c5617b</guid>
@@ -792,34 +828,6 @@ npx canvas push --include-regions
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;alexpott identified a parallel fix in core (&lt;a href="https://www.drupal.org/node/3556130"&gt;#3556130&lt;/a&gt;, &amp;quot;ThemeEngine BC layer is broken - ServiceLocator != Container&amp;quot;) immediately after the issue was filed, which briefly raised the question of whether the Canvas side needed changing at all. wim leers and penyaskito clarified that Canvas targets 11.2.x as its minimum and would not require 11.3.x for 1.0, so the issue was postponed until the minimum version bumped. phenaproxima pointed out that landing &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; (removing the engine) would close this issue as outdated without needing the tagged-service migration at all, and that is ultimately what happened.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3555487: default-relative-url may crash with JSON storage</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3555487.md</link>
-      <guid isPermaLink="false">019f84de-3b66-76e0-a848-bfde9456d598</guid>
-      <pubDate>Mon, 20 Jul 2026 23:50:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3555487"&gt;#3555487&lt;/a&gt; · 2 contributors · 3 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 2 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On MySQL 8.0, which stores JSON natively rather than as a string, the Canvas module can crash with a 500 error when rendering pages that use default prop values for image or video components. This caused the Byte demo home page of Drupal CMS 2.0 to fail on MySQL 8.0. The fix landed in the related issue &lt;a href="https://www.drupal.org/node/3550165"&gt;#3550165&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The crash originates in &lt;code&gt;Drupal\canvas\PropSource\DefaultRelativeUrlPropSource&lt;/code&gt;, which compares a stored JSON schema against a minimal expected shape using &lt;code&gt;ksort()&lt;/code&gt; before an equality check. That one-level sort does not recurse into nested &lt;code&gt;properties&lt;/code&gt; keys, so when MySQL 8.0's native JSON type returns property keys in a different order than MariaDB's string-encoded JSON, the comparison fails and an exception is thrown. Versions of MariaDB that DDEV defaults to store JSON as strings, preserving insertion order and masking the bug; MySQL 8.0 does not, exposing it. The fix, applied in &lt;a href="https://www.drupal.org/node/3550165"&gt;#3550165&lt;/a&gt;, adds a second pass of &lt;code&gt;ksort()&lt;/code&gt; over each entry inside &lt;code&gt;properties&lt;/code&gt; for both the stored schema and the minimal schema before the equality check.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 31, 2025&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
