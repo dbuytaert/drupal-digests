@@ -14,7 +14,7 @@ _240 summaries · 3 new this week_
 
 ### Drupal Core
 
-_505 summaries · 12 new this week_
+_505 summaries · 11 new this week_
 
 - [#3389365: Fix and re-enable MigrateBlockContentTranslationTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md)
 - [#256287: Give roles a description value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/256287.md)
