@@ -1,4 +1,4 @@
-**TL;DR:** [956 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [957 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_506 summaries · 12 new this week_
+_507 summaries · 13 new this week_
 
+- [#3569118: Deprecate the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md)
 - [#3614955: Move library overrides for Toolbar from Claro and Default Admin to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614955.md)
 - [#3389365: Fix and re-enable MigrateBlockContentTranslationTest](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md)
-- [#256287: Give roles a description value](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/256287.md)
 
 ### Drupal Canvas
 
