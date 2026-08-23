@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_507 summaries · 13 new this week_
+_507 summaries · 12 new this week_
 
 - [#3569118: Deprecate the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md)
 - [#3614955: Move library overrides for Toolbar from Claro and Default Admin to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614955.md)
