@@ -5,6 +5,48 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md</link>
+      <guid isPermaLink="false">01a02e89-07ac-71b8-883a-36e49b593a37</guid>
+      <pubDate>Sun, 23 Aug 2026 08:51:03 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +261/−10 · php +253/−10 · yml +8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/72e3f2f1242b26cf0c76d9f256e3dc8c2ae8c8ba"&gt;72e3f2f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3536795"&gt;#3536795&lt;/a&gt; · 11 contributors · 41 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 27&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 11 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Requests for aggregated CSS/JS files that pointed at a stale, invalid, or crafted &lt;code&gt;delta&lt;/code&gt; value could crash with an uncaught &amp;quot;Only file JavaScript/CSS assets can be optimized&amp;quot; exception, producing a 500 response and filling logs with errors. This typically happened right after a deployment (which deletes all existing aggregate files) when old cached pages, reverse proxies, or crawlers replayed aggregate URLs whose &lt;code&gt;delta&lt;/code&gt; no longer matched a file based group, for example because it now pointed at an externally hosted asset or one marked &lt;code&gt;preprocess: false&lt;/code&gt;. Drupal now recognizes this situation and responds with a normal 400 Bad Request instead of throwing an exception, matching how other invalid aggregate requests are already handled.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;delta&lt;/code&gt; query parameter is just a position in the list of asset groups that &lt;code&gt;\Drupal\system\Controller\AssetControllerBase::deliver()&lt;/code&gt; rebuilds on every request, not a stable identifier. That list also includes groups with &lt;code&gt;type: external&lt;/code&gt; or &lt;code&gt;preprocess: false&lt;/code&gt;, which are never aggregated and are linked directly in the HTML. When an aggregate file is missing from disk (as happens after &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt;) and an incoming &lt;code&gt;delta&lt;/code&gt; resolves to one of those non-aggregated groups, &lt;code&gt;deliver()&lt;/code&gt; fell through to &lt;code&gt;JsCollectionOptimizerLazy::optimizeGroup()&lt;/code&gt; / the CSS equivalent, which threw because &lt;code&gt;JsOptimizer::optimize()&lt;/code&gt; and &lt;code&gt;CssOptimizer::optimize()&lt;/code&gt; only handle file based, preprocessed groups.&lt;/p&gt;
+&lt;p&gt;The fix adds a check in &lt;code&gt;deliver()&lt;/code&gt; right after resolving &lt;code&gt;$group&lt;/code&gt;: if &lt;code&gt;$group['type'] !== 'file' || $group['preprocess'] === FALSE&lt;/code&gt;, it throws a &lt;code&gt;BadRequestHttpException('The requested asset group is not aggregated.')&lt;/code&gt; before the code reaches the hash comparison and redirect logic (a hash mismatch there would otherwise redirect back to the same non-aggregated group and hit the optimizer again). A new &lt;code&gt;KernelTests\Core\Asset\AssetControllerTest&lt;/code&gt; covers this along with the controller's other existing input validation paths, and the functional &lt;code&gt;AssetOptimizationTest&lt;/code&gt; was extended to also exercise &lt;code&gt;assertInvalidAggregates()&lt;/code&gt; for out-of-range and hash-mismatched deltas after aggregates are deleted from disk. This overlaps with the regression tracked in &lt;a href="https://www.drupal.org/node/3535330"&gt;#3535330&lt;/a&gt; (introduced by &lt;a href="https://www.drupal.org/node/3414173"&gt;#3414173&lt;/a&gt;'s external minified CSS support) and with the narrower mitigation in &lt;a href="https://www.drupal.org/node/3416508"&gt;#3416508&lt;/a&gt; that skips generating aggregates for stale requests; this fix instead makes &lt;code&gt;deliver()&lt;/code&gt; itself reject the request outright.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 18, 2025&lt;/li&gt;
+&lt;li&gt;Committed: August 23, 2026 (1 year and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;herved (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
+&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;herved authored the fix and, in the issue's &amp;quot;Root cause&amp;quot; section, traced the exception back to &lt;code&gt;delta&lt;/code&gt; being a rebuildable list position rather than a stable id, explaining exactly why external and &lt;code&gt;preprocess: false&lt;/code&gt; groups have no aggregate to serve. joelpittet, who had introduced the related external-minified-CSS regression in &lt;a href="https://www.drupal.org/node/3414173"&gt;#3414173&lt;/a&gt;, pushed back on merging this issue's scope with his own narrower fix in &lt;a href="https://www.drupal.org/node/3535330"&gt;#3535330&lt;/a&gt;, and herved ultimately trimmed the MR to minimal changes and left the overlapping test coverage question open rather than reverting the other issues' work. Multiple site owners (weseze, dewancodes, alexrayu) confirmed hitting the same production error after core upgrades, and joelpittet and swirt manually verified that the patch turns the 500 into a 400 in practice.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3569118: Deprecate the Shortcut module</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md</link>
       <guid isPermaLink="false">01a02886-3f15-72f0-a2e4-67e5114cb5f5</guid>
@@ -1022,63 +1064,6 @@ public function testSomething(): void {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;catch initially considered adding separate load methods for not-found entities but was concerned it would complicate cache invalidation; noticing that the existing UUID lookup cache already followed a similar pattern, they instead added a distinct &lt;code&gt;not_found:&lt;/code&gt; cache key prefix with dedicated get/set methods. During development this approach broke &lt;code&gt;ConfigEntityStorage&lt;/code&gt;, which overrides &lt;code&gt;buildCacheId()&lt;/code&gt; to append config override keys, catch fixed it by having &lt;code&gt;buildNotFoundCacheId()&lt;/code&gt; delegate through &lt;code&gt;buildCacheId()&lt;/code&gt; in the base class, so storage-specific overrides are automatically honored without needing their own fix.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3614153: Install system module alongside other modules in the installer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614153.md</link>
-      <guid isPermaLink="false">019fdec7-2928-72dc-92f3-500b728386aa</guid>
-      <pubDate>Fri, 07 Aug 2026 21:05:31 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 44 files, +197/−100 · php +197/−90 · yml +0/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6c4592b1936a13496d145ab6b0ef219c851ed2a5"&gt;6c4592b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt; · 6 contributors · 35 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's installer previously installed the System module as its own dedicated step before installing anything else, a pattern that dates back to Drupal's early history. This change installs System alongside the other required modules (and, for profiles that declare modules, alongside those too) in the same batch, eliminating an extra service-container rebuild during every installation. As part of removing the special-casing this required, the core &amp;quot;testing&amp;quot; install profile (used by Drupal's own and many contrib functional tests) no longer automatically enables the &lt;code&gt;page_cache&lt;/code&gt; and &lt;code&gt;dynamic_page_cache&lt;/code&gt; modules. Tests that rely on those modules being present for cache tag or cache header assertions now need to enable them explicitly. Reported savings were significant, one job's test run time dropped from 90 seconds to well under that, and a full functional test job went from over a minute to about two minutes total.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Previously &lt;code&gt;drupal_install_system()&lt;/code&gt; called &lt;code&gt;module_installer-&amp;gt;install(['system'], FALSE)&lt;/code&gt; directly as an isolated step, and both &lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; explicitly filtered &lt;code&gt;system&lt;/code&gt; out of the module list they installed afterwards (&lt;code&gt;array_diff(array_unique($modules), ['system'])&lt;/code&gt;). Now &lt;code&gt;system&lt;/code&gt; is simply left in those module lists and installed together with the rest in the normal batch via &lt;code&gt;_install_module_batch()&lt;/code&gt;, cutting one container rebuild out of the install path (and, for profiles with declared modules, another).&lt;/p&gt;
-&lt;p&gt;Because the default language config write (&lt;code&gt;system.site&lt;/code&gt; &lt;code&gt;langcode&lt;/code&gt;/&lt;code&gt;default_langcode&lt;/code&gt;) used to happen right after installing System in &lt;code&gt;drupal_install_system()&lt;/code&gt;, that logic moved into &lt;code&gt;_install_module_batch()&lt;/code&gt;, which gained a new &lt;code&gt;$install_state&lt;/code&gt; parameter (also threaded through &lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt;) so it can still set the language once &lt;code&gt;system&lt;/code&gt; shows up in whichever batch group installs it. Since the service container can now be compiled before System module (and its config) exists, &lt;code&gt;DrupalKernel::compileContainer()&lt;/code&gt; gained a fallback that reads &lt;code&gt;$GLOBALS['install_state']['parameters']['langcode']&lt;/code&gt; to seed &lt;code&gt;language.default_values&lt;/code&gt; when &lt;code&gt;system.site&lt;/code&gt; config isn't available yet; this is flagged with a &lt;code&gt;@todo&lt;/code&gt; as a temporary workaround pending moving default-language config out of System module entirely (tracked in &lt;a href="https://www.drupal.org/node/3337864"&gt;#3337864&lt;/a&gt;).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;install_config_import_batch()&lt;/code&gt; no longer needs to copy the site UUID from the sync storage into the freshly-created &lt;code&gt;system.site&lt;/code&gt; config (the &amp;quot;UUID juggle&amp;quot;), because System module's config is now imported directly rather than being created fresh and then overwritten. Correspondingly, &lt;code&gt;ConfigImporter::validateSiteUuid()&lt;/code&gt; now returns &lt;code&gt;TRUE&lt;/code&gt; when there's no target &lt;code&gt;system.site&lt;/code&gt; config yet, since that indicates a fresh install-from-config rather than a UUID mismatch.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;testing.info.yml&lt;/code&gt;/&lt;code&gt;testing_multilingual.info.yml&lt;/code&gt; profiles' &lt;code&gt;install:&lt;/code&gt; keys for &lt;code&gt;drupal:page_cache&lt;/code&gt; and &lt;code&gt;dynamic_page_cache&lt;/code&gt; were removed, and many core functional test classes (JSON:API, REST, Views, Block, error/session tests, etc.) were updated to add &lt;code&gt;page_cache&lt;/code&gt; and/or &lt;code&gt;dynamic_page_cache&lt;/code&gt; to their &lt;code&gt;$modules&lt;/code&gt; property, or install them at runtime, wherever the test actually depends on page or dynamic-page caching behavior. This groundwork is what makes &lt;a href="https://www.drupal.org/node/3428372"&gt;#3428372&lt;/a&gt;, open for over fifteen years, finally achievable, and several immediate follow-ups were spun off: &lt;a href="https://www.drupal.org/node/3615455"&gt;#3615455&lt;/a&gt; (install database driver modules alongside others), &lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt; (allow install profiles to opt out of being installed), &lt;a href="https://www.drupal.org/node/3614825"&gt;#3614825&lt;/a&gt; (allow additional modules to be installed alongside profile modules), and &lt;a href="https://www.drupal.org/node/3614817"&gt;#3614817&lt;/a&gt; (reduce parallel functional test jobs given the speedup).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If your module's functional tests rely on Drupal core's &amp;quot;testing&amp;quot; install profile having &lt;code&gt;page_cache&lt;/code&gt; or &lt;code&gt;dynamic_page_cache&lt;/code&gt; enabled by default (for example, to assert cache tags/contexts or &lt;code&gt;X-Drupal-Cache&lt;/code&gt; headers), add them explicitly to the test class:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;protected static $modules = [
-  'your_module',
-  'page_cache',
-  'dynamic_page_cache',
-];
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;or install them at runtime where needed:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('module_installer')-&amp;gt;install(['page_cache']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;This change is only present on Drupal core's &lt;code&gt;main&lt;/code&gt; branch (targeting Drupal 12) and was not backported to 10.x/11.x.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 31, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 7, 2026 (7 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch did the initial profiling and iterative work, tracking down a &amp;quot;three line hack&amp;quot; needed in &lt;code&gt;DrupalKernel&lt;/code&gt; for the default language to survive the reordering, and progressively removing special-casing of the System module across the installer and tests. mstrelan's review caught remaining stray &lt;code&gt;page_cache&lt;/code&gt;/&lt;code&gt;dynamic_page_cache&lt;/code&gt; uninstalls in &lt;code&gt;SessionTest&lt;/code&gt; and &lt;code&gt;DisplayFeedTest&lt;/code&gt; and questioned whether &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; could still assume System was already installed, prompting further fixes. During a later review, amateescu found that &lt;code&gt;_install_module_batch()&lt;/code&gt; still needed to rely on &lt;code&gt;$install_state&lt;/code&gt; and reverted a commit that had removed that dependency, adding test coverage to lock in the requirement. godotislate then suggested an approach to avoid passing &lt;code&gt;$install_state&lt;/code&gt; around further and flagged an unresolved &lt;code&gt;@todo&lt;/code&gt;; catch applied the suggestions, opened a follow-up issue for the &lt;code&gt;@todo&lt;/code&gt; (referenced in the &lt;code&gt;AssertPageCacheContextsAndTagsTrait::enablePageCaching&lt;/code&gt; cleanup discussion), and godotislate ultimately committed the change.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
