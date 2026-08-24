@@ -1,8 +1,16 @@
-**TL;DR:** [960 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [962 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_510 summaries · 11 new this week_
+
+- [#3262935: Link field validation constraints don't give enough detail](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md)
+- [#3593789: Extend RouteSubscriberBase to define as well as alter routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593789.md)
+- [#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md)
 
 ### Drupal Canvas
 
@@ -19,14 +27,6 @@ _121 summaries · 1 new this week_
 - [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
 - [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
 - [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
-
-### Drupal Core
-
-_508 summaries · 9 new this week_
-
-- [#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md)
-- [#3569118: Deprecate the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md)
-- [#3614955: Move library overrides for Toolbar from Claro and Default Admin to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614955.md)
 
 ### Drupal CMS
 

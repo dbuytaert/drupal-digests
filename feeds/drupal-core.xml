@@ -5,6 +5,132 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3262935: Link field validation constraints don't give enough detail</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md</link>
+      <guid isPermaLink="false">01a03567-8108-7320-9c69-e2dd3deb6a8b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 24 Aug 2026 18:35:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +64/−50 · php +64/−50&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/679a7580afe7a78944868299bb2b5c9ec6110ad4"&gt;679a758&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3262935"&gt;#3262935&lt;/a&gt; · 19 contributors · 69 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 20&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 19 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Link field validation used to show the same generic message, &amp;quot;The path '@uri' is invalid.&amp;quot;, for many unrelated problems: an inaccessible path, an unsupported protocol, a URL pointing to a non-existent entity, a missing route parameter, or a URL of the wrong type (internal vs. external) for the field's settings. Editors and developers had no way to tell which of these actually happened without digging into the code. Each failure case now gets its own specific message (e.g. &amp;quot;The URL '@uri' has an invalid protocol.&amp;quot;, &amp;quot;The URL '@uri' doesn't exist.&amp;quot;, &amp;quot;The URL '@uri' is missing a required parameter.&amp;quot;, or a message naming the field when an internal-only or external-only field rejects the wrong kind of link), and messages now say &amp;quot;URL&amp;quot; instead of &amp;quot;path&amp;quot; to match the actual field label used in the UI.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;LinkExternalProtocolsConstraint&lt;/code&gt;, &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt;, and &lt;code&gt;LinkTypeConstraint&lt;/code&gt; no longer have a single &lt;code&gt;$message&lt;/code&gt; constructor property; each now exposes multiple named message properties for its distinct failure cases.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Following the Symfony validator convention where constraint messages live as properties on the &lt;code&gt;Constraint&lt;/code&gt; class rather than being decided ad hoc in the validator, the single &lt;code&gt;$message&lt;/code&gt; constructor property on &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt; was split into &lt;code&gt;$notFoundMessage&lt;/code&gt;, &lt;code&gt;$invalidParameterMessage&lt;/code&gt;, and &lt;code&gt;$missingParameterMessage&lt;/code&gt;. &lt;code&gt;LinkNotExistingInternalConstraintValidator&lt;/code&gt; now catches &lt;code&gt;RouteNotFoundException&lt;/code&gt;, &lt;code&gt;InvalidParameterException&lt;/code&gt;, and &lt;code&gt;MissingMandatoryParametersException&lt;/code&gt; separately and builds a violation with the matching message for each, instead of collapsing all three into one generic message via a shared &lt;code&gt;$allowed&lt;/code&gt; flag.&lt;/p&gt;
+&lt;p&gt;Similarly, &lt;code&gt;LinkTypeConstraint&lt;/code&gt;'s &lt;code&gt;$message&lt;/code&gt; became &lt;code&gt;$invalidMessage&lt;/code&gt;, &lt;code&gt;$onlyInternalMessage&lt;/code&gt;, and &lt;code&gt;$onlyExternalMessage&lt;/code&gt;. &lt;code&gt;LinkTypeConstraintValidator&lt;/code&gt; was refactored to add a violation directly at the point where the URL is found to be external-but-internal-only or internal-but-external-only, rather than setting a &lt;code&gt;$uri_is_valid&lt;/code&gt; boolean and reporting one generic message afterward. The two type-mismatch messages now interpolate &lt;code&gt;@field-label&lt;/code&gt; (from &lt;code&gt;$field_definition-&amp;gt;getLabel()&lt;/code&gt;), so the message names the actual field instead of saying &amp;quot;the link field&amp;quot;. &lt;code&gt;LinkExternalProtocolsConstraint&lt;/code&gt;'s default message changed to &amp;quot;The URL '@uri' has an invalid protocol.&amp;quot;, and &lt;code&gt;LinkAccessConstraint&lt;/code&gt;'s wording changed from &amp;quot;path&amp;quot; to &amp;quot;URL&amp;quot; without adding new message variants.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that instantiates these constraints with a custom message, or reads their &lt;code&gt;message&lt;/code&gt; property, needs to use the new property names. For example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+new LinkTypeConstraint(message: 'Custom message');
+
+// After
+new LinkTypeConstraint(
+  invalidMessage: 'Custom invalid message',
+  onlyInternalMessage: 'Custom internal-only message',
+  onlyExternalMessage: 'Custom external-only message',
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The same pattern applies to &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt;, whose single &lt;code&gt;message&lt;/code&gt; argument is replaced by &lt;code&gt;notFoundMessage&lt;/code&gt;, &lt;code&gt;invalidParameterMessage&lt;/code&gt;, and &lt;code&gt;missingParameterMessage&lt;/code&gt;.&amp;lt;/upgrade&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;This issue took over three years and many contributors to land. Early attempts set the message directly in the validator's &lt;code&gt;validate()&lt;/code&gt; method, until joachim pointed out in comment #8 that Symfony constraint classes are supposed to define their messages as properties, with the validator only choosing among them, which set the pattern the eventual fix followed. The Drupal usability team reviewed the wording twice (benjifisher's comments #43 and #48), pushing the change to say &amp;quot;URL&amp;quot; instead of &amp;quot;path&amp;quot; and to name the specific field label rather than &amp;quot;the link field&amp;quot;. dcam later connected this issue to the related terminology work in &lt;a href="https://www.drupal.org/node/2828556"&gt;#2828556&lt;/a&gt; and finished updating the messages and MR to match the table of expected messages now in the issue summary.&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 7, 2022&lt;/li&gt;
+&lt;li&gt;Committed: August 24, 2026 (4 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;joachim (Factorial.io)&lt;/li&gt;
+&lt;li&gt;andregp (CI&amp;amp;T)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;sophiavs (CI&amp;amp;T)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;harshitthakore (Cognizant Technology Solutions)&lt;/li&gt;
+&lt;li&gt;murilohp (CI&amp;amp;T)&lt;/li&gt;
+&lt;li&gt;benjifisher (SciShield)&lt;/li&gt;
+&lt;li&gt;Tauany Bueno (CI&amp;amp;T)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;rkoller&lt;/li&gt;
+&lt;li&gt;simohell&lt;/li&gt;
+&lt;li&gt;pallavi singh3013&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3593789: Extend RouteSubscriberBase to define as well as alter routes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593789.md</link>
+      <guid isPermaLink="false">01a03566-645d-720d-bc42-7d725c33b5d0</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 24 Aug 2026 17:33:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +39/−9 · php +39/−7 · yml +0/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f6d327d17ed662de87f0e1b4fa14d1b901e9a385"&gt;f6d327d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593789"&gt;#3593789&lt;/a&gt; · 4 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's &lt;code&gt;RouteSubscriberBase&lt;/code&gt; class, used to write route event subscribers, previously only supported altering existing routes. It now also supports defining brand new routes, giving module developers an object-oriented alternative to declaring a &lt;code&gt;route_callbacks&lt;/code&gt; entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file. As a result, the Views module no longer needs &lt;code&gt;views.routing.yml&lt;/code&gt; at all; its route subscriber now builds views routes directly through this new mechanism.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;RouteSubscriberBase::alterRoutes()&lt;/code&gt; is no longer &lt;code&gt;abstract&lt;/code&gt;; it now has a no-op default implementation, so subclasses that only add routes no longer need to implement it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;RouteSubscriberBase::buildRoutes()&lt;/code&gt; lets an event subscriber define new routes during the &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; phase, the object-oriented equivalent of a &lt;code&gt;route_callbacks&lt;/code&gt; YAML entry.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Since routes moved to PHP attribute discovery (&lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;), there was a gap: &lt;code&gt;YamlRouteDiscovery&lt;/code&gt; handles the &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; event to add both YAML-defined routes and any &lt;code&gt;route_callbacks&lt;/code&gt;, but &lt;code&gt;RouteSubscriberBase&lt;/code&gt; only subscribed to &lt;code&gt;RoutingEvents::ALTER&lt;/code&gt;. This meant a class that wanted to both define and alter routes had no single, consistent OO entry point for the &amp;quot;define&amp;quot; half.&lt;/p&gt;
+&lt;p&gt;The fix adds a protected &lt;code&gt;buildRoutes(): RouteCollection&lt;/code&gt; method to &lt;code&gt;RouteSubscriberBase&lt;/code&gt;, defaulting to an empty &lt;code&gt;RouteCollection&lt;/code&gt;, and wires it to &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; via a new &lt;code&gt;onBuildRoutes(RouteBuildEvent $event)&lt;/code&gt; listener that merges the returned collection into the event's route collection. &lt;code&gt;alterRoutes()&lt;/code&gt; changed from &lt;code&gt;abstract&lt;/code&gt; to a no-op default, so a subclass now only needs to override whichever of the two phases it actually uses.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Drupal\views\EventSubscriber\RouteSubscriber&lt;/code&gt; was converted to this pattern: its former &lt;code&gt;routes()&lt;/code&gt; method (previously invoked via &lt;code&gt;route_callbacks&lt;/code&gt; in &lt;code&gt;views.routing.yml&lt;/code&gt;) was renamed to &lt;code&gt;buildRoutes()&lt;/code&gt; and hooked up through &lt;code&gt;getSubscribedEvents()&lt;/code&gt;, and &lt;code&gt;views.routing.yml&lt;/code&gt; was deleted since it contained nothing but that &lt;code&gt;route_callbacks&lt;/code&gt; entry. The public &lt;code&gt;routes()&lt;/code&gt; method is kept, delegating to &lt;code&gt;buildRoutes()&lt;/code&gt;, for backwards compatibility; a follow-up issue (&lt;a href="https://www.drupal.org/node/3618565"&gt;#3618565&lt;/a&gt;) is postponed to deprecate it once this change is settled.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;During review, godotislate raised the question of deprecating the now-redundant &lt;code&gt;routes()&lt;/code&gt; method on &lt;code&gt;Drupal\views\EventSubscriber\RouteSubscriber&lt;/code&gt;, but the decision was to defer that rather than block this change; dcam filed the follow-up, &lt;a href="https://www.drupal.org/node/3618565"&gt;#3618565&lt;/a&gt;, postponed on this issue's resolution.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Classes extending &lt;code&gt;RouteSubscriberBase&lt;/code&gt; that only need to alter existing routes are unaffected. Classes that previously added new routes via a &lt;code&gt;route_callbacks&lt;/code&gt; entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file can instead extend &lt;code&gt;RouteSubscriberBase&lt;/code&gt; and override &lt;code&gt;buildRoutes()&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function buildRoutes(): RouteCollection {
+  $collection = new RouteCollection();
+  // Add routes to $collection.
+  return $collection;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;No &lt;code&gt;getSubscribedEvents()&lt;/code&gt; override is needed for this; the base class now subscribes to &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; automatically.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 24, 2026 (2 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md</link>
       <guid isPermaLink="false">01a02e89-07ac-71b8-883a-36e49b593a37</guid>
@@ -954,116 +1080,6 @@ $values = \Drupal::service(\Drupal\options\OptionsAllowedValuesInterface::class)
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The design was debated at length before landing. larowlan questioned in a review comment whether introducing a whole new &lt;code&gt;OptionsAllowedValuesInterface&lt;/code&gt; service was the right call, versus consolidating the logic into &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt; and having the Views plugins use &lt;code&gt;FieldStorageDefinitionInterface::getOptionsProvider()-&amp;gt;getSettableOptions()&lt;/code&gt;, an approach explored years earlier in &lt;a href="https://www.drupal.org/node/2329937"&gt;#2329937&lt;/a&gt;. nicxvan confirmed that had in fact been the original approach in this issue but was abandoned because it broke the Views handlers, which call the allowed-values logic without an entity available. After longwave raised a caching concern on the merge request, daffie rebased the branch and fixed the cache invalidation so each field's allowed values are cached and invalidated independently rather than sharing one cache entry, a fix nicxvan explicitly credited to daffie when marking the issue RTBC again.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3517430: Add an attribute for skipping PHPUnit tests</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3517430.md</link>
-      <guid isPermaLink="false">019fec7c-9ed6-7526-97d9-84ad8dd2b989</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 10 Aug 2026 15:24:23 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +50/−3 · php +50/−3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2d368c39b29b92d077eb9a2391a301927d596829"&gt;2d368c3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3517430"&gt;#3517430&lt;/a&gt; · 6 contributors · 32 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core's test tooling now supports a &lt;code&gt;#[Skip]&lt;/code&gt; attribute for marking PHPUnit test methods as skipped, as an alternative to calling &lt;code&gt;$this-&amp;gt;markTestSkipped()&lt;/code&gt; inside the test body. This makes it obvious from the method's declaration alone that it is skipped, and it takes effect before the test's &lt;code&gt;setUp()&lt;/code&gt; runs, so any expensive or Drupal-bootstrapping setup logic is avoided for skipped tests. This is relevant to anyone writing PHPUnit tests against Drupal's test base classes, including contrib module maintainers.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\TestTools\Attribute\Skip&lt;/code&gt; PHP attribute to mark a PHPUnit test method as skipped, with an optional message.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;Skip&lt;/code&gt; attribute class lives in &lt;code&gt;core/tests/Drupal/TestTools/Attribute/Skip.php&lt;/code&gt;, targets methods only (&lt;code&gt;#[\Attribute(\Attribute::TARGET_METHOD)]&lt;/code&gt;), and takes an optional &lt;code&gt;$message&lt;/code&gt; constructor argument that is passed through to &lt;code&gt;markTestSkipped()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Support for the attribute is wired into &lt;code&gt;Drupal\Tests\DrupalTestCase&lt;/code&gt; via a new &lt;code&gt;skipTestWithAttribute()&lt;/code&gt; method registered with &lt;code&gt;#[Before(200)]&lt;/code&gt;, a high priority chosen so it runs before any &lt;code&gt;setUp()&lt;/code&gt; logic. It reflects on the current test method for a &lt;code&gt;Skip&lt;/code&gt; attribute instance and, if found, calls &lt;code&gt;static::markTestSkipped($attribute-&amp;gt;newInstance()-&amp;gt;message)&lt;/code&gt;. Since &lt;code&gt;DrupalTestCase&lt;/code&gt; is the common ancestor for Drupal's PHPUnit base classes, the attribute works across unit, kernel, and functional tests. Two existing skips in core were converted as examples: &lt;code&gt;EditorValidationTest::testLabelValidation&lt;/code&gt; (no message) and &lt;code&gt;SettingsTest::testRealDeprecatedSettings&lt;/code&gt; (with a message), both replacing an inline &lt;code&gt;markTestSkipped()&lt;/code&gt; call with &lt;code&gt;#[Skip(...)]&lt;/code&gt; on the method.&lt;/p&gt;
-&lt;p&gt;A follow-up commit (&lt;code&gt;f7eadfbe&lt;/code&gt;) also removed the skip from &lt;code&gt;testRealDeprecatedSettings&lt;/code&gt; on the &lt;code&gt;11.x&lt;/code&gt; branch after #24 and #25 established it should no longer be skipped there, since the underlying setting deprecation issues (&lt;a href="https://www.drupal.org/node/3591513"&gt;#3591513&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3613344"&gt;#3613344&lt;/a&gt;) had landed.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Test authors can replace an in-body skip with the attribute:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-public function testSomething(): void {
-  $this-&amp;gt;markTestSkipped('Reason here.');
-  // ...
-}
-
-// After:
-use Drupal\TestTools\Attribute\Skip;
-
-#[Skip('Reason here.')]
-public function testSomething(): void {
-  // ...
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The message argument is optional; &lt;code&gt;#[Skip]&lt;/code&gt; alone is valid.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 4, 2025&lt;/li&gt;
-&lt;li&gt;First commit: August 9, 2026 (1 year later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 10, 2026 (1 day and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;dcam prototyped the feature after being inspired by a related issue (&lt;a href="https://www.drupal.org/node/3615036"&gt;#3615036&lt;/a&gt;) about marking tests skipped in &lt;code&gt;setUp()&lt;/code&gt;, converting two existing skips to prove it worked, and wrote the initial change record. mondrake suggested renaming the attribute from an earlier working name to the simpler &lt;code&gt;#[Skip]&lt;/code&gt; to match the naming style of upcoming PHPUnit &lt;code&gt;#[Retry]&lt;/code&gt;/&lt;code&gt;#[Repeat]&lt;/code&gt; attributes, which dcam adopted. catch weighed in that core doesn't need to wait on upstream PHPUnit support given the small number of skipped tests expected, a view dcam agreed with, noting a homegrown solution could later be deprecated if PHPUnit added equivalent support. godotislate committed the change after making small review tweaks (using &lt;code&gt;static::markTestSkipped()&lt;/code&gt; instead of &lt;code&gt;$this-&amp;gt;&lt;/code&gt;, and reading the message via &lt;code&gt;$attribute-&amp;gt;newInstance()-&amp;gt;message&lt;/code&gt;), then during backport review caught that &lt;code&gt;testRealDeprecatedSettings&lt;/code&gt; should no longer be skipped on &lt;code&gt;11.x&lt;/code&gt; at all, which mstrelan confirmed based on prior involvement in the related deprecation issue, leading to that skip being removed on the &lt;code&gt;11.x&lt;/code&gt; branch.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3587565: Static cache entities that aren't loaded</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587565.md</link>
-      <guid isPermaLink="false">019fe917-f940-752e-8392-7fe06e3ff710</guid>
-      <pubDate>Sun, 09 Aug 2026 22:01:29 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +130/−11 · php +130/−11&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2ab239c5048deb3f04f6a120943375999fe50f22"&gt;2ab239c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587565"&gt;#3587565&lt;/a&gt; · 4 contributors · 34 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Entity storage previously had no memory of failed load attempts within a request: if code tried to load an entity ID that doesn't exist (a common case for config entities, such as per-bundle language content settings that not every bundle defines), it would query the persistent cache backend again on every subsequent attempt for that same ID. Now the fact that an ID was not found is also recorded in the per-request static cache, so repeated lookups of the same missing ID skip the cache backend entirely for the rest of the request. Drupal core's performance test suite shows this measurably reduces cache backend reads on real pages: cold-cache node page requests dropped from 225 to 217 cache gets, cold-cache front page requests from 233 to 225, and the administrator node page from 265 to 257 (mostly in the &lt;code&gt;config&lt;/code&gt; cache bin), with no change in database query counts.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;EntityStorageBase::loadMultiple()&lt;/code&gt;, after &lt;code&gt;doLoadMultiple()&lt;/code&gt; runs, any requested IDs that are still missing are now recorded via a new &lt;code&gt;setNotFoundStaticCache()&lt;/code&gt; method, and checked on subsequent calls via &lt;code&gt;getNotFoundFromStaticCache()&lt;/code&gt;. Both use a new &lt;code&gt;buildNotFoundCacheId()&lt;/code&gt; helper that wraps &lt;code&gt;buildCacheId()&lt;/code&gt; with a &lt;code&gt;not_found:&lt;/code&gt; prefix, so a storage's own &lt;code&gt;buildCacheId()&lt;/code&gt; override (for example &lt;code&gt;ConfigEntityStorage::buildCacheId()&lt;/code&gt;, which appends config override keys) is automatically reflected in the not-found cache key too. &lt;code&gt;resetCache()&lt;/code&gt; now clears both the entity cache and the not-found cache entries for the given IDs. &lt;code&gt;setStaticCache()&lt;/code&gt; was also changed to iterate &lt;code&gt;$entities&lt;/code&gt; by its array key (&lt;code&gt;foreach ($entities as $id =&amp;gt; $entity)&lt;/code&gt;) rather than deriving the cache key from &lt;code&gt;$entity-&amp;gt;id()&lt;/code&gt;, since the not-found bookkeeping needs to track the originally requested ID.&lt;/p&gt;
-&lt;p&gt;A new unit test, &lt;code&gt;testLoadMultipleNoResult()&lt;/code&gt;, asserts that loading the same nonexistent ID twice in a request results in only a single persistent-cache &lt;code&gt;getMultiple()&lt;/code&gt; call. This builds on the earlier bulk-loading work in &lt;a href="https://www.drupal.org/node/3560633"&gt;#3560633&lt;/a&gt; that reduced repeated config entity lookups for per-bundle settings.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 29, 2026&lt;/li&gt;
-&lt;li&gt;First commit: August 6, 2026 (3 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 9, 2026 (3 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch initially considered adding separate load methods for not-found entities but was concerned it would complicate cache invalidation; noticing that the existing UUID lookup cache already followed a similar pattern, they instead added a distinct &lt;code&gt;not_found:&lt;/code&gt; cache key prefix with dedicated get/set methods. During development this approach broke &lt;code&gt;ConfigEntityStorage&lt;/code&gt;, which overrides &lt;code&gt;buildCacheId()&lt;/code&gt; to append config override keys, catch fixed it by having &lt;code&gt;buildNotFoundCacheId()&lt;/code&gt; delegate through &lt;code&gt;buildCacheId()&lt;/code&gt; in the base class, so storage-specific overrides are automatically honored without needing their own fix.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
