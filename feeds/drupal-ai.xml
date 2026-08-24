@@ -5,6 +5,37 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo skips the handoff entirely</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md</link>
+      <guid isPermaLink="false">01a032dd-87a2-72ea-b6d1-692f9b690b6d</guid>
+      <pubDate>Mon, 24 Aug 2026 07:13:25 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601396"&gt;#3601396&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The one_line_installer's final step, which offers to drop you into a shell inside your freshly installed project, had its confirmation key backwards: pressing Enter used to skip the handoff, while doing nothing for 30 seconds opened the shell. This is now fixed so Enter immediately opens the shell (matching normal “Enter confirms” expectations), Esc explicitly skips it, and letting the 30 second timer run out still opens the shell. Additionally, running the installer with &lt;code&gt;--yolo&lt;/code&gt; no longer bypasses this prompt entirely: as long as a real terminal is available, a &lt;code&gt;--yolo&lt;/code&gt; run gets the same prompt and lands you in the project directory, since that's what a human running it interactively almost always wants. The only remaining case where the handoff is skipped automatically is when &lt;code&gt;/dev/tty&lt;/code&gt; can't be opened at all, such as in CI or when an agent runs the installer without a pty.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is in &lt;code&gt;step_agent_handoff()&lt;/code&gt; in &lt;code&gt;src/lib/steps/agent_handoff.sh&lt;/code&gt;. Previously it did a single &lt;code&gt;IFS= read -r -t 30 &amp;lt;/dev/tty&lt;/code&gt; line-read: any Enter press (success exit status) meant &amp;quot;skip,&amp;quot; and only a timeout (non-zero exit) fell through to &lt;code&gt;exec &amp;quot;${SHELL:-bash}&amp;quot;&lt;/code&gt;. That logic is replaced by a new helper, &lt;code&gt;_agent_handoff_read_choice()&lt;/code&gt;, which loops on &lt;code&gt;read -rsn1 -t &amp;quot;$remaining&amp;quot;&lt;/code&gt; to read single keypresses against a shrinking time budget (tracked via &lt;code&gt;$SECONDS&lt;/code&gt; so the 30s window, configurable through &lt;code&gt;AGENT_HANDOFF_TIMEOUT&lt;/code&gt;, covers the whole wait rather than resetting per keystroke). Enter (&lt;code&gt;''&lt;/code&gt;, &lt;code&gt;$'\n'&lt;/code&gt;, or &lt;code&gt;$'\r'&lt;/code&gt;), a read timeout, or a read error all resolve to &lt;code&gt;&amp;quot;open&amp;quot;&lt;/code&gt;. A bare &lt;code&gt;Esc&lt;/code&gt; (&lt;code&gt;$'\e'&lt;/code&gt;) resolves to &lt;code&gt;&amp;quot;skip&amp;quot;&lt;/code&gt;, but the function first drains up to two more bytes to distinguish a real Esc from the start of an arrow/function-key escape sequence, treating a full sequence as &amp;quot;any other key&amp;quot; that just keeps the window running. Any other key is likewise ignored and the loop continues.&lt;/p&gt;
+&lt;p&gt;The early &lt;code&gt;if [[ $YOLO -eq 1 ]] || ! { : &amp;lt;/dev/tty; } 2&amp;gt;/dev/null; then&lt;/code&gt; guard was narrowed to just the &lt;code&gt;/dev/tty&lt;/code&gt; check, so &lt;code&gt;--yolo&lt;/code&gt; no longer bypasses the handoff when a terminal is actually available; the timeout path already served as the unattended/&lt;code&gt;--yolo&lt;/code&gt; fallback. The duplicated &amp;quot;your project is ready in ...&amp;quot; messaging used on both the no-tty and Esc-skip paths was factored into a new &lt;code&gt;_agent_handoff_skipped()&lt;/code&gt; helper. Test coverage in &lt;code&gt;tests/bats/lib/steps/agent_handoff.bats&lt;/code&gt; was substantially expanded to exercise Enter, Esc, timeout, arrow-key sequences, and the &lt;code&gt;--yolo&lt;/code&gt;-with-tty case.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 24, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the repo checkout with write access</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md</link>
       <guid isPermaLink="false">019fe225-09e0-77c1-8836-38b2b0cb4ba1</guid>
@@ -800,54 +831,6 @@ $transporter = new CustomHeadersHttpTransporter($endpoint, $headers, $logger);
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: July 15, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601376: Allow .drupalaibp.json to append or replace the welcome text</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601376.md</link>
-      <guid isPermaLink="false">019f6af5-af80-7040-8364-02929f5f04c3</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 16 Jul 2026 11:15:59 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601376"&gt;#3601376&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Projects shipping a &lt;code&gt;.drupalaibp.json&lt;/code&gt; config can now customize the &amp;quot;you're all set&amp;quot; summary that the one-line installer prints at the end of a successful build. Two optional keys are available: &lt;code&gt;append_welcome_text&lt;/code&gt; adds extra paragraphs after the standard summary (site URL, admin login, handy commands), and &lt;code&gt;replace_welcome_text&lt;/code&gt; replaces the entire summary with custom content. Both keys work for Drupal and non-Drupal builds. When both are set, &lt;code&gt;replace_welcome_text&lt;/code&gt; wins and &lt;code&gt;append_welcome_text&lt;/code&gt; is ignored. The feature is documented in &lt;code&gt;docs/drupalaibp-json.md&lt;/code&gt; including a full token and color reference.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Two new &lt;code&gt;.drupalaibp.json&lt;/code&gt; keys: &lt;code&gt;append_welcome_text&lt;/code&gt; and &lt;code&gt;replace_welcome_text&lt;/code&gt;, with &lt;code&gt;{TOKEN}&lt;/code&gt; and color-code substitution in both.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Both keys are read by the new &lt;code&gt;_config_read_welcome_text&lt;/code&gt; function in &lt;code&gt;src/lib/config/load_config.sh&lt;/code&gt; into &lt;code&gt;APPEND_WELCOME_TEXT&lt;/code&gt; and &lt;code&gt;REPLACE_WELCOME_TEXT&lt;/code&gt; bash arrays. Each key accepts either a bare string or an array of strings (paragraphs); the reader handles both shapes.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;print_welcome&lt;/code&gt; in &lt;code&gt;src/lib/steps/print_welcome.sh&lt;/code&gt; checks &lt;code&gt;REPLACE_WELCOME_TEXT&lt;/code&gt; first: when the array is non-empty it iterates and prints each paragraph through &lt;code&gt;_welcome_text_substitute&lt;/code&gt;, then returns before any of the standard summary is built. If only &lt;code&gt;APPEND_WELCOME_TEXT&lt;/code&gt; is set, the standard summary prints in full and the extra paragraphs are appended at the end via the same helper.&lt;/p&gt;
-&lt;p&gt;The new helper &lt;code&gt;src/lib/steps/_welcome_text_substitute.sh&lt;/code&gt; performs &lt;code&gt;{TOKEN}&lt;/code&gt; substitution. Built-in tokens are &lt;code&gt;{PROJECT_NAME}&lt;/code&gt;, &lt;code&gt;{SITE_URL}&lt;/code&gt;, &lt;code&gt;{DRUPAL_USERNAME}&lt;/code&gt;, &lt;code&gt;{DRUPAL_PASSWORD}&lt;/code&gt;, and &lt;code&gt;{DRUPAL_LOGIN_URL}&lt;/code&gt;. Any key from the config's &lt;code&gt;questions&lt;/code&gt; array is also available by its &lt;code&gt;env&lt;/code&gt; name. Color tokens (&lt;code&gt;{BOLD}&lt;/code&gt;, &lt;code&gt;{DIM}&lt;/code&gt;, &lt;code&gt;{GREEN}&lt;/code&gt;, &lt;code&gt;{YELLOW}&lt;/code&gt;, &lt;code&gt;{RED}&lt;/code&gt;, &lt;code&gt;{RESET}&lt;/code&gt;) expand to ANSI codes only when stdout is a real TTY (gated by &lt;code&gt;_welcome_text_colors_enabled&lt;/code&gt; which wraps &lt;code&gt;[[ -t 1 ]]&lt;/code&gt;); they collapse to nothing in piped or redirected output. An unrecognized token is left untouched rather than silently deleted, surfacing typos in the terminal output. Every paragraph receives an automatic trailing &lt;code&gt;RESET&lt;/code&gt; when colors are enabled so an unclosed color token cannot bleed into subsequent output. Both new keys are registered in &lt;code&gt;DRUPALAIBP_KNOWN_KEYS&lt;/code&gt; so the unknown-key warning does not fire on valid configs.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No changes required for existing configs; both keys are optional and the default behavior (standard summary, no appended or replaced text) is unchanged.&lt;/p&gt;
-&lt;p&gt;To append project-specific instructions after the standard summary:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;append_welcome_text&amp;quot;: [
-    &amp;quot;Project docs: https://example.com/handbook&amp;quot;,
-    &amp;quot;Ask in #project-support if you get stuck.&amp;quot;
-  ]
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To replace the entire summary with custom content (accepts a bare string or array):&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;replace_welcome_text&amp;quot;: &amp;quot;{BOLD}{GREEN}Welcome to the ACME demo!{RESET} Run `ddev launch` and log in with admin / admin.&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Tokens from &lt;code&gt;questions[].env&lt;/code&gt; answers are available in both keys, e.g. &lt;code&gt;{SITE_FLAVOR}&lt;/code&gt; when a question with &lt;code&gt;&amp;quot;env&amp;quot;: &amp;quot;SITE_FLAVOR&amp;quot;&lt;/code&gt; is defined. Unknown tokens are left verbatim in the output rather than silently removed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 16, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

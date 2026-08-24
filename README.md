@@ -1,12 +1,20 @@
-**TL;DR:** [958 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [959 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_121 summaries · 1 new this week_
+
+- [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
+- [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
+- [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
+
 ### Drupal Core
 
-_508 summaries · 10 new this week_
+_508 summaries · 9 new this week_
 
 - [#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md)
 - [#3569118: Deprecate the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md)
@@ -27,14 +35,6 @@ _90 summaries · 0 new this week_
 - [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
 - [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
 - [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
-
-### Drupal AI
-
-_120 summaries · 0 new this week_
-
-- [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
-- [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
-- [#3612042: Enable RateLimits](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md)
 
 
 ## Rector rules
