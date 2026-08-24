@@ -5,6 +5,42 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591970: Components library UI is broken if a single component preview rendering fails: treat them as "errored" instead so they cannot be placed but the listing is still functional</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md</link>
+      <guid isPermaLink="false">01a033b2-af31-7563-a427-b04363063e2c</guid>
+      <pubDate>Mon, 24 Aug 2026 10:56:28 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591970"&gt;#3591970&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In Canvas, if a single component's preview render failed (for example, a Views block whose display requires URL arguments that Canvas cannot supply), the entire Components library UI broke and became unusable, blocking editors from placing any component at all. Now such a component is simply marked as &amp;quot;broken&amp;quot; and excluded from placement, while every other component in the library keeps working normally.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The crash happened in &lt;code&gt;Component::normalizeForClientSide()&lt;/code&gt;. Previously, only components already known to be broken via &lt;code&gt;ComponentSourceInterface::isBroken()&lt;/code&gt; were wrapped in a try/catch; components that passed that check but then threw during &lt;code&gt;getClientSideInfo()&lt;/code&gt; or during &lt;code&gt;RendererInterface::renderInIsolation()&lt;/code&gt; were not caught, so an uncaught &lt;code&gt;\Throwable&lt;/code&gt; bubbled up and turned the whole &lt;code&gt;ApiConfigControllers::list()&lt;/code&gt; response into a 500, taking down the entire library listing.&lt;/p&gt;
+&lt;p&gt;The fix unifies both code paths (the &amp;quot;known broken&amp;quot; branch and the &amp;quot;renders preview&amp;quot; branch) under a single &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch (\Throwable $e)&lt;/code&gt; block, so any crash during preview building or rendering is now caught and converted into a per-component &amp;quot;broken&amp;quot; state via &lt;code&gt;RenderSafeComponentContainer::handleComponentException()&lt;/code&gt;, rather than propagating. &lt;code&gt;EnforcedResponseException&lt;/code&gt; and &lt;code&gt;FormAjaxException&lt;/code&gt; are explicitly re-thrown rather than swallowed, since those are Drupal Form API flow-control exceptions that must keep bubbling (noted as a workaround pending &lt;a href="https://www.drupal.org/node/2367555"&gt;#2367555&lt;/a&gt;). A related &lt;code&gt;@todo&lt;/code&gt; references &lt;a href="https://www.drupal.org/node/3521041"&gt;#3521041&lt;/a&gt; for eventually simplifying the &lt;code&gt;RenderSafeComponentContainer&lt;/code&gt; wrapping logic itself.&lt;/p&gt;
+&lt;p&gt;Test coverage was added: &lt;code&gt;CanvasTestBlockInputValidatableCrash&lt;/code&gt; gained a static &lt;code&gt;$forceCrash&lt;/code&gt; flag so a block can be made to crash unconditionally (mirroring a Views-backed block crashing while building its preview), and &lt;code&gt;BlockComponentTest::testCrashingPreviewDoesNotBreakComponentList()&lt;/code&gt; asserts that the crashing component is reported with &lt;code&gt;broken =&amp;gt; TRUE&lt;/code&gt; and a &amp;quot;Component failed to render&amp;quot; message, while unrelated components in the same listing remain present and &lt;code&gt;broken =&amp;gt; FALSE&lt;/code&gt;.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;fjgarlin (Drupal Association)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591916: Component version hashes go stale on single-process installs: prop-shape re-resolution is deferred to teardown and skipped on a cold cache</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md</link>
       <guid isPermaLink="false">01a02518-cc71-7528-b6e4-4d8f06e52c72</guid>
@@ -794,40 +830,6 @@ npx canvas push --include-regions
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;jessebaker spotted a gap in the issue description early on (credited by balintbrews). bnjmnm then implemented the initial drag-and-drop functionality in MR !116, noting in a comment the known gaps still remaining (no drag-out support, no loading indicator, no styling). The MR was ultimately closed rather than merged, with jessebaker noting it &amp;quot;formed the foundation&amp;quot; of the broader work that landed in &lt;a href="https://www.drupal.org/node/3561018"&gt;#3561018&lt;/a&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3556101: [11.3.x] Semi-coupled engine not compatible with Drupal 11.x</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3556101.md</link>
-      <guid isPermaLink="false">019f824f-2835-77b7-82de-523b5c71ffbb</guid>
-      <pubDate>Mon, 20 Jul 2026 23:51:08 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +321/−325 · php +315/−322 · yml +6/−3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3556101"&gt;#3556101&lt;/a&gt; · 6 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas's &lt;code&gt;semi_coupled&lt;/code&gt; theme engine became incompatible with Drupal 11.3.x after core issue &lt;a href="https://www.drupal.org/node/1685492"&gt;#1685492&lt;/a&gt; converted theme engines from hook-based &lt;code&gt;.engine&lt;/code&gt; files into tagged services. Any Canvas page on an 11.3.x site threw a 500 error with the message &lt;code&gt;Service &amp;quot;semi_coupled&amp;quot; not found: the container inside &amp;quot;Drupal\Core\Theme\ThemeManager&amp;quot; is a smaller service locator that only knows about the &amp;quot;twig&amp;quot; service&lt;/code&gt;. This issue proposed converting the engine to comply with the new service-based API. It was ultimately closed as fixed when &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; removed the semi-coupled theme engine from Canvas entirely, making Canvas compatible with both 11.2.x and 11.3.x without needing the engine approach at all.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause is that Drupal 11.3.x (core &lt;a href="https://www.drupal.org/node/1685492"&gt;#1685492&lt;/a&gt;) requires theme engines to be registered as tagged services implementing &lt;code&gt;ThemeEngineInterface&lt;/code&gt; rather than as standalone &lt;code&gt;.engine&lt;/code&gt; files providing procedural hooks (&lt;code&gt;hook_extension()&lt;/code&gt;, &lt;code&gt;hook_theme()&lt;/code&gt;, &lt;code&gt;hook_render_template()&lt;/code&gt;). The old &lt;code&gt;semi_coupled.engine&lt;/code&gt; file and its accompanying &lt;code&gt;semi_coupled.info.yml&lt;/code&gt; (of type &lt;code&gt;theme_engine&lt;/code&gt;) were incompatible with this model.&lt;/p&gt;
-&lt;p&gt;MR !296 proposes the intermediate fix: move all engine logic from procedural functions into a &lt;code&gt;SemiCoupledEngine&lt;/code&gt; class implementing &lt;code&gt;ThemeEngineInterface&lt;/code&gt;, and register it in &lt;code&gt;canvas.services.yml&lt;/code&gt; with &lt;code&gt;tags: [{name: theme_engine, engine_name: semi_coupled}]&lt;/code&gt;. The methods &lt;code&gt;theme()&lt;/code&gt; and &lt;code&gt;renderTemplate()&lt;/code&gt; map directly to the old &lt;code&gt;semi_coupled_theme()&lt;/code&gt; and &lt;code&gt;semi_coupled_render_template()&lt;/code&gt; hooks; the helper functions &lt;code&gt;_semi_coupled_collect_props()&lt;/code&gt;, &lt;code&gt;_semi_coupled_build_html_tag()&lt;/code&gt;, &lt;code&gt;_semi_coupled_get_variable()&lt;/code&gt;, &lt;code&gt;_semi_coupled_snake_case()&lt;/code&gt;, and &lt;code&gt;_semi_coupled_kebab_case()&lt;/code&gt; become private methods on the class.&lt;/p&gt;
-&lt;p&gt;This MR was not merged. The actual fix arrived via &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt;, which removed the &lt;code&gt;semi_coupled&lt;/code&gt; theme engine from Canvas entirely and improved React embedding without relying on a custom engine, resolving the 11.3.x incompatibility in a way that also kept 11.2.x working.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 5, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;alexpott identified a parallel fix in core (&lt;a href="https://www.drupal.org/node/3556130"&gt;#3556130&lt;/a&gt;, &amp;quot;ThemeEngine BC layer is broken - ServiceLocator != Container&amp;quot;) immediately after the issue was filed, which briefly raised the question of whether the Canvas side needed changing at all. wim leers and penyaskito clarified that Canvas targets 11.2.x as its minimum and would not require 11.3.x for 1.0, so the issue was postponed until the minimum version bumped. phenaproxima pointed out that landing &lt;a href="https://www.drupal.org/node/3555062"&gt;#3555062&lt;/a&gt; (removing the engine) would close this issue as outdated without needing the tagged-service migration at all, and that is ultimately what happened.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

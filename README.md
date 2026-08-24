@@ -1,8 +1,16 @@
-**TL;DR:** [959 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [960 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_241 summaries · 4 new this week_
+
+- [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
+- [#3591916: Component version hashes go stale on single-process installs: prop-shape...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md)
+- [#3591885: Add `document` object $ref for linking locally hosted documents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md)
 
 ### Drupal AI
 
@@ -19,14 +27,6 @@ _508 summaries · 9 new this week_
 - [#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md)
 - [#3569118: Deprecate the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md)
 - [#3614955: Move library overrides for Toolbar from Claro and Default Admin to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614955.md)
-
-### Drupal Canvas
-
-_240 summaries · 3 new this week_
-
-- [#3591916: Component version hashes go stale on single-process installs: prop-shape...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md)
-- [#3591885: Add `document` object $ref for linking locally hosted documents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md)
-- [#3591968: Forbid the reserved component tree root UUID as a component instance...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591968.md)
 
 ### Drupal CMS
 
