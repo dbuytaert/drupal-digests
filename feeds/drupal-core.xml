@@ -5,6 +5,58 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3614401: Allow install profiles to opt out of being installed</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md</link>
+      <guid isPermaLink="false">01a039b6-f8b4-7550-91a3-f0ec5be594b1</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 25 Aug 2026 16:00:48 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +155/−11 · php +117/−10 · yml +38/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6a4608b15d4a0d307708f31afb0f669b9fde5055"&gt;6a4608b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Install profiles can now declare that they should never be installed as a module in their own right. Adding &lt;code&gt;opt_out_install: true&lt;/code&gt; to a profile's &lt;code&gt;.info.yml&lt;/code&gt; tells the installer to skip the step where the profile itself is enabled after its modules and configuration are in place. This is aimed at minimal profiles used for testing or automated environments that have no hooks of their own to run, so there is no reason to keep them installed as a module. Drupal core's own &lt;code&gt;testing&lt;/code&gt; and &lt;code&gt;testing_nightwatch&lt;/code&gt; profiles are now marked this way.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;opt_out_install&lt;/code&gt; key in an install profile's &lt;code&gt;.info.yml&lt;/code&gt; lets the profile skip being installed as a module at the end of the installer.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The installer reads each profile's parsed info array into &lt;code&gt;$install_state['profile_info']&lt;/code&gt; (via &lt;code&gt;install_profile_info()&lt;/code&gt;). &lt;code&gt;install_install_profile()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; now checks &lt;code&gt;$install_state['profile_info']['opt_out_install']&lt;/code&gt; before calling &lt;code&gt;\Drupal::service('module_installer')-&amp;gt;install()&lt;/code&gt; on the profile itself, skipping that call when the key is truthy. &lt;code&gt;drupal_install_system()&lt;/code&gt; in &lt;code&gt;install.inc&lt;/code&gt; was likewise updated so that the &lt;code&gt;core.extension&lt;/code&gt; config's &lt;code&gt;profile&lt;/code&gt; key is cleared (not just when there is no profile at all) whenever the profile has opted out, keeping the stored configuration consistent with the fact that the profile was never installed as a module.&lt;/p&gt;
+&lt;p&gt;Because the core &lt;code&gt;testing&lt;/code&gt; profile is used by hundreds of tests and now opts out, several tests that relied on the &lt;code&gt;testing&lt;/code&gt; profile's optional configuration (a body field on &lt;code&gt;node&lt;/code&gt;, and a locale config override) had to be reworked: the body field was extracted into a new &lt;code&gt;body_field&lt;/code&gt; test module, and a new &lt;code&gt;testing_locale&lt;/code&gt; profile was added that still gets installed and carries the locale-specific config for the handful of tests that depend on it. A new &lt;code&gt;testing_skip_install&lt;/code&gt; profile, whose &lt;code&gt;hook_install()&lt;/code&gt; throws an exception, was added purely as test coverage (&lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt;'s &lt;code&gt;ProfileSkipInstallTest&lt;/code&gt;) to prove the opt-out path never runs the profile's install hook. This work builds on &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt;, which moved the System module install step earlier in the installer.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Add &lt;code&gt;opt_out_install: true&lt;/code&gt; to an install profile's &lt;code&gt;.info.yml&lt;/code&gt; if the profile has no &lt;code&gt;hook_install()&lt;/code&gt; or other behavior that depends on being installed as a module:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;name: My minimal profile
+type: profile
+opt_out_install: true
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Profiles that rely on optional configuration tied to the profile's own module weight, or that implement install hooks, should not set this key.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 1, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (24 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;nicxvan asked whether there was a clean way to test that the opt-out profile is never installed. catch proposed adding a dedicated test profile whose &lt;code&gt;hook_install()&lt;/code&gt; throws an exception, so the test fails if the profile is ever installed; nicxvan agreed and catch implemented it as &lt;code&gt;testing_skip_install&lt;/code&gt; with &lt;code&gt;ProfileSkipInstallTest&lt;/code&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3610009: Stop discovery of hooks in include files</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md</link>
       <guid isPermaLink="false">01a038d9-ac73-77dc-b715-9b032939f879</guid>
@@ -276,6 +328,64 @@ https://www.drupal.org/node/3395582
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue sat dormant with patches for years before quietone opened a merge request that only reported the default connection's info. Catch flagged in review that &amp;quot;the original feature request was for all database connections&amp;quot; and asked whether the MR should cover that, and daffie agreed. Quietone then reworked the patch to loop over &lt;code&gt;Database::getAllConnectionInfo()&lt;/code&gt; for every connection, and in the process caught that &lt;code&gt;$databases['default']['replica'][] = $info_array&lt;/code&gt; in &lt;code&gt;settings.php&lt;/code&gt; implies an extra level of nesting that also needed handling, updating the code accordingly before daffie set it back to RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3590882: Standard profile should not include Olivero anymore, should provide guidance on how to get started</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3590882.md</link>
+      <guid isPermaLink="false">01a039ba-41f4-760d-befd-c03334f93dc5</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 25 Aug 2026 07:31:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 28 files, +471/−209 · php +207/−147 · css +106 · twig +102 · yml +55/−62 · svg +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/308cba9319f249a1c3b92c692a4af4d9f83a8106"&gt;308cba9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3590882"&gt;#3590882&lt;/a&gt; · 10 contributors · 66 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 10 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;For new sites installed with the Standard profile, Drupal no longer installs or enables the Olivero theme. Claro becomes both the admin theme and the default front end theme. The site's front page is now a new &lt;code&gt;/admin/welcome&lt;/code&gt; page that explains the difference between Drupal Core and Drupal CMS and lists first steps (build a content model, pick a theme, extend Drupal), plus how to change the front page or remove the welcome page by uninstalling the Standard profile. Because that page requires an administration permission, anonymous visitors to the homepage now see a login block instead. None of this affects existing sites: the theme switch and welcome page only apply to fresh Standard profile installs, upgrading a site changes nothing. Installs done via the &lt;code&gt;standard&lt;/code&gt; recipe (the CLI/recipe based path) also skip the welcome page and no longer pull in a separate recipe that installed Olivero as the front end theme, since Claro is now set directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Fresh Standard profile installs now set &lt;code&gt;claro&lt;/code&gt; as both the admin and default (front end) theme instead of &lt;code&gt;olivero&lt;/code&gt;, and set &lt;code&gt;/admin/welcome&lt;/code&gt; as the site's front page instead of &lt;code&gt;/user/login&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;core/profiles/standard&lt;/code&gt;, &lt;code&gt;standard.info.yml&lt;/code&gt; no longer lists &lt;code&gt;olivero&lt;/code&gt; under &lt;code&gt;themes&lt;/code&gt;, and the profile's shipped &lt;code&gt;system.theme&lt;/code&gt; config sets &lt;code&gt;default: claro&lt;/code&gt; (was &lt;code&gt;olivero&lt;/code&gt;). &lt;code&gt;system.site.yml&lt;/code&gt;'s &lt;code&gt;page.front&lt;/code&gt; is now &lt;code&gt;/admin/welcome&lt;/code&gt; instead of &lt;code&gt;/user/login&lt;/code&gt;. The new &lt;code&gt;standard.welcome&lt;/code&gt; route (in &lt;code&gt;standard.routing.yml&lt;/code&gt;) is gated by &lt;code&gt;WelcomeController::access()&lt;/code&gt;, which checks a &lt;code&gt;standard.show_welcome&lt;/code&gt; state flag; &lt;code&gt;standard_install()&lt;/code&gt; in &lt;code&gt;standard.install&lt;/code&gt; sets that flag only on a fresh install, so already-updated sites never see the page. The old &lt;code&gt;standard_install_finished()&lt;/code&gt; status message and its &lt;code&gt;hook_install_tasks_alter()&lt;/code&gt; were removed from &lt;code&gt;standard.profile&lt;/code&gt;. The page is rendered through a new &lt;code&gt;standard_welcome_page&lt;/code&gt; theme hook (&lt;code&gt;Drupal\standard\Hook\StandardHooks&lt;/code&gt;) and &lt;code&gt;standard-welcome-page.html.twig&lt;/code&gt;, styled by a new &lt;code&gt;welcome-page.css&lt;/code&gt; library, and linked from a &lt;code&gt;Welcome&lt;/code&gt; admin menu item using a Phosphor &lt;code&gt;signpost&lt;/code&gt; icon.&lt;/p&gt;
+&lt;p&gt;Because the welcome page needs &lt;code&gt;access administration pages&lt;/code&gt;, anonymous visitors to the front page now get a 403; a new &lt;code&gt;block.block.claro_login&lt;/code&gt; block places a login form in the content region on every page except &lt;code&gt;/user&lt;/code&gt; and &lt;code&gt;/user/*&lt;/code&gt;, so anonymous users still get a usable homepage instead of a bare error page. Claro gained a &lt;code&gt;user-login-block.css&lt;/code&gt; component, and a Classy &lt;code&gt;block--user-login-block.html.twig&lt;/code&gt; override renders that block without its default list wrapper. The &lt;code&gt;standard&lt;/code&gt; recipe (&lt;code&gt;core/recipes/standard/recipe.yml&lt;/code&gt;) drops the now-deleted &lt;code&gt;core_recommended_front_end_theme&lt;/code&gt; recipe and sets &lt;code&gt;system.theme.default: claro&lt;/code&gt; directly instead of setting &lt;code&gt;page.front&lt;/code&gt; and relying on Olivero being installed by that recipe; recipe based installs therefore never see the welcome page and anonymous users still land on &lt;code&gt;/user/login&lt;/code&gt;. A number of tests (&lt;code&gt;StandardTestTrait&lt;/code&gt;, &lt;code&gt;StandardPerformanceTest&lt;/code&gt;, &lt;code&gt;MediaStandardProfileTest&lt;/code&gt;, installer and build tests) were updated to reflect the new default markup and page-load query counts now that Claro, not Olivero, renders Standard's front end.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 19, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;li&gt;pdureau (Beyris)&lt;/li&gt;
+&lt;li&gt;ckrina (Cambrico)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;li&gt;rkoller&lt;/li&gt;
+&lt;li&gt;simohell (Druid)&lt;/li&gt;
+&lt;li&gt;the_g_bomb (The University of Edinburgh)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The first version of this change replaced Olivero's welcome content with a one-time status message shown on &lt;code&gt;/user&lt;/code&gt;, but a Drupal usability team review rejected that outright: benjifisher reported &amp;quot;strong consensus that a one-time message...is a bad idea&amp;quot; because it disappears on reload, navigation, or a coffee break, and mixes unrelated content like User Guide and event links into a transient message (see &lt;a href="https://www.drupal.org/node/3612901"&gt;#3612901&lt;/a&gt;). Following that review, gábor hojtsy rebuilt the feature as a dedicated &lt;code&gt;/admin/welcome&lt;/code&gt; page. mherchel and abenbow then raised concerns about the page's verbosity and intended audience, and the group agreed to treat it as an introductory pass to be refined later in the follow-up &lt;a href="https://www.drupal.org/node/3614228"&gt;#3614228&lt;/a&gt; rather than block this issue on design polish. lauriii flagged that the welcome menu's drop icon did not follow Drupal's brand guidelines, prompting gábor hojtsy to swap it for a Phosphor &amp;quot;signpost&amp;quot; icon, and mherchel contributed CSS fixes so the page's two-column layout works correctly in both Claro and the new default_admin theme, including dark mode.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -960,119 +1070,6 @@ use Drupal\Core\Extension\ThemeExtensionList;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;andypost did the implementation work over an extended period, including debugging a regression in &lt;code&gt;AjaxTest&lt;/code&gt; caused by &lt;code&gt;ExtensionPathResolver::getPath()&lt;/code&gt; now throwing for unknown extensions during library discovery (split into follow-up &lt;a href="https://www.drupal.org/node/3601471"&gt;#3601471&lt;/a&gt;), and splitting the original scope into separate issues for the pathname deprecation (&lt;a href="https://www.drupal.org/node/3601481"&gt;#3601481&lt;/a&gt;) and the asset-library fix, at reviewer feedback that the change needed to be split so consumers wouldn't break. catch and longwave reviewed and committed the final, self-contained MR, with catch noting &amp;quot;so much code removed/deprecated.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3581816: Move uses of Shortcut from Navigation to Shortcut</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581816.md</link>
-      <guid isPermaLink="false">01a009a2-0a65-7637-9fe7-6fefbf5b5912</guid>
-      <category>Site owners</category>
-      <pubDate>Sun, 16 Aug 2026 05:56:51 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +562/−91 · php +555/−81 · yml +7/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7926fc32a00942ca432bd76b5ec3ff14027d65cd"&gt;7926fc3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581816"&gt;#3581816&lt;/a&gt; · 11 contributors · 54 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 11 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Navigation module's &amp;quot;Shortcuts&amp;quot; block used to reach directly into the Shortcut module's render logic, and Shortcut had no awareness of the block it powered in Navigation's layout. This left a gap: if a site uninstalled the Shortcut module while keeping Navigation, the Shortcuts block placement stayed behind in Navigation's block layout configuration, pointing at a module that no longer provided it. This issue moves ownership of the Shortcuts navigation block, its lazy builder, and its layout defaults into the Shortcut module itself, so installing or uninstalling either module now correctly adds or removes the block from Navigation's layout. Existing sites get an update hook that removes any orphaned Shortcuts block left over from before this change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;navigation_post_update_remove_shortcut_block()&lt;/code&gt; update hook strips any leftover &lt;code&gt;navigation_shortcuts&lt;/code&gt; block component from &lt;code&gt;navigation.block_layout&lt;/code&gt; config on sites where Navigation is installed but Shortcut is not.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The block plugin backing &lt;code&gt;navigation_shortcuts&lt;/code&gt; now lives as &lt;code&gt;Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;). &lt;code&gt;Drupal\navigation\Plugin\Block\NavigationShortcutsBlock&lt;/code&gt; becomes a thin subclass kept only for backward compatibility, carries &lt;code&gt;@deprecated in drupal:11.5.0 and is removed from drupal:12.0.0&lt;/code&gt;, and no longer carries the &lt;code&gt;#[Block]&lt;/code&gt; attribute itself, so plugin discovery resolves to the Shortcut class. The lazy builder moved from &lt;code&gt;Drupal\navigation\ShortcutLazyBuilder&lt;/code&gt; to &lt;code&gt;Drupal\shortcut\ShortcutNavigationLazyBuilder&lt;/code&gt;, and the container registration of the &lt;code&gt;navigation.shortcut_lazy_builder&lt;/code&gt; service moved from &lt;code&gt;NavigationServiceProvider&lt;/code&gt; to a new &lt;code&gt;Drupal\shortcut\ShortcutServiceProvider&lt;/code&gt;, keyed off the &lt;code&gt;navigation.renderer&lt;/code&gt; service existing rather than a shortcut-specific one.&lt;/p&gt;
-&lt;p&gt;Shortcut now implements &lt;code&gt;hook_navigation_defaults()&lt;/code&gt; and &lt;code&gt;hook_block_alter()&lt;/code&gt; (previously implemented in &lt;code&gt;NavigationHooks&lt;/code&gt;) to supply the default block placement and the &lt;code&gt;allow_in_navigation&lt;/code&gt;/&lt;code&gt;_block_ui_hidden&lt;/code&gt; flags for &lt;code&gt;navigation_shortcuts&lt;/code&gt;. Because Navigation stores this plugin placement in simple config (&lt;code&gt;navigation.block_layout&lt;/code&gt;), which per &lt;a href="https://www.drupal.org/node/3587499"&gt;#3587499&lt;/a&gt; can't formally express a dependency on Shortcut, &lt;code&gt;shortcut_install()&lt;/code&gt; and &lt;code&gt;shortcut_uninstall()&lt;/code&gt; now directly add or remove the block component from that config, with a duplicate check for the case where both modules install in the same request. A new &lt;code&gt;navigation_post_update_remove_shortcut_block()&lt;/code&gt; post-update cleans up any leftover placement on existing sites. The commit initially shipped with a wrong namespace on the new &lt;code&gt;NavigationUpdateTest&lt;/code&gt; fixture test, was reverted, and recommitted with the namespace corrected to &lt;code&gt;Drupal\Tests\navigation\Functional\Update&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code that instantiates or type-hints &lt;code&gt;Drupal\navigation\Plugin\Block\NavigationShortcutsBlock&lt;/code&gt; directly should switch to the new class before Drupal 12.0.0:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated in 11.5.0, removed in 12.0.0):
-use Drupal\navigation\Plugin\Block\NavigationShortcutsBlock;
-
-// After:
-use Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code referencing the internal &lt;code&gt;Drupal\navigation\ShortcutLazyBuilder&lt;/code&gt; class directly (not the &lt;code&gt;navigation.shortcut_lazy_builder&lt;/code&gt; service, which keeps its name) must update to &lt;code&gt;Drupal\shortcut\ShortcutNavigationLazyBuilder&lt;/code&gt;; no deprecation shim was left for this internal class.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 27, 2026&lt;/li&gt;
-&lt;li&gt;First commit: August 14, 2026 (4 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 16, 2026 (1 day and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir diagnosed the underlying design problem (comment &lt;a href="https://www.drupal.org/node/16568255"&gt;#16568255&lt;/a&gt;): Navigation stores plugin configuration with cross-module dependencies in simple config, which can't formally declare those dependencies, so removing Shortcut broke &lt;code&gt;ConfigImportAllTest&lt;/code&gt;. He recommended a quick test exclusion rather than a full refactor, and quietone filed the follow-up &lt;a href="https://www.drupal.org/node/3587499"&gt;#3587499&lt;/a&gt; to track the proper fix. godotislate reviewed the install/uninstall ordering in detail (comments &lt;a href="https://www.drupal.org/node/16602087"&gt;#16602087&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/16609667"&gt;#16609667&lt;/a&gt;) and found that &lt;code&gt;hook_navigation_defaults&lt;/code&gt; already fires on &lt;code&gt;hook_modules_installed&lt;/code&gt;, which meant an initially-proposed change to &lt;code&gt;shortcut_install()&lt;/code&gt; wasn't actually needed. smustgrave reported using Claude to help add the duplicate-block check that finally made the test suite pass. After the fix first landed, quietone caught that it had to be reverted because of a namespace error in the new update-path test, matching a pattern seen in a similar Olivero test-migration issue, and it was recommitted with the namespace corrected.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3576669: Deprecate Settings Tray module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576669.md</link>
-      <guid isPermaLink="false">01a009a2-6a1a-754b-ae5f-5745749c241a</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sun, 16 Aug 2026 05:38:18 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +14/−0 · php +12 · yml +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/46f947f9d192a64f4222203182300e5f35927097"&gt;46f947f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3576669"&gt;#3576669&lt;/a&gt; · 4 contributors · 16 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Settings Tray module (the off-canvas dialog for quickly editing block settings from the front end) is now formally deprecated in Drupal core, following approval in &lt;a href="https://www.drupal.org/node/3576315"&gt;#3576315&lt;/a&gt; to move it to a contributed project. Sites currently using Settings Tray will continue to work for now, but should plan to move to the contributed version of the module once it is available, since the module will eventually be removed from core entirely.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;settings_tray&lt;/code&gt; module is marked &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and will be removed from core; sites using it should migrate to the contributed Settings Tray project.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change adds &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and a &lt;code&gt;lifecycle_link&lt;/code&gt; pointing to the core deprecated/obsolete modules documentation page (https://www.drupal.org/node/3223395#s-settings-tray) to &lt;code&gt;settings_tray.info.yml&lt;/code&gt;. This triggers core's standard deprecated-extension machinery (deprecation notices when the module is installed, listing in the deprecated modules UI, etc.).&lt;/p&gt;
-&lt;p&gt;The module's own PHPUnit tests (&lt;code&gt;GenericTest&lt;/code&gt;, &lt;code&gt;SettingsTrayTest&lt;/code&gt;, &lt;code&gt;ConfigAccessTest&lt;/code&gt;, &lt;code&gt;OverriddenConfigurationTest&lt;/code&gt;, &lt;code&gt;SettingsTrayBlockFormTest&lt;/code&gt;, &lt;code&gt;BlockPluginHasSettingsTrayFormAccessCheckTest&lt;/code&gt;) were annotated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; so the module's own tests don't fail on its own deprecation notices. No functional code in &lt;code&gt;settings_tray.module&lt;/code&gt; changed; this is purely a lifecycle/status marking commit. A follow-up comment from &lt;code&gt;smustgrave&lt;/code&gt; noted a search of core for remaining references to &lt;code&gt;settings_tray&lt;/code&gt; turned up nothing beyond &lt;code&gt;phpstan-baseline&lt;/code&gt;, ignore-deprecations lists, and &lt;code&gt;MAINTAINERS.txt&lt;/code&gt;, so no further cleanup issues were needed.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;No code changes are required immediately, but sites and modules relying on Settings Tray should plan to switch to the contributed Settings Tray project once available, since core's &lt;code&gt;settings_tray&lt;/code&gt; module now carries:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;lifecycle: deprecated
-lifecycle_link: https://www.drupal.org/node/3223395#s-settings-tray
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;and will eventually be removed from core.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 3, 2026&lt;/li&gt;
-&lt;li&gt;First commit: August 14, 2026 (5 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 16, 2026 (1 day and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

@@ -1,8 +1,16 @@
-**TL;DR:** [968 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [970 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_517 summaries · 16 new this week_
+
+- [#3614401: Allow install profiles to opt out of being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md)
+- [#3610009: Stop discovery of hooks in include files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md)
+- [#3577900: Require plugin managers that support annotation discovery to support attribute...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _122 summaries · 2 new this week_
 - [#3601382: Default Option- Picks a name for the project if it already exists.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601382.md)
 - [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
 - [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
-
-### Drupal Core
-
-_515 summaries · 14 new this week_
-
-- [#3610009: Stop discovery of hooks in include files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md)
-- [#3577900: Require plugin managers that support annotation discovery to support attribute...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md)
-- [#3303751: Reduce the number of times UpdateRegistry scans for extensions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3303751.md)
 
 ### Drupal Canvas
 
