@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_510 summaries · 11 new this week_
+_510 summaries · 10 new this week_
 
 - [#3262935: Link field validation constraints don't give enough detail](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md)
 - [#3593789: Extend RouteSubscriberBase to define as well as alter routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593789.md)
