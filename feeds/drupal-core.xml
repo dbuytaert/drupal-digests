@@ -5,6 +5,59 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3610009: Stop discovery of hooks in include files</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md</link>
+      <guid isPermaLink="false">01a038d9-ac73-77dc-b715-9b032939f879</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 25 Aug 2026 08:22:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +6/−103 · php +6/−98 · yml +0/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b1d192950a552f9bc9b60288ef4644c41fbb0635"&gt;b1d1929&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3610009"&gt;#3610009&lt;/a&gt; · 4 contributors · 21 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's hook discovery no longer looks for procedural hook implementations inside include files (&lt;code&gt;.inc&lt;/code&gt;) or other custom subdirectories that a module's &lt;code&gt;.module&lt;/code&gt; file &lt;code&gt;require_once&lt;/code&gt;s. Historically Drupal would scan any file extension and most subdirectories of a module for legacy hook implementations, a leftover from pre-OOP-hooks Drupal. Now only &lt;code&gt;.module&lt;/code&gt;, &lt;code&gt;.profile&lt;/code&gt;, and &lt;code&gt;.install&lt;/code&gt; files (or &lt;code&gt;.theme&lt;/code&gt; for themes) at the top level, plus &lt;code&gt;src&lt;/code&gt; and &lt;code&gt;src/Hook&lt;/code&gt;, are scanned. Modules that still keep procedural hooks in separate include files will find those hooks quietly stop being invoked after upgrading, since discovery simply no longer looks there rather than throwing an error.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;HookCollectorPass&lt;/code&gt; (and &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;) no longer scan &lt;code&gt;.inc&lt;/code&gt; files, arbitrary subdirectories, or the &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting for procedural hook implementations; only &lt;code&gt;.module&lt;/code&gt;/&lt;code&gt;.profile&lt;/code&gt;/&lt;code&gt;.install&lt;/code&gt; (or &lt;code&gt;.theme&lt;/code&gt;) files and &lt;code&gt;src&lt;/code&gt;/&lt;code&gt;src/Hook&lt;/code&gt; are scanned.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change is in &lt;code&gt;HookCollectorPass::filterIterator()&lt;/code&gt; (and the equivalent in &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;), which decides which files and directories the hook-collecting compiler pass recurses into. Previously, for directories it allowed &lt;code&gt;src&lt;/code&gt;/&lt;code&gt;src/Hook&lt;/code&gt; unconditionally, and otherwise allowed any directory except &lt;code&gt;tests&lt;/code&gt;, &lt;code&gt;js&lt;/code&gt;, &lt;code&gt;css&lt;/code&gt; (and &lt;code&gt;templates&lt;/code&gt; for themes) and any names configured via the &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; setting, as long as the directory contained no &lt;code&gt;.info.yml&lt;/code&gt; file. For files, it accepted the &lt;code&gt;inc&lt;/code&gt;, &lt;code&gt;module&lt;/code&gt;, &lt;code&gt;profile&lt;/code&gt;, &lt;code&gt;install&lt;/code&gt; extensions (&lt;code&gt;inc&lt;/code&gt;, &lt;code&gt;theme&lt;/code&gt; for themes). This MR strips both mechanisms down: directories are only followed into &lt;code&gt;src&lt;/code&gt; or &lt;code&gt;src/Hook&lt;/code&gt;, and files are only picked up if their extension is &lt;code&gt;module&lt;/code&gt;, &lt;code&gt;profile&lt;/code&gt;, or &lt;code&gt;install&lt;/code&gt; (&lt;code&gt;theme&lt;/code&gt; for themes). &lt;code&gt;inc&lt;/code&gt; is dropped entirely and the &lt;code&gt;file_scan_ignore_directories&lt;/code&gt; check is removed from this pass (the setting is untouched elsewhere, e.g. &lt;code&gt;ExtensionDiscovery&lt;/code&gt; and &lt;code&gt;FileSystem::scanDirectory()&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;The motivation, per &lt;a href="https://www.drupal.org/node/3571067"&gt;#3571067&lt;/a&gt;, is that hook discovery previously kept scanning include files even though explicit/implicit include-file loading for hooks was removed. Modules that still &lt;code&gt;require_once&lt;/code&gt; a separate file with legacy procedural hooks (like &lt;code&gt;better_exposed_filters.module&lt;/code&gt; including a helper file) got picked up accidentally, and when they stopped matching (e.g. a leftover include with a stale function name) it produced a confusing &lt;code&gt;InvalidArgumentException: Class &amp;quot;...&amp;quot; does not exist.&lt;/code&gt; Removing &lt;code&gt;.inc&lt;/code&gt; scanning altogether, instead of trying to special-case or better-report the error, was chosen as the simpler fix since discovery can't reliably tell whether a function in an arbitrary include file is actually a hook. The corresponding kernel tests (&lt;code&gt;testIgnoreDirectories&lt;/code&gt; in &lt;code&gt;HookCollectorPassTest&lt;/code&gt; and &lt;code&gt;ThemeHookCollectorPassTest&lt;/code&gt;) and their fixture test modules/themes were removed along with the code path.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If a module or theme still implements legacy procedural hooks in a separate include file and loads it manually, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// mymodule.module
+require_once __DIR__ . '/mymodule.inc';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// mymodule.inc
+function mymodule_entity_type_alter(array &amp;amp;$entity_types) { ... }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;move the hook implementation directly into &lt;code&gt;mymodule.module&lt;/code&gt; (or &lt;code&gt;mymodule.install&lt;/code&gt;/&lt;code&gt;mymodule.profile&lt;/code&gt;), or convert it to an OOP hook class under &lt;code&gt;src/Hook&lt;/code&gt;. Hooks left in &lt;code&gt;.inc&lt;/code&gt; files, or in any directory other than &lt;code&gt;src&lt;/code&gt;/&lt;code&gt;src/Hook&lt;/code&gt;, will no longer be discovered or invoked, with no error raised.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 10, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;berdir opened the MR after catch gave a preliminary +1 in Slack to fully removing include-file discovery rather than pursuing the alternative of improving the error message. nicxvan suggested renaming the obsolete test fixture module so the existing test-suite plumbing could still run, which berdir noted was unnecessary because the ignored-directory check itself was being deleted. nicxvan also flagged that &lt;code&gt;gin&lt;/code&gt; theme's 5.0.x dynamically &lt;code&gt;glob()&lt;/code&gt;s an includes directory from its main theme file, and berdir confirmed that pattern breaks under this change as well, then extended &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; to match. catch committed the change to main, noting it simplifies code that otherwise had to be kept around for years.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3577900: Require plugin managers that support annotation discovery to support attribute discovery</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md</link>
       <guid isPermaLink="false">01a03802-b285-76b9-99fe-07b60d542f9c</guid>
@@ -1019,45 +1072,6 @@ lifecycle_link: https://www.drupal.org/node/3223395#s-settings-tray
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3615749: Exclude ckeditor5.css from aggregation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615749.md</link>
-      <guid isPermaLink="false">01a008c8-f708-74b0-b2d7-65dbbd3c005e</guid>
-      <pubDate>Fri, 14 Aug 2026 20:45:37 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +4/−4 · php +3/−3 · yml +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4e897a51852e452918ebf5f7a79ccfb170a6c5ae"&gt;4e897a5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615749"&gt;#3615749&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core no longer includes the large, already-minified &lt;code&gt;ckeditor5.css&lt;/code&gt; (about 218KB) in CSS aggregation. Previously, if a site had multiple content types or forms with different CKEditor 5 configurations, this file could be duplicated across several different aggregated CSS files, multiplying the bytes transferred unnecessarily. Excluding it from aggregation means it's served once as its own file and can be cached and reused across pages instead of being bundled repeatedly, cutting the total stylesheet bytes sent to visitors editing content.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix sets &lt;code&gt;preprocess: false&lt;/code&gt; on the &lt;code&gt;assets/vendor/ckeditor5/ckeditor5.css&lt;/code&gt; entry in the &lt;code&gt;ckeditor5&lt;/code&gt; library definition (&lt;code&gt;core.libraries.yml&lt;/code&gt;), mirroring the setting already used for &lt;code&gt;ckeditor5.umd.js&lt;/code&gt; in the same library. This tells Drupal's asset optimizer to skip this file during CSS aggregation, so it is always delivered as a standalone request rather than concatenated into a page-specific aggregate.&lt;/p&gt;
-&lt;p&gt;Core's own performance test (&lt;code&gt;doTestNodeAddPagesAuthor&lt;/code&gt;) had its expected metrics updated accordingly: &lt;code&gt;StylesheetCount&lt;/code&gt; rose from 23 to 27 (the file is now a separate, unaggregated request) while &lt;code&gt;StylesheetBytes&lt;/code&gt; dropped from 1,085,546 to 640,654, confirming the reduction in duplicate bytes transferred. This was spun out of &lt;a href="https://www.drupal.org/node/3615654"&gt;#3615654&lt;/a&gt; (adding &lt;code&gt;aggregate_target&lt;/code&gt; support to core and ckeditor5 libraries) specifically so the aggregation exclusion could be evaluated and potentially backported on its own.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 14, 2026 (4 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

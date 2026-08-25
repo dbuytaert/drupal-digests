@@ -1,16 +1,24 @@
-**TL;DR:** [966 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [968 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_122 summaries · 2 new this week_
+
+- [#3601382: Default Option- Picks a name for the project if it already exists.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601382.md)
+- [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
+- [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
+
 ### Drupal Core
 
-_514 summaries · 14 new this week_
+_515 summaries · 14 new this week_
 
+- [#3610009: Stop discovery of hooks in include files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md)
 - [#3577900: Require plugin managers that support annotation discovery to support attribute...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md)
 - [#3303751: Reduce the number of times UpdateRegistry scans for extensions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3303751.md)
-- [#2871354: Improve "allowed_html" to provide a better config diff](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2871354.md)
 
 ### Drupal Canvas
 
@@ -19,14 +27,6 @@ _241 summaries · 4 new this week_
 - [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
 - [#3591916: Component version hashes go stale on single-process installs: prop-shape...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md)
 - [#3591885: Add `document` object $ref for linking locally hosted documents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md)
-
-### Drupal AI
-
-_121 summaries · 1 new this week_
-
-- [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
-- [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
-- [#3553475: Deletion of chunks vectors fails upon saving a node after editing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md)
 
 ### Drupal CMS
 
