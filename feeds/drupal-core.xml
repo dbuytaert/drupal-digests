@@ -5,6 +5,69 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3614825: Allow additional modules to be installed alongside the profile modules</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614825.md</link>
+      <guid isPermaLink="false">01a03a8c-e38e-7107-ac27-c6546e3bb4c8</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 25 Aug 2026 16:45:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +122/−43 · php +109/−43 · yml +13&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6a9373d79a2cbd2081c75b3da84bfeee2a668e82"&gt;6a9373d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614825"&gt;#3614825&lt;/a&gt; · 3 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's test runner used to install a test's install profile first, then make a second call to install any extra modules listed in the test's static &lt;code&gt;$modules&lt;/code&gt; property (and the default theme), each of which rebuilds the service container. This change lets those extra modules and the default theme be installed in the same pass as the profile's own modules and themes, cutting the number of container rebuilds during test setup and speeding up the test suite. There is no behavior change for site owners; it only affects how Drupal core and contrib tests execute. As part of the change, the method some test classes override to add modules, &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt;, is deprecated and will be removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;FunctionalTestSetupTrait::installModulesFromClassProperty()&lt;/code&gt; is deprecated in Drupal 12.0.0 and removed in 13.0.0; override &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; instead to supply extra modules for a test.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_profile_themes()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; now read &lt;code&gt;$install_state['extra_modules']&lt;/code&gt; and &lt;code&gt;$install_state['default_theme']&lt;/code&gt; and merge them into the profile's own module and theme lists before making a single call to the module/theme installer, instead of installing the profile first and the extras separately. &lt;code&gt;install_install_profile()&lt;/code&gt; also writes &lt;code&gt;default_theme&lt;/code&gt; into &lt;code&gt;system.theme&lt;/code&gt; config when present.&lt;/p&gt;
+&lt;p&gt;On the test side, &lt;code&gt;FunctionalTestSetupTrait::installParameters()&lt;/code&gt; now populates those two &lt;code&gt;install_state&lt;/code&gt; keys from a new &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; method (which just returns the modules collected recursively from &lt;code&gt;static::$modules&lt;/code&gt;) and from &lt;code&gt;$this-&amp;gt;defaultTheme&lt;/code&gt;. &lt;code&gt;installDrupal()&lt;/code&gt; no longer calls &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt;/&lt;code&gt;installDefaultThemeFromClassProperty()&lt;/code&gt; after the profile install step, because the extra modules and theme are now installed as part of the profile install itself. &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; remains as a deprecated BC wrapper around &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; for the few callers, such as &lt;code&gt;PerformanceTestTrait&lt;/code&gt;, that still invoke it directly. &lt;code&gt;WebDriverTestBase&lt;/code&gt; and &lt;code&gt;PerformanceTestBase&lt;/code&gt; were switched from overriding &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; to overriding &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because &lt;code&gt;path_alias&lt;/code&gt; can now be installed in the same batch as another module that creates a path alias from its own &lt;code&gt;hook_install()&lt;/code&gt;, &lt;code&gt;PathAliasRepository::pathHasMatchingAlias()&lt;/code&gt; now catches &lt;code&gt;DatabaseException&lt;/code&gt; and returns &lt;code&gt;FALSE&lt;/code&gt; instead of fataling when its own table doesn't exist yet; a related edge case involving route-dependent modules is tracked separately in &lt;a href="https://www.drupal.org/node/3616642"&gt;#3616642&lt;/a&gt;. Several test-only modules gained explicit &lt;code&gt;dependencies&lt;/code&gt; in their &lt;code&gt;.info.yml&lt;/code&gt; files (e.g. on &lt;code&gt;layout_builder&lt;/code&gt;) because they could no longer rely on being installed after the module they depend on.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Test classes that override &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; to add extra modules should override &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+protected function installModulesFromClassProperty(ContainerInterface $container): void {
+  self::$modules = [
+    'js_testing_ajax_request_test',
+    'js_testing_log_test',
+  ];
+  parent::installModulesFromClassProperty($container);
+}
+
+// After:
+protected function getModulesFromClassProperty(): array {
+  $modules = parent::getModulesFromClassProperty();
+  $modules = array_merge($modules, ['js_testing_ajax_request_test', 'js_testing_log_test']);
+  return $modules;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; still works but triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice and will be removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (21 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3614401: Allow install profiles to opt out of being installed</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md</link>
       <guid isPermaLink="false">01a039b6-f8b4-7550-91a3-f0ec5be594b1</guid>
@@ -1012,64 +1075,6 @@ configuration:
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The change sat dormant for years after alexpott clarified in comment #18 that &lt;code&gt;user_user_role_insert()&lt;/code&gt; &amp;quot;is doing something that does not have to happen at all. It's a UI niceness but from an API point-of-view just gets in the way&amp;quot;, distinguishing this from a superficially similar issue (&lt;a href="https://www.drupal.org/node/2980237"&gt;#2980237&lt;/a&gt;) raised by idebr. When joegraduate revived the patch, smustgrave pushed back on backward-compatibility grounds, arguing the change could silently break contrib tests and install profiles that rely on the automatic action creation, and suggested a formal deprecation path. joegraduate and nicxvan discussed why a conventional deprecation wasn't practical here since the behavior lives inside a hook implementation rather than an invokable API, with nicxvan noting hook implementations aren't strictly covered under Drupal's BC policy. The resolution that shipped was to update core's own install profiles and recipes to export the actions explicitly, so the fix's own change record documents the migration path for anyone else relying on the old implicit behavior.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2934063: Remove the workaround in \Drupal\Core\Installer\ExtensionListTrait::setPathname()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2934063.md</link>
-      <guid isPermaLink="false">01a00d19-dfb4-7563-8bc3-e30c676a416e</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 17 Aug 2026 00:21:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +81/−78 · php +81/−78&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/566590da58f39523cd327786a1e8b9031d9df323"&gt;566590d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2934063"&gt;#2934063&lt;/a&gt; · 7 contributors · 43 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's installer used to carry a special workaround: a static cache and dedicated &lt;code&gt;InstallerModuleExtensionList&lt;/code&gt;/&lt;code&gt;InstallerThemeExtensionList&lt;/code&gt; classes that remembered extension file paths across the container rebuilds that happen during installation. That workaround is no longer needed because the base extension list classes can now resolve manually seeded pathnames on their own, so the installer-specific machinery has been removed and the classes that implemented it are deprecated. Along the way, a related bug was fixed: when locating a profile's optional config overrides, &lt;code&gt;ConfigInstaller&lt;/code&gt; was looking up the profile's directory using the &amp;quot;module&amp;quot; extension type instead of &amp;quot;profile&amp;quot;, which is now corrected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\Core\Installer\ExtensionListTrait&lt;/code&gt;, &lt;code&gt;InstallerModuleExtensionList&lt;/code&gt; and &lt;code&gt;InstallerThemeExtensionList&lt;/code&gt; are deprecated in 11.5.0 with no replacement (base extension list classes now provide the same behavior); use &lt;code&gt;Drupal\Core\Extension\ModuleExtensionList&lt;/code&gt; / &lt;code&gt;ThemeExtensionList&lt;/code&gt; directly. &lt;code&gt;Drupal\Core\Extension\ExtensionList::setPathname()&lt;/code&gt; is also deprecated as an internal-only method with no replacement. All are removed in Drupal 13.0.0.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;install_begin_request()&lt;/code&gt;, &lt;code&gt;InstallStorage::getAllFolders()&lt;/code&gt; and &lt;code&gt;ExtensionInstallStorage::getAllFolders()&lt;/code&gt; no longer prime &lt;code&gt;ExtensionList::setPathname()&lt;/code&gt; for the active install profile; they rely on the base &lt;code&gt;ExtensionList&lt;/code&gt;'s ability to resolve pathnames added via &lt;code&gt;$addedPathNames&lt;/code&gt; directly. &lt;code&gt;NormalInstallerServiceProvider&lt;/code&gt; no longer swaps the &lt;code&gt;extension.list.module&lt;/code&gt; and &lt;code&gt;extension.list.theme&lt;/code&gt; service classes to the installer-specific subclasses. &lt;code&gt;ModuleExtensionList::__construct()&lt;/code&gt; now writes container-provided pathnames straight into &lt;code&gt;$this-&amp;gt;addedPathNames&lt;/code&gt; instead of calling the now-deprecated &lt;code&gt;setPathname()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;Drupal\Core\Installer\ExtensionListTrait&lt;/code&gt;, &lt;code&gt;InstallerModuleExtensionList&lt;/code&gt;, and &lt;code&gt;InstallerThemeExtensionList&lt;/code&gt; are reduced to backward-compatibility shims that trigger a deprecation notice on use; they are removed in Drupal 13.0.0 with no replacement, since &lt;code&gt;ModuleExtensionList&lt;/code&gt;/&lt;code&gt;ThemeExtensionList&lt;/code&gt; now cover the same behavior. &lt;code&gt;ExtensionList::setPathname()&lt;/code&gt; itself is also deprecated (it remains &lt;code&gt;@internal&lt;/code&gt;) with no replacement.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ConfigInstaller::installOptionalConfig()&lt;/code&gt; and &lt;code&gt;getProfileStorages()&lt;/code&gt; now call &lt;code&gt;$this-&amp;gt;extensionPathResolver-&amp;gt;getPath('profile', $profile)&lt;/code&gt; instead of &lt;code&gt;getPath('module', $profile)&lt;/code&gt; to locate the profile's optional config directory, fixing incorrect path resolution for profiles whose directory structure differs from a same-named module.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code that extends or type-checks against the deprecated classes should switch to the base extension list classes:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-use Drupal\Core\Installer\InstallerModuleExtensionList;
-use Drupal\Core\Installer\InstallerThemeExtensionList;
-
-// After
-use Drupal\Core\Extension\ModuleExtensionList;
-use Drupal\Core\Extension\ThemeExtensionList;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Any code calling &lt;code&gt;\Drupal\Core\Extension\ExtensionList::setPathname()&lt;/code&gt; directly should stop doing so; it is deprecated with no replacement and will be removed in Drupal 13.0.0. All three classes and the method continue to work until then but emit &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notices.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 3, 2018&lt;/li&gt;
-&lt;li&gt;Committed: August 16, 2026 (8 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dawehner (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;andypost did the implementation work over an extended period, including debugging a regression in &lt;code&gt;AjaxTest&lt;/code&gt; caused by &lt;code&gt;ExtensionPathResolver::getPath()&lt;/code&gt; now throwing for unknown extensions during library discovery (split into follow-up &lt;a href="https://www.drupal.org/node/3601471"&gt;#3601471&lt;/a&gt;), and splitting the original scope into separate issues for the pathname deprecation (&lt;a href="https://www.drupal.org/node/3601481"&gt;#3601481&lt;/a&gt;) and the asset-library fix, at reviewer feedback that the change needed to be split so consumers wouldn't break. catch and longwave reviewed and committed the final, self-contained MR, with catch noting &amp;quot;so much code removed/deprecated.&amp;quot;&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
