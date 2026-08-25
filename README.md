@@ -1,4 +1,4 @@
-**TL;DR:** [962 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [966 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_510 summaries · 10 new this week_
+_514 summaries · 14 new this week_
 
-- [#3262935: Link field validation constraints don't give enough detail](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md)
-- [#3593789: Extend RouteSubscriberBase to define as well as alter routes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593789.md)
-- [#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md)
+- [#3577900: Require plugin managers that support annotation discovery to support attribute...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md)
+- [#3303751: Reduce the number of times UpdateRegistry scans for extensions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3303751.md)
+- [#2871354: Improve "allowed_html" to provide a better config diff](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2871354.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _90 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [189 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_189 rules · 0 new this week_
+_190 rules · 1 new this week_
 
+- [Add $memoryCache argument to UpdateRegistry instantiations](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-memorycache-argument-to-updateregistry-instantiations-3303751.php)
 - [Replace deprecated installer-specific extension list classes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php)
 - [Rename NavigationShortcutsBlock to ShortcutNavigationBlock](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php)
-- [Replace options_allowed_values() with the OptionsAllowedValuesInterface service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-options-allowed-values-with-the-2171397.php)
 
 
 ## RSS feeds

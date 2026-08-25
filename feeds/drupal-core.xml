@@ -5,6 +5,229 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3577900: Require plugin managers that support annotation discovery to support attribute discovery</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md</link>
+      <guid isPermaLink="false">01a03802-b285-76b9-99fe-07b60d542f9c</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 25 Aug 2026 08:19:01 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +2/−15 · php +2/−15&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/460789dde168558a0824ceafb9425cdcb42394ca"&gt;460789d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577900"&gt;#3577900&lt;/a&gt; · 5 contributors · 14 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's plugin system has been moving from PHP annotations to PHP attributes for defining plugins. Since Drupal 11.2, plugin managers that only supported annotation-based discovery (and not the newer attribute-based discovery) triggered a silenced deprecation warning that was easy to miss. As of this change, any plugin manager, in core or in contributed and custom modules, that does not also provide an attribute class will now cause a fatal error when it is instantiated. This is intentional: since many contrib modules define plugin types that other contrib modules provide plugins for, forcing plugin-type-providing modules to add attribute support now (rather than waiting for Drupal 13) gives the wider ecosystem more time to update before the final removal of annotation-only discovery.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Constructing &lt;code&gt;DefaultPluginManager&lt;/code&gt; (or a subclass) with only &lt;code&gt;$plugin_definition_annotation_name&lt;/code&gt; and no attribute class now throws an &lt;code&gt;\InvalidArgumentException&lt;/code&gt; at construction time instead of triggering a silenced &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change is in &lt;code&gt;DefaultPluginManager::__construct()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Plugin/DefaultPluginManager.php&lt;/code&gt;. Previously, when a &lt;code&gt;$plugin_definition_attribute_name&lt;/code&gt; was passed but did not implement &lt;code&gt;AttributeInterface&lt;/code&gt; (i.e. only an annotation class was effectively usable), the constructor called &lt;code&gt;@trigger_error(...)&lt;/code&gt; with &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;, which is easy for sites and CI to ignore. Now it throws &lt;code&gt;new \InvalidArgumentException(..., E_USER_WARNING)&lt;/code&gt; with a message pointing to the original deprecation change record (drupal.org node 3395582), so instantiating such a plugin manager fails outright rather than warning.&lt;/p&gt;
+&lt;p&gt;Accompanying core tests were updated: &lt;code&gt;DefaultPluginManagerTest::testDefaultPluginManager()&lt;/code&gt; dropped its annotation-only assertions, and &lt;code&gt;testDefaultPluginManagerAnnotationsOnly()&lt;/code&gt; now expects the thrown exception message instead of a deprecation message. This does not affect plugin managers that already provide both an attribute class and an annotation class for backward compatibility, which remains the supported pattern; only managers exposing annotation-only discovery are affected. This issue was tracked as a follow-up enforcement of the change documented in the existing change record https://www.drupal.org/node/3522776 (itself a &amp;quot;now you have to do it&amp;quot; successor to https://www.drupal.org/node/3395582 from 2023), so no new change record was created.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you maintain a plugin manager that extends &lt;code&gt;DefaultPluginManager&lt;/code&gt; (or implements similar annotation/attribute discovery) and it currently only supports annotation-based plugin discovery, you must add a PHP attribute class before upgrading to Drupal 12, or code that instantiates your plugin manager will throw:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;InvalidArgumentException: Drupal\Your\Namespace\YourPluginManager only supports
+annotation-based discovery, which is no longer supported as of Drupal 12.0.
+Provide an Attribute class and an Annotation class for BC. See
+https://www.drupal.org/node/3395582
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To fix, define an Attribute class (implementing the plugin's attribute annotation pattern) and pass both the attribute and annotation class names to the parent constructor, e.g.:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;parent::__construct(
+  $subdir,
+  $namespaces,
+  $module_handler,
+  $plugin_interface,
+  MyPluginAttribute::class,
+  MyPluginAnnotation::class
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (5 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Committer catch and berdir discussed how to enforce the requirement: catch initially suggested &amp;quot;unsilencing&amp;quot; the deprecation (making the existing &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; visible) as a middle ground rather than a hard break, and smustgrave agreed, noting modules like entity_embed still lacked attribute support. berdir then implemented the unsilencing approach, but reported in comment &lt;a href="https://www.drupal.org/node/16715227"&gt;#16715227&lt;/a&gt; that he couldn't find a good way to test for an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;/&lt;code&gt;E_USER_WARNING&lt;/code&gt; in this case, and revised the MR to throw an exception instead, explaining &amp;quot;I think I'd prefer that option. We really want contrib to pick this up in D12 IMHO.&amp;quot; That became the version that was committed. Separately, benjifisher and catch pushed back on the initial issue title as an unclear double negative, leading to the retitling to its current, clearer form.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3303751: Reduce the number of times UpdateRegistry scans for extensions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3303751.md</link>
+      <guid isPermaLink="false">01a03803-f1d6-7685-86c8-265b0635b47a</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 25 Aug 2026 08:15:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +119/−34 · php +118/−33 · yml +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ee7c7d2d123e18633b9e967db0de7d5ca40c060f"&gt;ee7c7d2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3303751"&gt;#3303751&lt;/a&gt; · 5 contributors · 40 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites with a large number of enabled modules and themes were seeing significantly slower site installs, database updates, and test runs because &lt;code&gt;UpdateRegistry&lt;/code&gt; (the service that tracks and runs &lt;code&gt;hook_post_update_NAME()&lt;/code&gt; implementations) re-scanned the filesystem for every module, theme, and profile each time it needed to check for update files on a given extension. On a site or test suite with 150+ extensions, this added up to a large, repeated cost. The registry now scans the filesystem for extensions once and reuses the result, cutting a substantial amount of time off installs, updates, and functional test runs, especially on slower filesystems like Docker or WSL2.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Calling &lt;code&gt;UpdateRegistry::__construct()&lt;/code&gt; without the new &lt;code&gt;$memoryCache&lt;/code&gt; argument is deprecated in Drupal 11.5.0 and will be required in 12.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The expensive work happened in &lt;code&gt;UpdateRegistry::scanExtensionsAndLoadUpdateFiles()&lt;/code&gt;, which built a new &lt;code&gt;ExtensionDiscovery&lt;/code&gt; and called &lt;code&gt;scan('module')&lt;/code&gt;, &lt;code&gt;scan('theme')&lt;/code&gt;, and &lt;code&gt;scan('profile')&lt;/code&gt; on every invocation, even though the result rarely changes within a request. This logic was extracted into a new &lt;code&gt;discoverExtensions()&lt;/code&gt; method that first checks an injected &lt;code&gt;MemoryCacheInterface&lt;/code&gt; (&lt;code&gt;cache.memory&lt;/code&gt;) for a cached copy under the &lt;code&gt;update_registry.extensions&lt;/code&gt; cache ID, populating it and tagging it &lt;code&gt;config:core.extension&lt;/code&gt; on a miss so it's invalidated automatically when the installed extension list changes (module/theme install or uninstall).&lt;/p&gt;
+&lt;p&gt;To get the memory cache into the class, &lt;code&gt;UpdateRegistry::__construct()&lt;/code&gt; gained a new &lt;code&gt;MemoryCacheInterface|string|null $memoryCache = NULL&lt;/code&gt; parameter inserted before the existing &lt;code&gt;$updateType&lt;/code&gt; parameter. For backward compatibility, if a string is passed in that slot (the old calling convention where &lt;code&gt;$updateType&lt;/code&gt; was the sixth argument) it's treated as &lt;code&gt;$updateType&lt;/code&gt; and the memory cache falls back to &lt;code&gt;\Drupal::service('cache.memory')&lt;/code&gt;, with a deprecation notice raised. The &lt;code&gt;update.post_update_registry&lt;/code&gt; service definition in &lt;code&gt;core.services.yml&lt;/code&gt; was updated to pass &lt;code&gt;@cache.memory&lt;/code&gt; explicitly.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update any code that instantiates &lt;code&gt;UpdateRegistry&lt;/code&gt; directly (for example Drush's deploy hook command) to pass a &lt;code&gt;MemoryCacheInterface&lt;/code&gt; service as the sixth constructor argument, before &lt;code&gt;$updateType&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry(
+  $root,
+  $sitePath,
+  $module_list,
+  $keyValue,
+  $theme_handler,
+  \Drupal::service('cache.memory'),
+  'post_update',
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Calling the constructor without the &lt;code&gt;$memoryCache&lt;/code&gt; argument still works in Drupal 11.5.x but triggers a deprecation notice and will be removed in Drupal 12.0.0.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 15, 2022&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (4 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;phma (OM)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;An initial patch from the issue reporter (&lt;code&gt;phma&lt;/code&gt;) sat for years before &lt;code&gt;nicxvan&lt;/code&gt; and &lt;code&gt;longwave&lt;/code&gt; reworked it: &lt;code&gt;longwave&lt;/code&gt; proposed an alternative in MR!16818 that avoided threading a boolean flag through several methods and added test coverage proving discovery happens once and is then cached, which &lt;code&gt;nicxvan&lt;/code&gt; preferred over the original patch. The two then iterated on whether to use &lt;code&gt;CacheBackendInterface&lt;/code&gt; or &lt;code&gt;MemoryCacheInterface&lt;/code&gt; (settling on the latter now that &lt;a href="https://www.drupal.org/node/3590964"&gt;#3590964&lt;/a&gt; supported it), and on where the caching logic should live, with &lt;code&gt;nicxvan&lt;/code&gt; moving it into &lt;code&gt;discoverExtensions()&lt;/code&gt; so any future caller benefits. &lt;code&gt;catch&lt;/code&gt; profiled the change against a curtailed run of the node module's &lt;code&gt;GenericTest&lt;/code&gt;, confirming it saved about 20 calls to &lt;code&gt;ExtensionDiscovery::scan()&lt;/code&gt; (roughly half the time spent in &lt;code&gt;UpdateRegistry::getUpdateFunctions()&lt;/code&gt;), and noted the saving multiplies across a full test run executed thousands of times.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#2871354: Improve "allowed_html" to provide a better config diff</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2871354.md</link>
+      <guid isPermaLink="false">01a03805-7517-762b-b394-c1f91cfbe47c</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 25 Aug 2026 08:03:06 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 30 files, +233/−163 · php +216/−146 · yml +17/−17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8f7a0cbafdf5ea78ca98052df0d766dee78747ec"&gt;8f7a0cb&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2871354"&gt;#2871354&lt;/a&gt; · 15 contributors · 126 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 23&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 15 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Text formats that use the &amp;quot;Limit allowed HTML tags&amp;quot; filter store their list of permitted tags/attributes (&lt;code&gt;allowed_html&lt;/code&gt;) as a single string. Because elements were historically just appended wherever the admin form or another module happened to place them, two functionally-identical configurations could produce very different-looking strings, making config exports hard to diff and hard to review in version control. Drupal now sorts that list alphabetically whenever it is saved, so equivalent configurations always serialize to the same string and future changes show up as small, readable diffs instead of noise. A one-time update also re-sorts &lt;code&gt;allowed_html&lt;/code&gt; on any existing filter format that has Filter HTML enabled, and CKEditor 5's internal list of allowed elements is sorted the same way for consistency.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;allowed_html&lt;/code&gt; setting stored by the Filter HTML (&lt;code&gt;filter_html&lt;/code&gt;) plugin is now kept alphabetically sorted; existing filter formats are resorted by a new &lt;code&gt;filter_post_update_sort_allowed_html()&lt;/code&gt; update, producing a one-time config diff.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lands the simple approach originally proposed in this issue rather than the redesigned, structured schema (nested sequences keyed by element/attribute) that was prototyped and reviewed at length over several years: that redesign hit an unresolved backwards-compatibility problem, since Drupal's config schema has no version tracking, so changing &lt;code&gt;allowed_html&lt;/code&gt; from a &lt;code&gt;string&lt;/code&gt; to a &lt;code&gt;sequence&lt;/code&gt; risked breaking config import from sites still exporting the old string format, a concern raised in the thread by Gábor Hojtsy and effulgentsia.&lt;/p&gt;
+&lt;p&gt;Instead, &lt;code&gt;FilterHtml::setConfiguration()&lt;/code&gt; now runs the incoming &lt;code&gt;allowed_html&lt;/code&gt; string through a new public static method, &lt;code&gt;FilterHtml::sortAllowedHtmlTags()&lt;/code&gt;, which extracts each &lt;code&gt;&amp;lt;tag attrs&amp;gt;&lt;/code&gt; token with a regex and sorts them with &lt;code&gt;sort($tags, SORT_STRING)&lt;/code&gt; before re-imploding them. The schema and stored representation remain an unstructured string, so no BC-breaking schema change was needed. A new &lt;code&gt;filter_post_update_sort_allowed_html()&lt;/code&gt; (&lt;code&gt;filter.post_update.php&lt;/code&gt;) uses &lt;code&gt;ConfigEntityUpdater&lt;/code&gt; to resave every &lt;code&gt;filter_format&lt;/code&gt; config entity that has an enabled &lt;code&gt;filter_html&lt;/code&gt; filter, so the sort applies retroactively without requiring an admin to resave the format manually. Separately, &lt;code&gt;HTMLRestrictions::toCKEditor5ElementsArray()&lt;/code&gt; now calls &lt;code&gt;sort($readable)&lt;/code&gt; on its own generated element list for the same consistency reason, which is why CKEditor 5 test expectations for allowed-tag strings changed throughout the patch.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 20, 2017&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (9 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;sam152 (PreviousNext)&lt;/li&gt;
+&lt;li&gt;dawehner (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;bbrala (SWIS)&lt;/li&gt;
+&lt;li&gt;borisson_ (Calibrate)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue was filed in 2017 by Sam152 (sam152) with the simple sorting idea shown in the summary. dawehner offered to help and the conversation quickly escalated into a much more ambitious rewrite: converting &lt;code&gt;allowed_html&lt;/code&gt; from a string into a structured, keyed schema (element/attribute maps) to get a genuinely diffable config format, which sam152 iterated on through many patch rerolls, and wim leers gave an unusually thorough line-by-line review (&lt;a href="https://www.drupal.org/node/12092262"&gt;#12092262&lt;/a&gt;) praising the &amp;quot;eye to detail&amp;quot; and walking through edge cases like default-configuration merging via &lt;code&gt;FilterPluginCollection::initializePlugin()&lt;/code&gt;. That redesign got to RTBC-adjacent state, but larowlan and then Gábor Hojtsy raised a blocking concern: Drupal's config schema has no version tracking, so retyping &lt;code&gt;allowed_html&lt;/code&gt; from &lt;code&gt;string&lt;/code&gt; to &lt;code&gt;sequence&lt;/code&gt; could silently drop or corrupt allowed-HTML settings (a potential security issue) when importing configuration exported by an older core version. Gábor Hojtsy and effulgentsia explored alternatives (a new parallel config key, a union string-or-sequence schema type) but no consensus was reached, and the issue stalled for years on that unresolved BC question before eventually landing with the original, much simpler sorting-only approach.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#345747: Show all DB Connections on Status Page</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/345747.md</link>
+      <guid isPermaLink="false">01a03805-eb8c-77db-81af-e1bae4714089</guid>
+      <pubDate>Tue, 25 Aug 2026 07:56:33 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +49/−0 · php +49&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/11e948864ef3616b446f6c4559f83907302dfcba"&gt;11e9488&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/345747"&gt;#345747&lt;/a&gt; · 16 contributors · 57 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 16 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Status Report page (&lt;code&gt;admin/reports/status&lt;/code&gt;) now lists the actual database connection details, host, database name, and table prefix, for every configured database connection, not just the default one. Previously the status page gave no indication of which database(s) a site was actually connected to, which made it easy to mix up databases when cloning or migrating sites for testing. The new &amp;quot;Database connection&amp;quot; (or &amp;quot;Database connections&amp;quot;, pluralized when there is more than one) entry surfaces this information directly, including any additional connections such as a &lt;code&gt;replica&lt;/code&gt; target.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lives in &lt;code&gt;SystemManager::checkRequirements()&lt;/code&gt; in &lt;code&gt;system.module&lt;/code&gt;. It calls &lt;code&gt;Database::getAllConnectionInfo()&lt;/code&gt; to retrieve every configured connection (keyed by connection name, e.g. &lt;code&gt;default&lt;/code&gt;, and then by target, e.g. &lt;code&gt;default&lt;/code&gt;, &lt;code&gt;replica&lt;/code&gt;), and builds a &lt;code&gt;$requirements['database_connection']&lt;/code&gt; entry with one line per connection/target showing &lt;code&gt;Host: %host&lt;/code&gt; (omitted for drivers like SQLite that have no host key), &lt;code&gt;Database: %database&lt;/code&gt;, and either &lt;code&gt;Prefix: %prefix&lt;/code&gt; or &lt;code&gt;No prefix&lt;/code&gt;. The requirement's title uses &lt;code&gt;PluralTranslatableMarkup&lt;/code&gt; so it reads &amp;quot;Database connection&amp;quot; or &amp;quot;Database connections&amp;quot; depending on how many are configured.&lt;/p&gt;
+&lt;p&gt;The accompanying test in &lt;code&gt;SystemTest::testStatusPage()&lt;/code&gt; (in &lt;code&gt;core/modules/system/tests/src/Functional/System/SystemTest.php&lt;/code&gt;) asserts the presence of the host/database/prefix text, branching on &lt;code&gt;databaseType() === 'sqlite'&lt;/code&gt; since SQLite connections have no &lt;code&gt;host&lt;/code&gt; key.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 11, 2008&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (17 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;arla&lt;/li&gt;
+&lt;li&gt;alexpott&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;nestor.mata&lt;/li&gt;
+&lt;li&gt;tim bozeman&lt;/li&gt;
+&lt;li&gt;cgalli&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue sat dormant with patches for years before quietone opened a merge request that only reported the default connection's info. Catch flagged in review that &amp;quot;the original feature request was for all database connections&amp;quot; and asked whether the MR should cover that, and daffie agreed. Quietone then reworked the patch to loop over &lt;code&gt;Database::getAllConnectionInfo()&lt;/code&gt; for every connection, and in the process caught that &lt;code&gt;$databases['default']['replica'][] = $info_array&lt;/code&gt; in &lt;code&gt;settings.php&lt;/code&gt; implies an extra level of nesting that also needed handling, updating the code accordingly before daffie set it back to RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3262935: Link field validation constraints don't give enough detail</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md</link>
       <guid isPermaLink="false">01a03567-8108-7320-9c69-e2dd3deb6a8b</guid>
@@ -836,250 +1059,6 @@ lifecycle_link: https://www.drupal.org/node/3223395#s-settings-tray
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2171395: OptionsWidgetBase should use WidgetInterface::massageFormValues()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171395.md</link>
-      <guid isPermaLink="false">01a00116-4e0c-7731-a7e6-9d49f485477d</guid>
-      <pubDate>Fri, 14 Aug 2026 13:13:06 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +35/−17 · php +35/−17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b5abc5d7fe6d08b785aee9f3f8f8952adf103843"&gt;b5abc5d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2171395"&gt;#2171395&lt;/a&gt; · 8 contributors · 47 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 8 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The base class behind Drupal's select, checkboxes/radios, and single on/off checkbox field widgets was refactored to process submitted form values the same way most other field widgets do, through &lt;code&gt;massageFormValues()&lt;/code&gt; and &lt;code&gt;extractFormValues()&lt;/code&gt;, instead of doing that work inline in its form-element validation callback. This is an internal code-quality cleanup with no intended change in what gets saved: the same values (single or multiple selections, required or optional fields, checkbox/radio or select rendering) are stored as before. It was manually verified by re-testing all these widget combinations and comparing the saved database values against the previous behavior.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Previously, &lt;code&gt;OptionsWidgetBase::validateElement()&lt;/code&gt; (a static &lt;code&gt;#element_validate&lt;/code&gt; callback) both validated the required-field constraint and transposed and filtered the raw submitted values, writing the result back with &lt;code&gt;$form_state-&amp;gt;setValueForElement()&lt;/code&gt;. That bypassed the &lt;code&gt;massageFormValues()&lt;/code&gt; hook that &lt;code&gt;WidgetInterface&lt;/code&gt; defines and that most other widgets use.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;validateElement()&lt;/code&gt; now only checks the required constraint. Value processing moved to a new &lt;code&gt;OptionsWidgetBase::extractFormValues()&lt;/code&gt; override, which first normalizes single-valued widgets (radios, single select) that submit a scalar into an array via &lt;code&gt;NestedArray::getValue()&lt;/code&gt;/&lt;code&gt;$form_state-&amp;gt;setValue()&lt;/code&gt;, then calls &lt;code&gt;parent::extractFormValues()&lt;/code&gt; (from &lt;code&gt;WidgetBase&lt;/code&gt;), which in turn invokes the new &lt;code&gt;massageFormValues()&lt;/code&gt;. That method filters out the &lt;code&gt;_none&lt;/code&gt; placeholder option and unchecked checkbox values (integer &lt;code&gt;0&lt;/code&gt;, which must be excluded with a strict comparison since &lt;code&gt;0 == 'any string'&lt;/code&gt;), then transposes the values from field-keyed to delta-keyed arrays (&lt;code&gt;[$this-&amp;gt;column =&amp;gt; $value]&lt;/code&gt;), matching the format &lt;code&gt;WidgetBase::submit()&lt;/code&gt; expects.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;massageFormValues()&lt;/code&gt; also detects when values are already shaped as &lt;code&gt;delta =&amp;gt; [column =&amp;gt; value]&lt;/code&gt; and returns them filtered but otherwise unchanged. This preserves compatibility with subclasses such as &lt;code&gt;content_moderation&lt;/code&gt;'s &lt;code&gt;ModerationStateWidget&lt;/code&gt;, which overrides &lt;code&gt;validateElement()&lt;/code&gt; entirely and calls &lt;code&gt;$form_state-&amp;gt;setValueForElement()&lt;/code&gt; with values already in that shape rather than relying on the parent's massaging logic.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 11, 2014&lt;/li&gt;
-&lt;li&gt;Committed: August 14, 2026 (12 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;swentel&lt;/li&gt;
-&lt;li&gt;yched&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The initial patches from swentel stalled for years because of an edge case yched identified in #comment-8460695: single-valued widgets like radios or a single select can submit a scalar &lt;code&gt;#value&lt;/code&gt; rather than an array, so removing the &lt;code&gt;is_array()&lt;/code&gt; normalization broke those widgets, as confirmed by failed test runs. The issue was picked up again a decade later by smustgrave, who rewrote the fix using &lt;code&gt;extractFormValues()&lt;/code&gt;/&lt;code&gt;massageFormValues()&lt;/code&gt;; smustgrave disclosed using Claude Code to help locate &lt;code&gt;extractFormValues()&lt;/code&gt; and to identify that unchecked checkboxes submit integer &lt;code&gt;0&lt;/code&gt;, which had to be filtered out to avoid breaking checkbox widget tests. Reviewer dcam raised questions that put the issue into Needs Work, then, once answered, performed manual testing across single and multiple values, required and optional fields, and both the select and checkbox/radio widgets, comparing saved database values against the unmodified code before approving. Committer catch noted the change is a net addition of code rather than a removal, but committed it since other core widgets already implement &lt;code&gt;massageFormValues()&lt;/code&gt;, making this consistent with the rest of core.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3615308: Use Service Closure in ResourceResponseSubscriber</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615308.md</link>
-      <guid isPermaLink="false">019ff51e-4e88-764b-a439-450abf9dcff3</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 12 Aug 2026 08:26:56 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +10/−9 · php +10/−9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7fce6988de98e8cb06855c5f9d7390822087561a"&gt;7fce698&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615308"&gt;#3615308&lt;/a&gt; · 3 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When the &lt;code&gt;rest&lt;/code&gt; or &lt;code&gt;jsonapi&lt;/code&gt; module is enabled, their &lt;code&gt;ResourceResponseSubscriber&lt;/code&gt; event subscribers run on every single HTTP response. Previously each one had the full &lt;code&gt;serializer&lt;/code&gt; service injected eagerly, which in turn pulled in every registered normalizer service and all of their own dependencies, even on requests that never produce a REST or JSON:API resource response. That serializer is now wrapped in a service closure and only instantiated the first time it is actually needed to serialize a response body. One reporter measured about 160 fewer classes loaded per request on a site with many normalizers registered. There is no behavior change for REST or JSON:API responses themselves.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;$serializer&lt;/code&gt; constructor parameter of &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; changed from &lt;code&gt;Symfony\Component\Serializer\SerializerInterface&lt;/code&gt; to &lt;code&gt;\Closure&lt;/code&gt;; call &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt; to obtain the serializer instance. The equivalent &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\jsonapi\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; class changed identically.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Both &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; and &lt;code&gt;Drupal\jsonapi\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; now request their serializer service via Symfony's &lt;code&gt;#[AutowireServiceClosure('serializer')]&lt;/code&gt; (&lt;code&gt;jsonapi.serializer&lt;/code&gt; for the JSON:API variant) instead of &lt;code&gt;#[Autowire(service: ...)]&lt;/code&gt;, and the constructor property type changed from &lt;code&gt;SerializerInterface&lt;/code&gt; to &lt;code&gt;\Closure&lt;/code&gt;. The subscribers' &lt;code&gt;onResponse()&lt;/code&gt; methods invoke the closure, &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt;, only at the point where &lt;code&gt;renderResponseBody()&lt;/code&gt; actually needs the serializer, so the serializer (and the chain of normalizer services it aggregates) is only constructed when a resource response is genuinely being serialized rather than on every request the subscriber is invoked for.&lt;/p&gt;
-&lt;p&gt;Test doubles in &lt;code&gt;ResourceResponseSubscriberTest&lt;/code&gt; were updated to pass closures (&lt;code&gt;fn () =&amp;gt; $this-&amp;gt;prophesize(SerializerInterface::class)-&amp;gt;reveal()&lt;/code&gt;) instead of the serializer instance directly, matching the new constructor signature.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code that directly instantiates or subclasses &lt;code&gt;Drupal\rest\EventSubscriber\ResourceResponseSubscriber&lt;/code&gt; and passes or reads the &lt;code&gt;$serializer&lt;/code&gt; constructor argument must adapt to the new &lt;code&gt;\Closure&lt;/code&gt; type:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-new ResourceResponseSubscriber($serializer, $renderer, $routeMatch);
-
-// After:
-new ResourceResponseSubscriber(fn () =&amp;gt; $serializer, $renderer, $routeMatch);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Any code reading &lt;code&gt;$this-&amp;gt;serializer&lt;/code&gt; directly must call it as a closure: &lt;code&gt;($this-&amp;gt;serializer)()&lt;/code&gt;. The &lt;code&gt;jsonapi&lt;/code&gt; subscriber is &lt;code&gt;@internal&lt;/code&gt; and carries no BC guarantee.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 12, 2026 (5 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;berdir opened the issue after observing the eager serializer injection on a site with 25 normalizer-related services, and measured (via a preload script generated from dynamic page cache hits) that the closure approach loads about 160 fewer classes per request. berdir then extended the same fix to jsonapi's near-identical subscriber. When smustgrave asked whether a change record was needed, berdir argued no: event subscribers are, like hooks, conventionally excluded from Drupal's BC policy, and no subclasses of either class exist in core. catch, committing the patch, agreed with that BC reasoning for event subscribers, but noted the merge produced unexpected commit conflicts, suggesting some other unbackported constructor change to these classes, and flagged that a separate 11.x backport MR would be needed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3581218: Deprecate .theme file extension</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581218.md</link>
-      <guid isPermaLink="false">019ff366-c9da-7379-981a-833da774c7a5</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 11 Aug 2026 21:47:40 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +105/−12 · php +100/−12 · yml +5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e83dee3ac1d820de6dd9e44049a461dde8d7bdb7"&gt;e83dee3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581218"&gt;#3581218&lt;/a&gt; · 7 contributors · 75 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal has deprecated the practice of putting procedural hook implementations in a theme's &lt;code&gt;.theme&lt;/code&gt; file (the old-style magic-autoloaded file, e.g. &lt;code&gt;olivero.theme&lt;/code&gt;). Themes are not being deprecated, only that specific file mechanism. Starting in Drupal 11.5.0, if hook discovery finds any function in a &lt;code&gt;.theme&lt;/code&gt; file, it triggers a PHP deprecation warning pointing at the change record; this will become a hard removal in Drupal 13.0.0. Theme maintainers should move their remaining procedural hook implementations into OOP hook classes under &lt;code&gt;src/Hook&lt;/code&gt;, as most core themes already have.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Procedural &lt;code&gt;.theme&lt;/code&gt; files are deprecated starting in Drupal 11.5.0 (previously targeted 12.0.0) and will be removed in Drupal 13.0.0; hook implementations should move to OOP hook classes in &lt;code&gt;src/Hook&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Hook\Attribute\ExtensionFileIsConverted&lt;/code&gt; attribute lets a function in a &lt;code&gt;.theme&lt;/code&gt; file suppress the deprecation, for legacy multi-version compatibility.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The deprecation is emitted from &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt;: while &lt;code&gt;collectThemeHookImplementations()&lt;/code&gt; walks a theme's files during hook discovery, any file with a &lt;code&gt;.theme&lt;/code&gt; extension is recorded in the &lt;code&gt;$deprecatedThemeFiles&lt;/code&gt; property; after the container is written, &lt;code&gt;writeToContainer()&lt;/code&gt; fires &lt;code&gt;@trigger_error(..., E_USER_DEPRECATED)&lt;/code&gt; for each one, with a message naming the file and citing https://www.drupal.org/node/3581222. The message wording was tuned after review from alexpott.&lt;/p&gt;
-&lt;p&gt;To avoid forcing an all-or-nothing conversion, a new &lt;code&gt;#[ExtensionFileIsConverted]&lt;/code&gt; attribute (&lt;code&gt;Drupal\Core\Hook\Attribute\ExtensionFileIsConverted&lt;/code&gt;) can be placed on any function inside a &lt;code&gt;.theme&lt;/code&gt; file to suppress the deprecation for that file; per its docblock it's meant only for legacy/multi-version support and must not be used once a project's minimum core version is &amp;gt;= 11.3.0. A second commit adjusted the emitted version string from &lt;code&gt;drupal:12.0.0&lt;/code&gt; to &lt;code&gt;drupal:11.5.0&lt;/code&gt; after the team decided to backport the deprecation to the 11.x branch rather than waiting for 12.0.0.&lt;/p&gt;
-&lt;p&gt;Documentation was also updated to drop stale references to &lt;code&gt;.theme&lt;/code&gt; as a valid home for hooks: &lt;code&gt;hook_theme_suggestions_HOOK()&lt;/code&gt; and &lt;code&gt;hook_theme_suggestions_HOOK_alter()&lt;/code&gt; docs now point to &lt;code&gt;src/Hook&lt;/code&gt; with the &lt;code&gt;#[Hook(...)]&lt;/code&gt; attribute, and &lt;code&gt;ThemeHandlerInterface::themeExists()&lt;/code&gt; / &lt;code&gt;ThemeManagerInterface::invoke()&lt;/code&gt; no longer describe theme names as &amp;quot;without the .theme extension&amp;quot;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Convert remaining procedural hooks in a theme's &lt;code&gt;*.theme&lt;/code&gt; file into an OOP hook class under &lt;code&gt;src/Hook&lt;/code&gt;, tagged with the &lt;code&gt;#[Hook('...')]&lt;/code&gt; attribute, matching the pattern already used elsewhere in core.&lt;/p&gt;
-&lt;p&gt;If a &lt;code&gt;.theme&lt;/code&gt; file must be kept temporarily to support older core versions, silence the new deprecation on a per-function basis:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Hook\Attribute\ExtensionFileIsConverted;
-
-#[ExtensionFileIsConverted]
-function mytheme_procedural_alter(array &amp;amp;$args): void {
-  // ...
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Note this attribute is only for legacy/back-compat support; once a theme's minimum supported core version is 11.3.0 or later, it must be removed along with the &lt;code&gt;.theme&lt;/code&gt; file.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 24, 2026&lt;/li&gt;
-&lt;li&gt;First commit: August 2, 2026 (4 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 11, 2026 (9 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design went through several iterations before landing. nicxvan initially proposed checking for &lt;code&gt;.theme&lt;/code&gt; files via an &lt;code&gt;ignore_theme_file_deprecation&lt;/code&gt; info.yml key evaluated during &lt;code&gt;Extension::load()&lt;/code&gt;, but berdir pushed back strongly (in Slack, summarized in comment &lt;a href="https://www.drupal.org/node/16524050"&gt;#16524050&lt;/a&gt; and again in &lt;a href="https://www.drupal.org/node/16546436"&gt;#16546436&lt;/a&gt;) that triggering deprecations on every request or test run would be too costly, and suggested an attribute-based marker instead, closer to the existing &lt;code&gt;ProceduralHookScanStop&lt;/code&gt;. nicxvan tried a couple more variations (tracking via &lt;code&gt;ExtensionDiscovery&lt;/code&gt;, a runtime_requirements hook) before settling on collecting and emitting the deprecation inside &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; with the new &lt;code&gt;ExtensionFileIsConverted&lt;/code&gt; attribute, which he called &amp;quot;far more elegant&amp;quot; despite needing an extra file cache. Late in review, alexpott caught remaining stale documentation referencing the &lt;code&gt;.theme&lt;/code&gt; extension pattern (&lt;code&gt;ThemeHandlerInterface::themeExists()&lt;/code&gt;, &lt;code&gt;Theme::__construct()&lt;/code&gt;, &lt;code&gt;ThemeManagerInterface::invoke()&lt;/code&gt;), which nicxvan fixed promptly. The team (berdir, catch, larowlan as framework/release manager) also debated and agreed to backport the deprecation into 11.5.0 rather than waiting for 12.0.0.&amp;lt;/collaboration&amp;gt;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2171397: Deprecate remaining options.module functions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2171397.md</link>
-      <guid isPermaLink="false">019fee3b-81c5-756e-a3e5-e5b40e7646e1</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 10 Aug 2026 20:39:40 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +345/−69 · php +340/−69 · yml +5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fc676da8bf185edbbc0c32e753958f0afa130a1c"&gt;fc676da&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2171397"&gt;#2171397&lt;/a&gt; · 23 contributors · 97 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 29&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 23 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Two of the last remaining procedural functions in &lt;code&gt;options.module&lt;/code&gt; are now deprecated, continuing core's effort to eliminate legacy &lt;code&gt;.module&lt;/code&gt; files. Code calling &lt;code&gt;options_allowed_values()&lt;/code&gt; to fetch a list field's allowed values should switch to the new &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; service. &lt;code&gt;_options_values_in_use()&lt;/code&gt; is also deprecated with no public replacement, since its only use was internal to the module's own field-storage-update-forbid check. &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; is deprecated too, since allowed values are no longer cached in a static variable. There is no behavior change for site owners; this only affects code that calls these low-level functions directly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;options_allowed_values()&lt;/code&gt;, &lt;code&gt;_options_values_in_use()&lt;/code&gt;, and &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; are deprecated in Drupal 11.5.0 for removal in Drupal 13.0.0.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; service (&lt;code&gt;getAllowedValues()&lt;/code&gt;) replaces &lt;code&gt;options_allowed_values()&lt;/code&gt;, caching results per field via the &lt;code&gt;cache.memory&lt;/code&gt; backend instead of a static variable.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The original design challenge, visible across years of discussion on this issue, was that &lt;code&gt;options_allowed_values()&lt;/code&gt; is called both from field item plugins (which have an entity available) and from the options module's Views filter/argument plugins (&lt;code&gt;ListField&lt;/code&gt;, &lt;code&gt;NumberListField&lt;/code&gt;, &lt;code&gt;StringListField&lt;/code&gt;), which call it without an entity. Earlier patches tried folding the logic directly into &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt;, but that didn't work for the Views handlers, so the logic was extracted into a new service instead.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt;, implemented by &lt;code&gt;Drupal\options\OptionsAllowedValues&lt;/code&gt; and registered as an autowired service, exposes &lt;code&gt;getAllowedValues(FieldStorageDefinitionInterface $definition, ?FieldableEntityInterface $entity = NULL): array&lt;/code&gt;. It replaces the old &lt;code&gt;drupal_static()&lt;/code&gt; cache in &lt;code&gt;options_allowed_values()&lt;/code&gt; with per-field entries in the &lt;code&gt;cache.memory&lt;/code&gt; backend, keyed by entity type, field name, and whether an entity was passed, and tagged with the field storage's own cache tags plus a new &lt;code&gt;options_allowed_values&lt;/code&gt; cache tag so invalidating one field doesn't wipe every field's cached values. &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt;, &lt;code&gt;ListItemBase::generateSampleValue()&lt;/code&gt;, and the three Views plugins now call this service (the Views plugins receive it via constructor dependency injection, with a deprecated fallback to &lt;code&gt;\Drupal::service()&lt;/code&gt; for callers that don't yet pass it).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;_options_values_in_use()&lt;/code&gt;'s logic moved into a new protected method, &lt;code&gt;Drupal\options\Hook\OptionsHooks::hasValuesInUse()&lt;/code&gt;, used only by the module's own &lt;code&gt;field_storage_config_update_forbid&lt;/code&gt; hook implementation; no public API replaces it. The &lt;code&gt;hook_field_storage_config_update_forbid()&lt;/code&gt; example in &lt;code&gt;options.api.php&lt;/code&gt; was updated to query the entity directly with &lt;code&gt;\Drupal::entityQuery()&lt;/code&gt; instead of calling the deprecated function.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct calls to the deprecated function:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$values = options_allowed_values($field_storage_definition, $entity);
-
-// After:
-$values = \Drupal::service(\Drupal\options\OptionsAllowedValuesInterface::class)
-  -&amp;gt;getAllowedValues($field_storage_definition, $entity);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Prefer constructor injection of &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; over &lt;code&gt;\Drupal::service()&lt;/code&gt; where possible (e.g. in plugins or services).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;_options_values_in_use()&lt;/code&gt; has no replacement; if custom code relied on it, reimplement the entity query directly:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$result = \Drupal::entityQuery($entity_type_id)
-  -&amp;gt;accessCheck(FALSE)
-  -&amp;gt;condition($field_name . '.value', $values, 'IN')
-  -&amp;gt;count()
-  -&amp;gt;range(0, 1)
-  -&amp;gt;execute();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Replace &lt;code&gt;drupal_static_reset('options_allowed_values')&lt;/code&gt; calls with cache tag invalidation, e.g.:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal\Core\Cache\Cache::invalidateTags([\Drupal\options\OptionsAllowedValues::CACHE_TAG]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 11, 2014&lt;/li&gt;
-&lt;li&gt;Committed: August 10, 2026 (12 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;yched&lt;/li&gt;
-&lt;li&gt;plopesc (Cocomore AG)&lt;/li&gt;
-&lt;li&gt;sun&lt;/li&gt;
-&lt;li&gt;berdir&lt;/li&gt;
-&lt;li&gt;hardik_patel_12 (QED42)&lt;/li&gt;
-&lt;li&gt;ankithashetty (Specbee)&lt;/li&gt;
-&lt;li&gt;joachim&lt;/li&gt;
-&lt;li&gt;vsujeetkumar (Material)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;dhirendra.mishra (Valuebound)&lt;/li&gt;
-&lt;li&gt;geek-merlin (Geeks4Change)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;oily&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design was debated at length before landing. larowlan questioned in a review comment whether introducing a whole new &lt;code&gt;OptionsAllowedValuesInterface&lt;/code&gt; service was the right call, versus consolidating the logic into &lt;code&gt;ListItemBase::getSettableOptions()&lt;/code&gt; and having the Views plugins use &lt;code&gt;FieldStorageDefinitionInterface::getOptionsProvider()-&amp;gt;getSettableOptions()&lt;/code&gt;, an approach explored years earlier in &lt;a href="https://www.drupal.org/node/2329937"&gt;#2329937&lt;/a&gt;. nicxvan confirmed that had in fact been the original approach in this issue but was abandoned because it broke the Views handlers, which call the allowed-values logic without an entity available. After longwave raised a caching concern on the merge request, daffie rebased the branch and fixed the cache invalidation so each field's allowed values are cached and invalidated independently rather than sharing one cache entry, a fix nicxvan explicitly credited to daffie when marking the issue RTBC again.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

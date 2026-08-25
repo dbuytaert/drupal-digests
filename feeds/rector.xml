@@ -5,6 +5,133 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Add $memoryCache argument to UpdateRegistry instantiations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-memorycache-argument-to-updateregistry-instantiations-3303751.php</link>
+      <guid isPermaLink="false">01a0380c-430e-7307-8bb4-1b7bdf370122</guid>
+      <pubDate>Tue, 25 Aug 2026 08:32:02 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3303751"&gt;#3303751&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal\Core\Update\UpdateRegistry::__construct() now takes an optional MemoryCacheInterface $memoryCache parameter inserted before the trailing $updateType parameter. Omitting it triggers an E_USER_DEPRECATED notice and will be a hard error in Drupal 12. This rule rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; calls (positional or named) to pass &lt;code&gt;\Drupal::service('cache.memory')&lt;/code&gt; in the new slot, correctly shifting an explicitly-passed $updateType.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, 'post_update');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \Drupal::service('cache.memory'), 'post_update');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; instantiations; code that obtains the service via &lt;code&gt;\Drupal::service('update.post_update_registry')&lt;/code&gt; or dependency injection needs no change since core's service definition already passes the new argument. Calls using &lt;code&gt;...$args&lt;/code&gt; spread/unpacking are skipped because the argument position cannot be determined statically; these need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\VariadicPlaceholder;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddUpdateRegistryMemoryCacheArgumentRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add the $memoryCache constructor argument to Drupal\Core\Update\UpdateRegistry instantiations.',
+            [new CodeSample(
+                'new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \'post_update\');',
+                &amp;quot;new UpdateRegistry(\$root, \$sitePath, \$module_list, \$keyValue, \$theme_handler, \\Drupal::service('cache.memory'), 'post_update');&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof New_) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Core\\Update\\UpdateRegistry')) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;args;
+
+        // Bail on unpacked/spread args (`...$args`): position cannot be determined safely.
+        foreach ($args as $arg) {
+            if ($arg instanceof VariadicPlaceholder) {
+                return null;
+            }
+        }
+
+        $memoryCacheCall = new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg(new String_('cache.memory'))]);
+
+        $hasNamedArgs = false;
+        foreach ($args as $arg) {
+            if ($arg-&amp;gt;name !== null) {
+                $hasNamedArgs = true;
+                if ($this-&amp;gt;isName($arg-&amp;gt;name, 'memoryCache')) {
+                    // Already migrated.
+                    return null;
+                }
+            }
+        }
+
+        if ($hasNamedArgs) {
+            $node-&amp;gt;args[] = new Arg($memoryCacheCall, false, false, [], new Identifier('memoryCache'));
+            return $node;
+        }
+
+        $argCount = count($args);
+
+        // Fewer than 5 positional args is not a valid call to this constructor
+        // ($root, $sitePath, $module_list, $keyValue, $theme_handler are all required); skip.
+        if ($argCount &amp;lt; 5) {
+            return null;
+        }
+
+        // 7+ positional args already include $memoryCache; nothing to do.
+        if ($argCount &amp;gt;= 7) {
+            return null;
+        }
+
+        $memoryCacheArg = new Arg($memoryCacheCall);
+
+        if ($argCount === 5) {
+            // No $updateType passed: append $memoryCache as the 6th argument.
+            $node-&amp;gt;args[] = $memoryCacheArg;
+            return $node;
+        }
+
+        // $argCount === 6: an explicit $updateType was passed positionally in the old
+        // signature's 6th slot. Insert $memoryCache before it, shifting $updateType to 7th.
+        array_splice($node-&amp;gt;args, 5, 0, [$memoryCacheArg]);
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddUpdateRegistryMemoryCacheArgumentRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated installer-specific extension list classes</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php</link>
       <guid isPermaLink="false">01a00d1c-9edc-729a-a105-b91e133a521d</guid>
@@ -1689,116 +1816,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\\node\\Plugin\\Search\\NodeSearch' =&amp;gt; 'Drupal\\search_node\\Plugin\\Search\\SearchNode',
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace locale_translation_update_file_history() and locale_translation_file_history_delete() with CurrentImportStorage service calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-locale-translation-update-file-history-and-locale-3037156.php</link>
-      <guid isPermaLink="false">019e646e-2823-702d-8197-7b928de00849</guid>
-      <pubDate>Tue, 26 May 2026 13:16:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037156"&gt;#3037156&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces the deprecated &lt;code&gt;locale_translation_update_file_history($source)&lt;/code&gt; and &lt;code&gt;locale_translation_file_history_delete($projects, $langcodes)&lt;/code&gt; global functions with calls to the &lt;code&gt;CurrentImportStorage&lt;/code&gt; service. &lt;code&gt;locale_translation_update_file_history&lt;/code&gt; wraps the source in &lt;code&gt;CurrentImport::createFromSource()&lt;/code&gt; before passing it to &lt;code&gt;-&amp;gt;save()&lt;/code&gt;. &lt;code&gt;locale_translation_file_history_delete&lt;/code&gt; passes its arguments directly to &lt;code&gt;-&amp;gt;delete()&lt;/code&gt;. Note: &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; has no direct replacement and is not handled.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;locale_translation_update_file_history($source);
-locale_translation_file_history_delete($projects, $langcodes);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));
-\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;delete($projects, $langcodes);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Zero-argument calls to &lt;code&gt;locale_translation_file_history_delete()&lt;/code&gt; are not rewritten because the replacement &lt;code&gt;CurrentImportStorage::delete()&lt;/code&gt; requires the &lt;code&gt;$projects&lt;/code&gt; argument. Zero-argument calls to &lt;code&gt;locale_translation_update_file_history()&lt;/code&gt; are also skipped. The third deprecated function &lt;code&gt;locale_translation_get_file_history()&lt;/code&gt; has no direct mechanical replacement and is not handled.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class LocaleTranslationHistoryFunctionsRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated locale_translation_update_file_history() and locale_translation_file_history_delete() with CurrentImportStorage service calls.',
-            [new CodeSample(
-                'locale_translation_update_file_history($source);',
-                '\Drupal::service(\Drupal\locale\CurrentImportStorage::class)-&amp;gt;save(\Drupal\locale\CurrentImport::createFromSource($source));',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-
-        if ($this-&amp;gt;isName($node-&amp;gt;name, 'locale_translation_update_file_history')) {
-            if (count($node-&amp;gt;args) !== 1) {
-                return null;
-            }
-            $service = $this-&amp;gt;buildServiceCall('Drupal\\locale\\CurrentImportStorage');
-            $wrappedSource = new StaticCall(
-                new FullyQualified('Drupal\\locale\\CurrentImport'),
-                new Identifier('createFromSource'),
-                [$node-&amp;gt;args[0]]
-            );
-            return new MethodCall($service, new Identifier('save'), [new Arg($wrappedSource)]);
-        }
-
-        if ($this-&amp;gt;isName($node-&amp;gt;name, 'locale_translation_file_history_delete')) {
-            // Require at least 1 arg; the service delete() method requires $projects.
-            if (count($node-&amp;gt;args) &amp;lt; 1) {
-                return null;
-            }
-            $service = $this-&amp;gt;buildServiceCall('Drupal\\locale\\CurrentImportStorage');
-            return new MethodCall($service, new Identifier('delete'), $node-&amp;gt;args);
-        }
-
-        return null;
-    }
-
-    private function buildServiceCall(string $serviceClass): StaticCall
-    {
-        $classRef = new ClassConstFetch(
-            new FullyQualified($serviceClass),
-            new Identifier('class')
-        );
-        return new StaticCall(
-            new FullyQualified('Drupal'),
-            new Identifier('service'),
-            [new Arg($classRef)]
-        );
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([LocaleTranslationHistoryFunctionsRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
