@@ -5,6 +5,224 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace _user_mail_notify() calls with NotificationHandler methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-mail-notify-calls-with-notificationhandler-3539178.php</link>
+      <guid isPermaLink="false">01a03fe4-4974-7368-98e4-e18f672c7007</guid>
+      <pubDate>Wed, 26 Aug 2026 21:05:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global function &lt;code&gt;_user_mail_notify($op, $account)&lt;/code&gt; in favor of dedicated methods on the internal &lt;code&gt;Drupal\user\NotificationHandler&lt;/code&gt; service, one method per notification type. This rule rewrites call sites where the &lt;code&gt;$op&lt;/code&gt; argument is a literal string it recognizes (e.g. &lt;code&gt;password_reset&lt;/code&gt;, &lt;code&gt;cancel_confirm&lt;/code&gt;, &lt;code&gt;status_blocked&lt;/code&gt;) into the equivalent &lt;code&gt;\Drupal::service(NotificationHandler::class)-&amp;gt;sendXxx($account)&lt;/code&gt; call, letting contrib modules migrate ahead of removal in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;_user_mail_notify('password_reset', $account);
+_user_mail_notify('cancel_confirm', $entity);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\NotificationHandler::class)-&amp;gt;sendPasswordReset($account);
+\Drupal::service(\Drupal\user\NotificationHandler::class)-&amp;gt;sendCancelConfirm($entity);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites calls whose &lt;code&gt;$op&lt;/code&gt; argument is a plain string literal matching one of the eight known operations (&lt;code&gt;register_admin_created&lt;/code&gt;, &lt;code&gt;register_no_approval_required&lt;/code&gt;, &lt;code&gt;register_pending_approval&lt;/code&gt;, &lt;code&gt;password_reset&lt;/code&gt;, &lt;code&gt;status_activated&lt;/code&gt;, &lt;code&gt;status_blocked&lt;/code&gt;, &lt;code&gt;cancel_confirm&lt;/code&gt;, &lt;code&gt;status_canceled&lt;/code&gt;). Calls that compute &lt;code&gt;$op&lt;/code&gt; dynamically (e.g. &lt;code&gt;$op = $active ? 'status_activated' : 'status_blocked'; _user_mail_notify($op, $account);&lt;/code&gt;), use named arguments, pass a custom/unsupported &lt;code&gt;$op&lt;/code&gt; value, or pass a different argument count are left untouched and must be migrated by hand. The old function could return &lt;code&gt;NULL&lt;/code&gt; (suppressed) or &lt;code&gt;FALSE&lt;/code&gt; (error) while the new methods always return &lt;code&gt;bool&lt;/code&gt;; call sites that rely on distinguishing &lt;code&gt;NULL&lt;/code&gt; from &lt;code&gt;FALSE&lt;/code&gt; (rather than a simple truthy/falsy check) need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserMailNotifyRector extends AbstractRector
+{
+    private const OP_TO_METHOD = [
+        'register_admin_created' =&amp;gt; 'sendRegisterAdminCreated',
+        'register_no_approval_required' =&amp;gt; 'sendRegisterNoApprovalRequired',
+        'register_pending_approval' =&amp;gt; 'sendRegisterPendingApproval',
+        'password_reset' =&amp;gt; 'sendPasswordReset',
+        'status_activated' =&amp;gt; 'sendStatusActivated',
+        'status_blocked' =&amp;gt; 'sendStatusBlocked',
+        'cancel_confirm' =&amp;gt; 'sendCancelConfirm',
+        'status_canceled' =&amp;gt; 'sendStatusCanceled',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace _user_mail_notify() calls with the equivalent Drupal\user\NotificationHandler method.',
+            [new CodeSample(
+                &amp;quot;_user_mail_notify('password_reset', \$account);&amp;quot;,
+                &amp;quot;\\Drupal::service(\\Drupal\\user\\NotificationHandler::class)-&amp;gt;sendPasswordReset(\$account);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, '_user_mail_notify')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 2) {
+            return null;
+        }
+        if (!$node-&amp;gt;args[0] instanceof Arg || !$node-&amp;gt;args[1] instanceof Arg) {
+            return null;
+        }
+        // Named arguments change the calling convention; skip for safety.
+        if ($node-&amp;gt;args[0]-&amp;gt;name !== null || $node-&amp;gt;args[1]-&amp;gt;name !== null) {
+            return null;
+        }
+        $opArg = $node-&amp;gt;args[0]-&amp;gt;value;
+        if (!$opArg instanceof String_) {
+            // The $op argument is not a plain string literal (e.g. a
+            // variable); cannot determine which NotificationHandler method
+            // to call without evaluating runtime data.
+            return null;
+        }
+        if (!isset(self::OP_TO_METHOD[$opArg-&amp;gt;value])) {
+            // Unknown / custom $op value; no equivalent method exists on
+            // NotificationHandler.
+            return null;
+        }
+        $method = self::OP_TO_METHOD[$opArg-&amp;gt;value];
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\user\\NotificationHandler'), 'class'))],
+        );
+        return new MethodCall($service, $method, [$node-&amp;gt;args[1]]);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserMailNotifyRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated locale.module underscore functions with LocaleJs service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-underscore-functions-with-3618358.php</link>
+      <guid isPermaLink="false">01a03fe1-2952-7131-86db-0b66a4342edd</guid>
+      <pubDate>Wed, 26 Aug 2026 21:01:55 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3618358"&gt;#3618358&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the remaining &lt;code&gt;_locale_*&lt;/code&gt; underscore helper functions in &lt;code&gt;locale.module&lt;/code&gt; in favor of methods on the &lt;code&gt;Drupal\locale\LocaleJs&lt;/code&gt; service. This rule rewrites direct calls to &lt;code&gt;_locale_refresh_translations()&lt;/code&gt;, &lt;code&gt;_locale_invalidate_js()&lt;/code&gt;, &lt;code&gt;_locale_parse_js_file()&lt;/code&gt;, and &lt;code&gt;_locale_rebuild_js()&lt;/code&gt; into the equivalent &lt;code&gt;\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;method()&lt;/code&gt; call, preserving arguments unchanged. Contrib code that rebuilds or invalidates JavaScript translation files keeps working after these globals are removed in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;_locale_invalidate_js($langcode);
+_locale_rebuild_js($langcode);
+_locale_parse_js_file($filepath);
+_locale_refresh_translations($langcodes, $lids);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;invalidate($langcode);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;rebuild($langcode);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;parseJsFile($filepath);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;refreshTranslations($langcodes, $lids);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;_locale_refresh_configuration()&lt;/code&gt; and &lt;code&gt;_locale_strip_quotes()&lt;/code&gt; are also deprecated by this issue but have no replacement API, so calls to them are intentionally left untouched; callers must be manually inlined or removed. &lt;code&gt;LocaleJs::parseJsFile()&lt;/code&gt; and &lt;code&gt;LocaleJs::rebuild()&lt;/code&gt; are marked &lt;code&gt;@internal&lt;/code&gt; in core (public only for test coverage), so rewritten call sites still depend on an internal API surface that core may change without a deprecation cycle.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceLocaleJsUnderscoreFunctionsRector extends AbstractRector
+{
+    /**
+     * @var array&amp;lt;string, string&amp;gt;
+     */
+    private const METHOD_MAP = [
+        '_locale_refresh_translations' =&amp;gt; 'refreshTranslations',
+        '_locale_invalidate_js' =&amp;gt; 'invalidate',
+        '_locale_parse_js_file' =&amp;gt; 'parseJsFile',
+        '_locale_rebuild_js' =&amp;gt; 'rebuild',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.module underscore functions with Drupal\locale\LocaleJs service calls.',
+            [new CodeSample(
+                '_locale_invalidate_js($langcode);',
+                &amp;quot;\\Drupal::service(\\Drupal\\locale\\LocaleJs::class)-&amp;gt;invalidate(\$langcode);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$node-&amp;gt;name instanceof Name) {
+            // Skip dynamic calls, e.g. $fn(...).
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::METHOD_MAP[$functionName])) {
+            return null;
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\locale\\LocaleJs'), 'class'))],
+        );
+
+        return new MethodCall($service, self::METHOD_MAP[$functionName], $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleJsUnderscoreFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated locale.module global functions with class calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-global-functions-with-3616277.php</link>
       <guid isPermaLink="false">01a03b76-df84-749b-b3ff-430b1683299c</guid>
@@ -1761,147 +1979,6 @@ CODE_SAMPLE,
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([AddResultRowTypeHintToRowPluginRenderRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add $yamlCacheCollector arg to LibraryDiscoveryParser and YamlRouteDiscovery constructors</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-yamlcachecollector-arg-to-librarydiscoveryparser-and-3486503.php</link>
-      <guid isPermaLink="false">019e8dc4-5a58-767e-ae47-3644ce830efe</guid>
-      <pubDate>Wed, 03 Jun 2026 13:55:16 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3486503"&gt;#3486503&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;In drupal:11.4.0, &lt;code&gt;LibraryDiscoveryParser&lt;/code&gt; and &lt;code&gt;YamlRouteDiscovery&lt;/code&gt; gained a required &lt;code&gt;$yamlCacheCollector&lt;/code&gt; constructor argument. Omitting it triggers a deprecation warning and will be a fatal error in drupal:12.0.0. This rule adds &lt;code&gt;\Drupal::service('library.parsing_cache')&lt;/code&gt; or &lt;code&gt;\Drupal::service('routing.yaml_cache_collector')&lt;/code&gt; as the missing argument when the pre-deprecation positional argument count is detected.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Asset\LibraryDiscoveryParser($root, $mh, $tm, $swm, $ldf, $epr, $cpm);
-new \Drupal\Core\Routing\YamlRouteDiscovery($moduleHandler, $controllerResolver);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\Core\Asset\LibraryDiscoveryParser($root, $mh, $tm, $swm, $ldf, $epr, $cpm, \Drupal::service('library.parsing_cache'));
-new \Drupal\Core\Routing\YamlRouteDiscovery($moduleHandler, $controllerResolver, \Drupal::service('routing.yaml_cache_collector'));
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Subclasses of either class whose &lt;code&gt;__construct()&lt;/code&gt; calls &lt;code&gt;parent::__construct()&lt;/code&gt; with the old arg count are not rewritten — those require manual review to determine the correct &lt;code&gt;$yamlCacheCollector&lt;/code&gt; value in the subclass context. Named-argument call sites where &lt;code&gt;yamlCacheCollector:&lt;/code&gt; is already supplied are correctly skipped.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\New_;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class AddYamlCacheCollectorArgRector extends AbstractRector
-{
-    // Maps FQCN → [expected positional arg count before the new arg, service name to inject]
-    private const TARGETS = [
-        'Drupal\\Core\\Asset\\LibraryDiscoveryParser' =&amp;gt; [7, 'library.parsing_cache'],
-        'Drupal\\Core\\Routing\\YamlRouteDiscovery'   =&amp;gt; [2, 'routing.yaml_cache_collector'],
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Add the $yamlCacheCollector argument to new LibraryDiscoveryParser() and new YamlRouteDiscovery() calls deprecated in drupal:11.4.0.',
-            [new CodeSample(
-                &amp;quot;new \\Drupal\\Core\\Asset\\LibraryDiscoveryParser(\$root, \$mh, \$tm, \$swm, \$ldf, \$epr, \$cpm);&amp;quot;,
-                &amp;quot;new \\Drupal\\Core\\Asset\\LibraryDiscoveryParser(\$root, \$mh, \$tm, \$swm, \$ldf, \$epr, \$cpm, \\Drupal::service('library.parsing_cache'));&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof New_) {
-            return null;
-        }
-
-        foreach (self::TARGETS as $fqcn =&amp;gt; [$expectedCount, $serviceName]) {
-            if (!$this-&amp;gt;isName($node-&amp;gt;class, $fqcn)) {
-                continue;
-            }
-
-            // Skip if a named 'yamlCacheCollector' argument is already present.
-            foreach ($node-&amp;gt;args as $arg) {
-                if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;name !== null &amp;amp;&amp;amp; $arg-&amp;gt;name-&amp;gt;name === 'yamlCacheCollector') {
-                    return null;
-                }
-            }
-
-            // Only add the argument when the call has exactly the pre-deprecation count.
-            if (count($node-&amp;gt;args) !== $expectedCount) {
-                return null;
-            }
-
-            $serviceCall = new StaticCall(
-                new FullyQualified('Drupal'),
-                'service',
-                [new Arg(new String_($serviceName))],
-            );
-            $node-&amp;gt;args[] = new Arg($serviceCall);
-            return $node;
-        }
-
-        return null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([AddYamlCacheCollectorArgRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Remove deprecated $sql_query argument from Query::getTables()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/remove-deprecated-sql-query-argument-from-query-gettables-2875033.php</link>
-      <guid isPermaLink="false">019e8970-46a2-7708-b177-4ba778f34327</guid>
-      <pubDate>Tue, 02 Jun 2026 17:44:57 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2875033"&gt;#2875033&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Removes the deprecated first argument from calls to &lt;code&gt;Drupal\Core\Entity\Query\Sql\Query::getTables()&lt;/code&gt;. Passing a &lt;code&gt;SelectInterface&lt;/code&gt; argument was deprecated in Drupal 11.4.0 as part of the SQL entity query join optimisation that shares a single &lt;code&gt;Tables&lt;/code&gt; instance per query. Contrib modules that subclass &lt;code&gt;Query&lt;/code&gt; and call &lt;code&gt;$this-&amp;gt;getTables($sql_query)&lt;/code&gt; must drop the argument.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$tables = $this-&amp;gt;getTables($sql_query);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$tables = $this-&amp;gt;getTables();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Does not cover calls to the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;doGetTables()&lt;/code&gt; method introduced in the same change, as that method is not intended for contrib use. Does not handle the second deprecation from this issue (passing a &lt;code&gt;Condition&lt;/code&gt; from a different query into &lt;code&gt;condition()&lt;/code&gt;), which is a runtime-only check and cannot be detected statically.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Arguments\Rector\MethodCall\RemoveMethodCallParamRector;
-use Rector\Arguments\ValueObject\RemoveMethodCallParam;
-use Rector\Config\RectorConfig;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RemoveMethodCallParamRector::class, [
-        new RemoveMethodCallParam('Drupal\Core\Entity\Query\Sql\Query', 'getTables', 0),
-    ]);
-
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
