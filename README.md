@@ -1,4 +1,4 @@
-**TL;DR:** [972 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [191 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [974 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [191 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_519 summaries · 14 new this week_
+_521 summaries · 16 new this week_
 
+- [#3534109: Permanently maintain a sandbox directory in package_manager](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534109.md)
+- [#3615455: Install database driver modules alongside other modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615455.md)
 - [#3616277: Deprecate several locale functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616277.md)
-- [#3614825: Allow additional modules to be installed alongside the profile modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614825.md)
-- [#3614401: Allow install profiles to opt out of being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md)
 
 ### Drupal AI
 

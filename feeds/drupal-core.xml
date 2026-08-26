@@ -5,6 +5,102 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3534109: Permanently maintain a sandbox directory in package_manager</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534109.md</link>
+      <guid isPermaLink="false">01a03d2b-2eca-74d9-9e92-4838efee37b0</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 26 Aug 2026 07:29:05 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +629/−69 · php +623/−69 · yml +6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f31a5d865e92cccc708a3d6ee0155c1168918ec6"&gt;f31a5d8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3534109"&gt;#3534109&lt;/a&gt; · 6 contributors · 33 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Package Manager (used by Automatic Updates, Project Browser, and other update tooling) used to copy the entire codebase into a fresh, randomly-named sandbox directory for every composer operation, then delete it afterwards. On hosts with limits on file operations (some shared/managed hosting providers), this churn of tens of thousands of file creates and deletes per operation could trip usage caps and lock accounts. Now Package Manager keeps a single sandbox directory around permanently and reuses it for every operation, so &lt;code&gt;rsync&lt;/code&gt; only needs to copy files that actually changed instead of recreating the whole codebase each time. Stale sandboxes are cleaned up automatically during cron after a configurable number of days (14 by default), and the directory is still deleted immediately if a site turns off &lt;code&gt;include_unknown_files_in_project_root&lt;/code&gt;, since leftover excluded files would otherwise never get removed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New optional &lt;code&gt;$settings['package_manager_max_sandbox_age']&lt;/code&gt; (default 14 days) controls how long the now-persistent Package Manager sandbox directory is kept before cron deletes it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;SandboxManagerBase::destroy()&lt;/code&gt; no longer deletes the sandbox directory (it stays on disk for reuse) and no longer queues cleanup via the &lt;code&gt;package_manager_cleanup&lt;/code&gt; queue; &lt;code&gt;getSandboxDirectory()&lt;/code&gt; now returns a fixed path (&lt;code&gt;sandbox_directory&lt;/code&gt;, not a random per-stage name) and no longer throws &lt;code&gt;\LogicException&lt;/code&gt; when called before the stage is created or claimed.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The sandbox directory's name changed from a per-stage random token to a fixed &lt;code&gt;sandbox_directory&lt;/code&gt; constant (&lt;code&gt;SandboxManagerBase::COMPOSER_SANDBOX_DIRECTORY&lt;/code&gt;) under the site's staging root, so the same physical directory is reused across create/destroy cycles. &lt;code&gt;SandboxManagerBase::destroy()&lt;/code&gt; was simplified to just release the lock and mark the stage available; it no longer deletes the directory or enqueues it to the &lt;code&gt;package_manager_cleanup&lt;/code&gt; queue (the &lt;code&gt;Cleaner&lt;/code&gt; queue worker itself is untouched, pending a possible follow-up to remove it). &lt;code&gt;sandboxDirectoryExists()&lt;/code&gt; now means &amp;quot;the stage is actively claimed and its directory exists on disk,&amp;quot; which is a different question from &amp;quot;does the directory physically exist,&amp;quot; since a long-lived sandbox persists after &lt;code&gt;destroy()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because Composer Stager's stock &lt;code&gt;StagingDirDoesNotExistInterface&lt;/code&gt; precondition expects an empty target, a new &lt;code&gt;Drupal\package_manager\StagingDirDoesNotExist&lt;/code&gt; decorator was added that always reports the precondition as fulfilled, letting the sandbox be reused even though it already exists. Two new pieces of infrastructure manage the directory's lifecycle: &lt;code&gt;EventSubscriber\LongLivedSandboxSubscriber&lt;/code&gt; records the timestamp of the last &lt;code&gt;PostCreateEvent&lt;/code&gt; in state (&lt;code&gt;package_manager.last_create_event&lt;/code&gt;), and deletes the sandbox immediately when &lt;code&gt;package_manager.settings:include_unknown_files_in_project_root&lt;/code&gt; transitions from &lt;code&gt;TRUE&lt;/code&gt;/unset to &lt;code&gt;FALSE&lt;/code&gt;. &lt;code&gt;Hook\CronHook&lt;/code&gt; (a &lt;code&gt;#[Hook('cron')]&lt;/code&gt; implementation) compares that timestamp against &lt;code&gt;Settings::get('package_manager_max_sandbox_age', 14)&lt;/code&gt; (in days) and deletes the sandbox if it's stale and not currently locked. &lt;code&gt;getSandboxDirectory()&lt;/code&gt; and &lt;code&gt;getStagingRoot()&lt;/code&gt; were also relaxed to work without an active lock (needed since cron and the config subscriber must locate the directory outside of a claimed stage), but &lt;code&gt;getStagingRoot()&lt;/code&gt; only caches its result in the shared tempstore when a lock is actually held, to avoid polluting shared state from incidental lookups.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that calls &lt;code&gt;SandboxManagerBase::getSandboxDirectory()&lt;/code&gt; before creating or claiming a stage will no longer get a &lt;code&gt;\LogicException&lt;/code&gt;; it now returns the deterministic sandbox path directly. Code that relied on &lt;code&gt;destroy()&lt;/code&gt; deleting the sandbox directory (or on the &lt;code&gt;package_manager_cleanup&lt;/code&gt; queue running shortly after) must not assume the directory is gone until cron has run and the configured &lt;code&gt;package_manager_max_sandbox_age&lt;/code&gt; has elapsed. Sites that need faster or slower cleanup can set, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// settings.php
+$settings['package_manager_max_sandbox_age'] = 7; // days
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 4, 2025&lt;/li&gt;
+&lt;li&gt;Committed: August 26, 2026 (1 year and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;jesseh (Ironstar)&lt;/li&gt;
+&lt;li&gt;star-szr (Consensus Enterprises)&lt;/li&gt;
+&lt;li&gt;spiderman&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;jesseh implemented the change after catch and phenaproxima worked out the rsync/checksum reasoning in the issue summary discussion (confirming rsync's checksum-based sync and &lt;code&gt;--archive&lt;/code&gt; mtime preservation would minimize file churn once the sandbox became long-lived). phenaproxima and catch each reviewed multiple rounds; catch flagged that a follow-up should track whether the &lt;code&gt;Cleaner&lt;/code&gt; queue worker is still needed once cleanup is cron-driven. Before commit, star-szr and spiderman did an extensive manual verification pass across several scenarios (contrib module update, core update, cron-triggered cleanup at various &lt;code&gt;package_manager_max_sandbox_age&lt;/code&gt; values, and the &lt;code&gt;0&lt;/code&gt;-age case), documenting their DDEV-based test methodology in detail and confirming the patch behaved as designed.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3615455: Install database driver modules alongside other modules</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615455.md</link>
+      <guid isPermaLink="false">01a03d29-fdf9-73bc-9c4d-b2353d990a40</guid>
+      <pubDate>Tue, 25 Aug 2026 20:50:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +34/−19 · php +33/−19 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/02579164af871a3c0bd72addf198c7adc303b76b"&gt;0257916&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615455"&gt;#3615455&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's installer used to install the database driver module (for databases other than core's built-in drivers, such as PostgreSQL) as a separate, dedicated step before any other module was installed. This issue removes that special case: the database driver module is now installed together with the rest of the site's modules, using the same batch installation process, while still guaranteeing it goes in first and triggers the container rebuild it needs. This is an internal installer change with no effect on how sites are built or configured.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The dedicated call to &lt;code&gt;module_installer-&amp;gt;install([$provider], TRUE)&lt;/code&gt; inside &lt;code&gt;drupal_install_system()&lt;/code&gt; in &lt;code&gt;install.inc&lt;/code&gt; is removed. Instead, a new helper &lt;code&gt;_install_get_database_module_name()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; inspects the active database connection (via &lt;code&gt;Database::getConnection()-&amp;gt;getProvider()&lt;/code&gt; and its &lt;code&gt;autoload&lt;/code&gt; option looking for &lt;code&gt;src/Driver/Database/&lt;/code&gt;) to determine whether the database is provided by a driver module rather than core. If so, &lt;code&gt;install_profile_modules()&lt;/code&gt; prepends that module to the list of modules to install with &lt;code&gt;array_unshift()&lt;/code&gt;, and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; marks it as required so it sorts to the front of the batch alongside modules flagged &lt;code&gt;required&lt;/code&gt; in their &lt;code&gt;.info.yml&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;This relies on the &lt;code&gt;container_rebuild_required&lt;/code&gt; info key mechanism (introduced for the related change in &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt;, which did the same for the System module). &lt;code&gt;pgsql.info.yml&lt;/code&gt; now sets &lt;code&gt;container_rebuild_required: true&lt;/code&gt;, so &lt;code&gt;install_profile_modules()&lt;/code&gt;'s batch grouping logic in &lt;code&gt;install.core.inc&lt;/code&gt; puts the driver module in its own batch group and rebuilds the container before and after installing it, the same way any other module can request a rebuild, rather than through installer-specific code.&lt;/p&gt;
+&lt;p&gt;A follow-up, &lt;a href="https://www.drupal.org/node/3618797"&gt;#3618797&lt;/a&gt;, was filed to replace the remaining &lt;code&gt;_install_get_database_module_name()&lt;/code&gt; helper with &lt;code&gt;Database::getConnection()-&amp;gt;getProvider()&lt;/code&gt; directly.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 25, 2026 (18 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3616277: Deprecate several locale functions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616277.md</link>
       <guid isPermaLink="false">01a03b73-b39d-7665-bc64-8a0133cb3385</guid>
@@ -978,105 +1074,6 @@ public function setDescription(string $description): static;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;prudloff (Insite)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592672: Remove the who's new and who's online views</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3592672.md</link>
-      <guid isPermaLink="false">01a014ca-fd0d-7268-9c36-b3bc1bc4e097</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 18 Aug 2026 09:55:22 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +17/−1030 · php +17/−144 · yml +0/−886&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/906ccf1db9178be0390d0d8b357249368f2f7978"&gt;906ccf1&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3592672"&gt;#3592672&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core's User module used to ship two views, &amp;quot;Who's new&amp;quot; (a block listing the newest user accounts) and &amp;quot;Who's online&amp;quot; (a block and page showing recently active users and a total count). These were carried over from the days when Views was a contributed module and have been removed from core. The issue notes that &amp;quot;Who's online&amp;quot; raises privacy concerns even on community sites, and &amp;quot;Who's new&amp;quot; can expose spam accounts on sites without pre-moderated registration. The views also showed up in the Views UI for every site regardless of whether they were used, and had to be loaded from the database and written to the config cache on every cold cache request, adding a small but non-zero overhead. This is similar in spirit to &lt;a href="https://www.drupal.org/node/3589894"&gt;#3589894&lt;/a&gt;, which removed the Node module's Archive, Glossary, and Recent content views for the same reasons.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;views.view.who_s_new&lt;/code&gt; and &lt;code&gt;views.view.who_s_online&lt;/code&gt; config entities (and their blocks) are removed from Drupal core; sites that have these views enabled or exported in configuration will need to update their config after upgrading.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change deletes the &lt;code&gt;who_s_new&lt;/code&gt; and &lt;code&gt;who_s_online&lt;/code&gt; view config entities from &lt;code&gt;core/modules/user/config/install&lt;/code&gt;, along with their Spanish translation overrides in &lt;code&gt;core/modules/config_translation&lt;/code&gt;/language test fixtures. It also removes the dedicated &lt;code&gt;WhoIsOnlineBlockTest&lt;/code&gt; kernel test, since the block it tested no longer exists.&lt;/p&gt;
-&lt;p&gt;Several other core tests referenced these views incidentally rather than testing them directly, and were updated to use other views instead: &lt;code&gt;ViewUI&lt;/code&gt; filter-criteria and tab-CSS tests now use &lt;code&gt;test_content_recent&lt;/code&gt; and &lt;code&gt;user_admin_people&lt;/code&gt; instead of &lt;code&gt;who_s_online&lt;/code&gt;, the views-listing filter test's expected enabled-view count dropped from 4 to 2, and &lt;code&gt;InstallerExistingConfigMultilingualTest&lt;/code&gt;'s translation-sync assertions were switched from &lt;code&gt;who_s_new&lt;/code&gt;/&lt;code&gt;who_s_online&lt;/code&gt; to &lt;code&gt;watchdog&lt;/code&gt;/&lt;code&gt;archive&lt;/code&gt; to keep exercising the same translation-sync logic against views that still exist.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites relying on the &amp;quot;Who's new&amp;quot; or &amp;quot;Who's online&amp;quot; blocks or views should recreate equivalent views in Views UI or a custom module before upgrading, since the &lt;code&gt;views.view.who_s_new&lt;/code&gt; and &lt;code&gt;views.view.who_s_online&lt;/code&gt; config will no longer be provided by the User module:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;langcode: en
-status: true
-dependencies:
-  module:
-    - user
-id: who_s_new
-label: 'Who''s new'
-...
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Any custom code or config export referencing these view IDs (e.g. &lt;code&gt;views_block:who_s_new-block_1&lt;/code&gt; or &lt;code&gt;views_block:who_s_online-who_s_online_block&lt;/code&gt;) will need to be updated to point at a replacement view.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 29, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 18, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;danielveza (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582506: Connection::open() should have SensitiveParameter</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582506.md</link>
-      <guid isPermaLink="false">01a0123f-4613-76c8-9a96-9eb97ec86ef7</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 17 Aug 2026 21:23:05 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +5/−5 · php +5/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ac8820e13f32578cb3f10c22f48268464f340ef3"&gt;ac8820e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582506"&gt;#3582506&lt;/a&gt; · 6 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;PHP's &lt;code&gt;#[SensitiveParameter]&lt;/code&gt; attribute tells the engine to redact an argument's value from stack traces and uncaught exception output. Drupal added this attribute to most sensitive parameters in a previous cleanup (&lt;a href="https://www.drupal.org/node/3296293"&gt;#3296293&lt;/a&gt;), but missed the &lt;code&gt;$connection_options&lt;/code&gt; argument of &lt;code&gt;Connection::open()&lt;/code&gt;, which carries the database password and other connection details. If &lt;code&gt;open()&lt;/code&gt; throws an exception or triggers an error, tools that display full stack traces with arguments (such as the Symfony error handler, or PHP configured with &lt;code&gt;zend.exception_ignore_args&lt;/code&gt; disabled) could expose the plaintext database password. This fix adds &lt;code&gt;#[\SensitiveParameter]&lt;/code&gt; to that argument so it is redacted like other sensitive values.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Database connection credentials could appear in stack traces or error output (e.g. via the Symfony error handler or &lt;code&gt;zend.exception_ignore_args&lt;/code&gt;) if &lt;code&gt;Connection::open()&lt;/code&gt; throws; the &lt;code&gt;$connection_options&lt;/code&gt; argument is now marked &lt;code&gt;#[\SensitiveParameter]&lt;/code&gt; so PHP redacts it.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;#[\SensitiveParameter]&lt;/code&gt; attribute was added to the &lt;code&gt;$connection_options&lt;/code&gt; parameter of &lt;code&gt;Connection::open()&lt;/code&gt; in the abstract base class (&lt;code&gt;core/lib/Drupal/Core/Database/Connection.php&lt;/code&gt;) and in every core database driver's concrete override: mysql, mysqli, pgsql, and sqlite. Since &lt;code&gt;open()&lt;/code&gt; is a static method invoked before a &lt;code&gt;Connection&lt;/code&gt; object exists, the array containing credentials such as &lt;code&gt;password&lt;/code&gt; was previously fully visible in exception backtraces; the attribute causes PHP to substitute an &lt;code&gt;Object(SensitiveParameterValue)&lt;/code&gt; placeholder instead when rendering traces.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 31, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 17, 2026 (4 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;prudloff (Insite)&lt;/li&gt;
-&lt;li&gt;adhershmnair&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
