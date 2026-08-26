@@ -1,4 +1,4 @@
-**TL;DR:** [971 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [972 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [191 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_518 summaries · 13 new this week_
+_519 summaries · 14 new this week_
 
+- [#3616277: Deprecate several locale functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616277.md)
 - [#3614825: Allow additional modules to be installed alongside the profile modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614825.md)
 - [#3614401: Allow install profiles to opt out of being installed](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md)
-- [#3610009: Stop discovery of hooks in include files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610009.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _90 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [190 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [191 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_190 rules · 1 new this week_
+_191 rules · 2 new this week_
 
+- [Replace deprecated locale.module global functions with class calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-functions-with-3616277.php)
 - [Add $memoryCache argument to UpdateRegistry instantiations](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/add-memorycache-argument-to-updateregistry-instantiations-3303751.php)
 - [Replace deprecated installer-specific extension list classes](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php)
-- [Rename NavigationShortcutsBlock to ShortcutNavigationBlock](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php)
 
 
 ## RSS feeds
