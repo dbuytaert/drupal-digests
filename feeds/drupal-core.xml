@@ -5,6 +5,54 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3566626: Use property hooks for entity reference item and list entity and target_id properties</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3566626.md</link>
+      <guid isPermaLink="false">01a03eec-64fa-72c3-9fd3-54c207ca15a4</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 26 Aug 2026 09:07:13 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +98/−27 · php +98/−27&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e24cd7972d996388a2530a7a7f3f072c1c9e6dac"&gt;e24cd79&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3566626"&gt;#3566626&lt;/a&gt; · 6 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's entity reference field API now uses PHP 8.4 property hooks to expose the &lt;code&gt;entity&lt;/code&gt; and &lt;code&gt;target_id&lt;/code&gt; properties on entity reference field items and item lists, instead of relying on PHP's &lt;code&gt;__get()&lt;/code&gt;/&lt;code&gt;__set()&lt;/code&gt; magic methods. This removes a fragile workaround that was needed to avoid a PHP bug where suspending a Fiber inside &lt;code&gt;__get()&lt;/code&gt; could incorrectly trigger PHP's recursion guard, and it also fixes &lt;code&gt;isset()&lt;/code&gt; checks on these properties inside a running Fiber, since PHP routes &lt;code&gt;isset()&lt;/code&gt; through a property hook's &lt;code&gt;get&lt;/code&gt; accessor but not through &lt;code&gt;__isset()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;entity&lt;/code&gt; and &lt;code&gt;target_id&lt;/code&gt; on &lt;code&gt;EntityReferenceItem&lt;/code&gt; and &lt;code&gt;EntityReferenceFieldItemList&lt;/code&gt; are now declared as typed properties with PHP 8.4 property hooks instead of being handled by &lt;code&gt;__get()&lt;/code&gt;/&lt;code&gt;__set()&lt;/code&gt; magic methods; &lt;code&gt;unset()&lt;/code&gt; on either property now throws &lt;code&gt;Error: Cannot unset hooked property&lt;/code&gt; instead of silently clearing the value.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Previously, &lt;code&gt;EntityReferenceItemBase::__get()&lt;/code&gt; special-cased the &lt;code&gt;entity&lt;/code&gt; property: when called while a Fiber was already running, it wrapped the call to &lt;code&gt;parent::__get()&lt;/code&gt; in a new Fiber and manually pumped &lt;code&gt;resume()&lt;/code&gt;/&lt;code&gt;usleep()&lt;/code&gt; until it terminated, to dodge a PHP fiber/recursion-guard bug (php/php-src&lt;a href="https://www.drupal.org/node/14983"&gt;#14983&lt;/a&gt;). That override is now removed entirely; &lt;code&gt;EntityReferenceItemBase&lt;/code&gt; is back to an empty class body.&lt;/p&gt;
+&lt;p&gt;Instead, &lt;code&gt;EntityReferenceItem&lt;/code&gt; declares &lt;code&gt;entity&lt;/code&gt; and &lt;code&gt;target_id&lt;/code&gt; as typed properties (&lt;code&gt;?EntityInterface $entity&lt;/code&gt; and &lt;code&gt;string|int|null $target_id&lt;/code&gt;) using property hooks: the &lt;code&gt;get&lt;/code&gt; hook delegates to the existing &lt;code&gt;__get()&lt;/code&gt; logic and the &lt;code&gt;set&lt;/code&gt; hook calls &lt;code&gt;$this-&amp;gt;set()&lt;/code&gt;. &lt;code&gt;EntityReferenceFieldItemList&lt;/code&gt; gets the same two hooked properties, with &lt;code&gt;get&lt;/code&gt; proxying to &lt;code&gt;$this-&amp;gt;first()?-&amp;gt;__get(...)&lt;/code&gt; and &lt;code&gt;set&lt;/code&gt; appending a field item if needed before calling &lt;code&gt;$item-&amp;gt;set()&lt;/code&gt;. Because property hooks don't share the fiber/recursion-guarding bug that plain &lt;code&gt;__get()&lt;/code&gt; had, the workaround class from &lt;a href="https://www.drupal.org/node/3565937"&gt;#3565937&lt;/a&gt; is no longer necessary, and new tests (&lt;code&gt;testEntityReferenceListIssetFiberSuspension&lt;/code&gt;, &lt;code&gt;testEntityReferenceItemIssetFiberSuspension&lt;/code&gt;) verify &lt;code&gt;isset()&lt;/code&gt; works correctly from inside a Fiber, addressing the &lt;code&gt;__isset()&lt;/code&gt; half of the problem tracked in &lt;a href="https://www.drupal.org/node/3590537"&gt;#3590537&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Both files carry &lt;code&gt;phpcs:ignoreFile&lt;/code&gt; because PHP_CodeSniffer and PHPStan (via &lt;code&gt;mglaman/phpstan-drupal&lt;/code&gt;) do not yet fully support property hook syntax, which caused internal errors during static analysis; this was raised upstream (github.com/mglaman/phpstan-drupal/pull/935) but not yet resolved at commit time.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that reads or writes &lt;code&gt;$item-&amp;gt;entity&lt;/code&gt;, &lt;code&gt;$item-&amp;gt;target_id&lt;/code&gt;, &lt;code&gt;$list-&amp;gt;entity&lt;/code&gt;, or &lt;code&gt;$list-&amp;gt;target_id&lt;/code&gt; continues to work unchanged. However:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// This now throws &amp;quot;Error: Cannot unset hooked property&amp;quot;:
+unset($item-&amp;gt;target_id);
+
+// Use assignment to NULL instead:
+$item-&amp;gt;target_id = NULL;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This change requires PHP 8.4 property hooks and only applies to Drupal core's &lt;code&gt;main&lt;/code&gt; (future major version) branch; it was not backported to currently supported branches.&amp;lt;/upgrade&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;godotislate implemented the property hooks and iterated through several rounds based on feedback: after an initial attempt that hooked &lt;code&gt;__set()&lt;/code&gt; on the item class too, they reverted that part once they noticed &lt;code&gt;FieldItemBase::__set()&lt;/code&gt;'s typed-data unwrapping behavior added nothing over calling &lt;code&gt;set()&lt;/code&gt; directly for these two properties, and switched the list class's hooks to call &lt;code&gt;$item-&amp;gt;__get()&lt;/code&gt; explicitly since calling it directly avoided retriggering the fiber bug. berdir reviewed the change, verified it fixed the test added by the related fiber/&lt;code&gt;__isset()&lt;/code&gt; issue, and flagged that using property hooks introduces &amp;quot;a BC break on what I think is an edge case&amp;quot; versus the old magic-method behavior, and opened a change record. After commit, amateescu raised that &lt;code&gt;unset()&lt;/code&gt; on these properties now throws an error with no way to add a deprecation layer, a concern still open in the final comments. catch, who committed the patch, noted the PHPCS support gap was raised before the property-hooks RFC landed but &amp;quot;ignored,&amp;quot; while still judging the fiber-workaround removal &amp;quot;more than well worth it.&amp;quot;&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 26, 2026 (7 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3534109: Permanently maintain a sandbox directory in package_manager</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3534109.md</link>
       <guid isPermaLink="false">01a03d2b-2eca-74d9-9e92-4838efee37b0</guid>
@@ -1030,50 +1078,6 @@ public function setDescription(string $description): static;
 &lt;li&gt;daffie&lt;/li&gt;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575492: Add [#NoDiscard] to CacheableMetadata::merge()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575492.md</link>
-      <guid isPermaLink="false">01a0167e-9893-7360-b4cf-bd6299f85ddc</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 18 Aug 2026 17:58:19 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +5/−0 · php +5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/a7b77cbf78ac117cfd2d070899e07cfb6e81aa01"&gt;a7b77cb&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575492"&gt;#3575492&lt;/a&gt; · 5 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Several core caching methods, &lt;code&gt;CacheableMetadata::merge()&lt;/code&gt;, &lt;code&gt;BubbleableMetadata::merge()&lt;/code&gt;, and &lt;code&gt;Cache::mergeContexts()&lt;/code&gt;, &lt;code&gt;Cache::mergeTags()&lt;/code&gt;, &lt;code&gt;Cache::mergeMaxAges()&lt;/code&gt;, are immutable-style helpers: they return a new merged result rather than modifying the object they are called on. Forgetting this and discarding the return value is an easy mistake that silently drops cache contexts, tags, or max-age constraints, which can cause incorrect caching and even expose data that should have been varied per user or context. On PHP 8.5 and later, code that calls these methods without using the returned value will now trigger a runtime warning, helping developers catch this class of bug early.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Running on PHP 8.5 or later, code that calls &lt;code&gt;CacheableMetadata::merge()&lt;/code&gt;, &lt;code&gt;BubbleableMetadata::merge()&lt;/code&gt;, &lt;code&gt;Cache::mergeContexts()&lt;/code&gt;, &lt;code&gt;Cache::mergeTags()&lt;/code&gt;, or &lt;code&gt;Cache::mergeMaxAges()&lt;/code&gt; without using the return value will now emit a runtime warning.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix adds the PHP &lt;code&gt;#[\NoDiscard]&lt;/code&gt; attribute to &lt;code&gt;CacheableMetadata::merge()&lt;/code&gt;, &lt;code&gt;BubbleableMetadata::merge()&lt;/code&gt; (which calls &lt;code&gt;parent::merge()&lt;/code&gt; and further merges attachments), and the three static helpers on &lt;code&gt;Cache&lt;/code&gt;: &lt;code&gt;mergeContexts()&lt;/code&gt;, &lt;code&gt;mergeTags()&lt;/code&gt;, and &lt;code&gt;mergeMaxAges()&lt;/code&gt;. &lt;code&gt;#[\NoDiscard]&lt;/code&gt; is a native PHP 8.5 attribute; Drupal core's &lt;code&gt;composer.json&lt;/code&gt; and &lt;code&gt;Drupal::MINIMUM_PHP&lt;/code&gt; already require PHP &lt;code&gt;8.5.0&lt;/code&gt; on this branch, so the attribute is immediately effective. No method logic changed: &lt;code&gt;merge()&lt;/code&gt; still clones &lt;code&gt;$this&lt;/code&gt; and returns the merged copy rather than mutating the receiver. This is the same pattern already applied to &lt;code&gt;AccessResult&lt;/code&gt;'s static constructors and &lt;code&gt;andIf()&lt;/code&gt;/&lt;code&gt;orIf()&lt;/code&gt; methods and to &lt;code&gt;EntityBase&lt;/code&gt; methods in sibling issues, extending the discoverability guard to the cacheability metadata API.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 18, 2026 (5 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;joachim&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;prudloff (Insite)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
