@@ -5,6 +5,73 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3555115: Add a UploadedFilesExtractor and remove duplicate code</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555115.md</link>
+      <guid isPermaLink="false">01a042ff-e74d-75fe-9fec-9354e6cff3a7</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 27 Aug 2026 09:31:09 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +61/−72 · php +59/−72 · yml +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7817455a8e551753eb6048f457eff7aed69cd5e8"&gt;7817455&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555115"&gt;#3555115&lt;/a&gt; · 9 contributors · 35 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core had the same logic for pulling uploaded files out of the current HTTP request duplicated in several places: the procedural &lt;code&gt;file_save_upload()&lt;/code&gt; and &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt; functions, and &lt;code&gt;ConfigImportForm::validateForm()&lt;/code&gt;. This issue consolidates that logic into a single reusable service. There is no behavior change for site owners or end users; file uploads via forms, the managed file element, and configuration import all continue to work exactly as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\File\UploadedFilesExtractor::extractUploadedFiles()&lt;/code&gt; service method for retrieving uploaded files for a given form element name from the current request.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A new &lt;code&gt;Drupal\Core\File\UploadedFilesExtractor&lt;/code&gt; service (autowired in &lt;code&gt;core.services.yml&lt;/code&gt;) exposes &lt;code&gt;extractUploadedFiles(string $name): UploadedFile[]&lt;/code&gt;, which reads &lt;code&gt;$this-&amp;gt;requestStack-&amp;gt;getCurrentRequest()-&amp;gt;files-&amp;gt;get('files', [])&lt;/code&gt;, looks up the given form element name, and normalizes the result to always return an array (wrapping single uploads). &lt;code&gt;file_save_upload()&lt;/code&gt; and &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt; in &lt;code&gt;file.module&lt;/code&gt; now call this service via &lt;code&gt;\Drupal::service(UploadedFilesExtractor::class)&lt;/code&gt; instead of inlining the request lookup and array-normalization logic. &lt;code&gt;ConfigImportForm&lt;/code&gt; was also converted to constructor-based dependency injection using &lt;code&gt;AutowireTrait&lt;/code&gt; and PHP attributes, and its &lt;code&gt;validateForm()&lt;/code&gt; now calls the injected &lt;code&gt;UploadedFilesExtractor&lt;/code&gt; and uses &lt;code&gt;reset($uploaded_files)&lt;/code&gt; to get the single tarball upload.&lt;/p&gt;
+&lt;p&gt;The fourth duplicate identified in the issue, &lt;code&gt;Drupal\Core\Render\Element\File::valueCallback()&lt;/code&gt;, was deliberately left untouched: its handling casts the uploaded file object to an array, which the issue authors considered &amp;quot;different and strange&amp;quot; and out of scope for this cleanup (an early attempt to convert it was reverted during review).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 29, 2025&lt;/li&gt;
+&lt;li&gt;Committed: August 26, 2026 (10 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue sat for a while before nicxvan picked it up, rebased it, and argued the extraction logic should be a proper service rather than a method taking the request as a parameter, since every caller needed the current request anyway. While testing, nicxvan hit a &lt;code&gt;Serialization of 'UploadedFile' is not allowed&lt;/code&gt; exception coming from &lt;code&gt;Drupal\Core\Batch\BatchStorage&lt;/code&gt;, but confirmed through further testing that this failure pre-existed the patch and was unrelated to the refactor. berdir reviewed the resulting MR and pointed out the issue summary needed updating since the &lt;code&gt;File::valueCallback()&lt;/code&gt; case was no longer being converted, prompting mohit_aghera to write a change record (later refined after quietone flagged a leftover reference to &lt;code&gt;$form_field_name&lt;/code&gt; in it).&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that previously duplicated the uploaded-file lookup can now use the injected service instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\File\UploadedFilesExtractor;
+
+// Via dependency injection:
+public function __construct(
+  protected UploadedFilesExtractor $uploadedFilesExtractor,
+) {}
+
+// ...
+$uploaded_files = $this-&amp;gt;uploadedFilesExtractor-&amp;gt;extractUploadedFiles('import_tarball');
+if (!empty($uploaded_files)) {
+  $file_upload = reset($uploaded_files);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Or via the service container:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$uploaded_files = \Drupal::service(UploadedFilesExtractor::class)-&amp;gt;extractUploadedFiles($form_field_name);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3618358: Deprecate remaining underscore functions in locale</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618358.md</link>
       <guid isPermaLink="false">01a03fdb-bdd4-77f5-a68c-2578c5780a2e</guid>
@@ -1056,49 +1123,6 @@ lifecycle_link: https://www.drupal.org/node/3223395#s-shortcut
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;A test failure in &lt;code&gt;ToolbarClaroOverridesTest&lt;/code&gt; initially looked like a missing library definition to smustgrave, who suggested Toolbar might need its own theme-detection logic; gábor hojtsy traced it to a simple duplicated path segment and fixed it. Separately, godotislate answered hojtsy's open question about unexplained rem-to-px changes in the CSS by pointing to the pixel-to-rem exclusion rule in &lt;code&gt;core/scripts/css/compile.js&lt;/code&gt;, explaining why moving the icon stylesheets into the module changed their compiled units.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3389365: Fix and re-enable MigrateBlockContentTranslationTest</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3389365.md</link>
-      <guid isPermaLink="false">01a01680-941e-739b-a0ca-24e85b63f23a</guid>
-      <pubDate>Tue, 18 Aug 2026 19:52:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +4/−3 · php +3/−3 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7962ad9a7302e333fd46556a7590d39ca5d3737b"&gt;7962ad9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3389365"&gt;#3389365&lt;/a&gt; · 9 contributors · 24 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 9 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Migrating a Drupal 7 site's translated block titles (via the &lt;code&gt;i18n_block&lt;/code&gt; module) into Drupal could silently mis-migrate translations when the same block delta was placed in more than one theme, for example the same &amp;quot;User login&amp;quot; block in both &lt;code&gt;bartik&lt;/code&gt; and &lt;code&gt;seven&lt;/code&gt;. The underlying migration test (&lt;code&gt;MigrateBlockContentTranslationTest&lt;/code&gt;) had been skipped for over a year because it failed randomly, masking this bug. This issue diagnoses and fixes the real defect and re-enables the test, so Drupal 7 to Drupal 9+ upgrades that use i18n block translations now migrate reliably.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;d7_block_translation&lt;/code&gt; migrate source plugin's &lt;code&gt;getIds()&lt;/code&gt; declared only &lt;code&gt;delta&lt;/code&gt; and &lt;code&gt;language&lt;/code&gt; as the migrate map's unique identifiers, omitting &lt;code&gt;theme&lt;/code&gt;. Because the same &lt;code&gt;delta&lt;/code&gt; (e.g. &lt;code&gt;user/login&lt;/code&gt;) can exist as separate rows for different themes in a Drupal 7 site, this let the migrate map's &lt;code&gt;source_ids_hash&lt;/code&gt; collide across themes, causing the translation for a block in one theme to overwrite or be skipped in favor of another. The fix adds &lt;code&gt;theme&lt;/code&gt; to &lt;code&gt;getIds()&lt;/code&gt; (aliased to the block table alias &lt;code&gt;b&lt;/code&gt;) in &lt;code&gt;core/modules/block/src/Plugin/migrate/source/d7/BlockTranslation.php&lt;/code&gt;, and adds &lt;code&gt;theme&lt;/code&gt; to the &lt;code&gt;source&lt;/code&gt; list of the &lt;code&gt;migration_lookup&lt;/code&gt; process plugin in &lt;code&gt;core/modules/config_translation/migrations/d7_block_translation.yml&lt;/code&gt; so the lookup into &lt;code&gt;d7_block&lt;/code&gt; correctly disambiguates by theme as well as module and delta.&lt;/p&gt;
-&lt;p&gt;Separately, the test class's &lt;code&gt;$modules&lt;/code&gt; list had lost the &lt;code&gt;config_translation&lt;/code&gt; module (removed in an unrelated cleanup, &lt;a href="https://www.drupal.org/node/3554484"&gt;#3554484&lt;/a&gt;) even though it provides the &lt;code&gt;d7_block_translation&lt;/code&gt; migration itself, which had made the test inconsistent. That dependency is restored and the &lt;code&gt;markTestSkipped()&lt;/code&gt; call is removed from &lt;code&gt;MigrateBlockContentTranslationTest::testBlockContentTranslation()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2023&lt;/li&gt;
-&lt;li&gt;Committed: August 18, 2026 (2 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The bug took over a year and a half to pin down because the test failed intermittently rather than consistently. acbramley found it failed 100% of the time locally and traced the migrate map to a single stale row, and quietone identified that the missing &lt;code&gt;config_translation&lt;/code&gt; module dependency (removed in &lt;a href="https://www.drupal.org/node/3554484"&gt;#3554484&lt;/a&gt;) was needed because it supplies the &lt;code&gt;d7_block_translation&lt;/code&gt; migration. Even after that fix, longwave found the test still failed 3 of 100 CI runs and, with debugging help from Claude, identified the deterministic root cause: &lt;code&gt;theme&lt;/code&gt; was missing from the source plugin's &lt;code&gt;getIds()&lt;/code&gt;, which let the migrate map's row hash collide across themes. A follow-up 200-run repeat job confirmed the fix.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

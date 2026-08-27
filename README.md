@@ -1,4 +1,4 @@
-**TL;DR:** [978 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [979 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_524 summaries · 19 new this week_
+_525 summaries · 20 new this week_
 
+- [#3555115: Add a UploadedFilesExtractor and remove duplicate code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555115.md)
 - [#3618358: Deprecate remaining underscore functions in locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618358.md)
 - [#3539178: Extract _user_mail_notify() into a user NotificationHandler](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3539178.md)
-- [#3566626: Use property hooks for entity reference item and list entity and target_id...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3566626.md)
 
 ### Drupal Canvas
 
