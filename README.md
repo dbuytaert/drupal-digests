@@ -1,4 +1,4 @@
-**TL;DR:** [979 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [982 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,27 +6,27 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_525 summaries · 20 new this week_
+_526 summaries · 21 new this week_
 
+- [#3580152: Deprecate theme-settings.php files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580152.md)
 - [#3555115: Add a UploadedFilesExtractor and remove duplicate code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555115.md)
 - [#3618358: Deprecate remaining underscore functions in locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618358.md)
-- [#3539178: Extract _user_mail_notify() into a user NotificationHandler](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3539178.md)
+
+### Drupal AI
+
+_124 summaries · 4 new this week_
+
+- [#3601394: ensure_ddev refuses any distro outside Debian/RHEL, even when Docker and DDEV...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601394.md)
+- [#3601400: Management mode hangs for ~60s with no output: `ddev exec true` starts the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601400.md)
+- [#3601382: Default Option- Picks a name for the project if it already exists.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601382.md)
 
 ### Drupal Canvas
 
-_242 summaries · 5 new this week_
+_242 summaries · 4 new this week_
 
 - [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
 - [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
 - [#3591916: Component version hashes go stale on single-process installs: prop-shape...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md)
-
-### Drupal AI
-
-_122 summaries · 2 new this week_
-
-- [#3601382: Default Option- Picks a name for the project if it already exists.](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601382.md)
-- [#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601396.md)
-- [#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3588977.md)
 
 ### Drupal CMS
 
