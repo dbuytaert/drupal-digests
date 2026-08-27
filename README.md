@@ -22,7 +22,7 @@ _124 summaries · 4 new this week_
 
 ### Drupal Canvas
 
-_242 summaries · 4 new this week_
+_242 summaries · 3 new this week_
 
 - [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
 - [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
