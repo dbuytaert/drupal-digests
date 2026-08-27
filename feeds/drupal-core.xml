@@ -5,6 +5,157 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md</link>
+      <guid isPermaLink="false">01a04580-b5a0-74f9-95b3-12f0aac2ecef</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 27 Aug 2026 21:59:56 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +66/−3 · php +35 · js +31/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d0904d4ace3ed2b1667ef2c5710832b201e02f17"&gt;d0904d4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3472624"&gt;#3472624&lt;/a&gt; · 15 contributors · 36 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 21&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 15 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Opening a modal dialog and closing it again very quickly (within about 20 milliseconds) could throw an uncaught JavaScript error, &amp;quot;cannot call methods on dialog prior to initialization; attempted to call method 'option'&amp;quot;, because a scheduled dialog resize callback ran after the dialog had already been destroyed. This could interrupt other JavaScript on the page and was also causing intermittent failures in Drupal core's own JavaScript test suite. The fix ensures a resize that is still pending when a dialog closes is cancelled instead of running against a dialog that no longer exists.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;Drupal.debounce()&lt;/code&gt; now returns a function that has a &lt;code&gt;cancel()&lt;/code&gt; method, letting callers abort a scheduled invocation that has not run yet.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;misc/dialog/dialog.ajax.js&lt;/code&gt;: &lt;code&gt;Drupal.dialog.resetSize&lt;/code&gt; is invoked via &lt;code&gt;Drupal.debounce&lt;/code&gt; on window resize/scroll events, but the &lt;code&gt;dialog:beforeclose&lt;/code&gt; handler only unbound those event listeners; it could not stop a resize call that had already been scheduled by &lt;code&gt;debounce&lt;/code&gt;'s internal &lt;code&gt;setTimeout&lt;/code&gt;. By the time that timeout fired, the dialog's DOM element (and its jQuery UI instance) had already been removed, so calling &lt;code&gt;.dialog('option', ...)&lt;/code&gt; on it threw.&lt;/p&gt;
+&lt;p&gt;The fix has two parts. &lt;code&gt;misc/debounce.js&lt;/code&gt;'s &lt;code&gt;Drupal.debounce&lt;/code&gt; now returns a function that also carries a &lt;code&gt;cancel()&lt;/code&gt; method, which clears the pending &lt;code&gt;timeout&lt;/code&gt; so a scheduled call never runs. &lt;code&gt;dialog.ajax.js&lt;/code&gt; stores the &lt;code&gt;autoResize&lt;/code&gt; debounced function on the dialog element via &lt;code&gt;$element.data('drupalAutoResize', autoResize)&lt;/code&gt; when the dialog opens, and its &lt;code&gt;dialog:beforeclose&lt;/code&gt; handler now calls &lt;code&gt;$(e.target).data('drupalAutoResize')?.cancel()&lt;/code&gt; before unbinding the resize/scroll handlers. As a defensive second layer, &lt;code&gt;resetSize()&lt;/code&gt; also now bails out early if &lt;code&gt;event.data?.$element?.data('ui-dialog')&lt;/code&gt; is falsy, i.e. the jQuery UI dialog instance is no longer present. Test coverage was added in &lt;code&gt;DialogTest&lt;/code&gt; that opens a modal, triggers a resize, immediately closes the dialog, and asserts no JS errors are logged.&lt;/p&gt;
+&lt;p&gt;A change record (&lt;a href="https://www.drupal.org/node/3619513"&gt;#3619513&lt;/a&gt;, referenced in comments) documents the new &lt;code&gt;debounce().cancel()&lt;/code&gt; API for other core and contrib code that debounces callbacks tied to DOM elements that may be removed.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;The bug lingered for a long time with several reporters (grimreaper, goz, joseph.olstad, albeorte) confirming related but not-quite-matching symptoms with CKEditor and other dialog-triggering modules, and earlier MR attempts did not fully resolve it for them. The issue was escalated to Critical by longwave after noting in &lt;a href="https://www.drupal.org/node/16720832"&gt;#16720832&lt;/a&gt; that the flakiness had &amp;quot;got much worse&amp;quot; following &lt;a href="https://www.drupal.org/node/3515403"&gt;#3515403&lt;/a&gt; (the Selenium/Chrome upgrade), since it was now causing multiple JS test failures in core. Longwave then diagnosed the actual mechanism, that &lt;code&gt;dialog:beforeclose&lt;/code&gt; unbinds handlers but cannot stop an already-scheduled debounced call, and implemented the &lt;code&gt;debounce.cancel()&lt;/code&gt; fix with new test coverage, noting the diagnosis and fix were assisted by Claude Code. godotislate stress-tested the fix by repeating a previously flaky test 500 times without failure to confirm the intermittent failures were resolved before it was marked RTBC again.&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 6, 2024&lt;/li&gt;
+&lt;li&gt;Committed: August 27, 2026 (1 year and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;herved&lt;/li&gt;
+&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3619447: Avoid rebuilding the router twice when uninstalling a profile in the installer</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619447.md</link>
+      <guid isPermaLink="false">01a04580-053d-72ab-b465-28494b66b4be</guid>
+      <pubDate>Thu, 27 Aug 2026 21:54:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +6/−5 · php +6/−5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8cb43d975eab645a317171312eac42a5d2672de4"&gt;8cb43d9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3619447"&gt;#3619447&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a Drupal installation profile is configured to be uninstalled right after installation (as Drupal CMS's installer profile does), the installer was rebuilding the routing table twice in a row: once implicitly because uninstalling the profile module always rebuilds the router, and once explicitly at the end of &lt;code&gt;install_finished()&lt;/code&gt;. Each rebuild took around 450ms in testing, so this doubled work was adding noticeable time to the last step of installation. The fix skips the redundant explicit rebuild in that case, so installs that uninstall their profile finish faster with no change in the end result.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;install_finished()&lt;/code&gt;, the explicit &lt;code&gt;\Drupal::service('router.builder')-&amp;gt;rebuild()&lt;/code&gt; call is now only made in the branch where the profile is kept (&lt;code&gt;$install_state['profile_info']['keep_profile']&lt;/code&gt; is true). When the profile is instead uninstalled via &lt;code&gt;\Drupal::service('module_installer')-&amp;gt;uninstall([$profile])&lt;/code&gt;, that call's own module uninstall process already triggers a router rebuild, so the subsequent explicit rebuild was pure duplicate work. The comment explaining why the rebuild is needed at all (the installer never fires &lt;code&gt;KernelEvents::TERMINATE&lt;/code&gt;, which normally triggers this rebuild via an HTTP kernel) was moved alongside the remaining call site.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#1189464: Add an 'instant' queue runner</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1189464.md</link>
+      <guid isPermaLink="false">01a04581-6db1-7175-9ff9-182993ed18dc</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Thu, 27 Aug 2026 21:13:50 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +233/−40 · php +223/−40 · yml +10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9a96116d378c3597699de5a1d0d02a760ef7476f"&gt;9a96116&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1189464"&gt;#1189464&lt;/a&gt; · 13 contributors · 75 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 54&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 13 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal has had two ways to run long tasks: the Queue API (normally only drained by cron) and the blocking Batch API. This issue adds a middle ground: an &amp;quot;instant queue runner&amp;quot; service that modules can hand a queue name to during a request, and a handful of items (5 by default) from that queue get processed right after the response has been sent to the browser, without blocking the user. This is opt-in per queue, not automatic for all queues, so existing sites see no behavior change until a module or contrib project starts using it. The maintainers point to use cases like closing a timing-attack window on the password reset form (&lt;a href="https://www.drupal.org/node/3316209"&gt;#3316209&lt;/a&gt;), instant search indexing, and image style pre-warming as the reasons this landed now.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter with a &lt;code&gt;maximumItems&lt;/code&gt; key (default 5) caps how many items per queue the instant runner processes per request.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Queue\InstantQueueRunnerInterface&lt;/code&gt; service lets modules register a queue name so a few of its items get processed right after the response is sent, instead of waiting for cron.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\Core\Queue\InstantQueueRunner&lt;/code&gt; service implements &lt;code&gt;InstantQueueRunnerInterface&lt;/code&gt; (a single &lt;code&gt;registerQueue(string $queue_name): void&lt;/code&gt; method) and &lt;code&gt;DestructableInterface&lt;/code&gt;, and is tagged &lt;code&gt;needs_destruction&lt;/code&gt; so its &lt;code&gt;destruct()&lt;/code&gt; runs during &lt;code&gt;kernel.terminate&lt;/code&gt;. During a request, code that adds an item to a queue also calls &lt;code&gt;registerQueue()&lt;/code&gt;; the runner just counts how many times each queue name was registered. In &lt;code&gt;destruct()&lt;/code&gt;, for each registered queue it claims and processes up to &lt;code&gt;min(maximumItems, $count)&lt;/code&gt; items (default &lt;code&gt;maximumItems&lt;/code&gt; is 5, configurable via the &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter), stopping early if a worker throws &lt;code&gt;SuspendQueueException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;To avoid duplicating the claim/process/exception-handling logic, the per-item processing loop previously inlined in &lt;code&gt;Cron::processQueue()&lt;/code&gt; was extracted into a new &lt;code&gt;Drupal\Core\Queue\QueueProcessTrait::processItem()&lt;/code&gt;, which handles &lt;code&gt;DelayedRequeueException&lt;/code&gt;, &lt;code&gt;RequeueException&lt;/code&gt;, &lt;code&gt;SuspendQueueException&lt;/code&gt;, and generic &lt;code&gt;\Throwable&lt;/code&gt; logging via &lt;code&gt;Error::logException()&lt;/code&gt;. Both &lt;code&gt;Cron&lt;/code&gt; and &lt;code&gt;InstantQueueRunner&lt;/code&gt; now use this trait, so the exception semantics for queue workers are identical whether items run via cron or via the instant runner.&lt;/p&gt;
+&lt;p&gt;Nothing in core actually calls &lt;code&gt;registerQueue()&lt;/code&gt; yet: no core queue was converted as part of this change, and integration with &lt;code&gt;automated_cron&lt;/code&gt; was deliberately dropped from scope (comment &lt;a href="https://www.drupal.org/node/16451928"&gt;#16451928&lt;/a&gt;) in favor of a simpler, opt-in-per-caller design without added concurrency protection. A follow-up (&lt;a href="https://www.drupal.org/node/3617085"&gt;#3617085&lt;/a&gt;) proposes using it for field purging.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Modules that want a queue item processed shortly after the request that created it, instead of waiting for cron, can inject the new interface and register the queue name after adding the item:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function __construct(
+  protected QueueFactory $queueFactory,
+  protected \Drupal\Core\Queue\InstantQueueRunnerInterface $instantQueueRunner,
+) {}
+
+public function someMethod() {
+  $this-&amp;gt;queueFactory-&amp;gt;get('my_queue')-&amp;gt;createItem($data);
+  $this-&amp;gt;instantQueueRunner-&amp;gt;registerQueue('my_queue');
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Sites can change how many items get processed per queue per request by overriding the &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter (default &lt;code&gt;maximumItems: 5&lt;/code&gt;) in a &lt;code&gt;services.yml&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 15, 2011&lt;/li&gt;
+&lt;li&gt;Committed: August 27, 2026 (15 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;tsphethean&lt;/li&gt;
+&lt;li&gt;sukr_s&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue sat open for over a decade with several proposed designs (1px-gif poor-man's-cron style pings, async HTTP requests, ReactPHP/Fibers). catch repeatedly steered it back toward using the post-response terminate event rather than async HTTP, noting in comment &lt;a href="https://www.drupal.org/node/15616106"&gt;#15616106&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/16452204"&gt;#16452204&lt;/a&gt; that async self-requests don't work reliably on all hosting environments, and that terminate-based processing became solid after &lt;a href="https://www.drupal.org/node/3295790"&gt;#3295790&lt;/a&gt; fixed destructable services actually blocking. sukr_s built the first working merge request implementing this with automated_cron integration and a concurrency semaphore, but after review catch decided in comment &lt;a href="https://www.drupal.org/node/16451928"&gt;#16451928&lt;/a&gt; that this carried more complexity than needed (automatic integration with all queues via automated_cron, and the semaphore) and opened a second, simplified MR that made registration opt-in per caller and extracted the shared per-item processing logic into &lt;code&gt;QueueProcessTrait&lt;/code&gt;. After commit, berdir raised an unresolved concern (comment &lt;a href="https://www.drupal.org/node/16749447"&gt;#16749447&lt;/a&gt;) that capping by item count rather than by time could still exhaust php-fpm worker processes on hosts with very low process counts, since a slow queue item keeps a process busy in the background even though the response was already sent.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3580152: Deprecate theme-settings.php files</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580152.md</link>
       <guid isPermaLink="false">01a043ec-fa94-73bf-90b5-4c67284bbe61</guid>
@@ -992,154 +1143,6 @@ new LinkTypeConstraint(
 &lt;li&gt;simohell&lt;/li&gt;
 &lt;li&gt;pallavi singh3013&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3593789: Extend RouteSubscriberBase to define as well as alter routes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3593789.md</link>
-      <guid isPermaLink="false">01a03566-645d-720d-bc42-7d725c33b5d0</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 24 Aug 2026 17:33:52 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +39/−9 · php +39/−7 · yml +0/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f6d327d17ed662de87f0e1b4fa14d1b901e9a385"&gt;f6d327d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3593789"&gt;#3593789&lt;/a&gt; · 4 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's &lt;code&gt;RouteSubscriberBase&lt;/code&gt; class, used to write route event subscribers, previously only supported altering existing routes. It now also supports defining brand new routes, giving module developers an object-oriented alternative to declaring a &lt;code&gt;route_callbacks&lt;/code&gt; entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file. As a result, the Views module no longer needs &lt;code&gt;views.routing.yml&lt;/code&gt; at all; its route subscriber now builds views routes directly through this new mechanism.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;RouteSubscriberBase::alterRoutes()&lt;/code&gt; is no longer &lt;code&gt;abstract&lt;/code&gt;; it now has a no-op default implementation, so subclasses that only add routes no longer need to implement it.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;RouteSubscriberBase::buildRoutes()&lt;/code&gt; lets an event subscriber define new routes during the &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; phase, the object-oriented equivalent of a &lt;code&gt;route_callbacks&lt;/code&gt; YAML entry.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Since routes moved to PHP attribute discovery (&lt;a href="https://www.drupal.org/node/3311365"&gt;#3311365&lt;/a&gt;), there was a gap: &lt;code&gt;YamlRouteDiscovery&lt;/code&gt; handles the &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; event to add both YAML-defined routes and any &lt;code&gt;route_callbacks&lt;/code&gt;, but &lt;code&gt;RouteSubscriberBase&lt;/code&gt; only subscribed to &lt;code&gt;RoutingEvents::ALTER&lt;/code&gt;. This meant a class that wanted to both define and alter routes had no single, consistent OO entry point for the &amp;quot;define&amp;quot; half.&lt;/p&gt;
-&lt;p&gt;The fix adds a protected &lt;code&gt;buildRoutes(): RouteCollection&lt;/code&gt; method to &lt;code&gt;RouteSubscriberBase&lt;/code&gt;, defaulting to an empty &lt;code&gt;RouteCollection&lt;/code&gt;, and wires it to &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; via a new &lt;code&gt;onBuildRoutes(RouteBuildEvent $event)&lt;/code&gt; listener that merges the returned collection into the event's route collection. &lt;code&gt;alterRoutes()&lt;/code&gt; changed from &lt;code&gt;abstract&lt;/code&gt; to a no-op default, so a subclass now only needs to override whichever of the two phases it actually uses.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;Drupal\views\EventSubscriber\RouteSubscriber&lt;/code&gt; was converted to this pattern: its former &lt;code&gt;routes()&lt;/code&gt; method (previously invoked via &lt;code&gt;route_callbacks&lt;/code&gt; in &lt;code&gt;views.routing.yml&lt;/code&gt;) was renamed to &lt;code&gt;buildRoutes()&lt;/code&gt; and hooked up through &lt;code&gt;getSubscribedEvents()&lt;/code&gt;, and &lt;code&gt;views.routing.yml&lt;/code&gt; was deleted since it contained nothing but that &lt;code&gt;route_callbacks&lt;/code&gt; entry. The public &lt;code&gt;routes()&lt;/code&gt; method is kept, delegating to &lt;code&gt;buildRoutes()&lt;/code&gt;, for backwards compatibility; a follow-up issue (&lt;a href="https://www.drupal.org/node/3618565"&gt;#3618565&lt;/a&gt;) is postponed to deprecate it once this change is settled.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;During review, godotislate raised the question of deprecating the now-redundant &lt;code&gt;routes()&lt;/code&gt; method on &lt;code&gt;Drupal\views\EventSubscriber\RouteSubscriber&lt;/code&gt;, but the decision was to defer that rather than block this change; dcam filed the follow-up, &lt;a href="https://www.drupal.org/node/3618565"&gt;#3618565&lt;/a&gt;, postponed on this issue's resolution.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Classes extending &lt;code&gt;RouteSubscriberBase&lt;/code&gt; that only need to alter existing routes are unaffected. Classes that previously added new routes via a &lt;code&gt;route_callbacks&lt;/code&gt; entry in a &lt;code&gt;*.routing.yml&lt;/code&gt; file can instead extend &lt;code&gt;RouteSubscriberBase&lt;/code&gt; and override &lt;code&gt;buildRoutes()&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;protected function buildRoutes(): RouteCollection {
-  $collection = new RouteCollection();
-  // Add routes to $collection.
-  return $collection;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;No &lt;code&gt;getSubscribedEvents()&lt;/code&gt; override is needed for this; the base class now subscribes to &lt;code&gt;RoutingEvents::STATIC&lt;/code&gt; automatically.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 4, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 24, 2026 (2 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3536795: "Only file JavaScript/CSS assets can be optimized" errors in logs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3536795.md</link>
-      <guid isPermaLink="false">01a02e89-07ac-71b8-883a-36e49b593a37</guid>
-      <pubDate>Sun, 23 Aug 2026 08:51:03 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +261/−10 · php +253/−10 · yml +8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/72e3f2f1242b26cf0c76d9f256e3dc8c2ae8c8ba"&gt;72e3f2f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3536795"&gt;#3536795&lt;/a&gt; · 11 contributors · 41 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 27&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 11 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Requests for aggregated CSS/JS files that pointed at a stale, invalid, or crafted &lt;code&gt;delta&lt;/code&gt; value could crash with an uncaught &amp;quot;Only file JavaScript/CSS assets can be optimized&amp;quot; exception, producing a 500 response and filling logs with errors. This typically happened right after a deployment (which deletes all existing aggregate files) when old cached pages, reverse proxies, or crawlers replayed aggregate URLs whose &lt;code&gt;delta&lt;/code&gt; no longer matched a file based group, for example because it now pointed at an externally hosted asset or one marked &lt;code&gt;preprocess: false&lt;/code&gt;. Drupal now recognizes this situation and responds with a normal 400 Bad Request instead of throwing an exception, matching how other invalid aggregate requests are already handled.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;delta&lt;/code&gt; query parameter is just a position in the list of asset groups that &lt;code&gt;\Drupal\system\Controller\AssetControllerBase::deliver()&lt;/code&gt; rebuilds on every request, not a stable identifier. That list also includes groups with &lt;code&gt;type: external&lt;/code&gt; or &lt;code&gt;preprocess: false&lt;/code&gt;, which are never aggregated and are linked directly in the HTML. When an aggregate file is missing from disk (as happens after &lt;code&gt;drupal_flush_all_caches()&lt;/code&gt;) and an incoming &lt;code&gt;delta&lt;/code&gt; resolves to one of those non-aggregated groups, &lt;code&gt;deliver()&lt;/code&gt; fell through to &lt;code&gt;JsCollectionOptimizerLazy::optimizeGroup()&lt;/code&gt; / the CSS equivalent, which threw because &lt;code&gt;JsOptimizer::optimize()&lt;/code&gt; and &lt;code&gt;CssOptimizer::optimize()&lt;/code&gt; only handle file based, preprocessed groups.&lt;/p&gt;
-&lt;p&gt;The fix adds a check in &lt;code&gt;deliver()&lt;/code&gt; right after resolving &lt;code&gt;$group&lt;/code&gt;: if &lt;code&gt;$group['type'] !== 'file' || $group['preprocess'] === FALSE&lt;/code&gt;, it throws a &lt;code&gt;BadRequestHttpException('The requested asset group is not aggregated.')&lt;/code&gt; before the code reaches the hash comparison and redirect logic (a hash mismatch there would otherwise redirect back to the same non-aggregated group and hit the optimizer again). A new &lt;code&gt;KernelTests\Core\Asset\AssetControllerTest&lt;/code&gt; covers this along with the controller's other existing input validation paths, and the functional &lt;code&gt;AssetOptimizationTest&lt;/code&gt; was extended to also exercise &lt;code&gt;assertInvalidAggregates()&lt;/code&gt; for out-of-range and hash-mismatched deltas after aggregates are deleted from disk. This overlaps with the regression tracked in &lt;a href="https://www.drupal.org/node/3535330"&gt;#3535330&lt;/a&gt; (introduced by &lt;a href="https://www.drupal.org/node/3414173"&gt;#3414173&lt;/a&gt;'s external minified CSS support) and with the narrower mitigation in &lt;a href="https://www.drupal.org/node/3416508"&gt;#3416508&lt;/a&gt; that skips generating aggregates for stale requests; this fix instead makes &lt;code&gt;deliver()&lt;/code&gt; itself reject the request outright.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 18, 2025&lt;/li&gt;
-&lt;li&gt;Committed: August 23, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;herved (European Commission and European Union Institutions, Agencies and Bodies)&lt;/li&gt;
-&lt;li&gt;joelpittet (The University of British Columbia)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;herved authored the fix and, in the issue's &amp;quot;Root cause&amp;quot; section, traced the exception back to &lt;code&gt;delta&lt;/code&gt; being a rebuildable list position rather than a stable id, explaining exactly why external and &lt;code&gt;preprocess: false&lt;/code&gt; groups have no aggregate to serve. joelpittet, who had introduced the related external-minified-CSS regression in &lt;a href="https://www.drupal.org/node/3414173"&gt;#3414173&lt;/a&gt;, pushed back on merging this issue's scope with his own narrower fix in &lt;a href="https://www.drupal.org/node/3535330"&gt;#3535330&lt;/a&gt;, and herved ultimately trimmed the MR to minimal changes and left the overlapping test coverage question open rather than reverting the other issues' work. Multiple site owners (weseze, dewancodes, alexrayu) confirmed hitting the same production error after core upgrades, and joelpittet and swirt manually verified that the patch turns the 500 into a 400 in practice.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3569118: Deprecate the Shortcut module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569118.md</link>
-      <guid isPermaLink="false">01a02886-3f15-72f0-a2e4-67e5114cb5f5</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sat, 22 Aug 2026 07:36:25 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 30 files, +63/−0 · php +61 · yml +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/dfc8b0f693f62d99741564f548bd3ee5dcbe37e8"&gt;dfc8b0f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3569118"&gt;#3569118&lt;/a&gt; · 6 contributors · 43 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Shortcut module, which lets users bookmark frequently used admin pages as shortcut links, is now officially deprecated in Drupal core. This follows the earlier policy decision (&lt;a href="https://www.drupal.org/node/3476880"&gt;#3476880&lt;/a&gt;) to move Shortcut to a contributed project. Sites currently using Shortcut will start seeing deprecation notices, and the module will be removed entirely once Drupal reaches its next major version (12.0.0). A contrib release of Shortcut is being prepared as the replacement so sites can continue using the functionality after the core module goes away.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;shortcut&lt;/code&gt; core module is marked &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and will be removed from core in Drupal 12.0.0; a contrib version is being prepared.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change follows core's standard extension deprecation process: &lt;code&gt;core/modules/shortcut/shortcut.info.yml&lt;/code&gt; gains &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and a &lt;code&gt;lifecycle_link&lt;/code&gt; pointing to the deprecated and obsolete modules documentation page. Marking a module's info file this way causes Drupal to emit a deprecation notice whenever the module is installed or its configure route is visited.&lt;/p&gt;
-&lt;p&gt;To keep the test suite green despite that new notice, every PHPUnit test class in and around the &lt;code&gt;shortcut&lt;/code&gt; module (functional, kernel, JSON:API, REST, and a few in &lt;code&gt;navigation&lt;/code&gt;, &lt;code&gt;config_translation&lt;/code&gt;, and &lt;code&gt;filter&lt;/code&gt; that exercise shortcut entities) was annotated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt;. A related test-only method, &lt;code&gt;ModuleConfigureRouteTest::testDeprecatedModuleConfigureRoutes()&lt;/code&gt; in &lt;code&gt;core/tests/Drupal/KernelTests/Core/Extension/ModuleConfigureRouteTest.php&lt;/code&gt;, was also given &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; since it deliberately installs a deprecated module. Sibling work split shortcut-specific test coverage out of unrelated modules (&lt;a href="https://www.drupal.org/node/3569152"&gt;#3569152&lt;/a&gt;) and removed Shortcut from core recipes and the standard profile, so this commit itself only adds the lifecycle metadata and the deprecation-suppressing test attributes, without changing any runtime behavior of the module.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites and modules depending on Shortcut should plan to install the contributed Shortcut module before Drupal 12.0.0, when the core version will be removed. No code changes are required immediately; the only observable effect is a deprecation notice, for example when the module is enabled:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# core/modules/shortcut/shortcut.info.yml
-lifecycle: deprecated
-lifecycle_link: https://www.drupal.org/node/3223395#s-shortcut
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 21, 2026 (7 months and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;sivaji_ganesh_jojodae&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

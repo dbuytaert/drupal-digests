@@ -1,4 +1,4 @@
-**TL;DR:** [982 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [985 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_526 summaries · 21 new this week_
+_529 summaries · 24 new this week_
 
-- [#3580152: Deprecate theme-settings.php files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580152.md)
-- [#3555115: Add a UploadedFilesExtractor and remove duplicate code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555115.md)
-- [#3618358: Deprecate remaining underscore functions in locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618358.md)
+- [#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md)
+- [#3619447: Avoid rebuilding the router twice when uninstalling a profile in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619447.md)
+- [#1189464: Add an 'instant' queue runner](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1189464.md)
 
 ### Drupal AI
 
