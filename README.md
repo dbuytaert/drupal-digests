@@ -1,8 +1,32 @@
-**TL;DR:** [987 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [990 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [193 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_243 summaries · 3 new this week_
+
+- [#3591981: Provide consistent Code Component metadata validation across CLI and Drupal](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md)
+- [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
+- [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
+
+### Drupal Core
+
+_531 summaries · 26 new this week_
+
+- [#3380334: user_update_10000 fails on role with no data](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3380334.md)
+- [#3587797: Move views data cache to cache_discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587797.md)
+- [#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md)
+
+### Drupal CMS
+
+_91 summaries · 1 new this week_
+
+- [#3591440: Fix installer page backgrounds and add interstitial at the end](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591440.md)
+- [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
+- [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
 
 ### Drupal AI
 
@@ -11,30 +35,6 @@ _125 summaries · 5 new this week_
 - [#3601404: Let a config name the command the agent hand-off runs, instead of only opening...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601404.md)
 - [#3601394: ensure_ddev refuses any distro outside Debian/RHEL, even when Docker and DDEV...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601394.md)
 - [#3601400: Management mode hangs for ~60s with no output: `ddev exec true` starts the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601400.md)
-
-### Drupal Core
-
-_530 summaries · 25 new this week_
-
-- [#3587797: Move views data cache to cache_discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587797.md)
-- [#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md)
-- [#3619447: Avoid rebuilding the router twice when uninstalling a profile in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619447.md)
-
-### Drupal Canvas
-
-_242 summaries · 3 new this week_
-
-- [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
-- [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
-- [#3591916: Component version hashes go stale on single-process installs: prop-shape...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md)
-
-### Drupal CMS
-
-_90 summaries · 0 new this week_
-
-- [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
-- [#3591420: Add Summit site template to site-templates.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591420.md)
-- [#3577804: The installer should set a state flag to remember what site template was applied](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3577804.md)
 
 
 ## Rector rules

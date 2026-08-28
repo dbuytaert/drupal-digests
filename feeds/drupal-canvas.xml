@@ -5,6 +5,42 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3591981: Provide consistent Code Component metadata validation across CLI and Drupal</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md</link>
+      <guid isPermaLink="false">01a0492f-11a7-713f-8e98-670080d35c1a</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 28 Aug 2026 16:17:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591981"&gt;#3591981&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas Code Components are described by an authored &lt;code&gt;component.yml&lt;/code&gt; file, but until now the rules for what counts as valid metadata were scattered across the CLI, JSON Schema prop definitions, Drupal config schema, and PHP entity constraints. That made local feedback incomplete and meant errors could surface only partway through a &lt;code&gt;canvas push&lt;/code&gt;, after other components had already been updated. This change publishes a single, hand-authored JSON Schema for the authored &lt;code&gt;component.yml&lt;/code&gt; envelope and adds a Drupal endpoint that authoritatively validates a component's metadata against the target site without saving it. The Canvas CLI now runs local structural and ESLint checks first, then calls the target site to confirm acceptance, and &lt;code&gt;canvas push&lt;/code&gt; preflights every component's metadata before making any changes so a rejected component no longer leaves a push partially applied. Sites without the new endpoint fall back to the previous per-component, save-time validation.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New authenticated, non-mutating &lt;code&gt;POST /canvas/api/v0/code-components/validate&lt;/code&gt; endpoint runs the same entity and metadata constraint chain as create/update and returns &lt;code&gt;204&lt;/code&gt; or structured constraint violations without saving anything.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The envelope contract lives in the repository-root &lt;code&gt;component-metadata.schema.json&lt;/code&gt; (draft-07, published at the &lt;code&gt;1.x&lt;/code&gt; rolling raw URL), requiring only &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;machineName&lt;/code&gt; and rejecting unknown keys and projected &lt;code&gt;x-allowed-*&lt;/code&gt; keys; it is statically bundled into the CLI rather than fetched at runtime, and prop definitions under &lt;code&gt;props.properties&lt;/code&gt; are validated directly as JSON Schema (including their first example) rather than generated from Drupal's config schema. A new private &lt;code&gt;packages/json-schema-validation&lt;/code&gt; workspace package (&lt;code&gt;createCanvasAjv&lt;/code&gt;) centralizes a strict draft-07 Ajv instance with &lt;code&gt;ajv-formats&lt;/code&gt; and &lt;code&gt;ajv-formats-draft2019&lt;/code&gt;, shared by the UI and CLI, replacing the UI's local &lt;code&gt;ui/src/utils/ajv.ts&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On the Drupal side, &lt;code&gt;ApiCodeComponentMetadataController::validatePayload&lt;/code&gt; (route &lt;code&gt;canvas.api.code_component.validate&lt;/code&gt;, permission &lt;code&gt;administer code components&lt;/code&gt;) builds an in-memory &lt;code&gt;JavaScriptComponent&lt;/code&gt; create or update candidate from the posted payload and runs &lt;code&gt;getTypedData()-&amp;gt;validate()&lt;/code&gt;, returning &lt;code&gt;204&lt;/code&gt; on success or throwing a &lt;code&gt;ConstraintViolationException&lt;/code&gt; with the structured violations otherwise; unresolvable &lt;code&gt;json-schema-definitions://&lt;/code&gt; references are converted into a violation instead of a fatal error. In &lt;code&gt;packages/cli&lt;/code&gt;, &lt;code&gt;validate.ts&lt;/code&gt; and &lt;code&gt;push.ts&lt;/code&gt; (via new &lt;code&gt;utils/target-component-metadata.ts&lt;/code&gt; and &lt;code&gt;services/api.ts&lt;/code&gt; additions) submit each component's normalized payload to this endpoint when an authenticated API service is available, and &lt;code&gt;canvas push&lt;/code&gt; now calls &lt;code&gt;preflightCodeComponentPayloads()&lt;/code&gt; before any create, update, or delete, aborting the push with &amp;quot;Nothing was pushed&amp;quot; if any component fails. When the target endpoint or authentication is unavailable, the CLI emits a warning that only local checks ran and continues, and older sites without the route retain the previous partial, per-save validation. The old duplicate validators &lt;code&gt;validate-content-entity-reference.ts&lt;/code&gt; and ESLint rules &lt;code&gt;component-content-entity-reference-props&lt;/code&gt; and &lt;code&gt;component-prop-example-value-image-url&lt;/code&gt; were removed in favor of the Drupal-side authoritative checks plus a new, more general &lt;code&gt;component-required-props&lt;/code&gt; ESLint rule.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591972: Code editor has no "Document" prop type for the document object shape</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md</link>
       <guid isPermaLink="false">01a03fde-9c5a-7332-8b3f-cd6091aa47e2</guid>
@@ -733,101 +769,6 @@ vendor/bin/drush updb
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;wim leers identified the underlying cause in comment #5: because &lt;code&gt;Folder&lt;/code&gt; never implemented &lt;code&gt;calculateDependencies()&lt;/code&gt;, Drupal's config dependency system had no record of the folder-to-component relationship, making all the inherited removal machinery inert. This reframed the fix from a bespoke delete-hook approach to a standard dependency-declaration approach. He also flagged the need for a database update path for existing sites, and generated it using an AI tool in a single prompt for $1.73 and roughly nine minutes.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3576837: Manage the global layout (aka regions) within Canvas Workbench</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3576837.md</link>
-      <guid isPermaLink="false">019f8234-eceb-73cd-be40-58329e6bdd41</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 21 Jul 2026 00:15:01 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 68 files, +3196/−509 · js +2827/−495 · mdx +140/−9 · php +92 · json +62/−3 · md +51/−2 · yml +24&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3576837"&gt;#3576837&lt;/a&gt; · 5 contributors · 13 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas Workbench and the Canvas CLI now treat global regions (header, footer, etc.) as first-class items alongside pages and content templates. Developers place region JSON specs in a &lt;code&gt;regionsDir&lt;/code&gt; directory, run &lt;code&gt;canvas pull --include-regions&lt;/code&gt; or &lt;code&gt;canvas push --include-regions&lt;/code&gt; to two-way sync them with Drupal, and optionally add a &lt;code&gt;src/layout.jsx&lt;/code&gt; file that wraps Workbench page and content template previews with the surrounding regions. If the layout file is absent, previews continue rendering without surrounding regions, so existing projects are unaffected until they opt in.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;canvas_oauth_post_update_0006_page_region_scope&lt;/code&gt; installs a new &lt;code&gt;canvas:page_region&lt;/code&gt; OAuth scope gated by the &lt;code&gt;administer page template&lt;/code&gt; permission.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;regionsDir&lt;/code&gt; and &lt;code&gt;layoutPath&lt;/code&gt; config keys in &lt;code&gt;canvas.config.json&lt;/code&gt;; new &lt;code&gt;--include-regions&lt;/code&gt; CLI flag for &lt;code&gt;pull&lt;/code&gt;, &lt;code&gt;push&lt;/code&gt;, and &lt;code&gt;validate&lt;/code&gt;; new &lt;code&gt;ApiService&lt;/code&gt; methods &lt;code&gt;listRegions&lt;/code&gt;, &lt;code&gt;getRegion&lt;/code&gt;, &lt;code&gt;createRegion&lt;/code&gt;, &lt;code&gt;updateRegion&lt;/code&gt;, &lt;code&gt;deleteRegion&lt;/code&gt; targeting &lt;code&gt;/canvas/api/v0/config/page_region&lt;/code&gt;; &lt;code&gt;Region&lt;/code&gt; component exported from &lt;code&gt;drupal-canvas@^0.4.0&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Two new keys are added to &lt;code&gt;canvas.config.json&lt;/code&gt;: &lt;code&gt;regionsDir&lt;/code&gt; (default &lt;code&gt;./regions&lt;/code&gt;) and &lt;code&gt;layoutPath&lt;/code&gt; (default &lt;code&gt;./src/layout.jsx&lt;/code&gt;). Region spec files in &lt;code&gt;regionsDir&lt;/code&gt; use the same element tree JSON format as page specs. The filename (without extension) becomes the region machine name; the Drupal theme is implicit and resolved server-side from the default theme when pushing. Push semantics are full-sync: remote regions absent from the local &lt;code&gt;regionsDir&lt;/code&gt; are deleted.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;ApiService&lt;/code&gt; class gains &lt;code&gt;listRegions()&lt;/code&gt;, &lt;code&gt;getRegion()&lt;/code&gt;, &lt;code&gt;createRegion()&lt;/code&gt;, &lt;code&gt;updateRegion()&lt;/code&gt;, and &lt;code&gt;deleteRegion()&lt;/code&gt; methods, all targeting the &lt;code&gt;/canvas/api/v0/config/page_region&lt;/code&gt; REST endpoint. The &lt;code&gt;--include-regions&lt;/code&gt; / &lt;code&gt;CANVAS_INCLUDE_REGIONS=true&lt;/code&gt; option is wired into the &lt;code&gt;pull&lt;/code&gt;, &lt;code&gt;push&lt;/code&gt;, and &lt;code&gt;validate&lt;/code&gt; commands. A new &lt;code&gt;createRegionsPullTask()&lt;/code&gt; function and push utilities (&lt;code&gt;prepareRegions&lt;/code&gt;, &lt;code&gt;pushRegions&lt;/code&gt;, &lt;code&gt;collectRegionResults&lt;/code&gt;, &lt;code&gt;validateRegions&lt;/code&gt;) parallel the existing page and content-template paths.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;canvas:page_region&lt;/code&gt; OAuth scope is installed by &lt;code&gt;canvas_oauth_post_update_0006_page_region_scope&lt;/code&gt;, gated by the &lt;code&gt;administer page template&lt;/code&gt; permission. The &lt;code&gt;canvas_oauth&lt;/code&gt; authentication provider now protects &lt;code&gt;PageRegion&lt;/code&gt; config entities alongside &lt;code&gt;ContentTemplate&lt;/code&gt;, &lt;code&gt;BrandKit&lt;/code&gt;, and others.&lt;/p&gt;
-&lt;p&gt;The layout file must export a default React component accepting &lt;code&gt;children&lt;/code&gt;. The &lt;code&gt;Region&lt;/code&gt; component from &lt;code&gt;drupal-canvas&lt;/code&gt; (now at &lt;code&gt;^0.4.0&lt;/code&gt;) slots in a region by machine name; regions with no matching spec file render as nothing, and a &lt;code&gt;fallback&lt;/code&gt; prop can supply a placeholder during development.&lt;/p&gt;
-&lt;p&gt;Internally, the &lt;code&gt;authored-element-utils&lt;/code&gt; module is consolidated into a new &lt;code&gt;authored-elements&lt;/code&gt; module that exposes shared helpers (&lt;code&gt;componentTreeToAuthoredElementMap&lt;/code&gt;, &lt;code&gt;authoredElementMapToComponentTree&lt;/code&gt;, &lt;code&gt;jsonRenderSpecToAuthoredElementMap&lt;/code&gt;) used by all three entity types. A new &lt;code&gt;ConfigComponentTreePayload&lt;/code&gt; type and &lt;code&gt;stripNullableKeysForConfigComponentTree()&lt;/code&gt; function handle the fact that config-entity component trees (regions, content templates) reject &lt;code&gt;null&lt;/code&gt; values for &lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt;, and &lt;code&gt;label&lt;/code&gt;, while page content entities tolerate them. The now-redundant &lt;code&gt;authoredPropToServer()&lt;/code&gt; pass-through (which was only a no-op for pages/regions) is removed from the content-template utilities.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;After running database updates, the new OAuth scope is available:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush updb
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To opt in to region sync, add to &lt;code&gt;canvas.config.json&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;regionsDir&amp;quot;: &amp;quot;./regions&amp;quot;,
-  &amp;quot;layoutPath&amp;quot;: &amp;quot;./src/layout.jsx&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Create region specs in &lt;code&gt;regions/&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;// regions/header.json
-{
-  &amp;quot;status&amp;quot;: true,
-  &amp;quot;elements&amp;quot;: {
-    &amp;quot;header&amp;quot;: {
-      &amp;quot;type&amp;quot;: &amp;quot;js.header&amp;quot;,
-      &amp;quot;props&amp;quot;: { &amp;quot;darkVariant&amp;quot;: true },
-      &amp;quot;slots&amp;quot;: { &amp;quot;branding&amp;quot;: [&amp;quot;header-logo&amp;quot;] }
-    },
-    &amp;quot;header-logo&amp;quot;: {
-      &amp;quot;type&amp;quot;: &amp;quot;js.logo&amp;quot;,
-      &amp;quot;props&amp;quot;: { &amp;quot;linkToFrontPage&amp;quot;: true }
-    }
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Create &lt;code&gt;src/layout.jsx&lt;/code&gt; to wrap Workbench previews with regions:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-jsx"&gt;import { Region } from 'drupal-canvas';
-
-export default function Layout({ children }) {
-  return (
-    &amp;lt;&amp;gt;
-      &amp;lt;Region name=&amp;quot;header&amp;quot; /&amp;gt;
-      &amp;lt;main&amp;gt;{children}&amp;lt;/main&amp;gt;
-      &amp;lt;Region name=&amp;quot;footer&amp;quot; /&amp;gt;
-    &amp;lt;/&amp;gt;
-  );
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Pull or push regions with the new flag:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;npx canvas pull --include-regions
-npx canvas push --include-regions
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 3, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;rikki_iki&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design discussion shaped the final approach significantly. effulgentsia proposed three options for how to surface regions in Workbench, and in comment &lt;a href="https://www.drupal.org/node/16522896"&gt;#16522896&lt;/a&gt; described a conversation with rikki_iki in which she suggested Option 2 (regions shown as part of page previews rather than in isolation) and specifically proposed using React Router concepts — a &lt;code&gt;layout&lt;/code&gt; with an &lt;code&gt;outlet&lt;/code&gt; — rather than Drupal's region terminology in the local codebase. wotnak pushed back in comment &lt;a href="https://www.drupal.org/node/16582626"&gt;#16582626&lt;/a&gt;, arguing that purely using an outlet without a local concept of regions would make two-way CLI sync difficult, and proposed the hybrid approach that landed: local region JSON specs that sync like pages, combined with a local &lt;code&gt;layout.jsx&lt;/code&gt; for Workbench rendering. wim leers flagged in comment &lt;a href="https://www.drupal.org/node/16584111"&gt;#16584111&lt;/a&gt; that making &lt;code&gt;PageRegion&lt;/code&gt; implement &lt;code&gt;CanvasHttpApiEligibleConfigEntityInterface&lt;/code&gt; carried significant security implications and requested it be extracted to a separate blocking issue, which became &lt;a href="https://www.drupal.org/node/3589801"&gt;#3589801&lt;/a&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
