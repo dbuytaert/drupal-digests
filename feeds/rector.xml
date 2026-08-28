@@ -5,6 +5,114 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace user_login_finalize() and user_logout() with services</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-login-finalize-and-user-logout-with-services-2012976.php</link>
+      <guid isPermaLink="false">01a04a68-fab4-7012-aef0-55439f7656d5</guid>
+      <pubDate>Fri, 28 Aug 2026 22:06:29 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2012976"&gt;#2012976&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the procedural &lt;code&gt;user_login_finalize()&lt;/code&gt; and &lt;code&gt;user_logout()&lt;/code&gt; functions in &lt;code&gt;user.module&lt;/code&gt; in favor of &lt;code&gt;\Drupal\user\LoginFinalizer::finalizeLogin()&lt;/code&gt; and &lt;code&gt;\Drupal\user\LogoutFinalizer::finalizeLogout()&lt;/code&gt;, obtained via dependency injection or &lt;code&gt;\Drupal::service()&lt;/code&gt;. This rule rewrites call sites of both global functions to the equivalent service call, letting contrib and custom code (including auth/session modules that call these directly) migrate ahead of removal in drupal:13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_login_finalize($account);
+user_logout();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\LoginFinalizer::class)-&amp;gt;finalizeLogin($account);
+\Drupal::service(\Drupal\user\LogoutFinalizer::class)-&amp;gt;finalizeLogout();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Skips call sites that use named arguments (e.g. &lt;code&gt;user_login_finalize(account: $account)&lt;/code&gt;) because the new service method's parameter is named &lt;code&gt;$user&lt;/code&gt;, not &lt;code&gt;$account&lt;/code&gt;; rewriting those would break under strict named-argument binding. Such (rare) call sites are left untouched for manual review. The rule targets &lt;code&gt;\Drupal::service()&lt;/code&gt; call sites; it does not inject the service into a class constructor, since that requires editing the class's dependency list which is outside the scope of this rewrite.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserLoginLogoutFinalizeRector extends AbstractRector
+{
+    /**
+     * Maps deprecated global function name to [service FQCN, method name].
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
+     */
+    private const REPLACEMENTS = [
+        'user_login_finalize' =&amp;gt; ['Drupal\\user\\LoginFinalizer', 'finalizeLogin'],
+        'user_logout' =&amp;gt; ['Drupal\\user\\LogoutFinalizer', 'finalizeLogout'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user_login_finalize() and user_logout() global functions with the LoginFinalizer and LogoutFinalizer services.',
+            [new CodeSample(
+                'user_login_finalize($account);
+user_logout();',
+                '\Drupal::service(\Drupal\user\LoginFinalizer::class)-&amp;gt;finalizeLogin($account);
+\Drupal::service(\Drupal\user\LogoutFinalizer::class)-&amp;gt;finalizeLogout();',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        foreach (self::REPLACEMENTS as $functionName =&amp;gt; [$serviceClass, $methodName]) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;name, $functionName)) {
+                continue;
+            }
+
+            // The new service method's parameter name differs from the old
+            // function's parameter name; a named argument would break.
+            foreach ($node-&amp;gt;args as $arg) {
+                if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;name !== null) {
+                    return null;
+                }
+            }
+
+            $serviceCall = new StaticCall(
+                new FullyQualified('Drupal'),
+                'service',
+                [new Arg(new ClassConstFetch(new FullyQualified($serviceClass), 'class'))],
+            );
+
+            return new MethodCall($serviceCall, $methodName, $node-&amp;gt;args);
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserLoginLogoutFinalizeRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace _user_mail_notify() calls with NotificationHandler methods</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-mail-notify-calls-with-notificationhandler-3539178.php</link>
       <guid isPermaLink="false">01a03fe4-4974-7368-98e4-e18f672c7007</guid>
@@ -1857,128 +1965,6 @@ final class ReplaceUserOneTimeAuthFunctionsRector extends AbstractRector
 
 return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserOneTimeAuthFunctionsRector::class]);
 
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add ResultRow type hint to RowPluginBase::render() overrides</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-resultrow-type-hint-to-rowpluginbase-render-overrides-3041170.php</link>
-      <guid isPermaLink="false">019e954f-f773-7048-b696-ba4aa559d801</guid>
-      <pubDate>Fri, 05 Jun 2026 01:05:06 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3041170"&gt;#3041170&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;In Drupal 11.4.0, &lt;code&gt;RowPluginBase::render()&lt;/code&gt; triggers a deprecation when &lt;code&gt;$row&lt;/code&gt; is not a &lt;code&gt;\Drupal\views\ResultRow&lt;/code&gt; instance. This rule finds subclasses of &lt;code&gt;RowPluginBase&lt;/code&gt; that override &lt;code&gt;render($row)&lt;/code&gt; without a type hint and adds the &lt;code&gt;ResultRow&lt;/code&gt; type, preventing the deprecation and preparing for the hard type error in Drupal 12.0.0.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\row\RowPluginBase;
-
-class MyRowPlugin extends RowPluginBase {
-  public function render($row) {
-    return ['#theme' =&amp;gt; 'my_row'];
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\views\ResultRow;
-
-class MyRowPlugin extends RowPluginBase {
-  public function render(ResultRow $row) {
-    return ['#theme' =&amp;gt; 'my_row'];
-  }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only adds the type hint when the first parameter of &lt;code&gt;render()&lt;/code&gt; has no existing type annotation. Parameters already carrying a non-&lt;code&gt;ResultRow&lt;/code&gt; type (e.g. &lt;code&gt;object&lt;/code&gt;) are skipped to avoid inadvertent changes. The rule does not add or remove &lt;code&gt;use&lt;/code&gt; imports; Rector's auto-import pass handles that when configured.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Stmt\Class_;
-use PhpParser\Node\Stmt\ClassMethod;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class AddResultRowTypeHintToRowPluginRenderRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Add ResultRow type hint to $row parameter in RowPluginBase::render() overrides to resolve drupal:11.4.0 deprecation.',
-            [new CodeSample(
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Drupal\views\Plugin\views\row\RowPluginBase;
-
-class MyRowPlugin extends RowPluginBase {
-  public function render($row) {
-    return ['#markup' =&amp;gt; 'hello'];
-  }
-}
-CODE_SAMPLE,
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\views\ResultRow;
-
-class MyRowPlugin extends RowPluginBase {
-  public function render(ResultRow $row) {
-    return ['#markup' =&amp;gt; 'hello'];
-  }
-}
-CODE_SAMPLE,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [Class_::class];
-    }
-
-    /** @param Class_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof Class_) {
-            return null;
-        }
-        if ($node-&amp;gt;extends === null) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($node-&amp;gt;extends, new ObjectType('Drupal\\views\\Plugin\\views\\row\\RowPluginBase'))) {
-            return null;
-        }
-        $changed = false;
-        foreach ($node-&amp;gt;stmts as $stmt) {
-            if (!$stmt instanceof ClassMethod) {
-                continue;
-            }
-            if (!$this-&amp;gt;isName($stmt-&amp;gt;name, 'render')) {
-                continue;
-            }
-            if (count($stmt-&amp;gt;params) &amp;lt; 1) {
-                continue;
-            }
-            $param = $stmt-&amp;gt;params[0];
-            // Already typed — skip.
-            if ($param-&amp;gt;type !== null) {
-                continue;
-            }
-            $param-&amp;gt;type = new FullyQualified('Drupal\\views\\ResultRow');
-            $changed = true;
-        }
-        return $changed ? $node : null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([AddResultRowTypeHintToRowPluginRenderRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
