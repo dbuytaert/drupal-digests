@@ -5,6 +5,63 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3587797: Move views data cache to cache_discovery</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587797.md</link>
+      <guid isPermaLink="false">01a0471b-b07e-7252-8153-cbcac03c67fb</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 27 Aug 2026 22:02:17 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +8/−19 · php +8/−19&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7d8143e6d2d06299a17a275dc1bcdc011f4c60f7"&gt;7d8143e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587797"&gt;#3587797&lt;/a&gt; · 7 contributors · 40 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Views builds a large in-memory data structure describing every database table exposed to Views (via &lt;code&gt;hook_views_data()&lt;/code&gt;), and caches it both as one big entry and as many smaller per-table entries. Per-table entries were previously stored in the regular persistent cache (&lt;code&gt;cache.default&lt;/code&gt;); they are now stored in the &lt;code&gt;cache.discovery&lt;/code&gt; bin, which is chained with a fast, per-process backend like APCu when available. Since the set of tables is finite and rebuilt rarely, this lets repeat lookups for the same table on a page be served from local memory instead of the primary cache backend (Redis, database, etc.), reducing cache reads on pages that use Views. The single &amp;quot;all views data&amp;quot; entry stays in &lt;code&gt;cache.default&lt;/code&gt; because it can be very large and the maintainers were concerned that pushing it into a fast in-memory bin could evict other cached data on large, multilingual sites.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;\Drupal\views\ViewsData::cacheGet()&lt;/code&gt; and &lt;code&gt;cacheSet()&lt;/code&gt; are deprecated in Drupal 11.5.0 and removed in 12.0.0, with no replacement.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The initial commit simply swapped the constructor's &lt;code&gt;#[Autowire]&lt;/code&gt; target for &lt;code&gt;ViewsData::$cacheBackend&lt;/code&gt; from &lt;code&gt;cache.default&lt;/code&gt; to &lt;code&gt;cache.discovery&lt;/code&gt;, but this was reverted after &lt;code&gt;berdir&lt;/code&gt; pointed out that the combined &amp;quot;all tables&amp;quot; entry can be tens of megabytes on sites with many languages or entity bundles, and forcing all of that into the chained-fast (APCu-backed) bin risked frequent APCu expunges and a performance regression rather than an improvement.&lt;/p&gt;
+&lt;p&gt;The follow-up &lt;code&gt;perf&lt;/code&gt; commit instead adds a second injected backend, &lt;code&gt;$chainedFastBackend&lt;/code&gt; (&lt;code&gt;cache.discovery&lt;/code&gt;), used only for the per-table cache entries in &lt;code&gt;ViewsData::get()&lt;/code&gt;, while &lt;code&gt;getData()&lt;/code&gt; keeps using &lt;code&gt;$cacheBackend&lt;/code&gt; (&lt;code&gt;cache.default&lt;/code&gt;) for the full &amp;quot;all tables&amp;quot; entry. A new &lt;code&gt;ViewsData::CACHE_TAGS&lt;/code&gt; constant centralizes the &lt;code&gt;views_data&lt;/code&gt; and &lt;code&gt;config:core.extension&lt;/code&gt; cache tags used when setting either bin. The old protected &lt;code&gt;cacheGet()&lt;/code&gt;/&lt;code&gt;cacheSet()&lt;/code&gt; helpers, which always prefixed the langcode and used &lt;code&gt;$cacheBackend&lt;/code&gt;, are no longer used internally and are deprecated with &lt;code&gt;@trigger_error&lt;/code&gt;; callers should use the injected cache backends directly, following how the rest of the class now works.&lt;/p&gt;
+&lt;p&gt;Performance test fixtures (&lt;code&gt;FrontPageTest&lt;/code&gt;, &lt;code&gt;StandardPerformanceTestTrait&lt;/code&gt;, &lt;code&gt;Umami&lt;/code&gt;/&lt;code&gt;Standard&lt;/code&gt; profile test YAMLs) were updated to reflect the shift: &lt;code&gt;discovery&lt;/code&gt; cache-get counts go up and &lt;code&gt;default&lt;/code&gt; cache-get counts go down by the same amount, confirming per-table lookups now hit &lt;code&gt;cache.discovery&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Subclasses or code relying on &lt;code&gt;\Drupal\views\ViewsData::cacheGet()&lt;/code&gt; or &lt;code&gt;cacheSet()&lt;/code&gt; will get a deprecation notice starting in Drupal 11.5.0 and must stop using them before 12.0.0, since there is no direct replacement method. Interact with the injected &lt;code&gt;$cacheBackend&lt;/code&gt; (&lt;code&gt;cache.default&lt;/code&gt;, for the &amp;quot;all data&amp;quot; entry) or the new &lt;code&gt;$chainedFastBackend&lt;/code&gt; (&lt;code&gt;cache.discovery&lt;/code&gt;, for per-table entries) directly instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
+$data = $this-&amp;gt;cacheGet($cid);
+$this-&amp;gt;cacheSet($cid, $data);
+
+// After, for per-table entries:
+$data = $this-&amp;gt;chainedFastBackend-&amp;gt;get($this-&amp;gt;prepareCid($cid));
+$this-&amp;gt;chainedFastBackend-&amp;gt;set($this-&amp;gt;prepareCid($cid), $data, Cache::PERMANENT, static::CACHE_TAGS);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 30, 2026&lt;/li&gt;
+&lt;li&gt;First commit: April 30, 2026&lt;/li&gt;
+&lt;li&gt;Last commit: August 27, 2026 (3 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;catch proposed moving the whole &lt;code&gt;ViewsData&lt;/code&gt; cache to &lt;code&gt;cache_discovery&lt;/code&gt; and alexpott committed it, but berdir flagged a regression risk: on large or heavily multilingual sites the combined &amp;quot;all tables&amp;quot; cache entry can be megabytes in size, and pushing that into APCu-backed chained-fast storage risks frequent expunges that hurt performance more broadly (citing real-world monitoring data from sites using an APCu-expunge sensor). alexpott reverted the commit the same day. berdir then measured actual cache entry sizes with a script run against a production-like Redis dataset, showing the &amp;quot;all tables&amp;quot; entries were an order of magnitude larger than the sum of per-table entries, and suggested moving only the per-table entries into the fast bin. catch implemented that split (two injected cache backends), and the two also floated further ideas (a &lt;code&gt;hook_views_data_table()&lt;/code&gt;-style API, and not caching views data per-language) that were not pursued in this issue. berdir later reviewed again and preferred catch's simplified follow-up that dropped the old &lt;code&gt;cacheGet&lt;/code&gt;/&lt;code&gt;cacheSet&lt;/code&gt; helpers entirely in favor of calling the backends directly, calling it &amp;quot;much nicer.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md</link>
       <guid isPermaLink="false">01a04580-b5a0-74f9-95b3-12f0aac2ecef</guid>
@@ -1073,77 +1130,6 @@ https://www.drupal.org/node/3395582
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The first version of this change replaced Olivero's welcome content with a one-time status message shown on &lt;code&gt;/user&lt;/code&gt;, but a Drupal usability team review rejected that outright: benjifisher reported &amp;quot;strong consensus that a one-time message...is a bad idea&amp;quot; because it disappears on reload, navigation, or a coffee break, and mixes unrelated content like User Guide and event links into a transient message (see &lt;a href="https://www.drupal.org/node/3612901"&gt;#3612901&lt;/a&gt;). Following that review, gábor hojtsy rebuilt the feature as a dedicated &lt;code&gt;/admin/welcome&lt;/code&gt; page. mherchel and abenbow then raised concerns about the page's verbosity and intended audience, and the group agreed to treat it as an introductory pass to be refined later in the follow-up &lt;a href="https://www.drupal.org/node/3614228"&gt;#3614228&lt;/a&gt; rather than block this issue on design polish. lauriii flagged that the welcome menu's drop icon did not follow Drupal's brand guidelines, prompting gábor hojtsy to swap it for a Phosphor &amp;quot;signpost&amp;quot; icon, and mherchel contributed CSS fixes so the page's two-column layout works correctly in both Claro and the new default_admin theme, including dark mode.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3262935: Link field validation constraints don't give enough detail</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3262935.md</link>
-      <guid isPermaLink="false">01a03567-8108-7320-9c69-e2dd3deb6a8b</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 24 Aug 2026 18:35:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +64/−50 · php +64/−50&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/679a7580afe7a78944868299bb2b5c9ec6110ad4"&gt;679a758&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3262935"&gt;#3262935&lt;/a&gt; · 19 contributors · 69 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 20&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 19 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Link field validation used to show the same generic message, &amp;quot;The path '@uri' is invalid.&amp;quot;, for many unrelated problems: an inaccessible path, an unsupported protocol, a URL pointing to a non-existent entity, a missing route parameter, or a URL of the wrong type (internal vs. external) for the field's settings. Editors and developers had no way to tell which of these actually happened without digging into the code. Each failure case now gets its own specific message (e.g. &amp;quot;The URL '@uri' has an invalid protocol.&amp;quot;, &amp;quot;The URL '@uri' doesn't exist.&amp;quot;, &amp;quot;The URL '@uri' is missing a required parameter.&amp;quot;, or a message naming the field when an internal-only or external-only field rejects the wrong kind of link), and messages now say &amp;quot;URL&amp;quot; instead of &amp;quot;path&amp;quot; to match the actual field label used in the UI.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;LinkExternalProtocolsConstraint&lt;/code&gt;, &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt;, and &lt;code&gt;LinkTypeConstraint&lt;/code&gt; no longer have a single &lt;code&gt;$message&lt;/code&gt; constructor property; each now exposes multiple named message properties for its distinct failure cases.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Following the Symfony validator convention where constraint messages live as properties on the &lt;code&gt;Constraint&lt;/code&gt; class rather than being decided ad hoc in the validator, the single &lt;code&gt;$message&lt;/code&gt; constructor property on &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt; was split into &lt;code&gt;$notFoundMessage&lt;/code&gt;, &lt;code&gt;$invalidParameterMessage&lt;/code&gt;, and &lt;code&gt;$missingParameterMessage&lt;/code&gt;. &lt;code&gt;LinkNotExistingInternalConstraintValidator&lt;/code&gt; now catches &lt;code&gt;RouteNotFoundException&lt;/code&gt;, &lt;code&gt;InvalidParameterException&lt;/code&gt;, and &lt;code&gt;MissingMandatoryParametersException&lt;/code&gt; separately and builds a violation with the matching message for each, instead of collapsing all three into one generic message via a shared &lt;code&gt;$allowed&lt;/code&gt; flag.&lt;/p&gt;
-&lt;p&gt;Similarly, &lt;code&gt;LinkTypeConstraint&lt;/code&gt;'s &lt;code&gt;$message&lt;/code&gt; became &lt;code&gt;$invalidMessage&lt;/code&gt;, &lt;code&gt;$onlyInternalMessage&lt;/code&gt;, and &lt;code&gt;$onlyExternalMessage&lt;/code&gt;. &lt;code&gt;LinkTypeConstraintValidator&lt;/code&gt; was refactored to add a violation directly at the point where the URL is found to be external-but-internal-only or internal-but-external-only, rather than setting a &lt;code&gt;$uri_is_valid&lt;/code&gt; boolean and reporting one generic message afterward. The two type-mismatch messages now interpolate &lt;code&gt;@field-label&lt;/code&gt; (from &lt;code&gt;$field_definition-&amp;gt;getLabel()&lt;/code&gt;), so the message names the actual field instead of saying &amp;quot;the link field&amp;quot;. &lt;code&gt;LinkExternalProtocolsConstraint&lt;/code&gt;'s default message changed to &amp;quot;The URL '@uri' has an invalid protocol.&amp;quot;, and &lt;code&gt;LinkAccessConstraint&lt;/code&gt;'s wording changed from &amp;quot;path&amp;quot; to &amp;quot;URL&amp;quot; without adding new message variants.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that instantiates these constraints with a custom message, or reads their &lt;code&gt;message&lt;/code&gt; property, needs to use the new property names. For example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-new LinkTypeConstraint(message: 'Custom message');
-
-// After
-new LinkTypeConstraint(
-  invalidMessage: 'Custom invalid message',
-  onlyInternalMessage: 'Custom internal-only message',
-  onlyExternalMessage: 'Custom external-only message',
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same pattern applies to &lt;code&gt;LinkNotExistingInternalConstraint&lt;/code&gt;, whose single &lt;code&gt;message&lt;/code&gt; argument is replaced by &lt;code&gt;notFoundMessage&lt;/code&gt;, &lt;code&gt;invalidParameterMessage&lt;/code&gt;, and &lt;code&gt;missingParameterMessage&lt;/code&gt;.&amp;lt;/upgrade&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;This issue took over three years and many contributors to land. Early attempts set the message directly in the validator's &lt;code&gt;validate()&lt;/code&gt; method, until joachim pointed out in comment #8 that Symfony constraint classes are supposed to define their messages as properties, with the validator only choosing among them, which set the pattern the eventual fix followed. The Drupal usability team reviewed the wording twice (benjifisher's comments #43 and #48), pushing the change to say &amp;quot;URL&amp;quot; instead of &amp;quot;path&amp;quot; and to name the specific field label rather than &amp;quot;the link field&amp;quot;. dcam later connected this issue to the related terminology work in &lt;a href="https://www.drupal.org/node/2828556"&gt;#2828556&lt;/a&gt; and finished updating the messages and MR to match the table of expected messages now in the issue summary.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 7, 2022&lt;/li&gt;
-&lt;li&gt;Committed: August 24, 2026 (4 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;joachim (Factorial.io)&lt;/li&gt;
-&lt;li&gt;andregp (CI&amp;amp;T)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;sophiavs (CI&amp;amp;T)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;harshitthakore (Cognizant Technology Solutions)&lt;/li&gt;
-&lt;li&gt;murilohp (CI&amp;amp;T)&lt;/li&gt;
-&lt;li&gt;benjifisher (SciShield)&lt;/li&gt;
-&lt;li&gt;Tauany Bueno (CI&amp;amp;T)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;rkoller&lt;/li&gt;
-&lt;li&gt;simohell&lt;/li&gt;
-&lt;li&gt;pallavi singh3013&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
