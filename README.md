@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_534 summaries · 28 new this week_
+_534 summaries · 27 new this week_
 
 - [#2012976: Deprecate user_logout() and user_login_finalize() and replace with a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2012976.md)
 - [#3610503: Optimize StorageCopyTrait::replaceStorageContents()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610503.md)
