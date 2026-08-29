@@ -5,6 +5,66 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3580733: Views status field triggers a PHP 8.5 deprecation on /admin/people</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580733.md</link>
+      <guid isPermaLink="false">01a04d7a-f774-733a-ac53-113e80c4996b</guid>
+      <category>Front-end developers</category>
+      <pubDate>Sat, 29 Aug 2026 11:36:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +447/−8 · php +438 · twig +9/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/51ff2c2fe01e1060c64a14d81e0b425df41afdb2"&gt;51ff2c2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580733"&gt;#3580733&lt;/a&gt; · 15 contributors · 61 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 22&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 15 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On sites using core's experimental default_admin theme, visiting admin pages built from Views status fields (such as /admin/people) triggered a PHP 8.5 deprecation warning, &amp;quot;Using null as an array offset is deprecated&amp;quot;, because the &amp;quot;Published&amp;quot;/&amp;quot;Unpublished&amp;quot; badge template tried to look up a translation using a language code that could be null. The same faulty logic also meant the published/unpublished badge could show the wrong color on views not based on nodes (for example taxonomy term listings), since it relied on a variable that only exists for node-based views. Both problems are fixed: the warning no longer appears, and the badge now reflects the correct publication state for any publishable entity type shown in a status field.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The &lt;code&gt;default_admin&lt;/code&gt; theme's &lt;code&gt;views-view-field--status.html.twig&lt;/code&gt; template no longer resolves the row's translated entity itself; it now receives a computed &lt;code&gt;is_published&lt;/code&gt; boolean/null variable from a new preprocess hook, and no longer receives an &lt;code&gt;entity&lt;/code&gt; variable.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old &lt;code&gt;views-view-field--status.html.twig&lt;/code&gt; template inlined Twig logic to fetch the row's entity translation via &lt;code&gt;row._entity.getTranslation(row.node_field_data_langcode)&lt;/code&gt; before checking &lt;code&gt;isPublished()&lt;/code&gt;. &lt;code&gt;node_field_data_langcode&lt;/code&gt; is a row property that only exists for node-based views, so on other views (or monolingual sites) it evaluated to &lt;code&gt;NULL&lt;/code&gt;, which is what triggered the deprecation inside &lt;code&gt;ContentEntityBase::hasTranslation()&lt;/code&gt;, and also silently produced the wrong publication state for non-node entities like taxonomy terms.&lt;/p&gt;
+&lt;p&gt;The fix moves this logic out of the template entirely. A new &lt;code&gt;hook_preprocess_HOOK()&lt;/code&gt; implementation, &lt;code&gt;PreprocessHooks::preprocessViewsViewFieldStatus()&lt;/code&gt; (theme suggestion &lt;code&gt;views_view_field__status&lt;/code&gt;, which fires for any views field with the machine ID &lt;code&gt;status&lt;/code&gt; on any entity type), resolves the row's entity through the field handler's own &lt;code&gt;EntityField::getEntity()&lt;/code&gt; (respecting configured relationships via &lt;code&gt;row._relationship_entities&lt;/code&gt;), and only sets a boolean &lt;code&gt;is_published&lt;/code&gt; variable when the field's underlying entity field type is &lt;code&gt;boolean&lt;/code&gt;. Otherwise &lt;code&gt;is_published&lt;/code&gt; is &lt;code&gt;NULL&lt;/code&gt;. The template was simplified to branch purely on &lt;code&gt;is_published&lt;/code&gt;: &lt;code&gt;TRUE&lt;/code&gt; renders the &lt;code&gt;marker--published&lt;/code&gt; span, &lt;code&gt;FALSE&lt;/code&gt; renders the plain &lt;code&gt;marker&lt;/code&gt; span, and &lt;code&gt;NULL&lt;/code&gt; renders the raw &lt;code&gt;output&lt;/code&gt; with no marker at all, so fields that aren't a real published flag (e.g. &lt;code&gt;views_test_data.status&lt;/code&gt; handled by the &lt;code&gt;boolean&lt;/code&gt; plugin) pass through unaffected.&lt;/p&gt;
+&lt;p&gt;Because the entity is now resolved through the field handler, translation handling follows the view's configured rendering language instead of a hardcoded node-specific row property, fixing the mismatch for non-node views. Follow-up issues &lt;a href="https://www.drupal.org/node/3608223"&gt;#3608223&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3619121"&gt;#3619121&lt;/a&gt; were opened to move this kind of status-badge formatting into a proper Views field formatter rather than being hardcoded in the theme layer.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Themes that override &lt;code&gt;core/themes/default_admin/templates/views/views-view-field--status.html.twig&lt;/code&gt; need to update their copy: the template no longer receives an &lt;code&gt;entity&lt;/code&gt; variable and instead receives &lt;code&gt;is_published&lt;/code&gt; (&lt;code&gt;TRUE&lt;/code&gt;, &lt;code&gt;FALSE&lt;/code&gt;, or &lt;code&gt;NULL&lt;/code&gt;):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-twig"&gt;{% if is_published is null %}
+  {{ output -}}
+{% elseif is_published %}
+  &amp;lt;span class=&amp;quot;marker marker--published&amp;quot;&amp;gt;{{ output -}}&amp;lt;/span&amp;gt;
+{% else %}
+  &amp;lt;span class=&amp;quot;marker&amp;quot;&amp;gt;{{ output -}}&amp;lt;/span&amp;gt;
+{% endif %}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 29, 2026 (5 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;idebr (iO)&lt;/li&gt;
+&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
+&lt;li&gt;boromino (LakeDrops)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The fix went through several rounds of design disagreement before landing. penyaskito's initial proposal was to simply delete the translation lookup from the template, but berdir and alexpott argued the theme layer should not be resolving entity translations at all, and considered removing the status badge feature from default_admin entirely (with alexpott noting it should be reintroduced later with the multilingual issue fixed properly). jurgenhaas then produced MR!16557, moving the logic into a preprocess hook that computes a boolean published state; boromino reviewed it and suggested extracting named helper methods (&lt;code&gt;getResultRowEntity()&lt;/code&gt;, &lt;code&gt;isPublishedStatusField()&lt;/code&gt;) for clarity, which jurgenhaas applied. godotislate then explored two further alternatives, MR!16768 (preprocess using the field handler's entity resolution) and MR!16769 (template-only), after finding the original approach didn't handle entities like &lt;code&gt;user&lt;/code&gt; that lack a published key or &lt;code&gt;EntityPublishedInterface&lt;/code&gt;. berdir pushed back against using &lt;code&gt;getFieldMap()&lt;/code&gt; in MR!16768 due to performance concerns raised in &lt;a href="https://www.drupal.org/node/3565128"&gt;#3565128&lt;/a&gt;, so godotislate removed it in favor of calling &lt;code&gt;EntityField::getEntity()&lt;/code&gt; directly. The group ultimately converged on MR!16768 as the pragmatic minimal fix, with berdir and jurgenhaas agreeing to defer the &amp;quot;proper&amp;quot; solution (a configurable Views boolean formatter) to follow-up issues &lt;a href="https://www.drupal.org/node/3608223"&gt;#3608223&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3619121"&gt;#3619121&lt;/a&gt;.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2012976: Deprecate user_logout() and user_login_finalize() and replace with a service</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2012976.md</link>
       <guid isPermaLink="false">01a04a66-203a-71ea-9e64-077e3b0cdf3e</guid>
@@ -1053,70 +1113,6 @@ function mymodule_entity_type_alter(array &amp;amp;$entity_types) { ... }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;berdir opened the MR after catch gave a preliminary +1 in Slack to fully removing include-file discovery rather than pursuing the alternative of improving the error message. nicxvan suggested renaming the obsolete test fixture module so the existing test-suite plumbing could still run, which berdir noted was unnecessary because the ignored-directory check itself was being deleted. nicxvan also flagged that &lt;code&gt;gin&lt;/code&gt; theme's 5.0.x dynamically &lt;code&gt;glob()&lt;/code&gt;s an includes directory from its main theme file, and berdir confirmed that pattern breaks under this change as well, then extended &lt;code&gt;ThemeHookCollectorPass&lt;/code&gt; to match. catch committed the change to main, noting it simplifies code that otherwise had to be kept around for years.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3577900: Require plugin managers that support annotation discovery to support attribute discovery</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3577900.md</link>
-      <guid isPermaLink="false">01a03802-b285-76b9-99fe-07b60d542f9c</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 25 Aug 2026 08:19:01 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +2/−15 · php +2/−15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/460789dde168558a0824ceafb9425cdcb42394ca"&gt;460789d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3577900"&gt;#3577900&lt;/a&gt; · 5 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's plugin system has been moving from PHP annotations to PHP attributes for defining plugins. Since Drupal 11.2, plugin managers that only supported annotation-based discovery (and not the newer attribute-based discovery) triggered a silenced deprecation warning that was easy to miss. As of this change, any plugin manager, in core or in contributed and custom modules, that does not also provide an attribute class will now cause a fatal error when it is instantiated. This is intentional: since many contrib modules define plugin types that other contrib modules provide plugins for, forcing plugin-type-providing modules to add attribute support now (rather than waiting for Drupal 13) gives the wider ecosystem more time to update before the final removal of annotation-only discovery.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Constructing &lt;code&gt;DefaultPluginManager&lt;/code&gt; (or a subclass) with only &lt;code&gt;$plugin_definition_annotation_name&lt;/code&gt; and no attribute class now throws an &lt;code&gt;\InvalidArgumentException&lt;/code&gt; at construction time instead of triggering a silenced &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is in &lt;code&gt;DefaultPluginManager::__construct()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Plugin/DefaultPluginManager.php&lt;/code&gt;. Previously, when a &lt;code&gt;$plugin_definition_attribute_name&lt;/code&gt; was passed but did not implement &lt;code&gt;AttributeInterface&lt;/code&gt; (i.e. only an annotation class was effectively usable), the constructor called &lt;code&gt;@trigger_error(...)&lt;/code&gt; with &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;, which is easy for sites and CI to ignore. Now it throws &lt;code&gt;new \InvalidArgumentException(..., E_USER_WARNING)&lt;/code&gt; with a message pointing to the original deprecation change record (drupal.org node 3395582), so instantiating such a plugin manager fails outright rather than warning.&lt;/p&gt;
-&lt;p&gt;Accompanying core tests were updated: &lt;code&gt;DefaultPluginManagerTest::testDefaultPluginManager()&lt;/code&gt; dropped its annotation-only assertions, and &lt;code&gt;testDefaultPluginManagerAnnotationsOnly()&lt;/code&gt; now expects the thrown exception message instead of a deprecation message. This does not affect plugin managers that already provide both an attribute class and an annotation class for backward compatibility, which remains the supported pattern; only managers exposing annotation-only discovery are affected. This issue was tracked as a follow-up enforcement of the change documented in the existing change record https://www.drupal.org/node/3522776 (itself a &amp;quot;now you have to do it&amp;quot; successor to https://www.drupal.org/node/3395582 from 2023), so no new change record was created.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you maintain a plugin manager that extends &lt;code&gt;DefaultPluginManager&lt;/code&gt; (or implements similar annotation/attribute discovery) and it currently only supports annotation-based plugin discovery, you must add a PHP attribute class before upgrading to Drupal 12, or code that instantiates your plugin manager will throw:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;InvalidArgumentException: Drupal\Your\Namespace\YourPluginManager only supports
-annotation-based discovery, which is no longer supported as of Drupal 12.0.
-Provide an Attribute class and an Annotation class for BC. See
-https://www.drupal.org/node/3395582
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To fix, define an Attribute class (implementing the plugin's attribute annotation pattern) and pass both the attribute and annotation class names to the parent constructor, e.g.:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;parent::__construct(
-  $subdir,
-  $namespaces,
-  $module_handler,
-  $plugin_interface,
-  MyPluginAttribute::class,
-  MyPluginAnnotation::class
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 25, 2026 (5 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Committer catch and berdir discussed how to enforce the requirement: catch initially suggested &amp;quot;unsilencing&amp;quot; the deprecation (making the existing &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; visible) as a middle ground rather than a hard break, and smustgrave agreed, noting modules like entity_embed still lacked attribute support. berdir then implemented the unsilencing approach, but reported in comment &lt;a href="https://www.drupal.org/node/16715227"&gt;#16715227&lt;/a&gt; that he couldn't find a good way to test for an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;/&lt;code&gt;E_USER_WARNING&lt;/code&gt; in this case, and revised the MR to throw an exception instead, explaining &amp;quot;I think I'd prefer that option. We really want contrib to pick this up in D12 IMHO.&amp;quot; That became the version that was committed. Separately, benjifisher and catch pushed back on the initial issue title as an unclear double negative, leading to the retitling to its current, clearer form.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
