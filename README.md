@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_535 summaries · 28 new this week_
+_535 summaries · 27 new this week_
 
 - [#3580733: Views status field triggers a PHP 8.5 deprecation on /admin/people](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580733.md)
 - [#2012976: Deprecate user_logout() and user_login_finalize() and replace with a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2012976.md)
