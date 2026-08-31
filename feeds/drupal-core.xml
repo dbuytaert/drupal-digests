@@ -5,6 +5,136 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3616645: Form #value_callback does not support CallableResolver-style callables</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616645.md</link>
+      <guid isPermaLink="false">01a057cc-a5d7-7386-a7c4-8997d927e746</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 31 Aug 2026 09:23:53 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +66/−8 · php +66/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9113328b526cd79ba696a2d8838cb5f11d16e2ac"&gt;9113328&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3616645"&gt;#3616645&lt;/a&gt; · 4 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Form elements can now define their &lt;code&gt;#value_callback&lt;/code&gt; using the same &amp;quot;service notation&amp;quot; already supported by &lt;code&gt;#process&lt;/code&gt;, &lt;code&gt;#after_build&lt;/code&gt;, &lt;code&gt;#submit&lt;/code&gt;, &lt;code&gt;#validate&lt;/code&gt;, and &lt;code&gt;#entity_builders&lt;/code&gt;. Previously &lt;code&gt;#value_callback&lt;/code&gt; only accepted plain PHP callables (functions, static methods, or &lt;code&gt;[$object, 'method']&lt;/code&gt; arrays); it could not point to a method on a class resolved through the service container, so it could not use constructor-injected dependencies. This unblocks converting existing static value callback methods, such as those used by file upload widgets, into injectable services.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;#value_callback&lt;/code&gt; on form elements can now be defined in &lt;code&gt;CallableResolver&lt;/code&gt; service notation (e.g. &lt;code&gt;MyService:method&lt;/code&gt;), not just plain &lt;code&gt;is_callable()&lt;/code&gt; values.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;FormBuilder::handleInputElement()&lt;/code&gt; previously read &lt;code&gt;#value_callback&lt;/code&gt; directly and fell back to &lt;code&gt;\Drupal\Core\Render\Element\FormElementBase::valueCallback&lt;/code&gt; only when the given value was not &lt;code&gt;is_callable()&lt;/code&gt;. It now always resolves the callback through &lt;code&gt;CallableResolver::getCallableFromDefinition()&lt;/code&gt;, after passing it through &lt;code&gt;FormStateInterface::prepareCallback()&lt;/code&gt; (the same pipeline used for &lt;code&gt;#process&lt;/code&gt; and &lt;code&gt;#after_build&lt;/code&gt;), so definitions like &lt;code&gt;MyClass:method&lt;/code&gt; or a service id with a method are resolved via the class resolver/container instead of requiring a directly callable value. Plain static and array callables continue to resolve the same way, since &lt;code&gt;CallableResolver&lt;/code&gt; falls back to normal PHP callable resolution when the definition is already callable. An unresolvable definition now throws &lt;code&gt;\InvalidArgumentException&lt;/code&gt; instead of silently falling back to the default value callback, as covered by the new &lt;code&gt;testValueCallbackInvalidDefinitionThrows()&lt;/code&gt; kernel test. This change removes a blocker for &lt;a href="https://www.drupal.org/node/3616654"&gt;#3616654&lt;/a&gt;, which converts &lt;code&gt;ManagedFile::valueCallback()&lt;/code&gt; into an injectable service, part of the file upload modernization tracked in the meta issue &lt;a href="https://www.drupal.org/node/3221796"&gt;#3221796&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Existing &lt;code&gt;#value_callback&lt;/code&gt; definitions (plain functions, static method strings, or &lt;code&gt;[$object, 'method']&lt;/code&gt; arrays) keep working unchanged. To use dependency injection, define the callback in service notation, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element['#value_callback'] = MyValueCallbackService::class . ':value';
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;which is then resolved through &lt;code&gt;CallableResolver&lt;/code&gt; the same way &lt;code&gt;#process&lt;/code&gt; and &lt;code&gt;#submit&lt;/code&gt; callbacks already are.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 14, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 31, 2026 (17 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3580703: Deprecate update.module functions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580703.md</link>
+      <guid isPermaLink="false">01a057cd-93f7-77c7-98c8-b12791cd5b35</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 31 Aug 2026 09:14:14 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +449/−196 · php +449/−196&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b0d6a1940a3bcd13ace7675e23b152da505c1ccd"&gt;b0d6a19&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580703"&gt;#3580703&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Update Status module's last remaining legacy procedural functions have been deprecated in favor of object-oriented equivalents. There is no behavior change for site visitors or administrators using the update reports UI; this is purely an internal API migration. Custom code or contrib modules that call these functions directly will see deprecation notices starting in Drupal 11.5 and must switch to the replacements before Drupal 13.0, when the old functions are removed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Nine procedural functions in &lt;code&gt;update.module&lt;/code&gt; are deprecated for removal in Drupal 13.0.0: &lt;code&gt;_update_no_data()&lt;/code&gt;, &lt;code&gt;update_get_available()&lt;/code&gt;, &lt;code&gt;update_create_fetch_task()&lt;/code&gt;, &lt;code&gt;update_refresh()&lt;/code&gt;, &lt;code&gt;update_fetch_data()&lt;/code&gt;, &lt;code&gt;update_fetch_data_finished()&lt;/code&gt;, &lt;code&gt;_update_message_text()&lt;/code&gt;, &lt;code&gt;_update_project_status_sort()&lt;/code&gt;, &lt;code&gt;update_storage_clear()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;UpdateManagerInterface&lt;/code&gt; gains &lt;code&gt;getAvailable(bool $refresh)&lt;/code&gt; and &lt;code&gt;reset(): void&lt;/code&gt; methods.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Most of the deprecated functions were already thin wrappers around service calls; they now just trigger an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error and delegate to the same service. &lt;code&gt;update_get_available()&lt;/code&gt; moves its full logic onto a new &lt;code&gt;UpdateManagerInterface::getAvailable()&lt;/code&gt; method (implemented in &lt;code&gt;UpdateManager&lt;/code&gt;), and &lt;code&gt;update_storage_clear()&lt;/code&gt; becomes &lt;code&gt;UpdateManagerInterface::reset()&lt;/code&gt;, which clears both the &lt;code&gt;update&lt;/code&gt; key/value store and the &lt;code&gt;update_available_releases&lt;/code&gt; expirable temp store. &lt;code&gt;update_create_fetch_task()&lt;/code&gt;, &lt;code&gt;update_refresh()&lt;/code&gt;, and &lt;code&gt;update_fetch_data()&lt;/code&gt; simply forward to the existing &lt;code&gt;update.processor&lt;/code&gt; and &lt;code&gt;update.manager&lt;/code&gt; services.&lt;/p&gt;
+&lt;p&gt;Two functions have no direct replacement because they were internal implementation details, not really general-purpose utilities: &lt;code&gt;update_fetch_data_finished()&lt;/code&gt;'s logic moved to a new &lt;code&gt;UpdateController::updateFetchDataFinished()&lt;/code&gt; method (the batch finish callback is now &lt;code&gt;self::class . ':updateFetchDataFinished'&lt;/code&gt; instead of the bare function name), and &lt;code&gt;_update_project_status_sort()&lt;/code&gt;'s comparison logic was inlined as an anonymous function inside &lt;code&gt;UpdateRequirements::runtime()&lt;/code&gt;. The message-building helpers &lt;code&gt;_update_no_data()&lt;/code&gt; and &lt;code&gt;_update_message_text()&lt;/code&gt; moved into a new &lt;code&gt;UpdateMessageTrait&lt;/code&gt; (&lt;code&gt;noData()&lt;/code&gt; and &lt;code&gt;getText()&lt;/code&gt;), which is now used by &lt;code&gt;UpdateHooks&lt;/code&gt;, &lt;code&gt;UpdateRequirements&lt;/code&gt;, and &lt;code&gt;UpdateThemeHooks&lt;/code&gt;. A new &lt;code&gt;Drupal\update\Hook\UpdateExtensionHooks&lt;/code&gt; class centralizes the &lt;code&gt;hook_themes_installed&lt;/code&gt;/&lt;code&gt;uninstalled&lt;/code&gt; and &lt;code&gt;hook_modules_installed&lt;/code&gt;/&lt;code&gt;uninstalled&lt;/code&gt; implementations that previously lived in &lt;code&gt;UpdateHooks&lt;/code&gt; and called &lt;code&gt;update_storage_clear()&lt;/code&gt;; they now call &lt;code&gt;$this-&amp;gt;updateManager-&amp;gt;reset()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;While migrating callers, the author noticed some code was reading from the key/value collection &lt;code&gt;update_available_release&lt;/code&gt; (singular) instead of the correct &lt;code&gt;update_available_releases&lt;/code&gt; (plural), including in Package Manager's admin cache-clearing code and a related test; those were corrected as part of this change. &lt;code&gt;Drupal\package_manager\ProjectInfo&lt;/code&gt;'s constructor also gained a required &lt;code&gt;UpdateManagerInterface $updateManager&lt;/code&gt; argument so it can call &lt;code&gt;getAvailable()&lt;/code&gt; as a service instead of the deprecated function, which affects its callers &lt;code&gt;SupportedReleaseValidator&lt;/code&gt; and related tests.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace calls to the deprecated functions with their service-based equivalents:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+update_get_available($refresh);
+// After:
+\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;getAvailable($refresh);
+
+// Before:
+update_create_fetch_task($project);
+// After:
+\Drupal::service('update.processor')-&amp;gt;createFetchTask($project);
+
+// Before:
+update_refresh();
+// After:
+\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;refreshUpdateData();
+
+// Before:
+update_fetch_data();
+// After:
+\Drupal::service('update.processor')-&amp;gt;fetchData();
+
+// Before:
+update_storage_clear();
+// After:
+\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;reset();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;_update_no_data()&lt;/code&gt; and &lt;code&gt;_update_message_text()&lt;/code&gt; are replaced by &lt;code&gt;noData()&lt;/code&gt; and &lt;code&gt;getText()&lt;/code&gt; on the new &lt;code&gt;\Drupal\update\UpdateMessageTrait&lt;/code&gt;, which classes needing them should &lt;code&gt;use&lt;/code&gt;. &lt;code&gt;update_fetch_data_finished()&lt;/code&gt; and &lt;code&gt;_update_project_status_sort()&lt;/code&gt; have no replacement; their logic is now private to &lt;code&gt;UpdateController&lt;/code&gt; and &lt;code&gt;UpdateRequirements&lt;/code&gt; respectively.&lt;/p&gt;
+&lt;p&gt;If you construct &lt;code&gt;\Drupal\package_manager\ProjectInfo&lt;/code&gt; directly, it now requires an &lt;code&gt;UpdateManagerInterface&lt;/code&gt; service as a second constructor argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+new ProjectInfo($project_name);
+// After:
+new ProjectInfo($project_name, \Drupal::service(\Drupal\update\UpdateManagerInterface::class));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: August 31, 2026 (5 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;dww raised a broader concern about the update module's ad hoc service organization (&amp;quot;we already have some weird services that are sort of incomplete and interact with each other in 'interesting' ways&amp;quot;) and suggested a wider &amp;quot;Modernize Update Status&amp;quot; effort rather than adding more piecemeal services; the issue proceeded with the deprecation as scoped. During implementation, berdir caught that a batch operation callback was storing an &lt;code&gt;UpdateManager&lt;/code&gt; instance directly in batch data rather than calling it as a service, which nicxvan then corrected. nicxvan also noted while doing the migration that some code incorrectly used the key/value collection name &lt;code&gt;update_available_release&lt;/code&gt; instead of &lt;code&gt;update_available_releases&lt;/code&gt;, and fixed the two occurrences found.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3584347: Deprecate and replace system_admin_compact_mode()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584347.md</link>
       <guid isPermaLink="false">01a05551-5bd2-7136-98ef-60bbb431fc44</guid>
@@ -1010,121 +1140,6 @@ locale_translation_use_remote_source();
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;catch, who committed the change, noted that the JS translation logic was ported to &lt;code&gt;LocaleJs&lt;/code&gt; as-is rather than being redesigned per &lt;a href="https://www.drupal.org/node/2607376"&gt;#2607376&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3525743"&gt;#3525743&lt;/a&gt;, but accepted this because the moved code is explicitly marked &lt;code&gt;@internal&lt;/code&gt;. berdir reviewed multiple iterations and contributed specific naming and structural suggestions (his own words: &amp;quot;I contributed quite a bit with specific suggestions on naming and so on&amp;quot;), and daffie's near-RTBC review prompted nicxvan to update the issue summary and change record, which had drifted out of date. When the change was backported to 11.x, nicxvan added backward-compatible constructors for five services after a Slack discussion with catch and after checking contrib for overrides, finding only forms affected and none that overrode a constructor.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3614825: Allow additional modules to be installed alongside the profile modules</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614825.md</link>
-      <guid isPermaLink="false">01a03a8c-e38e-7107-ac27-c6546e3bb4c8</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 25 Aug 2026 16:45:23 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +122/−43 · php +109/−43 · yml +13&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6a9373d79a2cbd2081c75b3da84bfeee2a668e82"&gt;6a9373d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614825"&gt;#3614825&lt;/a&gt; · 3 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's test runner used to install a test's install profile first, then make a second call to install any extra modules listed in the test's static &lt;code&gt;$modules&lt;/code&gt; property (and the default theme), each of which rebuilds the service container. This change lets those extra modules and the default theme be installed in the same pass as the profile's own modules and themes, cutting the number of container rebuilds during test setup and speeding up the test suite. There is no behavior change for site owners; it only affects how Drupal core and contrib tests execute. As part of the change, the method some test classes override to add modules, &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt;, is deprecated and will be removed in Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;FunctionalTestSetupTrait::installModulesFromClassProperty()&lt;/code&gt; is deprecated in Drupal 12.0.0 and removed in 13.0.0; override &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; instead to supply extra modules for a test.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;install_profile_modules()&lt;/code&gt; and &lt;code&gt;install_profile_themes()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; now read &lt;code&gt;$install_state['extra_modules']&lt;/code&gt; and &lt;code&gt;$install_state['default_theme']&lt;/code&gt; and merge them into the profile's own module and theme lists before making a single call to the module/theme installer, instead of installing the profile first and the extras separately. &lt;code&gt;install_install_profile()&lt;/code&gt; also writes &lt;code&gt;default_theme&lt;/code&gt; into &lt;code&gt;system.theme&lt;/code&gt; config when present.&lt;/p&gt;
-&lt;p&gt;On the test side, &lt;code&gt;FunctionalTestSetupTrait::installParameters()&lt;/code&gt; now populates those two &lt;code&gt;install_state&lt;/code&gt; keys from a new &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; method (which just returns the modules collected recursively from &lt;code&gt;static::$modules&lt;/code&gt;) and from &lt;code&gt;$this-&amp;gt;defaultTheme&lt;/code&gt;. &lt;code&gt;installDrupal()&lt;/code&gt; no longer calls &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt;/&lt;code&gt;installDefaultThemeFromClassProperty()&lt;/code&gt; after the profile install step, because the extra modules and theme are now installed as part of the profile install itself. &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; remains as a deprecated BC wrapper around &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; for the few callers, such as &lt;code&gt;PerformanceTestTrait&lt;/code&gt;, that still invoke it directly. &lt;code&gt;WebDriverTestBase&lt;/code&gt; and &lt;code&gt;PerformanceTestBase&lt;/code&gt; were switched from overriding &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; to overriding &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Because &lt;code&gt;path_alias&lt;/code&gt; can now be installed in the same batch as another module that creates a path alias from its own &lt;code&gt;hook_install()&lt;/code&gt;, &lt;code&gt;PathAliasRepository::pathHasMatchingAlias()&lt;/code&gt; now catches &lt;code&gt;DatabaseException&lt;/code&gt; and returns &lt;code&gt;FALSE&lt;/code&gt; instead of fataling when its own table doesn't exist yet; a related edge case involving route-dependent modules is tracked separately in &lt;a href="https://www.drupal.org/node/3616642"&gt;#3616642&lt;/a&gt;. Several test-only modules gained explicit &lt;code&gt;dependencies&lt;/code&gt; in their &lt;code&gt;.info.yml&lt;/code&gt; files (e.g. on &lt;code&gt;layout_builder&lt;/code&gt;) because they could no longer rely on being installed after the module they depend on.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Test classes that override &lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; to add extra modules should override &lt;code&gt;getModulesFromClassProperty()&lt;/code&gt; instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-protected function installModulesFromClassProperty(ContainerInterface $container): void {
-  self::$modules = [
-    'js_testing_ajax_request_test',
-    'js_testing_log_test',
-  ];
-  parent::installModulesFromClassProperty($container);
-}
-
-// After:
-protected function getModulesFromClassProperty(): array {
-  $modules = parent::getModulesFromClassProperty();
-  $modules = array_merge($modules, ['js_testing_ajax_request_test', 'js_testing_log_test']);
-  return $modules;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;code&gt;installModulesFromClassProperty()&lt;/code&gt; still works but triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice and will be removed in Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 4, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 25, 2026 (21 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3614401: Allow install profiles to opt out of being installed</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3614401.md</link>
-      <guid isPermaLink="false">01a039b6-f8b4-7550-91a3-f0ec5be594b1</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 25 Aug 2026 16:00:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +155/−11 · php +117/−10 · yml +38/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6a4608b15d4a0d307708f31afb0f669b9fde5055"&gt;6a4608b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt; · 3 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Install profiles can now declare that they should never be installed as a module in their own right. Adding &lt;code&gt;opt_out_install: true&lt;/code&gt; to a profile's &lt;code&gt;.info.yml&lt;/code&gt; tells the installer to skip the step where the profile itself is enabled after its modules and configuration are in place. This is aimed at minimal profiles used for testing or automated environments that have no hooks of their own to run, so there is no reason to keep them installed as a module. Drupal core's own &lt;code&gt;testing&lt;/code&gt; and &lt;code&gt;testing_nightwatch&lt;/code&gt; profiles are now marked this way.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;opt_out_install&lt;/code&gt; key in an install profile's &lt;code&gt;.info.yml&lt;/code&gt; lets the profile skip being installed as a module at the end of the installer.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The installer reads each profile's parsed info array into &lt;code&gt;$install_state['profile_info']&lt;/code&gt; (via &lt;code&gt;install_profile_info()&lt;/code&gt;). &lt;code&gt;install_install_profile()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; now checks &lt;code&gt;$install_state['profile_info']['opt_out_install']&lt;/code&gt; before calling &lt;code&gt;\Drupal::service('module_installer')-&amp;gt;install()&lt;/code&gt; on the profile itself, skipping that call when the key is truthy. &lt;code&gt;drupal_install_system()&lt;/code&gt; in &lt;code&gt;install.inc&lt;/code&gt; was likewise updated so that the &lt;code&gt;core.extension&lt;/code&gt; config's &lt;code&gt;profile&lt;/code&gt; key is cleared (not just when there is no profile at all) whenever the profile has opted out, keeping the stored configuration consistent with the fact that the profile was never installed as a module.&lt;/p&gt;
-&lt;p&gt;Because the core &lt;code&gt;testing&lt;/code&gt; profile is used by hundreds of tests and now opts out, several tests that relied on the &lt;code&gt;testing&lt;/code&gt; profile's optional configuration (a body field on &lt;code&gt;node&lt;/code&gt;, and a locale config override) had to be reworked: the body field was extracted into a new &lt;code&gt;body_field&lt;/code&gt; test module, and a new &lt;code&gt;testing_locale&lt;/code&gt; profile was added that still gets installed and carries the locale-specific config for the handful of tests that depend on it. A new &lt;code&gt;testing_skip_install&lt;/code&gt; profile, whose &lt;code&gt;hook_install()&lt;/code&gt; throws an exception, was added purely as test coverage (&lt;a href="https://www.drupal.org/node/3614401"&gt;#3614401&lt;/a&gt;'s &lt;code&gt;ProfileSkipInstallTest&lt;/code&gt;) to prove the opt-out path never runs the profile's install hook. This work builds on &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt;, which moved the System module install step earlier in the installer.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Add &lt;code&gt;opt_out_install: true&lt;/code&gt; to an install profile's &lt;code&gt;.info.yml&lt;/code&gt; if the profile has no &lt;code&gt;hook_install()&lt;/code&gt; or other behavior that depends on being installed as a module:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;name: My minimal profile
-type: profile
-opt_out_install: true
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Profiles that rely on optional configuration tied to the profile's own module weight, or that implement install hooks, should not set this key.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 25, 2026 (24 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;nicxvan asked whether there was a clean way to test that the opt-out profile is never installed. catch proposed adding a dedicated test profile whose &lt;code&gt;hook_install()&lt;/code&gt; throws an exception, so the test fails if the profile is ever installed; nicxvan agreed and catch implemented it as &lt;code&gt;testing_skip_install&lt;/code&gt; with &lt;code&gt;ProfileSkipInstallTest&lt;/code&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
