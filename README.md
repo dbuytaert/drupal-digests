@@ -30,7 +30,7 @@ _91 summaries · 1 new this week_
 
 ### Drupal AI
 
-_125 summaries · 5 new this week_
+_125 summaries · 4 new this week_
 
 - [#3601404: Let a config name the command the agent hand-off runs, instead of only opening...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601404.md)
 - [#3601394: ensure_ddev refuses any distro outside Debian/RHEL, even when Docker and DDEV...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601394.md)
