@@ -1,8 +1,16 @@
-**TL;DR:** [999 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [195 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1000 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_539 summaries · 29 new this week_
+
+- [#3151555: Deprecate user_picture_enabled()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md)
+- [#3616645: Form #value_callback does not support CallableResolver-style callables](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616645.md)
+- [#3580703: Deprecate update.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580703.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _127 summaries · 6 new this week_
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
 - [#3601404: Let a config name the command the agent hand-off runs, instead of only opening...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601404.md)
-
-### Drupal Core
-
-_538 summaries · 30 new this week_
-
-- [#3616645: Form #value_callback does not support CallableResolver-style callables](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616645.md)
-- [#3580703: Deprecate update.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580703.md)
-- [#3584347: Deprecate and replace system_admin_compact_mode()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584347.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _91 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [195 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_195 rules · 6 new this week_
+_196 rules · 7 new this week_
 
+- [Inline user_picture_enabled() calls into a field-definition check](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-user-picture-enabled-calls-into-a-field-definition-3151555.php)
 - [Replace deprecated update.module global functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-module-global-functions-with-3580703.php)
 - [Replace user_login_finalize() and user_logout() with services](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-login-finalize-and-user-logout-with-services-2012976.php)
-- [Replace _user_mail_notify() calls with NotificationHandler methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-mail-notify-calls-with-notificationhandler-3539178.php)
 
 
 ## RSS feeds
