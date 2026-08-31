@@ -1,4 +1,4 @@
-**TL;DR:** [994 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [194 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [995 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [194 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_535 summaries · 27 new this week_
+_536 summaries · 28 new this week_
 
+- [#3584347: Deprecate and replace system_admin_compact_mode()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584347.md)
 - [#3580733: Views status field triggers a PHP 8.5 deprecation on /admin/people](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580733.md)
 - [#2012976: Deprecate user_logout() and user_login_finalize() and replace with a service](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2012976.md)
-- [#3610503: Optimize StorageCopyTrait::replaceStorageContents()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610503.md)
 
 ### Drupal Canvas
 
