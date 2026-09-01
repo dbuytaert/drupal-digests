@@ -5,6 +5,212 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and _file_save_upload_from_form() and replace with a service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md</link>
+      <guid isPermaLink="false">01a05dd9-1245-744f-ad74-68071d584b75</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 01 Sep 2026 16:17:23 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +433/−228 · php +431/−228 · yml +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e8424495f0d438d70f50f4cf4654f171f5c433aa"&gt;e842449&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3375423"&gt;#3375423&lt;/a&gt; · 9 contributors · 72 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 24&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Three long-standing procedural functions for handling file uploads from forms, &lt;code&gt;file_save_upload()&lt;/code&gt;, &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt;, and &lt;code&gt;_file_save_upload_from_form()&lt;/code&gt;, are now deprecated in favor of two new services. The functions still work exactly as before (they now just delegate internally), so no behavior changes for site visitors, but any custom code calling them directly will start seeing deprecation notices and must be updated ahead of the Drupal 13.0.0 removal.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Procedural functions &lt;code&gt;file_save_upload()&lt;/code&gt;, &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt;, and &lt;code&gt;_file_save_upload_from_form()&lt;/code&gt; are deprecated in drupal:11.5.0 and removed in drupal:13.0.0, replaced by the &lt;code&gt;Drupal\file\Upload\FormFileUploader&lt;/code&gt; and &lt;code&gt;Drupal\file\Upload\ManagedFileElementHelper&lt;/code&gt; services.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old code mixed API-level file handling with Form API concerns (setting form errors, adding/removing Messenger messages, rendering error lists) in the same functions, which made the logic hard to reuse or test in isolation. This part of the broader &lt;a href="https://www.drupal.org/node/3221796"&gt;#3221796&lt;/a&gt; modernization effort splits that responsibility into two services.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Drupal\file\Upload\FormFileUploader::saveFormUploadedFiles()&lt;/code&gt; replaces &lt;code&gt;file_save_upload()&lt;/code&gt;. It is the API-level entry point: it pulls uploaded files via &lt;code&gt;UploadedFilesExtractor&lt;/code&gt;, delegates the actual move/validate/rename work to &lt;code&gt;FileUploadHandlerInterface::handleFileUpload()&lt;/code&gt;, and caches results per form field in the &lt;code&gt;cache.memory&lt;/code&gt; bin (keyed &lt;code&gt;file:uploads:&amp;lt;field_name&amp;gt;&lt;/code&gt;) instead of the old function-static &lt;code&gt;$upload_cache&lt;/code&gt;, so repeated calls within a request return the same result without reprocessing. It still calls &lt;code&gt;\Drupal::messenger()-&amp;gt;addError()&lt;/code&gt; directly on failure rather than being fully decoupled from user-facing messaging; a follow-up to remove that was tried and then reverted (see &lt;a href="https://www.drupal.org/node/3619417"&gt;#3619417&lt;/a&gt;) to keep this change scoped.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Drupal\file\Upload\ManagedFileElementHelper&lt;/code&gt; replaces &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt; and &lt;code&gt;_file_save_upload_from_form()&lt;/code&gt;. It owns the Messenger and Renderer dependencies, handling the form-level concerns: collecting per-field validation errors into a single &lt;code&gt;FormStateInterface::setError()&lt;/code&gt; call, preserving pre-existing error messages, and calling into &lt;code&gt;FormFileUploader&lt;/code&gt; for the actual upload. &lt;code&gt;Drupal\file\Element\ManagedFile::valueCallback()&lt;/code&gt; and other core callers (&lt;code&gt;ThemeSettingsForm&lt;/code&gt;, &lt;code&gt;SystemBrandingOffCanvasForm&lt;/code&gt;, navigation's logo settings, and file access checks) were updated to call these services directly. Both services are registered in &lt;code&gt;file.services.yml&lt;/code&gt;.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct calls to the deprecated functions with the new services:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$file = file_save_upload($form_field_name, $validators, $destination, $delta, $fileExists);
+// After:
+$file = \Drupal::service(\Drupal\file\Upload\FormFileUploader::class)
+  -&amp;gt;saveFormUploadedFiles($form_field_name, $validators, $destination, $delta, $fileExists);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$files = file_managed_file_save_upload($element, $form_state);
+// After:
+$files = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)
+  -&amp;gt;managedFileSaveUpload($element, $form_state);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$result = _file_save_upload_from_form($element, $form_state, $delta, $fileExists);
+// After:
+$result = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)
+  -&amp;gt;saveFileUploads($element, $form_state, $delta, $fileExists);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 19, 2023&lt;/li&gt;
+&lt;li&gt;Committed: September 1, 2026 (3 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;joachim (Factorial.io)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This task stalled for a long time because of scope concerns. After an initial 2023 patch, alexpott pushed back in 2024 that the change was &amp;quot;doing more than it should&amp;quot;, adding type hints that widened the BC surface and touching &amp;quot;logic deep in security focussed code&amp;quot; unnecessarily for what the issue set out to do. That comment effectively froze the issue for over a year. In 2025 kim.pepper concluded the issue had stalled &amp;quot;because it was trying to do too much&amp;quot; and proposed splitting it into several smaller, independently reviewable sub-issues (&lt;a href="https://www.drupal.org/node/3619416"&gt;#3619416&lt;/a&gt; through &lt;a href="https://www.drupal.org/node/3619420"&gt;#3619420&lt;/a&gt;). Before that split was finished, nicxvan produced a full working MR overnight; kim.pepper reviewed it, renamed &lt;code&gt;FileElementHelper&lt;/code&gt; to &lt;code&gt;ManagedFileElementHelper&lt;/code&gt; to avoid confusion with existing render elements, and adjusted the cache scoping. The two then went back and forth on whether &lt;code&gt;FormFileUploader&lt;/code&gt; should drop its Messenger/Renderer usage entirely: kim.pepper added &lt;code&gt;FileUploadResult::addError()&lt;/code&gt;/&lt;code&gt;getErrors()&lt;/code&gt; to make it possible, nicxvan judged that out of scope for this issue and reverted it into the follow-up &lt;a href="https://www.drupal.org/node/3619417"&gt;#3619417&lt;/a&gt;, deferring the full decoupling rather than let it block this deprecation task.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3549134: Move text_with_summary to its own module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549134.md</link>
+      <guid isPermaLink="false">01a05dd8-28f4-739f-8deb-51cdbd5301d6</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 01 Sep 2026 15:27:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 35 files, +1210/−179 · php +1057/−119 · yml +77/−60 · js +76&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/daa66786d24474e886e77e3483f3286b5616f206"&gt;daa6678&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3549134"&gt;#3549134&lt;/a&gt; · 11 contributors · 58 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 11 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's long-deprecated &amp;quot;Text (formatted, long, with summary)&amp;quot; field type is being carved out of the core &lt;code&gt;text&lt;/code&gt; module into its own dedicated, deprecated &lt;code&gt;text_with_summary&lt;/code&gt; module, as the final step of removing it from core ahead of Drupal 12. Existing sites that already use this field type (most commonly the &lt;code&gt;body&lt;/code&gt; field on nodes) are automatically migrated: an update hook installs the new &lt;code&gt;text_with_summary&lt;/code&gt; module when any field of that type is detected, and follow-up update hooks repoint the &lt;code&gt;module&lt;/code&gt; dependency on the affected field storage, field, form display, and view display configuration from &lt;code&gt;text&lt;/code&gt; to &lt;code&gt;text_with_summary&lt;/code&gt;. No manual action is required for a normal update; the field, its data, and its &amp;quot;Summary or trimmed&amp;quot; display option keep working exactly as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;text_with_summary&lt;/code&gt; field type/formatter/widget classes in the &lt;code&gt;text&lt;/code&gt; module (&lt;code&gt;TextWithSummaryItem&lt;/code&gt;, &lt;code&gt;TextSummaryOrTrimmedFormatter&lt;/code&gt;, &lt;code&gt;TextareaWithSummaryWidget&lt;/code&gt;) are deprecated in Drupal 11.5.0 and removed in Drupal 12.0.0; use the equivalent classes in the new &lt;code&gt;text_with_summary&lt;/code&gt; module instead. The &lt;code&gt;drupal.text&lt;/code&gt; asset library in &lt;code&gt;text.module&lt;/code&gt; is deprecated the same way.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The field type plugin (&lt;code&gt;TextWithSummaryItem&lt;/code&gt;), its widget (&lt;code&gt;TextareaWithSummaryWidget&lt;/code&gt;), the &lt;code&gt;text_summary_or_trimmed&lt;/code&gt; formatter, the associated JS behavior (&lt;code&gt;js/text.js&lt;/code&gt;, the summary show/hide toggle), and the corresponding &lt;code&gt;field.field_settings.text_with_summary&lt;/code&gt;/&lt;code&gt;field.value.text_with_summary&lt;/code&gt;/&lt;code&gt;field.widget.settings.text_textarea_with_summary&lt;/code&gt;/&lt;code&gt;field.formatter.settings.text_summary_or_trimmed&lt;/code&gt; schema all move into the new &lt;code&gt;core/modules/text_with_summary&lt;/code&gt; module (&lt;code&gt;lifecycle: deprecated&lt;/code&gt;, depends on &lt;code&gt;drupal:text&lt;/code&gt;). The old classes remain in &lt;code&gt;text&lt;/code&gt; as thin, &lt;code&gt;@deprecated&lt;/code&gt; shims pointing to their &lt;code&gt;text_with_summary&lt;/code&gt; counterparts (see &lt;a href="https://www.drupal.org/node/3568381"&gt;#3568381&lt;/a&gt;), and &lt;code&gt;TextTrimmedFormatter&lt;/code&gt; gained a protected &lt;code&gt;addTrimPreRender()&lt;/code&gt; helper so both the &lt;code&gt;text&lt;/code&gt; module's own &lt;code&gt;text_trimmed&lt;/code&gt; formatter and the new module's &lt;code&gt;text_summary_or_trimmed&lt;/code&gt; formatter can share the trimming logic without one depending on the other's field type.&lt;/p&gt;
+&lt;p&gt;Because &lt;code&gt;text_with_summary&lt;/code&gt; depends on &lt;code&gt;text&lt;/code&gt; rather than the reverse, &lt;code&gt;text_with_summary&lt;/code&gt; uses &lt;code&gt;hook_field_formatter_info_alter()&lt;/code&gt; to re-register the &lt;code&gt;text_with_summary&lt;/code&gt; field type against &lt;code&gt;text&lt;/code&gt;'s &lt;code&gt;text_default&lt;/code&gt;/&lt;code&gt;text_trimmed&lt;/code&gt; formatters, and &lt;code&gt;hook_library_info_alter()&lt;/code&gt; to make the &lt;code&gt;text&lt;/code&gt; module's &lt;code&gt;drupal.text&lt;/code&gt; library (now empty and marked &lt;code&gt;deprecated&lt;/code&gt; in &lt;code&gt;text.libraries.yml&lt;/code&gt;) depend on &lt;code&gt;text_with_summary/drupal.text&lt;/code&gt;, which carries the actual JS.&lt;/p&gt;
+&lt;p&gt;The migration path lives in &lt;code&gt;text.install&lt;/code&gt;'s &lt;code&gt;text_update_12001()&lt;/code&gt;, which installs &lt;code&gt;text_with_summary&lt;/code&gt; only if a &lt;code&gt;field_storage_config&lt;/code&gt; of type &lt;code&gt;text_with_summary&lt;/code&gt; exists, followed by post-update hooks (&lt;code&gt;text_post_update_update_field_storage_dependencies&lt;/code&gt;, &lt;code&gt;..._field_dependencies&lt;/code&gt;, &lt;code&gt;..._form_display_dependencies&lt;/code&gt;, &lt;code&gt;..._view_display_dependencies&lt;/code&gt;, &lt;code&gt;..._view_dependencies&lt;/code&gt;) that use &lt;code&gt;ConfigEntityUpdater&lt;/code&gt; to flip the recorded &lt;code&gt;module&lt;/code&gt; dependency from &lt;code&gt;text&lt;/code&gt; to &lt;code&gt;text_with_summary&lt;/code&gt; on each affected config entity. A new &lt;code&gt;TextWithSummaryUpdatePathTest&lt;/code&gt; and its fixture (&lt;code&gt;add-text-with-summary-field.php&lt;/code&gt;) exercise this path directly since the base update-path fixture no longer ships a &lt;code&gt;text_with_summary&lt;/code&gt; field.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update references to the deprecated classes before Drupal 12.0.0:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
+use Drupal\text\Plugin\Field\FieldWidget\TextareaWithSummaryWidget;
+use Drupal\text\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter;
+
+// After
+use Drupal\text_with_summary\Plugin\Field\FieldType\TextWithSummaryItem;
+use Drupal\text_with_summary\Plugin\Field\FieldWidget\TextareaWithSummaryWidget;
+use Drupal\text_with_summary\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If custom code attaches the &lt;code&gt;text/drupal.text&lt;/code&gt; library directly for the summary-toggle JS, attach &lt;code&gt;text_with_summary/drupal.text&lt;/code&gt; instead. Modules that declare a dependency on &lt;code&gt;text_with_summary&lt;/code&gt; fields should add &lt;code&gt;drupal:text_with_summary&lt;/code&gt; to their own &lt;code&gt;.info.yml&lt;/code&gt; dependencies rather than relying on &lt;code&gt;text&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2025&lt;/li&gt;
+&lt;li&gt;First commit: August 31, 2026 (11 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: September 1, 2026 (1 day and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, dcam ran manual update-path tests and found the dependency-rewrite from &lt;code&gt;text&lt;/code&gt; to &lt;code&gt;text_with_summary&lt;/code&gt; was inconsistent across runs (field storage config not always updated), which led to the addition of a dedicated &lt;code&gt;TextWithSummaryUpdatePathTest&lt;/code&gt; and fixture to catch the regression. Separately, catch flagged that the base database dump fixtures used in other update tests still contained now-removed &lt;code&gt;text_with_summary&lt;/code&gt; fields/plugin references, and needed cleaning up before the field type could be removed from core without breaking those fixtures; dcam did a detailed pass identifying stray garbage rows (from cron running mid-dump) and stale &lt;code&gt;config_snapshot&lt;/code&gt; data in the fixture files.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#2831617: Deprecate global constants in locale module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2831617.md</link>
+      <guid isPermaLink="false">01a05dd9-e46e-74aa-a784-f0aa266d22ad</guid>
+      <pubDate>Tue, 01 Sep 2026 14:02:28 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 36 files, +434/−159 · php +434/−159&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d18590472b6622317de858257f7ec7f16ea53245"&gt;d185904&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2831617"&gt;#2831617&lt;/a&gt; · 10 contributors · 70 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 10 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's locale module previously exposed its internal state (customized vs. non-customized translations, translation source types, overwrite behavior, translation update mode) through a set of global PHP constants defined in locale.module, a pattern core is moving away from as part of modernizing the module. This issue deprecates fourteen of those constants in favor of PHP backed enums and class constants, with no functional change to how translation import, update checking, or the translation settings form behave. Site owners see no change; custom code or contrib modules that reference the old constants directly will start seeing deprecation notices and need to update before Drupal 13.0.0, when the constants are removed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The constants are replaced according to a fixed mapping: &lt;code&gt;LOCALE_NOT_CUSTOMIZED&lt;/code&gt;/&lt;code&gt;LOCALE_CUSTOMIZED&lt;/code&gt; become &lt;code&gt;LocaleDefaultOptions::NOT_CUSTOMIZED&lt;/code&gt;/&lt;code&gt;LocaleDefaultOptions::CUSTOMIZED&lt;/code&gt;; &lt;code&gt;LOCALE_TRANSLATION_USE_SOURCE_LOCAL&lt;/code&gt;/&lt;code&gt;LOCALE_TRANSLATION_USE_SOURCE_REMOTE_AND_LOCAL&lt;/code&gt; become &lt;code&gt;\Drupal\locale\Model\TranslationUpdateMode::Local&lt;/code&gt;/&lt;code&gt;::RemoteAndLocal&lt;/code&gt; (both backed by string values, use &lt;code&gt;-&amp;gt;value&lt;/code&gt; where a string is expected); &lt;code&gt;LOCALE_TRANSLATION_OVERWRITE_ALL&lt;/code&gt;/&lt;code&gt;_NON_CUSTOMIZED&lt;/code&gt;/&lt;code&gt;_NONE&lt;/code&gt; become &lt;code&gt;\Drupal\locale\Model\Overwrite::All&lt;/code&gt;/&lt;code&gt;::NonCustomized&lt;/code&gt;/&lt;code&gt;::None&lt;/code&gt;; and &lt;code&gt;LOCALE_TRANSLATION_REMOTE&lt;/code&gt;/&lt;code&gt;_LOCAL&lt;/code&gt;/&lt;code&gt;_CURRENT&lt;/code&gt; become &lt;code&gt;\Drupal\locale\Model\SourceType::Remote&lt;/code&gt;/&lt;code&gt;::Local&lt;/code&gt;/&lt;code&gt;::Current&lt;/code&gt;. The &lt;code&gt;TranslationUpdateMode&lt;/code&gt; and &lt;code&gt;Overwrite&lt;/code&gt; enums use the new &lt;code&gt;OptionsEnumTrait&lt;/code&gt; to supply their &lt;code&gt;#options&lt;/code&gt; arrays directly to the translation settings form (&lt;code&gt;LocaleSettingsForm&lt;/code&gt;), replacing hand-written arrays keyed by the old constants. &lt;code&gt;LOCALE_JS_STRING&lt;/code&gt;, &lt;code&gt;LOCALE_JS_OBJECT&lt;/code&gt; and &lt;code&gt;LOCALE_JS_OBJECT_CONTEXT&lt;/code&gt; have no replacement: their regex patterns are now local variables inlined inside &lt;code&gt;LocaleJs::parseJsFile()&lt;/code&gt;. &lt;code&gt;LOCALE_TRANSLATION_STATUS_TTL&lt;/code&gt; also has no replacement; its value (600 seconds) is now a literal in &lt;code&gt;TranslationStatusForm::submitForm()&lt;/code&gt; pending a follow-up (&lt;a href="https://www.drupal.org/node/3619926"&gt;#3619926&lt;/a&gt;) to reconsider the TTL.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;LocaleTranslationSource&lt;/code&gt; gained three helper methods used throughout the locale codebase to replace direct access to its &lt;code&gt;$type&lt;/code&gt;/&lt;code&gt;$files&lt;/code&gt; properties: &lt;code&gt;getType()&lt;/code&gt; (returns a &lt;code&gt;SourceType&lt;/code&gt; enum or &lt;code&gt;NULL&lt;/code&gt;), &lt;code&gt;getFile(SourceType $type)&lt;/code&gt;, and &lt;code&gt;isUpdateAvailable()&lt;/code&gt; (true when the type is &lt;code&gt;Local&lt;/code&gt; or &lt;code&gt;Remote&lt;/code&gt;). Callers such as &lt;code&gt;LocaleFetch&lt;/code&gt;, &lt;code&gt;LocaleSource&lt;/code&gt;, &lt;code&gt;LocaleProjectChecker&lt;/code&gt; and &lt;code&gt;TranslationStatusForm&lt;/code&gt; were updated to use these helpers instead of comparing against the old constants or indexing &lt;code&gt;$source-&amp;gt;files[LOCALE_TRANSLATION_LOCAL]&lt;/code&gt; directly. A related bug in &lt;code&gt;PoDatabaseWriter::writeItems()&lt;/code&gt;'s unhandled transaction exceptions was found during review and split off into &lt;a href="https://www.drupal.org/node/3619927"&gt;#3619927&lt;/a&gt; rather than fixed here.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct references to the deprecated constants:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+$this-&amp;gt;config('locale.settings')
+  -&amp;gt;set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
+  -&amp;gt;save();
+
+// After
+use Drupal\locale\Model\TranslationUpdateMode;
+
+$this-&amp;gt;config('locale.settings')
+  -&amp;gt;set('translation.use_source', TranslationUpdateMode::Local-&amp;gt;value)
+  -&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+'customized' =&amp;gt; $value ? LOCALE_CUSTOMIZED : LOCALE_NOT_CUSTOMIZED,
+
+// After
+use Drupal\locale\LocaleDefaultOptions;
+
+'customized' =&amp;gt; $value ? LocaleDefaultOptions::CUSTOMIZED : LocaleDefaultOptions::NOT_CUSTOMIZED,
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+if ($source-&amp;gt;type == LOCALE_TRANSLATION_LOCAL || $source-&amp;gt;type == LOCALE_TRANSLATION_REMOTE) { ... }
+
+// After
+if ($source-&amp;gt;isUpdateAvailable()) { ... }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;All fourteen deprecated constants continue to work until Drupal 13.0.0 but trigger &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notices.&amp;lt;/parameter&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;The approach changed midway through: claudiu.cristea opened an initial merge request proposing backed enums for the grouped constants, but after review feedback from berdir and a long wait for dependent modernization issues to land, nicxvan rewrote the patch from scratch, converting the settings-form constants to enums as well &amp;quot;for consistency in all cases&amp;quot;, which also allowed dropping a database update hook that the earlier approach needed. During review, mondrake traced why the patch surfaced database transaction deprecation warnings: &lt;code&gt;PoDatabaseWriter::writeItems()&lt;/code&gt; wasn't catching exceptions raised mid-transaction, so a commit-on-destruct was firing on a dangling transaction object. He fixed the immediate symptom by wrapping the transaction in a try/catch, and raised a broader question to the database maintainers about what should replace commit-on-destruct once it is eventually removed, which nicxvan spun off into follow-up &lt;a href="https://www.drupal.org/node/3619927"&gt;#3619927&lt;/a&gt;.&amp;lt;/parameter&amp;gt;
+&amp;lt;parameter name=&amp;quot;impact&amp;quot;&amp;gt;{&amp;quot;deprecation&amp;quot;: &amp;quot;Fourteen &lt;code&gt;LOCALE_*&lt;/code&gt; global constants in &lt;code&gt;locale.module&lt;/code&gt; (customized/not-customized flags, translation source types, overwrite modes, translation update mode) are deprecated in favor of &lt;code&gt;LocaleDefaultOptions&lt;/code&gt; class constants and the new &lt;code&gt;Overwrite&lt;/code&gt;, &lt;code&gt;SourceType&lt;/code&gt;, and &lt;code&gt;TranslationUpdateMode&lt;/code&gt; enums; removed in Drupal 13.0.0.&amp;quot;}&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 30, 2016&lt;/li&gt;
+&lt;li&gt;Committed: September 1, 2026 (9 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;feuerwagen&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2781815: Content authored views relationship should be provided by node.module, not user.module</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2781815.md</link>
       <guid isPermaLink="false">01a05cf2-2e4f-7518-9c20-5a62edf2f9b0</guid>
@@ -920,200 +1126,6 @@ class MythemeThemeSettingsHooks {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Early attempts at converting Olivero's file (by debdeep.mukhopadhyay and rajivgandhi chinnakrishnan) ran into review pushback from nicxvan, who found the submitted MR and patch deleted over 100 lines unexpectedly and asked &amp;quot;why did you change the hook implementation so much?&amp;quot; and &amp;quot;can you both please provide information on how you did the conversion.&amp;quot; nicxvan ultimately closed that MR and redid the conversion directly. Later, mstrelan raised a substantive concern that recommending theme maintainers move code to a &lt;code&gt;.theme&lt;/code&gt; file was odd given &lt;code&gt;.theme&lt;/code&gt; files are themselves being deprecated (&lt;a href="https://www.drupal.org/node/3581218"&gt;#3581218&lt;/a&gt;); nicxvan clarified in response that moving to &lt;code&gt;.theme&lt;/code&gt; is only a fallback recommendation for themes needing simultaneous support below Drupal 11.3, and updated the change record for clarity.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3555115: Add a UploadedFilesExtractor and remove duplicate code</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555115.md</link>
-      <guid isPermaLink="false">01a042ff-e74d-75fe-9fec-9354e6cff3a7</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 27 Aug 2026 09:31:09 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +61/−72 · php +59/−72 · yml +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7817455a8e551753eb6048f457eff7aed69cd5e8"&gt;7817455&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555115"&gt;#3555115&lt;/a&gt; · 9 contributors · 35 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core had the same logic for pulling uploaded files out of the current HTTP request duplicated in several places: the procedural &lt;code&gt;file_save_upload()&lt;/code&gt; and &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt; functions, and &lt;code&gt;ConfigImportForm::validateForm()&lt;/code&gt;. This issue consolidates that logic into a single reusable service. There is no behavior change for site owners or end users; file uploads via forms, the managed file element, and configuration import all continue to work exactly as before.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\File\UploadedFilesExtractor::extractUploadedFiles()&lt;/code&gt; service method for retrieving uploaded files for a given form element name from the current request.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;A new &lt;code&gt;Drupal\Core\File\UploadedFilesExtractor&lt;/code&gt; service (autowired in &lt;code&gt;core.services.yml&lt;/code&gt;) exposes &lt;code&gt;extractUploadedFiles(string $name): UploadedFile[]&lt;/code&gt;, which reads &lt;code&gt;$this-&amp;gt;requestStack-&amp;gt;getCurrentRequest()-&amp;gt;files-&amp;gt;get('files', [])&lt;/code&gt;, looks up the given form element name, and normalizes the result to always return an array (wrapping single uploads). &lt;code&gt;file_save_upload()&lt;/code&gt; and &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt; in &lt;code&gt;file.module&lt;/code&gt; now call this service via &lt;code&gt;\Drupal::service(UploadedFilesExtractor::class)&lt;/code&gt; instead of inlining the request lookup and array-normalization logic. &lt;code&gt;ConfigImportForm&lt;/code&gt; was also converted to constructor-based dependency injection using &lt;code&gt;AutowireTrait&lt;/code&gt; and PHP attributes, and its &lt;code&gt;validateForm()&lt;/code&gt; now calls the injected &lt;code&gt;UploadedFilesExtractor&lt;/code&gt; and uses &lt;code&gt;reset($uploaded_files)&lt;/code&gt; to get the single tarball upload.&lt;/p&gt;
-&lt;p&gt;The fourth duplicate identified in the issue, &lt;code&gt;Drupal\Core\Render\Element\File::valueCallback()&lt;/code&gt;, was deliberately left untouched: its handling casts the uploaded file object to an array, which the issue authors considered &amp;quot;different and strange&amp;quot; and out of scope for this cleanup (an early attempt to convert it was reverted during review).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 29, 2025&lt;/li&gt;
-&lt;li&gt;Committed: August 26, 2026 (10 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue sat for a while before nicxvan picked it up, rebased it, and argued the extraction logic should be a proper service rather than a method taking the request as a parameter, since every caller needed the current request anyway. While testing, nicxvan hit a &lt;code&gt;Serialization of 'UploadedFile' is not allowed&lt;/code&gt; exception coming from &lt;code&gt;Drupal\Core\Batch\BatchStorage&lt;/code&gt;, but confirmed through further testing that this failure pre-existed the patch and was unrelated to the refactor. berdir reviewed the resulting MR and pointed out the issue summary needed updating since the &lt;code&gt;File::valueCallback()&lt;/code&gt; case was no longer being converted, prompting mohit_aghera to write a change record (later refined after quietone flagged a leftover reference to &lt;code&gt;$form_field_name&lt;/code&gt; in it).&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that previously duplicated the uploaded-file lookup can now use the injected service instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\File\UploadedFilesExtractor;
-
-// Via dependency injection:
-public function __construct(
-  protected UploadedFilesExtractor $uploadedFilesExtractor,
-) {}
-
-// ...
-$uploaded_files = $this-&amp;gt;uploadedFilesExtractor-&amp;gt;extractUploadedFiles('import_tarball');
-if (!empty($uploaded_files)) {
-  $file_upload = reset($uploaded_files);
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Or via the service container:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$uploaded_files = \Drupal::service(UploadedFilesExtractor::class)-&amp;gt;extractUploadedFiles($form_field_name);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3618358: Deprecate remaining underscore functions in locale</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618358.md</link>
-      <guid isPermaLink="false">01a03fdb-bdd4-77f5-a68c-2578c5780a2e</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 26 Aug 2026 20:43:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +417/−277 · php +417/−277&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ee8c2fac1b66045afa9952efd8035a7cf4c3f54c"&gt;ee8c2fa&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3618358"&gt;#3618358&lt;/a&gt; · 4 contributors · 16 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is a cleanup of Drupal core's locale (interface translation) subsystem: the last remaining procedural, underscore-prefixed helper functions used to rebuild and invalidate JavaScript translation files have been deprecated. Their logic has been moved into the existing &lt;code&gt;LocaleJs&lt;/code&gt; service class. Site owners are not affected functionally; this only matters to developers or contributed modules that call these low-level functions directly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Six &lt;code&gt;locale.module&lt;/code&gt; underscore functions (&lt;code&gt;_locale_refresh_translations()&lt;/code&gt;, &lt;code&gt;_locale_refresh_configuration()&lt;/code&gt;, &lt;code&gt;_locale_strip_quotes()&lt;/code&gt;, &lt;code&gt;_locale_parse_js_file()&lt;/code&gt;, &lt;code&gt;_locale_invalidate_js()&lt;/code&gt;, &lt;code&gt;_locale_rebuild_js()&lt;/code&gt;) are deprecated in Drupal 11.5 for removal in Drupal 13.0; most have replacements on the &lt;code&gt;Drupal\locale\LocaleJs&lt;/code&gt; service.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The six functions' bodies were moved onto &lt;code&gt;Drupal\locale\LocaleJs&lt;/code&gt; as methods (&lt;code&gt;refreshTranslations()&lt;/code&gt;, &lt;code&gt;parseJsFile()&lt;/code&gt;, &lt;code&gt;invalidate()&lt;/code&gt;, &lt;code&gt;rebuild()&lt;/code&gt;), or dropped with no replacement (&lt;code&gt;_locale_refresh_configuration()&lt;/code&gt;, &lt;code&gt;_locale_strip_quotes()&lt;/code&gt;, both folded inline or made a private &lt;code&gt;stripQuotes()&lt;/code&gt; helper). The old functions now just emit an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; trigger_error and delegate to &lt;code&gt;\Drupal::service(LocaleJs::class)&lt;/code&gt;. &lt;code&gt;parseJsFile()&lt;/code&gt; and &lt;code&gt;rebuild()&lt;/code&gt; remain public (rather than the &lt;code&gt;protected&lt;/code&gt; originally proposed in the issue summary) but are marked &lt;code&gt;@internal&lt;/code&gt;, because tests call them directly; only &lt;code&gt;stripQuotes()&lt;/code&gt; became &lt;code&gt;protected&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;To support this, &lt;code&gt;LocaleJs&lt;/code&gt;'s constructor gained several new dependencies (&lt;code&gt;StringStorageInterface&lt;/code&gt;, &lt;code&gt;LocaleLanguages&lt;/code&gt;, &lt;code&gt;LanguageManagerInterface&lt;/code&gt;, &lt;code&gt;PluralFormulaInterface&lt;/code&gt;, &lt;code&gt;FileSystemInterface&lt;/code&gt;, a lazy logger closure, and &lt;code&gt;EventDispatcherInterface&lt;/code&gt;), and &lt;code&gt;LocaleFileManager&lt;/code&gt;'s constructor gained an optional &lt;code&gt;?LocaleJs $localeJs&lt;/code&gt; parameter; omitting it triggers its own deprecation notice and falls back to &lt;code&gt;\Drupal::service(LocaleJs::class)&lt;/code&gt;. Call sites in &lt;code&gt;locale.module&lt;/code&gt;, &lt;code&gt;TranslateEditForm&lt;/code&gt;, and locale's hook implementations were updated to call the service directly instead of the deprecated functions. As a drive-by fix, the &lt;code&gt;@see&lt;/code&gt; link on the already-deprecated &lt;code&gt;locale_string_is_safe()&lt;/code&gt; was corrected to point to the right change record.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace direct calls to the deprecated functions with the &lt;code&gt;LocaleJs&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-_locale_refresh_translations($langcodes, $lids);
-_locale_invalidate_js($langcode);
-_locale_parse_js_file($filepath);
-_locale_rebuild_js($langcode);
-
-// After:
-\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;refreshTranslations($langcodes, $lids);
-\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;invalidate($langcode);
-\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;parseJsFile($filepath);
-\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;rebuild($langcode);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;code&gt;_locale_refresh_configuration()&lt;/code&gt; and &lt;code&gt;_locale_strip_quotes()&lt;/code&gt; have no replacement; inline the equivalent logic if still needed. Custom services extending or instantiating &lt;code&gt;LocaleFileManager&lt;/code&gt; directly should pass a &lt;code&gt;LocaleJs&lt;/code&gt; instance as the new constructor argument to avoid the deprecation notice.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 26, 2026 (6 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;nitinkumar_7 (gai Technologies Pvt Ltd)&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3539178: Extract _user_mail_notify() into a user NotificationHandler</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3539178.md</link>
-      <guid isPermaLink="false">01a03fdd-a49a-70b6-926f-6fcd86927f79</guid>
-      <category>Module maintainers</category>
-      <pubDate>Wed, 26 Aug 2026 20:22:26 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +685/−185 · php +684/−185 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c222dedb697a23a5521a9a0c4caeee4e62f1e284"&gt;c222ded&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt; · 13 contributors · 114 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 13 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's &lt;code&gt;user&lt;/code&gt; module used to send all of its notification emails (registration, password reset, account activated/blocked/canceled, cancellation confirmation) through a single internal function, &lt;code&gt;_user_mail_notify()&lt;/code&gt;. Despite its underscore prefix marking it as internal, this function turned out to be called directly by dozens of contributed modules. Its logic has now been extracted into a new &lt;code&gt;NotificationHandler&lt;/code&gt; service, one method per notification type (&lt;code&gt;sendPasswordReset()&lt;/code&gt;, &lt;code&gt;sendStatusActivated()&lt;/code&gt;, &lt;code&gt;sendRegisterAdminCreated()&lt;/code&gt;, etc.). &lt;code&gt;_user_mail_notify()&lt;/code&gt; itself still works exactly as before but is now formally deprecated, with a longer-than-usual grace period: it will be removed in Drupal 13.0.0 rather than sooner, specifically to give contrib maintainers time to update. This groundwork lets an experimental future mail system swap in a different notification implementation without touching &lt;code&gt;user&lt;/code&gt; module internals directly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;_user_mail_notify()&lt;/code&gt; is deprecated in drupal:11.5.0 for removal in drupal:13.0.0; its logic moved into the new (currently &lt;code&gt;@internal&lt;/code&gt;) &lt;code&gt;Drupal\user\NotificationHandler&lt;/code&gt; service.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;Drupal\user\NotificationHandler&lt;/code&gt; class lives in &lt;code&gt;core/modules/user/src/NotificationHandler.php&lt;/code&gt;, is registered as an unaliased, autowired service (&lt;code&gt;Drupal\user\NotificationHandler: ~&lt;/code&gt;), and is marked &lt;code&gt;@internal&lt;/code&gt; with no interface: the maintainers deliberately did not want to commit to a public contract yet (see the long back-and-forth over whether to make it public, settled by an &lt;code&gt;@internal&lt;/code&gt;-for-now compromise). It injects &lt;code&gt;logger.channel.user&lt;/code&gt; and &lt;code&gt;plugin.manager.mail&lt;/code&gt; as lazy &lt;code&gt;\Closure&lt;/code&gt; values via &lt;code&gt;#[AutowireServiceClosure]&lt;/code&gt; rather than eager services. All the old &lt;code&gt;$op&lt;/code&gt;-dispatch logic from &lt;code&gt;_user_mail_notify()&lt;/code&gt; is preserved in a protected &lt;code&gt;sendToUser(string $op, UserInterface $account): ?bool&lt;/code&gt; method; the public methods (&lt;code&gt;sendCancelConfirm()&lt;/code&gt;, &lt;code&gt;sendPasswordReset()&lt;/code&gt;, &lt;code&gt;sendStatusActivated()&lt;/code&gt;, &lt;code&gt;sendStatusBlocked()&lt;/code&gt;, &lt;code&gt;sendStatusCanceled()&lt;/code&gt;, &lt;code&gt;sendRegisterAdminCreated()&lt;/code&gt;, &lt;code&gt;sendRegisterNoApprovalRequired()&lt;/code&gt;, &lt;code&gt;sendRegisterPendingApproval()&lt;/code&gt;) each wrap it and cast the result to &lt;code&gt;bool&lt;/code&gt;, discarding the old &lt;code&gt;NULL&lt;/code&gt; vs &lt;code&gt;FALSE&lt;/code&gt; distinction that &lt;code&gt;_user_mail_notify()&lt;/code&gt; still exposes for BC.&lt;/p&gt;
-&lt;p&gt;Call sites across &lt;code&gt;user&lt;/code&gt; module were updated to use the new service: &lt;code&gt;UserAuthenticationController&lt;/code&gt;, &lt;code&gt;UserCancelForm&lt;/code&gt;, &lt;code&gt;UserPasswordForm&lt;/code&gt;, &lt;code&gt;RegisterForm&lt;/code&gt;, &lt;code&gt;Drupal\rest\Plugin\rest\resource\UserRegistrationResource&lt;/code&gt;, and &lt;code&gt;User::postSave()&lt;/code&gt;. Several of these classes' constructors gained an optional &lt;code&gt;?NotificationHandler $notification_handler = NULL&lt;/code&gt; parameter (with a deprecation notice when omitted) so that existing subclasses keep working until they're updated to pass the new service explicitly.&lt;/p&gt;
-&lt;p&gt;Note a regression verified against the current &lt;code&gt;main&lt;/code&gt; branch: in &lt;code&gt;user.module&lt;/code&gt;'s &lt;code&gt;_user_cancel()&lt;/code&gt;, the &lt;code&gt;user_cancel_delete&lt;/code&gt; case calls &lt;code&gt;$notificationHandler-&amp;gt;sendStatusCancelled($account)&lt;/code&gt; (double &amp;quot;l&amp;quot;), but &lt;code&gt;NotificationHandler&lt;/code&gt; only defines &lt;code&gt;sendStatusCanceled()&lt;/code&gt; (single &amp;quot;l&amp;quot;). Calling this method currently throws &lt;code&gt;Error: Call to undefined method Drupal\user\NotificationHandler::sendStatusCancelled()&lt;/code&gt;, which means deleting a user account with the &amp;quot;notify user by email&amp;quot; option checked will fatal rather than send the cancellation email.&lt;/p&gt;
-&lt;p&gt;Two related follow-ups were opened during review: &lt;a href="https://www.drupal.org/node/3540702"&gt;#3540702&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3540704"&gt;#3540704&lt;/a&gt; (postponed) to consider dedicated public methods for the registration and password-reset &lt;code&gt;$op&lt;/code&gt; values, and &lt;a href="https://www.drupal.org/node/3578758"&gt;#3578758&lt;/a&gt; to investigate actual contrib usage patterns of &lt;code&gt;_user_mail_notify()&lt;/code&gt; before deciding whether &lt;code&gt;NotificationHandler&lt;/code&gt; should eventually drop its &lt;code&gt;@internal&lt;/code&gt; marker.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Direct calls to the deprecated function:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-_user_mail_notify('password_reset', $account);
-
-// After:
-\Drupal::service(\Drupal\user\NotificationHandler::class)-&amp;gt;sendPasswordReset($account);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Other &lt;code&gt;$op&lt;/code&gt; values map to: &lt;code&gt;sendCancelConfirm()&lt;/code&gt;, &lt;code&gt;sendStatusActivated()&lt;/code&gt;, &lt;code&gt;sendStatusBlocked()&lt;/code&gt;, &lt;code&gt;sendStatusCanceled()&lt;/code&gt;, &lt;code&gt;sendRegisterAdminCreated()&lt;/code&gt;, &lt;code&gt;sendRegisterNoApprovalRequired()&lt;/code&gt;, &lt;code&gt;sendRegisterPendingApproval()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;_user_mail_notify()&lt;/code&gt; keeps working until Drupal 13.0.0 but now triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;_user_mail_notify() is deprecated in drupal:11.5.0 and is removed from drupal:13.0.0. Use the methods from Drupal\user\NotificationHandler service instead. See https://www.drupal.org/node/3539363
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you subclass &lt;code&gt;UserAuthenticationController&lt;/code&gt;, &lt;code&gt;UserCancelForm&lt;/code&gt;, &lt;code&gt;UserPasswordForm&lt;/code&gt;, &lt;code&gt;RegisterForm&lt;/code&gt;, or &lt;code&gt;UserRegistrationResource&lt;/code&gt;, update your constructor to accept and pass through the new &lt;code&gt;?NotificationHandler $notification_handler&lt;/code&gt; parameter to avoid the deprecation notice triggered when it is omitted.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 31, 2025&lt;/li&gt;
-&lt;li&gt;Committed: August 26, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;adamps (AlbanyWeb)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design went through several rounds of disagreement before landing. znerol's first MR removed backward compatibility for custom &lt;code&gt;$op&lt;/code&gt; values passed to &lt;code&gt;_user_mail_notify()&lt;/code&gt;, but reverted that in &lt;a href="https://www.drupal.org/node/16218115"&gt;#16218115&lt;/a&gt; after concluding &amp;quot;dispatching op to method call in &lt;code&gt;_user_mail_notify()&lt;/code&gt; is actually more work than keeping BC.&amp;quot; The bigger dispute was whether the new service should be public API or &lt;code&gt;@internal&lt;/code&gt;: adamps argued repeatedly that since developers have no alternative, &lt;code&gt;NotificationHandler&lt;/code&gt; should not be &lt;code&gt;@internal&lt;/code&gt; and should ship with an interface, while berdir countered that &lt;code&gt;_user_mail_notify()&lt;/code&gt; was always an unsupported underscore-prefixed function and core is &amp;quot;under no obligation to provide a 1:1 replacement&amp;quot; (&lt;a href="https://www.drupal.org/node/16223586"&gt;#16223586&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/16450444"&gt;#16450444&lt;/a&gt;). kristiaanvandeneynde helped broker the eventual compromise in &lt;a href="https://www.drupal.org/node/16507483"&gt;#16507483&lt;/a&gt;: deprecate the old function, land the new logic behind an &lt;code&gt;@internal&lt;/code&gt; service, and open a follow-up (&lt;a href="https://www.drupal.org/node/3578758"&gt;#3578758&lt;/a&gt;) to investigate actual contrib usage before deciding whether to make it public.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

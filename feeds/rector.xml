@@ -5,6 +5,305 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace deprecated locale.module global constants with class constant/enum equivalents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php</link>
+      <guid isPermaLink="false">01a05de3-3617-709a-b5ce-3d8f8d91235c</guid>
+      <pubDate>Tue, 01 Sep 2026 16:52:46 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2831617"&gt;#2831617&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates ten global constants in &lt;code&gt;locale.module&lt;/code&gt; (&lt;code&gt;LOCALE_CUSTOMIZED&lt;/code&gt;, &lt;code&gt;LOCALE_NOT_CUSTOMIZED&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_USE_SOURCE_*&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_OVERWRITE_*&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_REMOTE&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_LOCAL&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_CURRENT&lt;/code&gt;) in favor of &lt;code&gt;LocaleDefaultOptions&lt;/code&gt; class constants and &lt;code&gt;TranslationUpdateMode&lt;/code&gt;/&lt;code&gt;Overwrite&lt;/code&gt;/&lt;code&gt;SourceType&lt;/code&gt; backed-enum cases. This rule rewrites any &lt;code&gt;ConstFetch&lt;/code&gt; reference to one of these ten global constants into the corresponding &lt;code&gt;ClassConstFetch&lt;/code&gt; or &lt;code&gt;EnumCase-&amp;gt;value&lt;/code&gt; expression, so contrib and custom code using these constants keeps working after they are removed.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$customized = LOCALE_CUSTOMIZED;
+$use_source = LOCALE_TRANSLATION_USE_SOURCE_LOCAL;
+if ($source-&amp;gt;type == LOCALE_TRANSLATION_LOCAL || $source-&amp;gt;type == LOCALE_TRANSLATION_REMOTE) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$customized = \Drupal\locale\LocaleDefaultOptions::CUSTOMIZED;
+$use_source = \Drupal\locale\Model\TranslationUpdateMode::Local-&amp;gt;value;
+if ($source-&amp;gt;type == \Drupal\locale\Model\SourceType::Local-&amp;gt;value || $source-&amp;gt;type == \Drupal\locale\Model\SourceType::Remote-&amp;gt;value) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not touch &lt;code&gt;LOCALE_TRANSLATION_STATUS_TTL&lt;/code&gt; (inlined as a literal &lt;code&gt;600&lt;/code&gt;, no direct replacement) or &lt;code&gt;LOCALE_JS_STRING&lt;/code&gt;/&lt;code&gt;LOCALE_JS_OBJECT&lt;/code&gt;/&lt;code&gt;LOCALE_JS_OBJECT_CONTEXT&lt;/code&gt; (moved to local variables inside &lt;code&gt;LocaleJs::parseJsFile()&lt;/code&gt;, no public replacement); these have no equivalent expression to substitute, so call sites using them need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\PropertyFetch;
+use PhpParser\Node\Identifier;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceLocaleDeprecatedConstantsRector extends AbstractRector
+{
+    /**
+     * Old global constant name =&amp;gt; [FQCN, member name, isEnumCase].
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string, 2: bool}&amp;gt;
+     */
+    private const REPLACEMENTS = [
+        'LOCALE_NOT_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\LocaleDefaultOptions', 'NOT_CUSTOMIZED', false],
+        'LOCALE_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\LocaleDefaultOptions', 'CUSTOMIZED', false],
+        'LOCALE_TRANSLATION_USE_SOURCE_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\TranslationUpdateMode', 'Local', true],
+        'LOCALE_TRANSLATION_USE_SOURCE_REMOTE_AND_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\TranslationUpdateMode', 'RemoteAndLocal', true],
+        'LOCALE_TRANSLATION_OVERWRITE_ALL' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'All', true],
+        'LOCALE_TRANSLATION_OVERWRITE_NON_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'NonCustomized', true],
+        'LOCALE_TRANSLATION_OVERWRITE_NONE' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'None', true],
+        'LOCALE_TRANSLATION_REMOTE' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Remote', true],
+        'LOCALE_TRANSLATION_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Local', true],
+        'LOCALE_TRANSLATION_CURRENT' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Current', true],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.module global constants with their LocaleDefaultOptions class constant or Model enum case replacements.',
+            [new CodeSample(
+                '$customized = LOCALE_CUSTOMIZED;
+$use_source = LOCALE_TRANSLATION_USE_SOURCE_LOCAL;',
+                '$customized = \Drupal\locale\LocaleDefaultOptions::CUSTOMIZED;
+$use_source = \Drupal\locale\Model\TranslationUpdateMode::Local-&amp;gt;value;',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ConstFetch::class];
+    }
+
+    /** @param ConstFetch $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof ConstFetch) {
+            return null;
+        }
+
+        foreach (self::REPLACEMENTS as $oldConstName =&amp;gt; [$class, $member, $isEnumCase]) {
+            if (!$this-&amp;gt;isName($node, $oldConstName)) {
+                continue;
+            }
+
+            $classConstFetch = $this-&amp;gt;nodeFactory-&amp;gt;createClassConstFetch($class, $member);
+
+            if (!$isEnumCase) {
+                return $classConstFetch;
+            }
+
+            return new PropertyFetch($classConstFetch, new Identifier('value'));
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleDeprecatedConstantsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated file upload functions with service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php</link>
+      <guid isPermaLink="false">01a05ddf-cf1e-7499-9ccb-c2e09951c368</guid>
+      <pubDate>Tue, 01 Sep 2026 16:49:03 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3375423"&gt;#3375423&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;file_save_upload()&lt;/code&gt;, &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt;, and &lt;code&gt;_file_save_upload_from_form()&lt;/code&gt; in favor of the &lt;code&gt;FormFileUploader&lt;/code&gt; and &lt;code&gt;ManagedFileElementHelper&lt;/code&gt; services. This rule rewrites calls to the equivalent &lt;code&gt;\Drupal::service(...)-&amp;gt;method(...)&lt;/code&gt; form, preserving argument order. For &lt;code&gt;file_save_upload()&lt;/code&gt;, a literal &lt;code&gt;FALSE&lt;/code&gt;/&lt;code&gt;NULL&lt;/code&gt; third argument (the old &lt;code&gt;$destination&lt;/code&gt; default) is rewritten to the string &lt;code&gt;'temporary://'&lt;/code&gt; since the new method's parameter is strictly typed as &lt;code&gt;string&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$file = file_save_upload('upload', $validators, FALSE, 0);
+$result = file_managed_file_save_upload($element, $form_state);
+$result2 = _file_save_upload_from_form($element, $form_state, 0);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$file = \Drupal::service(\Drupal\file\Upload\FormFileUploader::class)-&amp;gt;saveFormUploadedFiles('upload', $validators, 'temporary://', 0);
+$result = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)-&amp;gt;managedFileSaveUpload($element, $form_state);
+$result2 = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)-&amp;gt;saveFileUploads($element, $form_state, 0);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;If the &lt;code&gt;$destination&lt;/code&gt; argument to &lt;code&gt;file_save_upload()&lt;/code&gt; is a non-literal expression (a variable or function call) that may evaluate to &lt;code&gt;FALSE&lt;/code&gt; or &lt;code&gt;NULL&lt;/code&gt; at runtime, the rule leaves it unchanged; the rewritten service call requires a &lt;code&gt;string&lt;/code&gt;, so such a call would need manual review. Calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;) are skipped entirely rather than risk a wrong rewrite.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceDeprecatedFileSaveUploadFunctionsRector extends AbstractRector
+{
+    /** @var array&amp;lt;string, array{class: string, method: string, minArgs: int, maxArgs: int}&amp;gt; */
+    private const REPLACEMENTS = [
+        'file_save_upload' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\FormFileUploader',
+            'method' =&amp;gt; 'saveFormUploadedFiles',
+            'minArgs' =&amp;gt; 1,
+            'maxArgs' =&amp;gt; 5,
+        ],
+        'file_managed_file_save_upload' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\ManagedFileElementHelper',
+            'method' =&amp;gt; 'managedFileSaveUpload',
+            'minArgs' =&amp;gt; 2,
+            'maxArgs' =&amp;gt; 2,
+        ],
+        '_file_save_upload_from_form' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\ManagedFileElementHelper',
+            'method' =&amp;gt; 'saveFileUploads',
+            'minArgs' =&amp;gt; 2,
+            'maxArgs' =&amp;gt; 4,
+        ],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace the deprecated file_save_upload(), file_managed_file_save_upload() and _file_save_upload_from_form() functions with calls to their replacement services.',
+            [new CodeSample(
+                '$file = file_save_upload(&amp;quot;upload&amp;quot;, $validators);',
+                '$file = \Drupal::service(\Drupal\file\Upload\FormFileUploader::class)-&amp;gt;saveFormUploadedFiles(&amp;quot;upload&amp;quot;, $validators);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $functionName = null;
+        foreach (self::REPLACEMENTS as $name =&amp;gt; $replacement) {
+            if ($this-&amp;gt;isName($node-&amp;gt;name, $name)) {
+                $functionName = $name;
+                break;
+            }
+        }
+        if ($functionName === null) {
+            return null;
+        }
+        $replacement = self::REPLACEMENTS[$functionName];
+
+        $argCount = count($node-&amp;gt;args);
+        if ($argCount &amp;lt; $replacement['minArgs'] || $argCount &amp;gt; $replacement['maxArgs']) {
+            return null;
+        }
+
+        // Named arguments and argument unpacking change the mapping between
+        // position and parameter; skip rather than risk a wrong rewrite.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        $args = $node-&amp;gt;args;
+
+        if ($functionName === 'file_save_upload') {
+            // The old function normalizes a FALSE/NULL $destination to
+            // 'temporary://' before delegating; the new method's parameter is
+            // a plain string, so a literal FALSE/NULL third argument must be
+            // rewritten to the string, or a TypeError results.
+            if (isset($args[2]) &amp;amp;&amp;amp; $args[2]-&amp;gt;value instanceof ConstFetch) {
+                $constName = $this-&amp;gt;getName($args[2]-&amp;gt;value-&amp;gt;name);
+                if ($constName !== null &amp;amp;&amp;amp; in_array(strtolower($constName), ['false', 'null'], true)) {
+                    $args[2] = new Arg(new String_('temporary://'));
+                }
+            }
+        }
+
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified($replacement['class']), 'class'))],
+        );
+
+        return new MethodCall($serviceCall, $replacement['method'], $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceDeprecatedFileSaveUploadFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Update references to text_with_summary field plugins moved out of the text module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/update-references-to-text-with-summary-field-plugins-moved-3549134.php</link>
+      <guid isPermaLink="false">01a05ddc-499c-71b1-ad68-97ce60740ece</guid>
+      <pubDate>Tue, 01 Sep 2026 16:45:12 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3549134"&gt;#3549134&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal core moved the &lt;code&gt;text_with_summary&lt;/code&gt; field type, its &lt;code&gt;text_textarea_with_summary&lt;/code&gt; widget, and its &lt;code&gt;text_summary_or_trimmed&lt;/code&gt; formatter out of the &lt;code&gt;text&lt;/code&gt; module into a new dedicated &lt;code&gt;text_with_summary&lt;/code&gt; module. The old classes in &lt;code&gt;Drupal\text\Plugin\Field\...&lt;/code&gt; are deprecated in &lt;code&gt;drupal:11.5.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. This rule rewrites &lt;code&gt;use&lt;/code&gt;, &lt;code&gt;extends&lt;/code&gt;, &lt;code&gt;instanceof&lt;/code&gt;, &lt;code&gt;new&lt;/code&gt;, and type-hint references from the old class locations to their new &lt;code&gt;Drupal\text_with_summary\Plugin\Field\...&lt;/code&gt; equivalents so custom subclasses and type checks keep working after the module split.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
+
+class MyItem extends TextWithSummaryItem {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyItem extends \Drupal\text_with_summary\Plugin\Field\FieldType\TextWithSummaryItem {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The rule rewrites the code reference itself but does not remove the now-unused &lt;code&gt;use&lt;/code&gt; statement for the old class, and it does not add &lt;code&gt;text_with_summary&lt;/code&gt; as a module dependency in the consuming module's &lt;code&gt;.info.yml&lt;/code&gt;; both are cosmetic/config follow-ups a developer should make by hand.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
+        'Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldType\TextWithSummaryItem',
+        'Drupal\text\Plugin\Field\FieldWidget\TextareaWithSummaryWidget' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldWidget\TextareaWithSummaryWidget',
+        'Drupal\text\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Inline user_picture_enabled() calls into a field-definition check</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/inline-user-picture-enabled-calls-into-a-field-definition-3151555.php</link>
       <guid isPermaLink="false">01a0597b-f570-76ed-aa4e-ad92bcc4d3a3</guid>
@@ -1706,281 +2005,6 @@ return RectorConfig::configure()
         new MethodCallRename('Drupal\Core\Htmx\Htmx', 'triggerAfterSwapHeader', 'triggerHeader'),
     ]);
 
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add missing $imageDerivativeUtilities argument to ImageFormatter constructor calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-missing-imagederivativeutilities-argument-to-3609124.php</link>
-      <guid isPermaLink="false">019f41c5-0ffd-7313-a1e2-917894fd15c7</guid>
-      <pubDate>Wed, 08 Jul 2026 12:47:41 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3609124"&gt;#3609124&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Calling &lt;code&gt;ImageFormatter&lt;/code&gt;, &lt;code&gt;ImageUrlFormatter&lt;/code&gt;, or &lt;code&gt;MediaThumbnailFormatter&lt;/code&gt; constructors without the &lt;code&gt;$imageDerivativeUtilities&lt;/code&gt; argument is deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and will be required in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. This rule detects direct &lt;code&gt;new ClassName(...)&lt;/code&gt; calls that use the pre-deprecation argument count and appends &lt;code&gt;\Drupal::service(\Drupal\image\ImageDerivativeUtilities::class)&lt;/code&gt; as the final argument.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\image\Plugin\Field\FieldFormatter\ImageFormatter(
-    $pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty,
-    $currentUser, $imageStyleStorage, $fileUrlGenerator
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new \Drupal\image\Plugin\Field\FieldFormatter\ImageFormatter(
-    $pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty,
-    $currentUser, $imageStyleStorage, $fileUrlGenerator,
-    \Drupal::service(\Drupal\image\ImageDerivativeUtilities::class)
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Handles direct &lt;code&gt;new ClassName(...)&lt;/code&gt; instantiation only. Contrib subclasses that call &lt;code&gt;parent::__construct()&lt;/code&gt; without the new argument, and any &lt;code&gt;new static(...)&lt;/code&gt; patterns in factory methods, require manual updates: accept &lt;code&gt;?ImageDerivativeUtilities $imageDerivativeUtilities = NULL&lt;/code&gt; as a new constructor parameter, pass it to &lt;code&gt;parent::__construct()&lt;/code&gt;, and inject &lt;code&gt;\Drupal::service(ImageDerivativeUtilities::class)&lt;/code&gt; from the &lt;code&gt;create()&lt;/code&gt; factory.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\New_;
-use Rector\Rector\AbstractRector;
-use Rector\Config\RectorConfig;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class AddImageDerivativeUtilitiesToImageFormatterRector extends AbstractRector
-{
-    // Maps each affected class FQCN to the argument count BEFORE the new
-    // $imageDerivativeUtilities parameter was added in drupal:11.4.0.
-    private const CLASS_OLD_ARG_COUNT = [
-        'Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter' =&amp;gt; 10,
-        'Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageUrlFormatter' =&amp;gt; 9,
-        'Drupal\\media\\Plugin\\Field\\FieldFormatter\\MediaThumbnailFormatter' =&amp;gt; 11,
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Add the missing $imageDerivativeUtilities service argument to ImageFormatter, ImageUrlFormatter, and MediaThumbnailFormatter constructor calls deprecated in drupal:11.4.0.',
-            [new CodeSample(
-                'new \\Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter($pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty, $currentUser, $imageStyleStorage, $fileUrlGenerator);',
-                'new \\Drupal\\image\\Plugin\\Field\\FieldFormatter\\ImageFormatter($pluginId, $pluginDef, $fieldDef, $settings, $label, $viewMode, $thirdParty, $currentUser, $imageStyleStorage, $fileUrlGenerator, \\Drupal::service(\\Drupal\\image\\ImageDerivativeUtilities::class));',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof New_) {
-            return null;
-        }
-        foreach (self::CLASS_OLD_ARG_COUNT as $fqcn =&amp;gt; $oldArgCount) {
-            if (!$this-&amp;gt;isName($node-&amp;gt;class, $fqcn)) {
-                continue;
-            }
-            if (count($node-&amp;gt;args) !== $oldArgCount) {
-                return null;
-            }
-            $serviceCall = $this-&amp;gt;nodeFactory-&amp;gt;createStaticCall(
-                'Drupal',
-                'service',
-                [$this-&amp;gt;nodeFactory-&amp;gt;createClassConstReference('Drupal\\image\\ImageDerivativeUtilities')]
-            );
-            $node-&amp;gt;args[] = $this-&amp;gt;nodeFactory-&amp;gt;createArg($serviceCall);
-            return $node;
-        }
-        return null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([AddImageDerivativeUtilitiesToImageFormatterRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated locale submit callbacks with service method calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-submit-callbacks-with-service-3595084.php</link>
-      <guid isPermaLink="false">019efa8f-2d46-701a-b713-1dde64e4cbd6</guid>
-      <pubDate>Wed, 24 Jun 2026 16:55:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595084"&gt;#3595084&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites direct calls to three deprecated &lt;code&gt;locale.module&lt;/code&gt; procedural functions — &lt;code&gt;locale_system_set_config_langcodes()&lt;/code&gt;, &lt;code&gt;locale_form_language_admin_add_form_alter_submit()&lt;/code&gt;, and &lt;code&gt;locale_form_language_admin_edit_form_alter_submit()&lt;/code&gt; — to their respective service-based replacements. The first delegates to &lt;code&gt;locale.config_manager&lt;/code&gt;, while the latter two delegate to &lt;code&gt;Drupal\locale\Hook\LocaleFormHooks&lt;/code&gt;. All three were deprecated in Drupal 11.5.0.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;locale_system_set_config_langcodes();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service('locale.config_manager')-&amp;gt;updateDefaultConfigLangcodes();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Does not rewrite string-literal callback references such as &lt;code&gt;$form['#submit'][] = 'locale_form_language_admin_add_form_alter_submit'&lt;/code&gt;; those must be updated manually to a service-based callable.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class LocaleDeprecatedCallbacksRector extends AbstractRector
-{
-    // Maps deprecated function name =&amp;gt; [service_id, replacement_method]
-    private const REPLACEMENTS = [
-        'locale_system_set_config_langcodes' =&amp;gt; ['locale.config_manager', 'updateDefaultConfigLangcodes'],
-        'locale_form_language_admin_add_form_alter_submit' =&amp;gt; ['Drupal\\locale\\Hook\\LocaleFormHooks', 'formLanguageAdminAddFormAlterSubmit'],
-        'locale_form_language_admin_edit_form_alter_submit' =&amp;gt; ['Drupal\\locale\\Hook\\LocaleFormHooks', 'formLanguageAdminEditFormAlterSubmit'],
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated locale procedural submit callbacks with service method calls.',
-            [new CodeSample(
-                'locale_system_set_config_langcodes();',
-                &amp;quot;\\Drupal::service('locale.config_manager')-&amp;gt;updateDefaultConfigLangcodes();&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-        $name = $this-&amp;gt;getName($node-&amp;gt;name);
-        if ($name === null || !isset(self::REPLACEMENTS[$name])) {
-            return null;
-        }
-        [$serviceId, $method] = self::REPLACEMENTS[$name];
-        $serviceCall = new StaticCall(
-            new FullyQualified('Drupal'),
-            'service',
-            [new Arg(new String_($serviceId))],
-        );
-        return new MethodCall($serviceCall, $method, $node-&amp;gt;args);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([LocaleDeprecatedCallbacksRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace CsrfTokenGenerator::get('rest') with TOKEN_KEY constant</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-csrftokengenerator-get-rest-with-token-key-constant-3585891.php</link>
-      <guid isPermaLink="false">019ebd9e-0f1f-7340-8781-ff0f4e2850d9</guid>
-      <pubDate>Fri, 12 Jun 2026 20:55:12 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585891"&gt;#3585891&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Replaces &lt;code&gt;CsrfTokenGenerator::get('rest')&lt;/code&gt; with &lt;code&gt;CsrfTokenGenerator::get(CsrfRequestHeaderAccessCheck::TOKEN_KEY)&lt;/code&gt;. The &lt;code&gt;'rest'&lt;/code&gt; key for CSRF token generation was deprecated in &lt;code&gt;drupal:11.4.0&lt;/code&gt; and will be removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;; old sessions using that key are no longer supported. Contrib modules that implement custom login or REST authentication flows by generating tokens with the old key benefit from this rule.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;csrfToken-&amp;gt;get('rest');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;csrfToken-&amp;gt;get(\Drupal\Core\Access\CsrfRequestHeaderAccessCheck::TOKEN_KEY);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only fires when the receiver is typed as &lt;code&gt;CsrfTokenGenerator&lt;/code&gt; (the concrete class, which has no interface). Untyped or dynamically-resolved CSRF service calls (e.g. via &lt;code&gt;\Drupal::service('csrf_token')-&amp;gt;get('rest')&lt;/code&gt;) are not matched because PHPStan cannot infer the receiver type from a generic service-locator call.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use PHPStan\Type\ObjectType;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class CsrfTokenGetRestKeyRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            &amp;quot;Replace CsrfTokenGenerator::get('rest') with get(CsrfRequestHeaderAccessCheck::TOKEN_KEY), deprecated in drupal:11.4.0.&amp;quot;,
-            [new CodeSample(
-                &amp;quot;\$this-&amp;gt;csrfToken-&amp;gt;get('rest');&amp;quot;,
-                &amp;quot;\$this-&amp;gt;csrfToken-&amp;gt;get(\Drupal\Core\Access\CsrfRequestHeaderAccessCheck::TOKEN_KEY);&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [MethodCall::class];
-    }
-
-    /** @param MethodCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof MethodCall) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'get')) {
-            return null;
-        }
-        if (!$this-&amp;gt;isObjectType($node-&amp;gt;var, new ObjectType('Drupal\Core\Access\CsrfTokenGenerator'))) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 1) {
-            return null;
-        }
-        $firstArg = $node-&amp;gt;args[0];
-        if (!$firstArg instanceof Arg) {
-            return null;
-        }
-        if (!$firstArg-&amp;gt;value instanceof String_) {
-            return null;
-        }
-        if ($firstArg-&amp;gt;value-&amp;gt;value !== 'rest') {
-            return null;
-        }
-        $node-&amp;gt;args[0] = new Arg(
-            new ClassConstFetch(
-                new FullyQualified('Drupal\Core\Access\CsrfRequestHeaderAccessCheck'),
-                'TOKEN_KEY'
-            )
-        );
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([CsrfTokenGetRestKeyRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

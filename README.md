@@ -1,4 +1,4 @@
-**TL;DR:** [1003 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1006 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_542 summaries · 27 new this week_
+_545 summaries · 28 new this week_
 
-- [#2781815: Content authored views relationship should be provided by node.module, not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2781815.md)
-- [#3619751: Remove links from filter permission descriptions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619751.md)
-- [#3572350: Disable the default /node listing view, replace Olivero hardcoded welcome page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572350.md)
+- [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
+- [#3549134: Move text_with_summary to its own module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549134.md)
+- [#2831617: Deprecate global constants in locale module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2831617.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _91 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_196 rules · 6 new this week_
+_199 rules · 9 new this week_
 
-- [Inline user_picture_enabled() calls into a field-definition check](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-user-picture-enabled-calls-into-a-field-definition-3151555.php)
-- [Replace deprecated update.module global functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-module-global-functions-with-3580703.php)
-- [Replace user_login_finalize() and user_logout() with services](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-login-finalize-and-user-logout-with-services-2012976.php)
+- [Replace deprecated locale.module global constants with class constant/enum...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php)
+- [Replace deprecated file upload functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php)
+- [Update references to text_with_summary field plugins moved out of the text...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/update-references-to-text-with-summary-field-plugins-moved-3549134.php)
 
 
 ## RSS feeds
