@@ -5,6 +5,62 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3572350: Disable the default /node listing view, replace Olivero hardcoded welcome page from /node with welcome message</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572350.md</link>
+      <guid isPermaLink="false">01a05b35-378f-761d-a45c-54098c04e3dc</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 01 Sep 2026 02:13:02 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 54 files, +671/−389 · php +629/−326 · css +23 · yml +8/−9 · js +7/−7 · twig +4/−47&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8d3a2710d9d3df9d926eab646ff3f228dd3f0a6c"&gt;8d3a271&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3572350"&gt;#3572350&lt;/a&gt; · 14 contributors · 84 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 20&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 2 of 14 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;New sites installed with the Standard profile no longer show a node listing at &lt;code&gt;/node&lt;/code&gt; as the front page. Instead the front page is now the login page, and a one-time welcome message (with links to the User Guide, community, events, Slack, and support) is shown after installation and disappears like any other status message. The node listing view that used to power the front page still exists (it's needed for the &amp;quot;Promoted&amp;quot; content checkbox and the RSS feed) but is now called &amp;quot;Promoted Content&amp;quot; and ships disabled, so it no longer silently leaks unpublished-looking content on sites that never intended to use a blog-style listing. Olivero's special-cased &amp;quot;Get Started&amp;quot; guide, previously shown on &lt;code&gt;/node&lt;/code&gt; until you promoted content, is removed; if you enable the Promoted Content view and it has no results, Olivero now shows the view's own (much shorter) configured empty text instead.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Node module's &lt;code&gt;views.view.frontpage&lt;/code&gt; is renamed to &lt;code&gt;views.view.promoted_content&lt;/code&gt; and now ships disabled by default; the Standard profile's default front page (&lt;code&gt;system.site&lt;/code&gt; &lt;code&gt;page.front&lt;/code&gt;) changes from &lt;code&gt;/node&lt;/code&gt; to &lt;code&gt;/user/login&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The generic &lt;code&gt;Congratulations, you installed @drupal!&lt;/code&gt; messenger message in &lt;code&gt;install_finished()&lt;/code&gt; (&lt;code&gt;core/includes/install.core.inc&lt;/code&gt;) was removed; install profiles/distributions that want a post-install welcome message must add their own (see &lt;code&gt;standard_install_finished()&lt;/code&gt; in &lt;code&gt;core/profiles/standard/standard.profile&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core change is that &lt;code&gt;core/modules/node/config/optional/views.view.frontpage.yml&lt;/code&gt; is renamed to &lt;code&gt;views.view.promoted_content.yml&lt;/code&gt; with &lt;code&gt;status: false&lt;/code&gt;, its empty-view text trimmed to &lt;code&gt;'No promoted content has been created yet.'&lt;/code&gt;, and its title area cleared (it was &lt;code&gt;'Welcome!'&lt;/code&gt;). Because the view is disabled by default, its routes (&lt;code&gt;view.promoted_content.page_1&lt;/code&gt;, &lt;code&gt;.feed_1&lt;/code&gt;) don't exist until something enables it, so a large share of the diff is test plumbing: a new &lt;code&gt;PromotedContentViewTestTrait&lt;/code&gt; (&lt;code&gt;core/modules/node/tests/src/Traits/PromotedContentViewTestTrait.php&lt;/code&gt;) with &lt;code&gt;enablePromotedContentView()&lt;/code&gt; is applied across dozens of test classes that relied on &lt;code&gt;/node&lt;/code&gt; or the RSS feed, and those tests now explicitly enable the view and rebuild the router.&lt;/p&gt;
+&lt;p&gt;Olivero's &lt;code&gt;views-view--frontpage.html.twig&lt;/code&gt; is renamed to &lt;code&gt;views-view--promoted-content.html.twig&lt;/code&gt; and its &lt;code&gt;{% elseif empty %}&lt;/code&gt; branch no longer includes the deleted &lt;code&gt;includes/get-started.html.twig&lt;/code&gt;; it just renders the view's own &lt;code&gt;{{ empty }}&lt;/code&gt; region. The former &amp;quot;Congratulations&amp;quot; messenger call in &lt;code&gt;install_finished()&lt;/code&gt; is gone entirely; the Standard profile now implements &lt;code&gt;hook_install_tasks_alter()&lt;/code&gt; in the new &lt;code&gt;core/profiles/standard/standard.profile&lt;/code&gt; to append a &lt;code&gt;standard_install_finished&lt;/code&gt; task that adds the richer welcome message via &lt;code&gt;\Drupal::messenger()-&amp;gt;addStatus()&lt;/code&gt;. The Standard profile's &lt;code&gt;system.site.yml&lt;/code&gt; and the &lt;code&gt;core/recipes/standard/recipe.yml&lt;/code&gt; both change &lt;code&gt;page.front&lt;/code&gt; from &lt;code&gt;/node&lt;/code&gt; to &lt;code&gt;/user/login&lt;/code&gt; and drop &lt;code&gt;views.view.frontpage&lt;/code&gt; from the recipe's enabled-views list. A separate &lt;code&gt;NodePerformanceTest&lt;/code&gt; was split out of &lt;code&gt;StandardPerformanceTest&lt;/code&gt; to keep covering cache-invalidation behavior of the (now non-default) promoted content view, since &lt;code&gt;StandardPerformanceTest&lt;/code&gt; itself no longer exercises &lt;code&gt;/node&lt;/code&gt; by default.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 9, 2026&lt;/li&gt;
+&lt;li&gt;First commit: July 22, 2026 (5 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: September 1, 2026 (1 month and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;nitinkumar_7 (gai Technologies Pvt Ltd)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The design went through several rounds of rethinking captured in the thread. gábor hojtsy initially special-cased the welcome text back into Olivero's templates, but lauriii pushed back that a persistent per-request template didn't fit and asked whether it should instead be a one-time post-install message. gábor hojtsy prototyped both options, comparing screenshots of the ephemeral installer message versus the persistent view-driven one, and pameeela weighed in from the Drupal CMS perspective that the disappearing-on-content-creation behavior was confusing and that a one-time message was clearer. That feedback settled the final approach: moving the welcome text into a one-off &lt;code&gt;standard_install_finished()&lt;/code&gt; message and removing the generic installer message entirely. Separately, berdir did repeated close reviews of the performance test assertions across several rebases to make sure the query/cache-count changes in &lt;code&gt;StandardPerformanceTest&lt;/code&gt; and the new &lt;code&gt;NodePerformanceTest&lt;/code&gt; were fully understood and justified, flagging a roughly 3x increase in config-invalidation rebuild cost that was discussed and accepted as a worthwhile tradeoff for the lighter default front page.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3151555: Deprecate user_picture_enabled()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md</link>
       <guid isPermaLink="false">01a05979-68c7-7490-bcf4-f132356a3fe8</guid>
@@ -1080,47 +1136,6 @@ $settings['package_manager_max_sandbox_age'] = 7; // days
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;jesseh implemented the change after catch and phenaproxima worked out the rsync/checksum reasoning in the issue summary discussion (confirming rsync's checksum-based sync and &lt;code&gt;--archive&lt;/code&gt; mtime preservation would minimize file churn once the sandbox became long-lived). phenaproxima and catch each reviewed multiple rounds; catch flagged that a follow-up should track whether the &lt;code&gt;Cleaner&lt;/code&gt; queue worker is still needed once cleanup is cron-driven. Before commit, star-szr and spiderman did an extensive manual verification pass across several scenarios (contrib module update, core update, cron-triggered cleanup at various &lt;code&gt;package_manager_max_sandbox_age&lt;/code&gt; values, and the &lt;code&gt;0&lt;/code&gt;-age case), documenting their DDEV-based test methodology in detail and confirming the patch behaved as designed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3615455: Install database driver modules alongside other modules</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615455.md</link>
-      <guid isPermaLink="false">01a03d29-fdf9-73bc-9c4d-b2353d990a40</guid>
-      <pubDate>Tue, 25 Aug 2026 20:50:52 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +34/−19 · php +33/−19 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/02579164af871a3c0bd72addf198c7adc303b76b"&gt;0257916&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615455"&gt;#3615455&lt;/a&gt; · 5 contributors · 17 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's installer used to install the database driver module (for databases other than core's built-in drivers, such as PostgreSQL) as a separate, dedicated step before any other module was installed. This issue removes that special case: the database driver module is now installed together with the rest of the site's modules, using the same batch installation process, while still guaranteeing it goes in first and triggers the container rebuild it needs. This is an internal installer change with no effect on how sites are built or configured.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The dedicated call to &lt;code&gt;module_installer-&amp;gt;install([$provider], TRUE)&lt;/code&gt; inside &lt;code&gt;drupal_install_system()&lt;/code&gt; in &lt;code&gt;install.inc&lt;/code&gt; is removed. Instead, a new helper &lt;code&gt;_install_get_database_module_name()&lt;/code&gt; in &lt;code&gt;install.core.inc&lt;/code&gt; inspects the active database connection (via &lt;code&gt;Database::getConnection()-&amp;gt;getProvider()&lt;/code&gt; and its &lt;code&gt;autoload&lt;/code&gt; option looking for &lt;code&gt;src/Driver/Database/&lt;/code&gt;) to determine whether the database is provided by a driver module rather than core. If so, &lt;code&gt;install_profile_modules()&lt;/code&gt; prepends that module to the list of modules to install with &lt;code&gt;array_unshift()&lt;/code&gt;, and &lt;code&gt;install_recipe_required_modules()&lt;/code&gt; marks it as required so it sorts to the front of the batch alongside modules flagged &lt;code&gt;required&lt;/code&gt; in their &lt;code&gt;.info.yml&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;This relies on the &lt;code&gt;container_rebuild_required&lt;/code&gt; info key mechanism (introduced for the related change in &lt;a href="https://www.drupal.org/node/3614153"&gt;#3614153&lt;/a&gt;, which did the same for the System module). &lt;code&gt;pgsql.info.yml&lt;/code&gt; now sets &lt;code&gt;container_rebuild_required: true&lt;/code&gt;, so &lt;code&gt;install_profile_modules()&lt;/code&gt;'s batch grouping logic in &lt;code&gt;install.core.inc&lt;/code&gt; puts the driver module in its own batch group and rebuilds the container before and after installing it, the same way any other module can request a rebuild, rather than through installer-specific code.&lt;/p&gt;
-&lt;p&gt;A follow-up, &lt;a href="https://www.drupal.org/node/3618797"&gt;#3618797&lt;/a&gt;, was filed to replace the remaining &lt;code&gt;_install_get_database_module_name()&lt;/code&gt; helper with &lt;code&gt;Database::getConnection()-&amp;gt;getProvider()&lt;/code&gt; directly.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 25, 2026 (18 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

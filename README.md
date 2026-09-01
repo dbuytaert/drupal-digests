@@ -1,4 +1,4 @@
-**TL;DR:** [1000 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1001 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_539 summaries · 29 new this week_
+_540 summaries · 30 new this week_
 
+- [#3572350: Disable the default /node listing view, replace Olivero hardcoded welcome page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572350.md)
 - [#3151555: Deprecate user_picture_enabled()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md)
 - [#3616645: Form #value_callback does not support CallableResolver-style callables](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616645.md)
-- [#3580703: Deprecate update.module functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580703.md)
 
 ### Drupal AI
 
