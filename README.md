@@ -1,4 +1,4 @@
-**TL;DR:** [1001 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1003 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [196 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_540 summaries · 26 new this week_
+_542 summaries · 27 new this week_
 
+- [#2781815: Content authored views relationship should be provided by node.module, not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2781815.md)
+- [#3619751: Remove links from filter permission descriptions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619751.md)
 - [#3572350: Disable the default /node listing view, replace Olivero hardcoded welcome page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572350.md)
-- [#3151555: Deprecate user_picture_enabled()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md)
-- [#3616645: Form #value_callback does not support CallableResolver-style callables](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3616645.md)
 
 ### Drupal AI
 
-_127 summaries · 6 new this week_
+_127 summaries · 5 new this week_
 
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_196 rules · 7 new this week_
+_196 rules · 6 new this week_
 
 - [Inline user_picture_enabled() calls into a field-definition check](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-user-picture-enabled-calls-into-a-field-definition-3151555.php)
 - [Replace deprecated update.module global functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-module-global-functions-with-3580703.php)
