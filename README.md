@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_540 summaries · 30 new this week_
+_540 summaries · 26 new this week_
 
 - [#3572350: Disable the default /node listing view, replace Olivero hardcoded welcome page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3572350.md)
 - [#3151555: Deprecate user_picture_enabled()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md)
