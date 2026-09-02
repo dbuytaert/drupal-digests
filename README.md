@@ -1,16 +1,24 @@
-**TL;DR:** [1006 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1008 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_244 summaries · 3 new this week_
+
+- [#3592000: Translating a component tree config entity (such as PageVariant) that has an...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592000.md)
+- [#3591981: Provide consistent Code Component metadata validation across CLI and Drupal](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md)
+- [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
+
 ### Drupal Core
 
-_545 summaries · 24 new this week_
+_546 summaries · 25 new this week_
 
+- [#3583153: Allow to invoke multiple implementations of a specific module with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583153.md)
 - [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
 - [#3549134: Move text_with_summary to its own module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549134.md)
-- [#2831617: Deprecate global constants in locale module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2831617.md)
 
 ### Drupal AI
 
@@ -19,14 +27,6 @@ _127 summaries · 5 new this week_
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
 - [#3601404: Let a config name the command the agent hand-off runs, instead of only opening...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601404.md)
-
-### Drupal Canvas
-
-_243 summaries · 2 new this week_
-
-- [#3591981: Provide consistent Code Component metadata validation across CLI and Drupal](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md)
-- [#3591972: Code editor has no "Document" prop type for the document object shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md)
-- [#3591970: Components library UI is broken if a single component preview rendering fails:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md)
 
 ### Drupal CMS
 
