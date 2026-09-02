@@ -14,7 +14,7 @@ _246 summaries · 5 new this week_
 
 ### Drupal Core
 
-_546 summaries · 25 new this week_
+_546 summaries · 24 new this week_
 
 - [#3583153: Allow to invoke multiple implementations of a specific module with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583153.md)
 - [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
