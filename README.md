@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_545 summaries · 27 new this week_
+_545 summaries · 26 new this week_
 
 - [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
 - [#3549134: Move text_with_summary to its own module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549134.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_199 rules · 9 new this week_
+_199 rules · 8 new this week_
 
 - [Replace deprecated locale.module global constants with class constant/enum...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php)
 - [Replace deprecated file upload functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php)
