@@ -1,8 +1,16 @@
-**TL;DR:** [1011 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1015 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_550 summaries · 24 new this week_
+
+- [#3315265: Improve support of native MERGE with RETURNING merge_action()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3315265.md)
+- [#3615415: Remove using preg_replace() on every query for PostgreSQL](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615415.md)
+- [#3585455: Fix return types and baselined errors of core/tests/ Unit code - round 6](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585455.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _247 summaries · 5 new this week_
 - [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
 - [#3592001: Apply page variant translation overrides to previews](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592001.md)
 - [#3592000: Translating a component tree config entity (such as PageVariant) that has an...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592000.md)
-
-### Drupal Core
-
-_546 summaries · 20 new this week_
-
-- [#3583153: Allow to invoke multiple implementations of a specific module with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583153.md)
-- [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
-- [#3549134: Move text_with_summary to its own module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3549134.md)
 
 ### Drupal AI
 

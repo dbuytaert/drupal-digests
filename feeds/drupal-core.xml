@@ -5,6 +5,228 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3315265: Improve support of native MERGE with RETURNING merge_action()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3315265.md</link>
+      <guid isPermaLink="false">01a068f0-6f90-73f9-9e9a-287a8f471b7c</guid>
+      <pubDate>Thu, 03 Sep 2026 18:21:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +466/−0 · php +466&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2c9c31c0448da4feed7df77816200a426e3b25a4"&gt;2c9c31c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3315265"&gt;#3315265&lt;/a&gt; · 4 contributors · 31 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On PostgreSQL 18+ (the minimum for Drupal 12), Drupal's Merge query (the &amp;quot;insert or update&amp;quot; helper used by core's key_value store, the locale module's string location tracking, and the taxonomy index that is rebuilt whenever a published node is saved) now executes as a single native SQL &lt;code&gt;MERGE&lt;/code&gt; statement instead of a &lt;code&gt;SELECT&lt;/code&gt; followed by a separate &lt;code&gt;INSERT&lt;/code&gt; or &lt;code&gt;UPDATE&lt;/code&gt;. This halves the number of database round trips for these operations and also closes a small race-condition window that existed in the old check-then-write approach. There is no API change and nothing for site owners or module authors to configure; PostgreSQL sites simply get faster, safer merge queries automatically. Benchmarks in the issue showed 14 to 18% less time per merge query on a low-latency connection, with larger savings expected when there is more network latency between the web and database servers.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The PostgreSQL driver gets a new &lt;code&gt;\Drupal\pgsql\Driver\Database\pgsql\Merge&lt;/code&gt; class, returned by the driver's &lt;code&gt;Connection::merge()&lt;/code&gt;, which extends the generic &lt;code&gt;\Drupal\Core\Database\Query\Merge&lt;/code&gt;. Its &lt;code&gt;__toString()&lt;/code&gt; builds a &lt;code&gt;MERGE INTO {table} USING (SELECT 1) AS drupal_merge_source ON (...)&lt;/code&gt; statement with &lt;code&gt;WHEN MATCHED THEN UPDATE&lt;/code&gt; and &lt;code&gt;WHEN NOT MATCHED THEN INSERT&lt;/code&gt; clauses, ending in &lt;code&gt;RETURNING merge_action()&lt;/code&gt;. &lt;code&gt;executeNativeMerge()&lt;/code&gt; binds all placeholders (including blob fields, expressions, and select-expression arguments) and maps the returned &lt;code&gt;merge_action()&lt;/code&gt; value ('INSERT'/'UPDATE') back to &lt;code&gt;Merge::STATUS_INSERT&lt;/code&gt; or &lt;code&gt;Merge::STATUS_UPDATE&lt;/code&gt;, returning &lt;code&gt;NULL&lt;/code&gt; when the row matched but no update fields were supplied.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;isNativeMerge()&lt;/code&gt; gates when the native path is used: the condition must target the merge table itself and there must be insert fields or default fields. Otherwise &lt;code&gt;execute()&lt;/code&gt; falls back to the parent's generic &lt;code&gt;SELECT&lt;/code&gt; + &lt;code&gt;INSERT&lt;/code&gt;/&lt;code&gt;UPDATE&lt;/code&gt; emulation, specifically when the condition targets another table (no &lt;code&gt;ON&lt;/code&gt; clause possible), when there are no insert fields (no &lt;code&gt;WHEN NOT MATCHED THEN INSERT&lt;/code&gt; possible), or when values are inserted into serial fields, since the generic insert path also synchronizes the table's sequence afterwards.&lt;/p&gt;
+&lt;p&gt;Because native &lt;code&gt;MERGE&lt;/code&gt; under PostgreSQL's default &lt;code&gt;READ COMMITTED&lt;/code&gt; isolation is still subject to a race where a concurrent transaction inserts the same row between the match phase and the write, &lt;code&gt;execute()&lt;/code&gt; catches &lt;code&gt;IntegrityConstraintViolationException&lt;/code&gt; and retries the statement once, so the now-existing row is matched and updated instead. A new &lt;code&gt;\Drupal\Tests\pgsql\Kernel\pgsql\MergeTest&lt;/code&gt; covers the native SQL string, single-statement execution, the no-update-match case, expressions, blob fields, and each fallback-to-emulation scenario.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 14, 2022&lt;/li&gt;
+&lt;li&gt;Committed: September 3, 2026 (3 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3615415: Remove using preg_replace() on every query for PostgreSQL</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615415.md</link>
+      <guid isPermaLink="false">01a068eb-e018-71da-a404-ae00f0ab1c0b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 03 Sep 2026 18:09:36 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +206/−16 · php +206/−16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/f0a5223446b81cc84ea6ae88d91044b37c3db044"&gt;f0a5223&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3615415"&gt;#3615415&lt;/a&gt; · 4 contributors · 17 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 2 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On PostgreSQL, every single database query used to be passed through a &lt;code&gt;preg_replace()&lt;/code&gt; call looking for LIKE and regular-expression operators so it could add a &lt;code&gt;::text&lt;/code&gt; type-cast to the field they act on (PostgreSQL doesn't auto-cast non-text columns for those operators). That regex ran on every query regardless of whether it used those operators, and it worked over the final SQL string so it could also mismatch inside expressions or string literals. This change moves the cast into query compilation, so it is only added to the specific conditions that need it, removing the per-query overhead for the many queries that never use LIKE or regex operators. Raw SQL strings (not built with the query builder) still get the old rewrite as a fallback, but relying on that is now deprecated since it will be removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The array returned by &lt;code&gt;Connection::mapConditionOperator()&lt;/code&gt; supports a new &lt;code&gt;field_suffix&lt;/code&gt; key that &lt;code&gt;Condition::compile()&lt;/code&gt; appends to the field before the operator; database drivers overriding the condition operator map should be aware of it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Relying on the PostgreSQL driver's &lt;code&gt;Connection::prepareStatement()&lt;/code&gt; to auto-add a &lt;code&gt;::text&lt;/code&gt; cast to fields used with &lt;code&gt;LIKE&lt;/code&gt;/regex operators in raw SQL strings is deprecated in &lt;code&gt;drupal:11.5.0&lt;/code&gt; and removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public method &lt;code&gt;Connection::getConditionFieldSuffix()&lt;/code&gt; returns the SQL suffix (e.g. a type-cast) a driver needs appended to a field for a given condition operator, for use when building raw SQL condition snippets.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;Condition::compile()&lt;/code&gt; now supports a &lt;code&gt;field_suffix&lt;/code&gt; directive in the array returned by &lt;code&gt;Connection::mapConditionOperator()&lt;/code&gt;, appended to the compiled field fragment before the operator. The PostgreSQL driver's &lt;code&gt;$postgresqlConditionOperatorMap&lt;/code&gt; sets &lt;code&gt;'field_suffix' =&amp;gt; '::text'&lt;/code&gt; for &lt;code&gt;LIKE&lt;/code&gt;, &lt;code&gt;LIKE BINARY&lt;/code&gt;, &lt;code&gt;NOT LIKE&lt;/code&gt;, &lt;code&gt;REGEXP&lt;/code&gt; and &lt;code&gt;NOT REGEXP&lt;/code&gt;, plus identity entries for &lt;code&gt;ILIKE&lt;/code&gt;, &lt;code&gt;NOT ILIKE&lt;/code&gt;, &lt;code&gt;~*&lt;/code&gt; and &lt;code&gt;!~*&lt;/code&gt; so code (such as Views' &lt;code&gt;StringFilter&lt;/code&gt;) that builds conditions with those PostgreSQL-native operators directly also gets the cast.&lt;/p&gt;
+&lt;p&gt;For code that builds raw SQL condition snippets outside the query builder (e.g. &lt;code&gt;Query::where()&lt;/code&gt;), a new &lt;code&gt;Connection::getConditionFieldSuffix($operator)&lt;/code&gt; method exposes the same suffix so it can be added manually. &lt;code&gt;pgsql\Connection::prepareStatement()&lt;/code&gt; keeps its old &lt;code&gt;preg_replace()&lt;/code&gt; fallback for raw SQL, but now guards it behind a &lt;code&gt;stripos()&lt;/code&gt;/&lt;code&gt;str_contains()&lt;/code&gt; check so it only runs for strings actually containing &lt;code&gt;LIKE&lt;/code&gt; or &lt;code&gt;~*&lt;/code&gt;, made the regex idempotent (skips fields already cast), and raises an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice when it rewrites a query, pointing at the change record for removal in Drupal 13. &lt;code&gt;StringFilter&lt;/code&gt;'s operator handlers (&lt;code&gt;opEqual&lt;/code&gt;, &lt;code&gt;opContains&lt;/code&gt;, &lt;code&gt;opStartsWith&lt;/code&gt;, &lt;code&gt;opEndsWith&lt;/code&gt;, &lt;code&gt;opNotLike&lt;/code&gt;, &lt;code&gt;opRegex&lt;/code&gt;, etc.) were updated to call &lt;code&gt;getConditionFieldSuffix()&lt;/code&gt; and append it to the expression themselves, since they build raw where-expression snippets rather than using &lt;code&gt;Condition::compile()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom database drivers that override &lt;code&gt;mapConditionOperator()&lt;/code&gt; can add a &lt;code&gt;field_suffix&lt;/code&gt; entry to have it appended to the field automatically during condition compilation.&lt;/p&gt;
+&lt;p&gt;Code that issues raw SQL strings against PostgreSQL using &lt;code&gt;LIKE&lt;/code&gt;, &lt;code&gt;NOT LIKE&lt;/code&gt;, &lt;code&gt;ILIKE&lt;/code&gt;, &lt;code&gt;REGEXP&lt;/code&gt;, or &lt;code&gt;~*&lt;/code&gt;/&lt;code&gt;!~*&lt;/code&gt; should add the cast explicitly instead of relying on the driver to rewrite the query, since that fallback is deprecated and removed in Drupal 13:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$suffix = $connection-&amp;gt;getConditionFieldSuffix('LIKE');
+$query-&amp;gt;where(&amp;quot;[title]$suffix LIKE :pattern&amp;quot;, [
+  ':pattern' =&amp;gt; '%foo%',
+]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 3, 2026 (27 days and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585455: Fix return types and baselined errors of core/tests/ Unit code - round 6</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585455.md</link>
+      <guid isPermaLink="false">01a068ee-4db6-720d-af41-3ed345b261c4</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 03 Sep 2026 17:58:24 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 80 files, +346/−1371 · php +345/−1371 · dist +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4ef3e3b7a5623ec5ae6ad184cce20d7a0e26bb30"&gt;4ef3e3b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585455"&gt;#3585455&lt;/a&gt; · 5 contributors · 30 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This is round 6, and the final round, of a series adding explicit PHP return type declarations across Drupal core's test code (&lt;code&gt;core/tests/&lt;/code&gt;) and cleaning up the corresponding PHPStan baseline suppressions. It is almost entirely internal test tooling, but it does add return types to several widely used, subclassable test helper methods, most notably on &lt;code&gt;BrowserTestBase&lt;/code&gt;, &lt;code&gt;UiHelperTrait&lt;/code&gt;, &lt;code&gt;SessionTestTrait&lt;/code&gt;, and &lt;code&gt;DrupalTestBrowser&lt;/code&gt;, the base classes and traits that essentially every functional test in Drupal core and contributed modules extends or uses. Custom test code that overrides the affected methods without matching return types will fail with a fatal PHP error after this change.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Protected methods on &lt;code&gt;UiHelperTrait&lt;/code&gt;, &lt;code&gt;SessionTestTrait&lt;/code&gt;, &lt;code&gt;DrupalTestBrowser&lt;/code&gt;, and &lt;code&gt;BrowserTestBase&lt;/code&gt; (the base for nearly all Drupal functional tests) gained explicit return types, e.g. &lt;code&gt;submitForm()&lt;/code&gt;, &lt;code&gt;drupalLogin()&lt;/code&gt;, &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;click()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;generateSessionName()&lt;/code&gt;: &lt;code&gt;void&lt;/code&gt;, and &lt;code&gt;getTextContent()&lt;/code&gt;, &lt;code&gt;getSessionName()&lt;/code&gt;: &lt;code&gt;string&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Most of the diff removes now-obsolete &lt;code&gt;$ignoreErrors[]&lt;/code&gt; entries from &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; that were suppressing &lt;code&gt;missingType.return&lt;/code&gt; and related identifiers, with the fixes landing in the corresponding test files: adding &lt;code&gt;: void&lt;/code&gt;, &lt;code&gt;: string&lt;/code&gt;, or other return types to methods, typing class properties (e.g. &lt;code&gt;protected int $timeLimit&lt;/code&gt;, &lt;code&gt;protected ?Mink $mink&lt;/code&gt;, &lt;code&gt;protected string $sessionName&lt;/code&gt;), and a few unrelated small fixes surfaced by stricter typing.&lt;/p&gt;
+&lt;p&gt;The most consequential changes are in &lt;code&gt;core/tests/Drupal/Tests/UiHelperTrait.php&lt;/code&gt;, &lt;code&gt;SessionTestTrait.php&lt;/code&gt;, &lt;code&gt;DrupalTestBrowser.php&lt;/code&gt;, and &lt;code&gt;BrowserTestBase.php&lt;/code&gt;, which back nearly all functional testing in Drupal: &lt;code&gt;submitForm()&lt;/code&gt;, &lt;code&gt;drupalLogin()&lt;/code&gt;, &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;click()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, and &lt;code&gt;generateSessionName()&lt;/code&gt; now return &lt;code&gt;void&lt;/code&gt;, and &lt;code&gt;getTextContent()&lt;/code&gt;/&lt;code&gt;getSessionName()&lt;/code&gt; now return &lt;code&gt;string&lt;/code&gt;. Typing &lt;code&gt;BrowserTestBase::$mink&lt;/code&gt; as &lt;code&gt;?Mink&lt;/code&gt; (previously untyped, defaulting to implicit &lt;code&gt;NULL&lt;/code&gt;) also required changing &lt;code&gt;if ($this-&amp;gt;mink)&lt;/code&gt; to &lt;code&gt;if (isset($this-&amp;gt;mink))&lt;/code&gt; in &lt;code&gt;tearDown()&lt;/code&gt;, since accessing an uninitialized typed property throws rather than evaluating falsy.&lt;/p&gt;
+&lt;p&gt;Outside &lt;code&gt;core/tests/&lt;/code&gt;, the only production code touched is a docblock precision improvement on &lt;code&gt;ArgumentsResolver::$objects&lt;/code&gt; (&lt;code&gt;@var array&lt;/code&gt; to &lt;code&gt;@var array&amp;lt;string,object&amp;gt;&lt;/code&gt;), and &lt;code&gt;core/phpstan.neon.dist&lt;/code&gt; gained an additional excluded path for Doctrine annotation fixtures. Everything else (&lt;code&gt;core/tests/Drupal/Tests/Core/*&lt;/code&gt;, &lt;code&gt;Component/*&lt;/code&gt;, &lt;code&gt;Composer/*&lt;/code&gt;) is internal unit test code not intended for external reuse. Related prior rounds: &lt;a href="https://www.drupal.org/node/3551596"&gt;#3551596&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562361"&gt;#3562361&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562868"&gt;#3562868&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562645"&gt;#3562645&lt;/a&gt;, and &lt;a href="https://www.drupal.org/node/3579189"&gt;#3579189&lt;/a&gt; (Kernel tests), the last of which similarly touched a shared &lt;code&gt;KernelTestBase&lt;/code&gt;/&lt;code&gt;AssertContentTrait&lt;/code&gt; surface.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If a custom test class overrides any of these methods, add a matching return type:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+protected function submitForm(array $edit, $submit, $form_html_id = NULL) { ... }
+protected function drupalLogin(AccountInterface $account) { ... }
+protected function click(string $css_selector) { ... }
+
+// After
+protected function submitForm(array $edit, $submit, $form_html_id = NULL): void { ... }
+protected function drupalLogin(AccountInterface $account): void { ... }
+protected function click(string $css_selector): void { ... }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The same applies to &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, and &lt;code&gt;generateSessionName()&lt;/code&gt; (all &lt;code&gt;void&lt;/code&gt;), and &lt;code&gt;getTextContent()&lt;/code&gt;/&lt;code&gt;getSessionName()&lt;/code&gt; (&lt;code&gt;string&lt;/code&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 3, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3555916: Update to htmx 4</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3555916.md</link>
+      <guid isPermaLink="false">01a068ef-f069-7517-9587-6eba941e4fb3</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Thu, 03 Sep 2026 14:19:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 38 files, +1091/−742 · php +716/−527 · js +333/−176 · yml +34/−33 · lock +7/−5 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2aa5aede43f13fc3f4d7f01f90a972e0e81f15f1"&gt;2aa5aed&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555916"&gt;#3555916&lt;/a&gt; · 8 contributors · 111 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 16&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 8 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's bundled HTMX library has been upgraded from version 2 to the newly released version 4, which the HTMX project describes as a complete rewrite (&amp;quot;the fetch()ening&amp;quot;). Core's HTMX integration (the PHP &lt;code&gt;Htmx&lt;/code&gt; attribute-builder class, the request-header helpers, &lt;code&gt;FormBuilder&lt;/code&gt;'s HTMX handling, and the client-side JavaScript that wires HTMX into Drupal's AJAX/behavior system) has been refactored to work with the new library. There are no visible UI changes for standard core usage, but sites with custom code, themes, or contrib modules that use HTMX attributes, HTMX request/response headers, or HTMX JavaScript extensions should review the published change record, since htmx 4 changes attribute names, header names and formats, event payloads, the extension registration API, and introduces a default 60 second request timeout and different history/back-navigation behavior.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; The bundled &lt;code&gt;htmx.js&lt;/code&gt;/&lt;code&gt;htmx.min.js&lt;/code&gt; vendor library is upgraded from 2.0.4 to 4.0.0, a rewrite with backward-incompatible changes to attributes, headers, events, and the extension API.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;Drupal\Core\Htmx\Htmx&lt;/code&gt; factory class was substantially reworked for htmx 4: several methods were renamed or removed (e.g. &lt;code&gt;disable()&lt;/code&gt;→&lt;code&gt;ignore()&lt;/code&gt;, &lt;code&gt;disabledElt()&lt;/code&gt;→&lt;code&gt;disable()&lt;/code&gt;, &lt;code&gt;request()&lt;/code&gt;→&lt;code&gt;config()&lt;/code&gt;; &lt;code&gt;ext()&lt;/code&gt;, &lt;code&gt;disinherit()&lt;/code&gt;, &lt;code&gt;history()&lt;/code&gt;, &lt;code&gt;inherit()&lt;/code&gt;, &lt;code&gt;params()&lt;/code&gt;, and &lt;code&gt;prompt()&lt;/code&gt; were removed because those attributes no longer exist in htmx 4), most builder methods gained an &lt;code&gt;int $modifiers&lt;/code&gt; parameter for the new &lt;code&gt;:inherited&lt;/code&gt;/&lt;code&gt;:append&lt;/code&gt; attribute modifiers, and new methods &lt;code&gt;action()&lt;/code&gt;, &lt;code&gt;method()&lt;/code&gt;, &lt;code&gt;query()&lt;/code&gt;, and &lt;code&gt;status()&lt;/code&gt; were added for new htmx 4 attributes. &lt;code&gt;HtmxRequestInfoTrait&lt;/code&gt; methods were renamed to match new/changed HTMX headers: &lt;code&gt;getHtmxTrigger()&lt;/code&gt; and &lt;code&gt;getHtmxPrompt()&lt;/code&gt; are gone, &lt;code&gt;getHtmxTriggerName()&lt;/code&gt; now parses the triggering element's name out of the new &lt;code&gt;HX-Source&lt;/code&gt; header, and a new &lt;code&gt;getHtmxRequestType()&lt;/code&gt; reads the &lt;code&gt;HX-Request-Type&lt;/code&gt; header.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;FormBuilderInterface::HTMX_REQUEST&lt;/code&gt; constant is deprecated in favor of &lt;code&gt;HtmxRequestInfoTrait::isHtmxRequest()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core-side changes track htmx 4's rewrite closely. &lt;code&gt;HtmxRequestInfoTrait&lt;/code&gt; was updated because htmx 4 replaces the old &lt;code&gt;HX-Trigger&lt;/code&gt;/&lt;code&gt;HX-Trigger-Name&lt;/code&gt; headers with &lt;code&gt;HX-Source&lt;/code&gt; (a CSS-selector-like identifier for the triggering element, URI-encoded) and adds &lt;code&gt;HX-Request-Type&lt;/code&gt; (&lt;code&gt;&amp;quot;full&amp;quot;&lt;/code&gt; or &lt;code&gt;&amp;quot;partial&amp;quot;&lt;/code&gt;); &lt;code&gt;getHtmxTriggerName()&lt;/code&gt; now regex-extracts a &lt;code&gt;name=&amp;quot;...&amp;quot;&lt;/code&gt; fragment out of &lt;code&gt;HX-Source&lt;/code&gt; instead of reading a dedicated header. &lt;code&gt;FormBuilder::prepareForm()&lt;/code&gt; had a latent bug here: it still read the removed &lt;code&gt;hx-trigger&lt;/code&gt; header directly (rather than through the trait), which meant &lt;code&gt;$hx_trigger&lt;/code&gt; was always &lt;code&gt;NULL&lt;/code&gt; and the out-of-band &lt;code&gt;form_build_id&lt;/code&gt; swap fired unconditionally; this was caught during review and fixed to use &lt;code&gt;getHtmxSource()&lt;/code&gt;/&lt;code&gt;getHtmxTarget()&lt;/code&gt; via the newly-added &lt;code&gt;HtmxRequestInfoTrait&lt;/code&gt; usage in &lt;code&gt;FormBuilder&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;Htmx&lt;/code&gt; class (&lt;code&gt;core/lib/Drupal/Core/Htmx/Htmx.php&lt;/code&gt;) gained &lt;code&gt;self::INHERITED&lt;/code&gt;/&lt;code&gt;self::APPEND&lt;/code&gt; bit-flag modifiers, threaded through nearly every builder method via a new &lt;code&gt;keyWithModifiers()&lt;/code&gt; helper, to support htmx 4's explicit &lt;code&gt;:inherited&lt;/code&gt;/&lt;code&gt;:append&lt;/code&gt; attribute-inheritance syntax. Several methods for attributes htmx 4 removed (&lt;code&gt;ext&lt;/code&gt;, &lt;code&gt;disinherit&lt;/code&gt;, &lt;code&gt;history&lt;/code&gt;, &lt;code&gt;inherit&lt;/code&gt;, &lt;code&gt;params&lt;/code&gt;, &lt;code&gt;prompt&lt;/code&gt;) were removed outright, others were renamed to match new attribute names (&lt;code&gt;disable()&lt;/code&gt;→&lt;code&gt;ignore()&lt;/code&gt;, &lt;code&gt;disabledElt()&lt;/code&gt;→&lt;code&gt;disable()&lt;/code&gt;, &lt;code&gt;request()&lt;/code&gt;→&lt;code&gt;config()&lt;/code&gt;), and new methods (&lt;code&gt;action()&lt;/code&gt;, &lt;code&gt;method()&lt;/code&gt;, &lt;code&gt;query()&lt;/code&gt;, &lt;code&gt;status()&lt;/code&gt;) were added for htmx 4's new &lt;code&gt;hx-action&lt;/code&gt;, &lt;code&gt;hx-method&lt;/code&gt;, &lt;code&gt;hx-query&lt;/code&gt; (supporting the HTTP &lt;code&gt;QUERY&lt;/code&gt; method), and &lt;code&gt;hx-status&lt;/code&gt; attributes. Deprecation shims for the removed/renamed methods were left to a follow-up issue rather than being part of this change.&lt;/p&gt;
+&lt;p&gt;On the client, &lt;code&gt;core/misc/htmx/htmx-assets.js&lt;/code&gt; was rewritten to hook into htmx 4's new event/task model: &lt;code&gt;Drupal.attachBehaviors&lt;/code&gt;/&lt;code&gt;detachBehaviors&lt;/code&gt; are now triggered from &lt;code&gt;htmx:before:swap&lt;/code&gt;/&lt;code&gt;htmx:after:swap&lt;/code&gt; handlers that resolve the correct DOM context from the swap task's target rather than the old &lt;code&gt;htmx:beforeSwap&lt;/code&gt;/&lt;code&gt;htmx:afterSettle&lt;/code&gt; events. &lt;code&gt;core/core.libraries.yml&lt;/code&gt; now aggregates the htmx asset and points at v4.0.0. &lt;code&gt;FormBuilderInterface::HTMX_REQUEST&lt;/code&gt; is marked &lt;code&gt;@deprecated&lt;/code&gt; in favor of &lt;code&gt;HtmxRequestInfoTrait::isHtmxRequest()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Review the published HTMX 4 change record for the full list of breaking changes. In particular, if custom or contrib code:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Calls removed &lt;code&gt;Htmx&lt;/code&gt; methods, replace them, e.g.:&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+(new Htmx())-&amp;gt;request(['timeout' =&amp;gt; 5000]);
+// After
+(new Htmx())-&amp;gt;config(['timeout' =&amp;gt; 5000]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;Reads the old HTMX request headers directly, switch to the trait or the new header names (&lt;code&gt;HX-Trigger&lt;/code&gt;/&lt;code&gt;HX-Trigger-Name&lt;/code&gt; are gone, use &lt;code&gt;HX-Source&lt;/code&gt;/&lt;code&gt;HX-Request-Type&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;Listens for Drupal's custom &lt;code&gt;htmx:drupal:load&lt;/code&gt;/&lt;code&gt;htmx:drupal:unload&lt;/code&gt; events, note the event payload shape may differ since it now derives its target from the htmx 4 swap task queue.&lt;/li&gt;
+&lt;li&gt;Registers an HTMX extension, htmx 4 replaces &lt;code&gt;htmx.defineExtension()&lt;/code&gt; with &lt;code&gt;htmx.registerExtension(name, extension)&lt;/code&gt; and a flat hook-object shape.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Also account for the new default 60 second request timeout and the change to no-DOM-cache history/back-navigation behavior in htmx 4.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 4, 2025&lt;/li&gt;
+&lt;li&gt;Committed: September 3, 2026 (10 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
+&lt;li&gt;fathershawn (Memorial Sloan Kettering Cancer Center)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;cosmicdreams&lt;/li&gt;
+&lt;li&gt;latent&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This nine-month effort was driven largely by fathershawn, who repeatedly rebased the branch through multiple htmx 4 beta releases (beta2 through beta6 and finally the 4.0.0 stable release) as the upstream API kept shifting, and who coordinated directly with htmx maintainers (including latent, credited with an assist on the swap/extension code) to resolve an upstream htmx bug where &lt;code&gt;outerHTML&lt;/code&gt; swaps against a full-document response corrupted target attributes; the htmx team fixed it upstream after the discussion here. cosmicdreams did a close technical review that caught a real regression: &lt;code&gt;FormBuilder&lt;/code&gt; still read the removed &lt;code&gt;hx-trigger&lt;/code&gt; header, making its out-of-band &lt;code&gt;form_build_id&lt;/code&gt; swap fire unconditionally, and separately flagged that Drupal's own &lt;code&gt;htmx:drupal:load&lt;/code&gt;/&lt;code&gt;htmx:drupal:unload&lt;/code&gt; custom events changed payload shape (&lt;code&gt;detail.elt&lt;/code&gt; to &lt;code&gt;target&lt;/code&gt;) without any upstream documentation to flag it, which fathershawn folded into the change record. longwave, catch, and others pushed to land the upgrade on &lt;code&gt;main&lt;/code&gt; early despite htmx 4 still being in beta, reasoning it was safer to ride htmx 4's betas toward Drupal 12 than to release Drupal 12 locked to htmx 2 for years; catch's comment framed this directly given &amp;quot;HTMX has never had, and never will have, a version 3.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583153: Allow to invoke multiple implementations of a specific module with ModuleHandler::invoke()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583153.md</link>
       <guid isPermaLink="false">01a06218-f7f5-77dc-92b0-c27cb0f26b1a</guid>
@@ -912,203 +1134,6 @@ $this-&amp;gt;chainedFastBackend-&amp;gt;set($this-&amp;gt;prepareCid($cid), $da
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;catch proposed moving the whole &lt;code&gt;ViewsData&lt;/code&gt; cache to &lt;code&gt;cache_discovery&lt;/code&gt; and alexpott committed it, but berdir flagged a regression risk: on large or heavily multilingual sites the combined &amp;quot;all tables&amp;quot; cache entry can be megabytes in size, and pushing that into APCu-backed chained-fast storage risks frequent expunges that hurt performance more broadly (citing real-world monitoring data from sites using an APCu-expunge sensor). alexpott reverted the commit the same day. berdir then measured actual cache entry sizes with a script run against a production-like Redis dataset, showing the &amp;quot;all tables&amp;quot; entries were an order of magnitude larger than the sum of per-table entries, and suggested moving only the per-table entries into the fast bin. catch implemented that split (two injected cache backends), and the two also floated further ideas (a &lt;code&gt;hook_views_data_table()&lt;/code&gt;-style API, and not caching views data per-language) that were not pursued in this issue. berdir later reviewed again and preferred catch's simplified follow-up that dropped the old &lt;code&gt;cacheGet&lt;/code&gt;/&lt;code&gt;cacheSet&lt;/code&gt; helpers entirely in favor of calling the backends directly, calling it &amp;quot;much nicer.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3472624: Ensure the UI dialog instance is valid in Drupal.dialog.resetSize</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3472624.md</link>
-      <guid isPermaLink="false">01a04580-b5a0-74f9-95b3-12f0aac2ecef</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 27 Aug 2026 21:59:56 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +66/−3 · php +35 · js +31/−3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d0904d4ace3ed2b1667ef2c5710832b201e02f17"&gt;d0904d4&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3472624"&gt;#3472624&lt;/a&gt; · 15 contributors · 36 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 21&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 15 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Opening a modal dialog and closing it again very quickly (within about 20 milliseconds) could throw an uncaught JavaScript error, &amp;quot;cannot call methods on dialog prior to initialization; attempted to call method 'option'&amp;quot;, because a scheduled dialog resize callback ran after the dialog had already been destroyed. This could interrupt other JavaScript on the page and was also causing intermittent failures in Drupal core's own JavaScript test suite. The fix ensures a resize that is still pending when a dialog closes is cancelled instead of running against a dialog that no longer exists.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;Drupal.debounce()&lt;/code&gt; now returns a function that has a &lt;code&gt;cancel()&lt;/code&gt; method, letting callers abort a scheduled invocation that has not run yet.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was in &lt;code&gt;misc/dialog/dialog.ajax.js&lt;/code&gt;: &lt;code&gt;Drupal.dialog.resetSize&lt;/code&gt; is invoked via &lt;code&gt;Drupal.debounce&lt;/code&gt; on window resize/scroll events, but the &lt;code&gt;dialog:beforeclose&lt;/code&gt; handler only unbound those event listeners; it could not stop a resize call that had already been scheduled by &lt;code&gt;debounce&lt;/code&gt;'s internal &lt;code&gt;setTimeout&lt;/code&gt;. By the time that timeout fired, the dialog's DOM element (and its jQuery UI instance) had already been removed, so calling &lt;code&gt;.dialog('option', ...)&lt;/code&gt; on it threw.&lt;/p&gt;
-&lt;p&gt;The fix has two parts. &lt;code&gt;misc/debounce.js&lt;/code&gt;'s &lt;code&gt;Drupal.debounce&lt;/code&gt; now returns a function that also carries a &lt;code&gt;cancel()&lt;/code&gt; method, which clears the pending &lt;code&gt;timeout&lt;/code&gt; so a scheduled call never runs. &lt;code&gt;dialog.ajax.js&lt;/code&gt; stores the &lt;code&gt;autoResize&lt;/code&gt; debounced function on the dialog element via &lt;code&gt;$element.data('drupalAutoResize', autoResize)&lt;/code&gt; when the dialog opens, and its &lt;code&gt;dialog:beforeclose&lt;/code&gt; handler now calls &lt;code&gt;$(e.target).data('drupalAutoResize')?.cancel()&lt;/code&gt; before unbinding the resize/scroll handlers. As a defensive second layer, &lt;code&gt;resetSize()&lt;/code&gt; also now bails out early if &lt;code&gt;event.data?.$element?.data('ui-dialog')&lt;/code&gt; is falsy, i.e. the jQuery UI dialog instance is no longer present. Test coverage was added in &lt;code&gt;DialogTest&lt;/code&gt; that opens a modal, triggers a resize, immediately closes the dialog, and asserts no JS errors are logged.&lt;/p&gt;
-&lt;p&gt;A change record (&lt;a href="https://www.drupal.org/node/3619513"&gt;#3619513&lt;/a&gt;, referenced in comments) documents the new &lt;code&gt;debounce().cancel()&lt;/code&gt; API for other core and contrib code that debounces callbacks tied to DOM elements that may be removed.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;The bug lingered for a long time with several reporters (grimreaper, goz, joseph.olstad, albeorte) confirming related but not-quite-matching symptoms with CKEditor and other dialog-triggering modules, and earlier MR attempts did not fully resolve it for them. The issue was escalated to Critical by longwave after noting in &lt;a href="https://www.drupal.org/node/16720832"&gt;#16720832&lt;/a&gt; that the flakiness had &amp;quot;got much worse&amp;quot; following &lt;a href="https://www.drupal.org/node/3515403"&gt;#3515403&lt;/a&gt; (the Selenium/Chrome upgrade), since it was now causing multiple JS test failures in core. Longwave then diagnosed the actual mechanism, that &lt;code&gt;dialog:beforeclose&lt;/code&gt; unbinds handlers but cannot stop an already-scheduled debounced call, and implemented the &lt;code&gt;debounce.cancel()&lt;/code&gt; fix with new test coverage, noting the diagnosis and fix were assisted by Claude Code. godotislate stress-tested the fix by repeating a previously flaky test 500 times without failure to confirm the intermittent failures were resolved before it was marked RTBC again.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 6, 2024&lt;/li&gt;
-&lt;li&gt;Committed: August 27, 2026 (1 year and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;herved&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3619447: Avoid rebuilding the router twice when uninstalling a profile in the installer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619447.md</link>
-      <guid isPermaLink="false">01a04580-053d-72ab-b465-28494b66b4be</guid>
-      <pubDate>Thu, 27 Aug 2026 21:54:50 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +6/−5 · php +6/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8cb43d975eab645a317171312eac42a5d2672de4"&gt;8cb43d9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3619447"&gt;#3619447&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a Drupal installation profile is configured to be uninstalled right after installation (as Drupal CMS's installer profile does), the installer was rebuilding the routing table twice in a row: once implicitly because uninstalling the profile module always rebuilds the router, and once explicitly at the end of &lt;code&gt;install_finished()&lt;/code&gt;. Each rebuild took around 450ms in testing, so this doubled work was adding noticeable time to the last step of installation. The fix skips the redundant explicit rebuild in that case, so installs that uninstall their profile finish faster with no change in the end result.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;install_finished()&lt;/code&gt;, the explicit &lt;code&gt;\Drupal::service('router.builder')-&amp;gt;rebuild()&lt;/code&gt; call is now only made in the branch where the profile is kept (&lt;code&gt;$install_state['profile_info']['keep_profile']&lt;/code&gt; is true). When the profile is instead uninstalled via &lt;code&gt;\Drupal::service('module_installer')-&amp;gt;uninstall([$profile])&lt;/code&gt;, that call's own module uninstall process already triggers a router rebuild, so the subsequent explicit rebuild was pure duplicate work. The comment explaining why the rebuild is needed at all (the installer never fires &lt;code&gt;KernelEvents::TERMINATE&lt;/code&gt;, which normally triggers this rebuild via an HTTP kernel) was moved alongside the remaining call site.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2835615: TextTrimmedFormatter not trimming at periods followed by non-breaking space</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2835615.md</link>
-      <guid isPermaLink="false">01a04a65-3748-74d0-a940-9ef9bbe06868</guid>
-      <pubDate>Thu, 27 Aug 2026 21:46:18 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +22/−5 · php +22/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/bffaae171525e764a94cd7af151ddf0f9ef835b0"&gt;bffaae1&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2835615"&gt;#2835615&lt;/a&gt; · 12 contributors · 59 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 12 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Fields displayed with the &amp;quot;Summary or trimmed&amp;quot; formatter could be cut off in the wrong place. If the underlying HTML used a non-breaking space (&lt;code&gt;&amp;amp;nbsp;&lt;/code&gt;) instead of a plain space after a sentence's period, which CKEditor commonly does, the trimming logic did not recognize that period as a valid sentence break. Instead it could fall back to cutting the text at an unrelated period, such as after the abbreviation &amp;quot;Dr.&amp;quot;, producing a summary that stopped after just two words. The fix teaches the trimming algorithm to also treat &amp;quot;period followed by &lt;code&gt;&amp;amp;nbsp;&lt;/code&gt;&amp;quot; as a normal sentence ending, so trimmed summaries end at real sentence boundaries as intended.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;TextSummary::generate()&lt;/code&gt; in &lt;code&gt;core/modules/text/src/TextSummary.php&lt;/code&gt;, which powers the text Trimmed formatter. The method picks a cut point by searching, in priority order, for paragraph tags, then line breaks, then sentence-ending punctuation, using a &lt;code&gt;$break_points&lt;/code&gt; array of &lt;code&gt;pattern =&amp;gt; offset&lt;/code&gt; pairs matched against the reversed truncated string. Previously the sentence-ending group only included patterns with a literal trailing space, such as &lt;code&gt;'. ' =&amp;gt; 1&lt;/code&gt;. When CKEditor-authored content used &lt;code&gt;&amp;amp;nbsp;&lt;/code&gt; after a period instead of a plain space, none of those patterns matched, so the algorithm never found the real sentence boundaries and fell through to whatever period happened to be nearest the end, including one inside an abbreviation like &amp;quot;Dr.&amp;quot;.&lt;/p&gt;
-&lt;p&gt;The change adds &lt;code&gt;'.&amp;amp;nbsp;' =&amp;gt; 6&lt;/code&gt; to that break-point group, ahead of &lt;code&gt;'. '&lt;/code&gt;. The &lt;code&gt;6&lt;/code&gt; offset accounts for the length of the &lt;code&gt;&amp;amp;nbsp;&lt;/code&gt; entity so the cut lands immediately after the period rather than mid-entity. The initial proposal in the merge request used a bare &lt;code&gt;'&amp;amp;nbsp;' =&amp;gt; 6&lt;/code&gt; breakpoint, but manual testing (see below) showed that could still ignore sentence boundaries when an editor inserted a stray &lt;code&gt;&amp;amp;nbsp;&lt;/code&gt; mid-sentence, so the final pattern requires the preceding period as well.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;Contributor dcam manually tested the merge request and found that the originally proposed bare &lt;code&gt;'&amp;amp;nbsp;' =&amp;gt; 6&lt;/code&gt; breakpoint could still miss real sentence boundaries if a content editor inserted a &lt;code&gt;&amp;amp;nbsp;&lt;/code&gt; in the middle of a sentence rather than after a period. They proposed anchoring the breakpoint to &lt;code&gt;.&amp;amp;nbsp;&lt;/code&gt; instead, with a concrete reproduction string, and smustgrave applied that feedback and updated the accompanying test to cover it.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 13, 2016&lt;/li&gt;
-&lt;li&gt;Committed: August 27, 2026 (9 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;chx&lt;/li&gt;
-&lt;li&gt;ezheidtmann&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#1189464: Add an 'instant' queue runner</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1189464.md</link>
-      <guid isPermaLink="false">01a04581-6db1-7175-9ff9-182993ed18dc</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Thu, 27 Aug 2026 21:13:50 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +233/−40 · php +223/−40 · yml +10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9a96116d378c3597699de5a1d0d02a760ef7476f"&gt;9a96116&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1189464"&gt;#1189464&lt;/a&gt; · 13 contributors · 75 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 54&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 13 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal has had two ways to run long tasks: the Queue API (normally only drained by cron) and the blocking Batch API. This issue adds a middle ground: an &amp;quot;instant queue runner&amp;quot; service that modules can hand a queue name to during a request, and a handful of items (5 by default) from that queue get processed right after the response has been sent to the browser, without blocking the user. This is opt-in per queue, not automatic for all queues, so existing sites see no behavior change until a module or contrib project starts using it. The maintainers point to use cases like closing a timing-attack window on the password reset form (&lt;a href="https://www.drupal.org/node/3316209"&gt;#3316209&lt;/a&gt;), instant search indexing, and image style pre-warming as the reasons this landed now.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter with a &lt;code&gt;maximumItems&lt;/code&gt; key (default 5) caps how many items per queue the instant runner processes per request.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Queue\InstantQueueRunnerInterface&lt;/code&gt; service lets modules register a queue name so a few of its items get processed right after the response is sent, instead of waiting for cron.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;Drupal\Core\Queue\InstantQueueRunner&lt;/code&gt; service implements &lt;code&gt;InstantQueueRunnerInterface&lt;/code&gt; (a single &lt;code&gt;registerQueue(string $queue_name): void&lt;/code&gt; method) and &lt;code&gt;DestructableInterface&lt;/code&gt;, and is tagged &lt;code&gt;needs_destruction&lt;/code&gt; so its &lt;code&gt;destruct()&lt;/code&gt; runs during &lt;code&gt;kernel.terminate&lt;/code&gt;. During a request, code that adds an item to a queue also calls &lt;code&gt;registerQueue()&lt;/code&gt;; the runner just counts how many times each queue name was registered. In &lt;code&gt;destruct()&lt;/code&gt;, for each registered queue it claims and processes up to &lt;code&gt;min(maximumItems, $count)&lt;/code&gt; items (default &lt;code&gt;maximumItems&lt;/code&gt; is 5, configurable via the &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter), stopping early if a worker throws &lt;code&gt;SuspendQueueException&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;To avoid duplicating the claim/process/exception-handling logic, the per-item processing loop previously inlined in &lt;code&gt;Cron::processQueue()&lt;/code&gt; was extracted into a new &lt;code&gt;Drupal\Core\Queue\QueueProcessTrait::processItem()&lt;/code&gt;, which handles &lt;code&gt;DelayedRequeueException&lt;/code&gt;, &lt;code&gt;RequeueException&lt;/code&gt;, &lt;code&gt;SuspendQueueException&lt;/code&gt;, and generic &lt;code&gt;\Throwable&lt;/code&gt; logging via &lt;code&gt;Error::logException()&lt;/code&gt;. Both &lt;code&gt;Cron&lt;/code&gt; and &lt;code&gt;InstantQueueRunner&lt;/code&gt; now use this trait, so the exception semantics for queue workers are identical whether items run via cron or via the instant runner.&lt;/p&gt;
-&lt;p&gt;Nothing in core actually calls &lt;code&gt;registerQueue()&lt;/code&gt; yet: no core queue was converted as part of this change, and integration with &lt;code&gt;automated_cron&lt;/code&gt; was deliberately dropped from scope (comment &lt;a href="https://www.drupal.org/node/16451928"&gt;#16451928&lt;/a&gt;) in favor of a simpler, opt-in-per-caller design without added concurrency protection. A follow-up (&lt;a href="https://www.drupal.org/node/3617085"&gt;#3617085&lt;/a&gt;) proposes using it for field purging.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Modules that want a queue item processed shortly after the request that created it, instead of waiting for cron, can inject the new interface and register the queue name after adding the item:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;public function __construct(
-  protected QueueFactory $queueFactory,
-  protected \Drupal\Core\Queue\InstantQueueRunnerInterface $instantQueueRunner,
-) {}
-
-public function someMethod() {
-  $this-&amp;gt;queueFactory-&amp;gt;get('my_queue')-&amp;gt;createItem($data);
-  $this-&amp;gt;instantQueueRunner-&amp;gt;registerQueue('my_queue');
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Sites can change how many items get processed per queue per request by overriding the &lt;code&gt;instant_queue.config&lt;/code&gt; container parameter (default &lt;code&gt;maximumItems: 5&lt;/code&gt;) in a &lt;code&gt;services.yml&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 15, 2011&lt;/li&gt;
-&lt;li&gt;Committed: August 27, 2026 (15 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;tsphethean&lt;/li&gt;
-&lt;li&gt;sukr_s&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;heddn (MTech, LLC)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue sat open for over a decade with several proposed designs (1px-gif poor-man's-cron style pings, async HTTP requests, ReactPHP/Fibers). catch repeatedly steered it back toward using the post-response terminate event rather than async HTTP, noting in comment &lt;a href="https://www.drupal.org/node/15616106"&gt;#15616106&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/16452204"&gt;#16452204&lt;/a&gt; that async self-requests don't work reliably on all hosting environments, and that terminate-based processing became solid after &lt;a href="https://www.drupal.org/node/3295790"&gt;#3295790&lt;/a&gt; fixed destructable services actually blocking. sukr_s built the first working merge request implementing this with automated_cron integration and a concurrency semaphore, but after review catch decided in comment &lt;a href="https://www.drupal.org/node/16451928"&gt;#16451928&lt;/a&gt; that this carried more complexity than needed (automatic integration with all queues via automated_cron, and the semaphore) and opened a second, simplified MR that made registration opt-in per caller and extracted the shared per-item processing logic into &lt;code&gt;QueueProcessTrait&lt;/code&gt;. After commit, berdir raised an unresolved concern (comment &lt;a href="https://www.drupal.org/node/16749447"&gt;#16749447&lt;/a&gt;) that capping by item count rather than by time could still exhaust php-fpm worker processes on hosts with very low process counts, since a slow queue item keeps a process busy in the background even though the response was already sent.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
