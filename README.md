@@ -1,4 +1,4 @@
-**TL;DR:** [1011 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1011 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -14,7 +14,7 @@ _247 summaries · 5 new this week_
 
 ### Drupal Core
 
-_546 summaries · 21 new this week_
+_546 summaries · 20 new this week_
 
 - [#3583153: Allow to invoke multiple implementations of a specific module with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3583153.md)
 - [#3375423: Deprecate file_managed_file_save_upload(), file_save_upload() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3375423.md)
@@ -22,7 +22,7 @@ _546 summaries · 21 new this week_
 
 ### Drupal AI
 
-_127 summaries · 5 new this week_
+_127 summaries · 3 new this week_
 
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
@@ -39,7 +39,7 @@ _91 summaries · 1 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [199 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_199 rules · 6 new this week_
+_200 rules · 7 new this week_
 
+- [Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php)
 - [Replace deprecated locale.module global constants with class constant/enum...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php)
 - [Replace deprecated file upload functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php)
-- [Update references to text_with_summary field plugins moved out of the text...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/update-references-to-text-with-summary-field-plugins-moved-3549134.php)
 
 
 ## RSS feeds
