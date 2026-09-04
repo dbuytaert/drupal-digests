@@ -22,7 +22,7 @@ _247 summaries · 5 new this week_
 
 ### Drupal AI
 
-_127 summaries · 3 new this week_
+_127 summaries · 2 new this week_
 
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
