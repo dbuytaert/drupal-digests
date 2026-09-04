@@ -5,6 +5,78 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3580705: Deprecate update.compare functions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md</link>
+      <guid isPermaLink="false">01a06e13-02ea-70fb-b6e1-2621e22028ac</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 04 Sep 2026 18:18:24 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +997/−509 · php +996/−509 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2689e346f4fc4300ef33c6d6f00bace9945858dc"&gt;2689e34&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580705"&gt;#3580705&lt;/a&gt; · 5 contributors · 45 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Three long-standing procedural functions in update.module, &lt;code&gt;update_process_project_info()&lt;/code&gt;, &lt;code&gt;update_calculate_project_data()&lt;/code&gt;, and &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt;, are now deprecated and will be removed in Drupal 13. They still work today, but calling them triggers a deprecation warning. Any custom code that inspects a site's available updates (custom update-status pages, contrib modules hooking into update checking, tests) should switch to the new &lt;code&gt;calculateProjectData()&lt;/code&gt; method on the update manager service instead of calling the procedural function directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;update_process_project_info()&lt;/code&gt;, &lt;code&gt;update_calculate_project_data()&lt;/code&gt;, and &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; are deprecated in drupal:11.5.0 (removed in 13.0.0) in favor of &lt;code&gt;UpdateManagerInterface::calculateProjectData()&lt;/code&gt; and the internal &lt;code&gt;UpdateCalculator&lt;/code&gt; service.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;UpdateManagerInterface::calculateProjectData(array $available): array&lt;/code&gt; was added as the public replacement for &lt;code&gt;update_calculate_project_data()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The three procedural functions keep working as thin wrappers: each triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; warning and then delegates to the new services. &lt;code&gt;update_process_project_info()&lt;/code&gt; calls &lt;code&gt;\Drupal::service(UpdateCalculator::class)-&amp;gt;processProjectInfo()&lt;/code&gt;, &lt;code&gt;update_calculate_project_data()&lt;/code&gt; calls the new &lt;code&gt;UpdateManagerInterface::calculateProjectData()&lt;/code&gt;, and &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; calls &lt;code&gt;UpdateCalculator::updateProjectStatus()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UpdateManagerInterface::calculateProjectData(array $available): array&lt;/code&gt;, implemented on &lt;code&gt;UpdateManager&lt;/code&gt;, is the one non-internal addition: it moves the logic previously in &lt;code&gt;update_calculate_project_data()&lt;/code&gt; onto the manager, which already owns project storage and the &lt;code&gt;update_project_data&lt;/code&gt; key/value cache. The rest of the logic moved into an &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;UpdateCalculator&lt;/code&gt; service (&lt;code&gt;processProjectInfo()&lt;/code&gt; and &lt;code&gt;updateProjectStatus()&lt;/code&gt;) plus two new &lt;code&gt;@internal&lt;/code&gt; value objects, &lt;code&gt;UpdateProject&lt;/code&gt; and &lt;code&gt;UpdateServerProjectInfo&lt;/code&gt; (both &lt;code&gt;\ArrayObject&lt;/code&gt; subclasses with &lt;code&gt;createFromArray()&lt;/code&gt;/&lt;code&gt;toArray()&lt;/code&gt;), which replace the loosely-typed arrays that &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; previously mutated by reference.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UpdateManager::__construct()&lt;/code&gt; gained an optional &lt;code&gt;?UpdateCalculator $updateCalculator&lt;/code&gt; constructor parameter; omitting it (as any custom subclass still would) triggers a deprecation notice and falls back to &lt;code&gt;\Drupal::service(UpdateCalculator::class)&lt;/code&gt;. Separately, &lt;code&gt;package_manager&lt;/code&gt;'s &lt;code&gt;ProjectInfo&lt;/code&gt; class had the &lt;code&gt;UpdateManagerInterface&lt;/code&gt; dependency removed from its constructor since it now calls &lt;code&gt;\Drupal::service(UpdateManagerInterface::class)-&amp;gt;calculateProjectData()&lt;/code&gt; directly. A follow-up commit only corrected the change-record link in the deprecation messages (from node 3566774 to 3587768).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace direct calls to the deprecated functions:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+$data = update_calculate_project_data($available);
+
+// After
+$data = \Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;calculateProjectData($available);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+update_process_project_info($projects);
+
+// After
+\Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;processProjectInfo($projects);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;update_calculate_project_update_status(&amp;amp;$project_data, $available)&lt;/code&gt; becomes &lt;code&gt;UpdateCalculator::updateProjectStatus()&lt;/code&gt;, but its parameters changed type from arrays to value objects:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+update_calculate_project_update_status($project_data, $available);
+
+// After
+$project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)
+  -&amp;gt;updateProjectStatus(
+    \Drupal\update\UpdateProject::createFromArray($project_data),
+    \Drupal\update\UpdateServerProjectInfo::createFromArray($available)
+  )-&amp;gt;toArray();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 4, 2026 (5 months and 4 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Early on, dww (a module maintainer) pushed back on the plan, noting the update module already has several incomplete services that interact in &amp;quot;interesting&amp;quot; ways, and that he'd rather see a more holistic reorganization before introducing new ones. nicxvan replied that they would try not to make things worse while still moving forward with the deprecations. After several rounds of rework, berdir reshaped the final design before commit: the main &lt;code&gt;calculateProjectData()&lt;/code&gt; method was moved onto &lt;code&gt;UpdateManager&lt;/code&gt; (since it already deals with storage), letting &lt;code&gt;UpdateCalculator&lt;/code&gt; depend on &lt;code&gt;UpdateManager&lt;/code&gt;'s public methods, and giving the new &lt;code&gt;UpdateProject&lt;/code&gt;/&lt;code&gt;UpdateServerProjectInfo&lt;/code&gt; value objects a real API boundary (marked &lt;code&gt;@internal&lt;/code&gt; for now) instead of just a protected method's array shape.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586688: Add support for generated columns to the DB Schema Definition API</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md</link>
       <guid isPermaLink="false">01a06d3d-3361-723a-a7f6-6767ab9002ee</guid>
@@ -1072,77 +1144,6 @@ new ProjectInfo($project_name, \Drupal::service(\Drupal\update\UpdateManagerInte
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The fix went through several rounds of design disagreement before landing. penyaskito's initial proposal was to simply delete the translation lookup from the template, but berdir and alexpott argued the theme layer should not be resolving entity translations at all, and considered removing the status badge feature from default_admin entirely (with alexpott noting it should be reintroduced later with the multilingual issue fixed properly). jurgenhaas then produced MR!16557, moving the logic into a preprocess hook that computes a boolean published state; boromino reviewed it and suggested extracting named helper methods (&lt;code&gt;getResultRowEntity()&lt;/code&gt;, &lt;code&gt;isPublishedStatusField()&lt;/code&gt;) for clarity, which jurgenhaas applied. godotislate then explored two further alternatives, MR!16768 (preprocess using the field handler's entity resolution) and MR!16769 (template-only), after finding the original approach didn't handle entities like &lt;code&gt;user&lt;/code&gt; that lack a published key or &lt;code&gt;EntityPublishedInterface&lt;/code&gt;. berdir pushed back against using &lt;code&gt;getFieldMap()&lt;/code&gt; in MR!16768 due to performance concerns raised in &lt;a href="https://www.drupal.org/node/3565128"&gt;#3565128&lt;/a&gt;, so godotislate removed it in favor of calling &lt;code&gt;EntityField::getEntity()&lt;/code&gt; directly. The group ultimately converged on MR!16768 as the pragmatic minimal fix, with berdir and jurgenhaas agreeing to defer the &amp;quot;proper&amp;quot; solution (a configurable Views boolean formatter) to follow-up issues &lt;a href="https://www.drupal.org/node/3608223"&gt;#3608223&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3619121"&gt;#3619121&lt;/a&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2012976: Deprecate user_logout() and user_login_finalize() and replace with a service</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2012976.md</link>
-      <guid isPermaLink="false">01a04a66-203a-71ea-9e64-077e3b0cdf3e</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 28 Aug 2026 20:24:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +430/−71 · php +427/−71 · yml +2 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/accb9caa1fcb34e534f66dd24827066e659505e8"&gt;accb9ca&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2012976"&gt;#2012976&lt;/a&gt; · 28 contributors · 133 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 44&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 28 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal has deprecated the long-standing procedural functions &lt;code&gt;user_login_finalize()&lt;/code&gt; and &lt;code&gt;user_logout()&lt;/code&gt; in favour of two new services. Logging a user in or out still works exactly the same way for site visitors; this change is about how module code performs those actions. Any custom or contributor code that calls these functions directly will keep working but will trigger a deprecation notice, and should switch to the new services before Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;user_login_finalize()&lt;/code&gt; and &lt;code&gt;user_logout()&lt;/code&gt; are deprecated in drupal:11.5.0 and will be removed in drupal:13.0.0; use the new &lt;code&gt;LoginFinalizer&lt;/code&gt;/&lt;code&gt;LogoutFinalizer&lt;/code&gt; services instead.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New final services &lt;code&gt;Drupal\user\LoginFinalizer&lt;/code&gt; (&lt;code&gt;finalizeLogin()&lt;/code&gt;) and &lt;code&gt;Drupal\user\LogoutFinalizer&lt;/code&gt; (&lt;code&gt;finalizeLogout()&lt;/code&gt;) registered in &lt;code&gt;user.services.yml&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The procedural logic previously living in &lt;code&gt;user_login_finalize()&lt;/code&gt; and &lt;code&gt;user_logout()&lt;/code&gt; (session regeneration, updating the last-login timestamp, invoking &lt;code&gt;hook_user_login()&lt;/code&gt;/&lt;code&gt;hook_user_logout()&lt;/code&gt;, destroying the session, and logging) has been moved verbatim into two new &lt;code&gt;final readonly&lt;/code&gt; classes, &lt;code&gt;Drupal\user\LoginFinalizer::finalizeLogin()&lt;/code&gt; and &lt;code&gt;Drupal\user\LogoutFinalizer::finalizeLogout()&lt;/code&gt;. Both are plain services (no interfaces: an interface was originally proposed but dropped after &lt;code&gt;berdir&lt;/code&gt; questioned the need for a swappable API with no known use case) declared in &lt;code&gt;user.services.yml&lt;/code&gt;. The old functions now just emit an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice and delegate to the new services.&lt;/p&gt;
-&lt;p&gt;All core call sites were switched to constructor-injected dependencies instead of calling the global functions: &lt;code&gt;UserAuthenticationController&lt;/code&gt;, &lt;code&gt;UserController&lt;/code&gt;, &lt;code&gt;UserLoginForm&lt;/code&gt;, &lt;code&gt;UserLogoutConfirm&lt;/code&gt;, &lt;code&gt;RegisterForm&lt;/code&gt;, and &lt;code&gt;install.core.inc&lt;/code&gt;. Each affected constructor gained new optional &lt;code&gt;LoginFinalizer&lt;/code&gt;/&lt;code&gt;LogoutFinalizer&lt;/code&gt; parameters defaulting to &lt;code&gt;NULL&lt;/code&gt;, with a deprecation notice thrown when omitted so that existing subclasses keep working until the parameter becomes required. &lt;code&gt;MaintenanceModeSubscriber&lt;/code&gt;, which runs on every request, injects the logout service lazily via &lt;code&gt;#[AutowireServiceClosure(LogoutFinalizer::class)]&lt;/code&gt; rather than eagerly resolving it in the constructor.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct calls to the deprecated functions:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-user_login_finalize($account);
-user_logout();
-
-// After
-\Drupal::service(\Drupal\user\LoginFinalizer::class)-&amp;gt;finalizeLogin($account);
-\Drupal::service(\Drupal\user\LogoutFinalizer::class)-&amp;gt;finalizeLogout();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Prefer constructor injection of &lt;code&gt;Drupal\user\LoginFinalizer&lt;/code&gt; and/or &lt;code&gt;Drupal\user\LogoutFinalizer&lt;/code&gt; where possible.&lt;/p&gt;
-&lt;p&gt;If you subclass &lt;code&gt;UserAuthenticationController&lt;/code&gt;, &lt;code&gt;UserController&lt;/code&gt;, &lt;code&gt;UserLoginForm&lt;/code&gt;, &lt;code&gt;UserLogoutConfirm&lt;/code&gt;, or &lt;code&gt;RegisterForm&lt;/code&gt; and call their constructors directly, pass the new &lt;code&gt;$loginFinalizer&lt;/code&gt;/&lt;code&gt;$logoutFinalizer&lt;/code&gt; arguments to avoid deprecation notices; they will become required in a future release.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 5, 2013&lt;/li&gt;
-&lt;li&gt;First commit: August 27, 2026 (13 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 28, 2026 (1 day and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;ParisLiakos&lt;/li&gt;
-&lt;li&gt;dawehner&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
-&lt;li&gt;kristiaanvandeneynde (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This task sat open for over a decade before landing. Late in its life, &lt;code&gt;catch&lt;/code&gt; and &lt;code&gt;longwave&lt;/code&gt; pushed back on the design, questioning whether bundling login/logout into one service with seven dependencies made sense, and whether an event-based approach would be more flexible than a &lt;code&gt;final&lt;/code&gt; service. &lt;code&gt;berdir&lt;/code&gt; explained the real motivation (moving one of the last &lt;code&gt;.module&lt;/code&gt;-level procedural calls out of controllers so &lt;code&gt;.module&lt;/code&gt; files only need loading when a hook actually fires) and argued against duplicating the existing login/logout hooks with events. &lt;code&gt;znerol&lt;/code&gt; sketched out a longer-term vision for a unified login/logout API with pluggable authentication mechanisms, but the group (&lt;code&gt;heddn&lt;/code&gt;, &lt;code&gt;kim.pepper&lt;/code&gt;) agreed to keep this issue narrowly scoped and defer that redesign. Based on the feedback, &lt;code&gt;kim.pepper&lt;/code&gt; split the single service into separate &lt;code&gt;LoginFinalizer&lt;/code&gt; and &lt;code&gt;LogoutFinalizer&lt;/code&gt; classes and removed the interfaces after &lt;code&gt;berdir&lt;/code&gt; pointed out core has moved away from adding interfaces without a concrete use case. TFA maintainer &lt;code&gt;cmlara&lt;/code&gt; flagged that contrib modules call &lt;code&gt;user_login_finalize()&lt;/code&gt; directly for non-form logins, which shaped the decision to keep the deprecated procedural wrappers rather than removing them outright.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

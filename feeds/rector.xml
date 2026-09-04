@@ -5,6 +5,161 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Rewrite deprecated update.compare.inc functions to UpdateCalculator/UpdateManager services</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php</link>
+      <guid isPermaLink="false">01a06e16-b6e2-7555-bfaf-e286e65000c0</guid>
+      <pubDate>Fri, 04 Sep 2026 20:22:57 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580705"&gt;#3580705&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal core deprecated three update.module global functions in favor of service methods: &lt;code&gt;update_process_project_info()&lt;/code&gt; and &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; moved to the internal &lt;code&gt;Drupal\update\UpdateCalculator&lt;/code&gt; service, and &lt;code&gt;update_calculate_project_data()&lt;/code&gt; moved to &lt;code&gt;Drupal\update\UpdateManagerInterface::calculateProjectData()&lt;/code&gt;. This rule rewrites call sites to the equivalent service calls, including converting the by-reference &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; call into an assignment that wraps arguments in the new &lt;code&gt;UpdateProject&lt;/code&gt;/&lt;code&gt;UpdateServerProjectInfo&lt;/code&gt; value objects and unwraps the result with &lt;code&gt;toArray()&lt;/code&gt;, mirroring the deprecated function's own forwarding implementation.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;update_process_project_info($projects);
+$data = update_calculate_project_data($available);
+update_calculate_project_update_status($project_data, $available);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;processProjectInfo($projects);
+$data = \Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;calculateProjectData($available);
+$project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;updateProjectStatus(\Drupal\update\UpdateProject::createFromArray($project_data), \Drupal\update\UpdateServerProjectInfo::createFromArray($available))-&amp;gt;toArray();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;) are skipped since the replacement shape depends on positional argument order; these are rare for internal update.module functions. Calls with an unexpected argument count are left untouched rather than guessed at.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class UpdateCompareFunctionsToServiceRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated update.compare.inc global functions with calls to the update.update_calculator / update.manager services.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+update_process_project_info($projects);
+$data = update_calculate_project_data($available);
+update_calculate_project_update_status($project_data, $available);
+CODE_SAMPLE,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+\Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;processProjectInfo($projects);
+$data = \Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;calculateProjectData($available);
+$project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;updateProjectStatus(\Drupal\update\UpdateProject::createFromArray($project_data), \Drupal\update\UpdateServerProjectInfo::createFromArray($available))-&amp;gt;toArray();
+CODE_SAMPLE,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'update_process_project_info')
+            &amp;amp;&amp;amp; !$this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_data')
+            &amp;amp;&amp;amp; !$this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_update_status')
+        ) {
+            return null;
+        }
+
+        // Skip named args / spread args: the replacement shape depends on
+        // positional argument order.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'update_process_project_info')) {
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+            return $this-&amp;gt;createServiceMethodCall('Drupal\\update\\UpdateCalculator', 'processProjectInfo', $node-&amp;gt;args);
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_data')) {
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+            return $this-&amp;gt;createServiceMethodCall('Drupal\\update\\UpdateManagerInterface', 'calculateProjectData', $node-&amp;gt;args);
+        }
+
+        // update_calculate_project_update_status(&amp;amp;$project_data, $available): void
+        // mutates $project_data by reference. The replacement method takes
+        // value objects and returns the new UpdateProject, so we rebuild the
+        // call as an assignment back onto the original first-argument
+        // expression, mirroring the deprecated function's own body.
+        if (count($node-&amp;gt;args) !== 2) {
+            return null;
+        }
+        $projectDataArg = $node-&amp;gt;args[0];
+        $availableArg = $node-&amp;gt;args[1];
+
+        $updateProject = new StaticCall(
+            new FullyQualified('Drupal\\update\\UpdateProject'),
+            'createFromArray',
+            [$projectDataArg],
+        );
+        $updateServerProjectInfo = new StaticCall(
+            new FullyQualified('Drupal\\update\\UpdateServerProjectInfo'),
+            'createFromArray',
+            [$availableArg],
+        );
+        $serviceCall = $this-&amp;gt;createServiceMethodCall(
+            'Drupal\\update\\UpdateCalculator',
+            'updateProjectStatus',
+            [new Arg($updateProject), new Arg($updateServerProjectInfo)],
+        );
+        $toArrayCall = new MethodCall($serviceCall, 'toArray');
+
+        return new Assign($projectDataArg-&amp;gt;value, $toArrayCall);
+    }
+
+    /**
+     * @param Arg[] $args
+     */
+    private function createServiceMethodCall(string $serviceClass, string $method, array $args): MethodCall
+    {
+        $serviceLookup = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified($serviceClass), 'class'))],
+        );
+
+        return new MethodCall($serviceLookup, $method, $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([UpdateCompareFunctionsToServiceRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php</link>
       <guid isPermaLink="false">01a0681b-650f-7585-8e64-514fab819011</guid>
@@ -1938,111 +2093,6 @@ final class ReplaceStubPdoClassConstantRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([ReplaceStubPdoClassConstantRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace module_set_weight() and module_config_sort() with ModuleWeight service</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-module-set-weight-and-module-config-sort-with-3595652.php</link>
-      <guid isPermaLink="false">019f7ed7-9155-7340-8211-75776a4b1521</guid>
-      <pubDate>Mon, 20 Jul 2026 09:24:44 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3595652"&gt;#3595652&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Rewrites calls to the deprecated global functions &lt;code&gt;module_set_weight()&lt;/code&gt; and &lt;code&gt;module_config_sort()&lt;/code&gt; into equivalent calls on the new &lt;code&gt;Drupal\Core\Extension\ModuleWeight&lt;/code&gt; service. Both functions in &lt;code&gt;module.inc&lt;/code&gt; were deprecated in Drupal 11.5.0 and will be removed in 13.0.0. Contrib modules commonly call them in &lt;code&gt;hook_install()&lt;/code&gt; implementations and test setup, so automated migration saves significant manual effort.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;module_set_weight('views', 10);
-$sorted = module_config_sort($modules);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;set('views', 10);
-$sorted = \Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;sort($modules);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplaceModuleIncFunctionsWithModuleWeightRector extends AbstractRector
-{
-    private const FUNCTION_TO_METHOD = [
-        'module_set_weight' =&amp;gt; 'set',
-        'module_config_sort' =&amp;gt; 'sort',
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated module_set_weight() and module_config_sort() with \Drupal::service(ModuleWeight::class)-&amp;gt;set/sort().',
-            [
-                new CodeSample(
-                    'module_set_weight(\'views\', 10);',
-                    '\Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;set(\'views\', 10);'
-                ),
-                new CodeSample(
-                    '$sorted = module_config_sort($modules);',
-                    '$sorted = \Drupal::service(\Drupal\Core\Extension\ModuleWeight::class)-&amp;gt;sort($modules);'
-                ),
-            ]
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-
-        $method = null;
-        foreach (self::FUNCTION_TO_METHOD as $funcName =&amp;gt; $methodName) {
-            if ($this-&amp;gt;isName($node-&amp;gt;name, $funcName)) {
-                $method = $methodName;
-                break;
-            }
-        }
-        if ($method === null) {
-            return null;
-        }
-
-        $moduleWeightClass = new ClassConstFetch(
-            new FullyQualified('Drupal\\Core\\Extension\\ModuleWeight'),
-            new Identifier('class')
-        );
-        $serviceCall = new StaticCall(
-            new FullyQualified('Drupal'),
-            new Identifier('service'),
-            [new Arg($moduleWeightClass)]
-        );
-
-        return new MethodCall($serviceCall, new Identifier($method), $node-&amp;gt;args);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplaceModuleIncFunctionsWithModuleWeightRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

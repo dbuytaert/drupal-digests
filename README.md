@@ -1,4 +1,4 @@
-**TL;DR:** [1018 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1019 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_553 summaries · 22 new this week_
+_554 summaries · 23 new this week_
 
+- [#3580705: Deprecate update.compare functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md)
 - [#3586688: Add support for generated columns to the DB Schema Definition API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md)
 - [#3605702: Remove remaining Gin and Claro implementation names from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605702.md)
-- [#3620804: Remove search references from Umami theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620804.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_200 rules · 7 new this week_
+_201 rules · 8 new this week_
 
+- [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
 - [Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php)
 - [Replace deprecated locale.module global constants with class constant/enum...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php)
-- [Replace deprecated file upload functions with service calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php)
 
 
 ## RSS feeds
