@@ -5,6 +5,159 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3586688: Add support for generated columns to the DB Schema Definition API</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md</link>
+      <guid isPermaLink="false">01a06d3d-3361-723a-a7f6-6767ab9002ee</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 04 Sep 2026 15:54:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +831/−18 · php +831/−18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fa4fd791c5143683640674d782119053daed81ec"&gt;fa4fd79&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586688"&gt;#3586688&lt;/a&gt; · 4 contributors · 32 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal's schema definition API (introduced in &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt;) can now declare &amp;quot;generated&amp;quot; columns: columns whose value the database computes automatically from an expression over other columns, rather than one that application code writes. This was motivated by the need to index data inside JSON columns (see &lt;a href="https://www.drupal.org/node/3343634"&gt;#3343634&lt;/a&gt;): since MariaDB doesn't support indexing arbitrary SQL expressions, the practical way to index derived data is to expose it as a generated column and index that. A generated column can be &amp;quot;stored&amp;quot; (computed on write and kept on disk, like a regular column) or &amp;quot;virtual&amp;quot; (computed on read, saving storage but not supported for indexing on PostgreSQL). This is a new opt-in capability for code that adopts the new schema API; it does not change any existing database table.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Column::generated()&lt;/code&gt; factory and &lt;code&gt;Drupal\Core\Database\SchemaDefinition\GeneratedColumnStorage&lt;/code&gt; enum let schema definitions declare database-computed (generated) columns, stored or virtual.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core addition is &lt;code&gt;Column::generated()&lt;/code&gt;, a static factory on the &lt;code&gt;Column&lt;/code&gt; value object that requires a &lt;code&gt;ColumnType&lt;/code&gt;, a &lt;code&gt;GeneratedColumnExpression&lt;/code&gt; (a small &lt;code&gt;Expression&lt;/code&gt; subclass holding the raw SQL expression text), and a &lt;code&gt;GeneratedColumnStorage&lt;/code&gt; enum case (&lt;code&gt;Virtual&lt;/code&gt; or &lt;code&gt;Stored&lt;/code&gt;). &lt;code&gt;Column::validate()&lt;/code&gt; rejects a generated expression on a &lt;code&gt;Serial&lt;/code&gt; column, and &lt;code&gt;Table::validate()&lt;/code&gt; rejects a generated column in the primary key, since MariaDB and SQLite don't allow that. &lt;code&gt;Column::toArray()&lt;/code&gt; puts the whole &lt;code&gt;Column&lt;/code&gt; object under the array spec's &lt;code&gt;generated&lt;/code&gt; key, which the &lt;code&gt;mysql&lt;/code&gt;, &lt;code&gt;pgsql&lt;/code&gt;, and &lt;code&gt;sqlite&lt;/code&gt; driver &lt;code&gt;createFieldSql()&lt;/code&gt; implementations translate into &lt;code&gt;GENERATED ALWAYS AS (...) VIRTUAL|STORED&lt;/code&gt; clauses (with &lt;code&gt;DEFAULT NULL&lt;/code&gt; suppressed for generated columns).&lt;/p&gt;
+&lt;p&gt;SQLite required the most work because it has no &lt;code&gt;ALTER TABLE&lt;/code&gt; support for adding a &lt;code&gt;STORED&lt;/code&gt; generated column (only &lt;code&gt;VIRTUAL&lt;/code&gt; can be added in place; &lt;code&gt;STORED&lt;/code&gt; forces the driver's usual create-new-table-and-copy-data path), and its &lt;code&gt;PRAGMA table_info&lt;/code&gt; doesn't report generated columns at all. The driver's &lt;code&gt;introspectSchema()&lt;/code&gt; now uses &lt;code&gt;PRAGMA table_xinfo&lt;/code&gt; (which exposes a &lt;code&gt;hidden&lt;/code&gt; flag distinguishing ordinary, virtual-table, &lt;code&gt;VIRTUAL&lt;/code&gt; generated, and &lt;code&gt;STORED&lt;/code&gt; generated columns) and, for generated columns, recovers the original column definition text by parsing the &lt;code&gt;CREATE TABLE&lt;/code&gt; statement out of &lt;code&gt;sqlite_master&lt;/code&gt; (new &lt;code&gt;getColumnDefinitions()&lt;/code&gt;, &lt;code&gt;splitColumnDefinitions()&lt;/code&gt;, &lt;code&gt;skipQuotedRun()&lt;/code&gt;, &lt;code&gt;skipComment()&lt;/code&gt; helpers), since SQLite exposes no pragma for a generated column's expression or storage kind. That recovered text is stored under a &lt;code&gt;sqlite_definition&lt;/code&gt; key and reused verbatim by &lt;code&gt;createFieldSql()&lt;/code&gt;/&lt;code&gt;processField()&lt;/code&gt; on rebuild; if recovery fails, a &lt;code&gt;SchemaException&lt;/code&gt; is thrown rather than silently dropping the column. Table rebuilds (&lt;code&gt;alterTable()&lt;/code&gt;) also exclude generated columns from the data-copy mapping, since the database rejects writes to them.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 4, 2026 (4 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The implementation went through a design pivot before landing here: the issue was originally going to add expression indexes, but MariaDB's lack of support for indexing arbitrary expressions ruled that out, leaving generated columns as the only portable path (per the issue's Problem/Motivation section). mondrake built the initial MR on top of the then-in-progress &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt; value-object schema API and got all three core-supported databases implemented, then postponed the issue twice pending that dependency and &lt;a href="https://www.drupal.org/node/3604286"&gt;#3604286&lt;/a&gt; (for the &lt;code&gt;Expression&lt;/code&gt; class). catch, reviewing before commit, questioned whether virtual generated columns were worth the added API surface; amateescu explained they let MySQL, MariaDB and SQLite index derived data while paying storage cost only for the index, not a duplicated column, which settled the design and was folded into the issue summary before commit.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3605702: Remove remaining Gin and Claro implementation names from Default Admin theme</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605702.md</link>
+      <guid isPermaLink="false">01a06d3c-2328-756e-8697-c60dbd4d5931</guid>
+      <pubDate>Fri, 04 Sep 2026 15:28:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 172 files, +1809/−1240 · js +692/−451 · css +592/−656 · php +334/−54 · json +112 · twig +79/−79&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/877c222e45279b1c59abc219ac501d3609bfcf39"&gt;877c222&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3605702"&gt;#3605702&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core's new &amp;quot;Default Admin&amp;quot; theme (the experimental successor being built from Gin, intended to eventually replace Claro) was forked with many leftover &lt;code&gt;gin&lt;/code&gt; and &lt;code&gt;claro&lt;/code&gt; names baked into its CSS classes, data attributes, JavaScript behaviors, settings, and local storage keys. This issue is the tracking/implementation issue for a full cleanup: renaming those implementation details to a consistent Default Admin naming scheme, while keeping an explicitly reviewed and documented allowlist for names that legitimately still need to reference Gin or Claro (historical attribution, upstream project links, or a persisted configuration value). No visual or behavioral regressions are intended; this is a naming and internal-consistency cleanup, not a redesign.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The commit touches 173 files across the &lt;code&gt;default_admin&lt;/code&gt; theme (CSS/PCSS sources and their compiled output, JS, PHP hook classes, Twig templates, and tests). CSS selectors and custom properties lost their &lt;code&gt;gin-&lt;/code&gt;/&lt;code&gt;claro&lt;/code&gt; prefixes, for example &lt;code&gt;.gin-details&lt;/code&gt; to &lt;code&gt;.details&lt;/code&gt;, &lt;code&gt;.gin-breadcrumb__*&lt;/code&gt; to &lt;code&gt;.breadcrumb__*&lt;/code&gt;, &lt;code&gt;[data-gin-accent]&lt;/code&gt; to &lt;code&gt;[data-accent]&lt;/code&gt;, &lt;code&gt;[data-gin-layout-density]&lt;/code&gt; to &lt;code&gt;[data-layout-density]&lt;/code&gt;, &lt;code&gt;.gin--dark-mode&lt;/code&gt; to &lt;code&gt;.dark-mode&lt;/code&gt;, and &lt;code&gt;@keyframes gin-throbber&lt;/code&gt;/&lt;code&gt;claro-throbber&lt;/code&gt; merged into a single &lt;code&gt;throbber&lt;/code&gt; keyframe. On the JS side, &lt;code&gt;Drupal.behaviors.ginSettings&lt;/code&gt; became &lt;code&gt;Drupal.behaviors.adminSettings&lt;/code&gt;, &lt;code&gt;Drupal.ginSettings&lt;/code&gt;/&lt;code&gt;Drupal.ginAccent&lt;/code&gt; became &lt;code&gt;Drupal.adminAccent&lt;/code&gt;/&lt;code&gt;Drupal.adminSettings&lt;/code&gt;, and &lt;code&gt;drupalSettings.gin&lt;/code&gt; became &lt;code&gt;drupalSettings.defaultAdmin&lt;/code&gt; in &lt;code&gt;ThemeHooks::pagePreRender()&lt;/code&gt;; the old &lt;code&gt;drupalSettings.gin&lt;/code&gt; key is deliberately still populated as a compatibility alias &amp;quot;while the theme is experimental&amp;quot; per an entry in the new allowlist. PHP-side form classes (&lt;code&gt;FormHooks&lt;/code&gt;) renamed attribute/class names such as &lt;code&gt;gin-sticky-form-actions&lt;/code&gt; to &lt;code&gt;sticky-form-actions&lt;/code&gt; and &lt;code&gt;gin-sidebar&lt;/code&gt; to &lt;code&gt;admin-sidebar&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Persisted browser state is migrated rather than silently dropped: &lt;code&gt;migration/js/init.js&lt;/code&gt; now runs a &lt;code&gt;migrateLegacyStorage()&lt;/code&gt; routine that copies old keys like &lt;code&gt;GinSidebarOpen&lt;/code&gt;, &lt;code&gt;Drupal.gin.toolbarExpanded&lt;/code&gt;, &lt;code&gt;Drupal.gin.sidebarExpanded.mobile/desktop&lt;/code&gt;, and &lt;code&gt;Drupal.gin.sidebarWidth&lt;/code&gt; into their new &lt;code&gt;Drupal.navigation.sidebarExpanded&lt;/code&gt; / &lt;code&gt;Drupal.defaultAdmin.sidebarExpanded.*&lt;/code&gt; / &lt;code&gt;Drupal.defaultAdmin.sidebarWidth&lt;/code&gt; equivalents (without overwriting an already-set new value) before removing the legacy keys; purely internal flags like &lt;code&gt;GinDarkMode&lt;/code&gt; are just deleted. A stored theme setting value of &lt;code&gt;preset_focus_color: 'claro'&lt;/code&gt; is intentionally kept as a machine name (its label changed from &amp;quot;Claro Green&amp;quot; to &amp;quot;Legacy green&amp;quot;) so existing site configuration keeps working.&lt;/p&gt;
+&lt;p&gt;To prevent regressions, the change adds &lt;code&gt;ImplementationNameTest&lt;/code&gt; (a unit test scanning theme source for a list of superseded &lt;code&gt;gin&lt;/code&gt;/&lt;code&gt;claro&lt;/code&gt;/intermediate &lt;code&gt;default-admin&lt;/code&gt;-prefixed identifiers) and &lt;code&gt;LegacyStorageTest&lt;/code&gt; (a JS functional test asserting the local-storage migration behavior), plus &lt;code&gt;tests/fixtures/implementation-name-allowlist.json&lt;/code&gt;, which documents every remaining Gin/Claro reference and the reason it is intentionally kept.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Default Admin is &lt;code&gt;lifecycle: experimental&lt;/code&gt;, but sites or contributed code that already integrate with it should update references:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/* CSS */
+.gin-details              -&amp;gt; .details
+.gin-breadcrumb__item     -&amp;gt; .breadcrumb__item
+[data-gin-accent]         -&amp;gt; [data-accent]
+.gin--dark-mode           -&amp;gt; .dark-mode
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-js"&gt;// JS
+Drupal.behaviors.ginSettings -&amp;gt; Drupal.behaviors.adminSettings
+Drupal.ginAccent             -&amp;gt; Drupal.adminAccent
+drupalSettings.gin           -&amp;gt; drupalSettings.defaultAdmin // old `gin` key still populated for now, but treat as deprecated
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Local storage keys under &lt;code&gt;Drupal.gin.*&lt;/code&gt; are migrated automatically on first page load after upgrading; no manual action is needed for persisted browser state.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 4, 2026 (2 months and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
+&lt;li&gt;bernardm28&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;thejimbirch (Kanopi Studios)&lt;/li&gt;
+&lt;li&gt;cilefen&lt;/li&gt;
+&lt;li&gt;mgifford&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;mherchel reviewed the large (173-file) MR from jurgenhaas in several passes, pushing back that many identifiers could drop the intermediate &lt;code&gt;default-admin-&lt;/code&gt; prefix entirely: &amp;quot;Gin had to worry about namespace conflicts in places that we do not. I'd like to err on the side of simplicity.&amp;quot; jurgenhaas applied that pattern consistently across the codebase in a follow-up round, and mherchel did a further hour-long review before committing, noting that fixing a broken selector (&lt;code&gt;#block-gin-content&lt;/code&gt; becoming &lt;code&gt;#block-default-admin-content&lt;/code&gt;) incidentally corrected some pre-existing CSS spacing bugs as a side effect of the rename.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3620804: Remove search references from Umami theme</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620804.md</link>
+      <guid isPermaLink="false">01a06d38-7240-73d4-847c-5bd429097845</guid>
+      <category>Front-end developers</category>
+      <pubDate>Fri, 04 Sep 2026 13:48:48 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +15/−522 · yml +13/−21 · css +1/−324 · php +1/−21 · svg +0/−1 · twig +0/−155&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e943d8536c947fdea3c3bd946dce230eb5daf33d"&gt;e943d85&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620804"&gt;#3620804&lt;/a&gt; · 6 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;As part of moving Search out of Drupal core into a contrib module, the Umami demo theme has had all of its search-specific theming removed. Umami no longer ships custom templates, CSS, or a keyword placeholder for the search block and search results page, and its breadcrumb logic no longer special-cases search page titles. If you run the Umami profile and separately install the contrib Search module, the search form and results will render with Drupal's default markup and styling instead of Umami's custom design.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The Umami demo theme no longer overrides search markup or styling: &lt;code&gt;block--search-form-block.html.twig&lt;/code&gt;, &lt;code&gt;search-result.html.twig&lt;/code&gt;, and &lt;code&gt;item-list--search-results.html.twig&lt;/code&gt; are deleted, the &lt;code&gt;classy.search-results&lt;/code&gt; library and &lt;code&gt;css/components/blocks/search/*.css&lt;/code&gt; are removed from &lt;code&gt;umami.libraries.yml&lt;/code&gt;, and the custom search placeholder text and search-icon SVG are gone.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change strips every trace of the Search module from the &lt;code&gt;umami&lt;/code&gt; theme. &lt;code&gt;umami.theme&lt;/code&gt; no longer implements &lt;code&gt;hook_form_search_block_form_alter()&lt;/code&gt; (which set a &amp;quot;Search by keyword, ingredient, dish&amp;quot; placeholder), and &lt;code&gt;preprocessBreadcrumb()&lt;/code&gt; drops its special case for &lt;code&gt;SearchPageInterface&lt;/code&gt; entities, now always resolving the current page title via the &lt;code&gt;title_resolver&lt;/code&gt; service. The Twig overrides &lt;code&gt;block--search-form-block.html.twig&lt;/code&gt;, &lt;code&gt;search-result.html.twig&lt;/code&gt;, and &lt;code&gt;item-list--search-results.html.twig&lt;/code&gt; are deleted along with their CSS (&lt;code&gt;search.css&lt;/code&gt;, &lt;code&gt;search-results.css&lt;/code&gt;, and the classy &lt;code&gt;search-results.css&lt;/code&gt;), the &lt;code&gt;classy.search-results&lt;/code&gt; library entry, and the search icon SVG. The global CSS library no longer attaches the search block/results stylesheets, and several performance test fixtures were updated to reflect the reduced stylesheet byte counts. The fix landed on &lt;code&gt;main&lt;/code&gt; (commit &lt;code&gt;dde124da&lt;/code&gt;) and was backported to &lt;code&gt;11.x&lt;/code&gt; (commit &lt;code&gt;e943d853&lt;/code&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 4, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Before RTBC, quietone verified the scope of the change by running &lt;code&gt;git grep -i search | grep -v array_search | grep -i umami&lt;/code&gt; against the unpatched and patched code, confirming references dropped from 103 to 0, which gave reviewers confidence the removal was complete.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3315265: Improve support of native MERGE with RETURNING merge_action()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3315265.md</link>
       <guid isPermaLink="false">01a068f0-6f90-73f9-9e9a-287a8f471b7c</guid>
@@ -990,150 +1143,6 @@ user_logout();
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;This task sat open for over a decade before landing. Late in its life, &lt;code&gt;catch&lt;/code&gt; and &lt;code&gt;longwave&lt;/code&gt; pushed back on the design, questioning whether bundling login/logout into one service with seven dependencies made sense, and whether an event-based approach would be more flexible than a &lt;code&gt;final&lt;/code&gt; service. &lt;code&gt;berdir&lt;/code&gt; explained the real motivation (moving one of the last &lt;code&gt;.module&lt;/code&gt;-level procedural calls out of controllers so &lt;code&gt;.module&lt;/code&gt; files only need loading when a hook actually fires) and argued against duplicating the existing login/logout hooks with events. &lt;code&gt;znerol&lt;/code&gt; sketched out a longer-term vision for a unified login/logout API with pluggable authentication mechanisms, but the group (&lt;code&gt;heddn&lt;/code&gt;, &lt;code&gt;kim.pepper&lt;/code&gt;) agreed to keep this issue narrowly scoped and defer that redesign. Based on the feedback, &lt;code&gt;kim.pepper&lt;/code&gt; split the single service into separate &lt;code&gt;LoginFinalizer&lt;/code&gt; and &lt;code&gt;LogoutFinalizer&lt;/code&gt; classes and removed the interfaces after &lt;code&gt;berdir&lt;/code&gt; pointed out core has moved away from adding interfaces without a concrete use case. TFA maintainer &lt;code&gt;cmlara&lt;/code&gt; flagged that contrib modules call &lt;code&gt;user_login_finalize()&lt;/code&gt; directly for non-form logins, which shaped the decision to keep the deprecated procedural wrappers rather than removing them outright.&amp;lt;/collaboration&amp;gt;
 &amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3610503: Optimize StorageCopyTrait::replaceStorageContents()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3610503.md</link>
-      <guid isPermaLink="false">01a04a63-e99b-745a-ac53-a07736231e8a</guid>
-      <pubDate>Fri, 28 Aug 2026 20:03:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +27/−14 · php +27/−14&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/72303793737e49da670a7d6b284549db49264a11"&gt;7230379&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3610503"&gt;#3610503&lt;/a&gt; · 3 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Importing configuration (for example via &lt;code&gt;drush config:import&lt;/code&gt;) used to read each changed config object from the database one at a time, which could mean hundreds or thousands of individual queries on a site with a large config set. This change batches those reads into chunks of 500, cutting the number of queries down to a handful. The issue author measured a couple hundred milliseconds saved on a Umami config import, with larger savings expected on sites with more configuration. Combined with the related config file parsing cache improvements in &lt;a href="https://www.drupal.org/node/3591680"&gt;#3591680&lt;/a&gt;, this is expected to cut more than half the time off a typical &lt;code&gt;drush&lt;/code&gt; config import.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;StorageCopyTrait::replaceStorageContents()&lt;/code&gt;, which is used whenever one config storage is synced into another (config import, config staging, etc.). Previously it looped over every config name and called &lt;code&gt;$source_collection-&amp;gt;read($name)&lt;/code&gt; and &lt;code&gt;$target_collection-&amp;gt;read($name)&lt;/code&gt; individually. Now it splits the list of names into &lt;code&gt;array_chunk($names, 500)&lt;/code&gt; batches and calls &lt;code&gt;readMultiple()&lt;/code&gt; once per chunk on both the source and target storage, then compares the in-memory arrays to decide whether to write or delete each item. For storage backends like &lt;code&gt;DatabaseStorage&lt;/code&gt;, &lt;code&gt;readMultiple()&lt;/code&gt; already issued a single &lt;code&gt;SELECT ... WHERE name IN (...)&lt;/code&gt; query, so batching through it turns what could be thousands of round trips into a handful.&lt;/p&gt;
-&lt;p&gt;Making &lt;code&gt;MemoryStorage::readMultiple()&lt;/code&gt; actually get exercised (it previously wasn't reachable from this code path) exposed a latent bug: it used &lt;code&gt;array_intersect_key($this-&amp;gt;config[$this-&amp;gt;collection], array_flip($names))&lt;/code&gt;, which errors when the collection is empty or missing. It now delegates to &lt;code&gt;read()&lt;/code&gt; per name, consistent with the class's other methods, which are only used in tests.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 12, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 28, 2026 (1 month and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, godotislate found that the MemoryStorage change broke a test because that storage's &lt;code&gt;readMultiple()&lt;/code&gt; was never previously invoked by this trait. catch pushed a revert plus a targeted fix, explaining the tradeoff between a straightforward &lt;code&gt;foreach&lt;/code&gt; and more compact array handling. godotislate then suggested simplifying the &lt;code&gt;foreach&lt;/code&gt; further via an MR suggestion, which catch applied.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3380334: user_update_10000 fails on role with no data</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3380334.md</link>
-      <guid isPermaLink="false">01a0492d-1864-75b0-9f76-9040047ac980</guid>
-      <pubDate>Fri, 28 Aug 2026 16:12:15 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +33/−0 · php +33&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4fc16796f8e78033170eeca374c0aa2e491eef75"&gt;4fc1679&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3380334"&gt;#3380334&lt;/a&gt; · 8 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 8 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;user_update_10000&lt;/code&gt; update hook (which removes non-existent permissions from roles during the Drupal 9 to 10 upgrade) could fatally error and halt the whole update batch if a site had a broken &lt;code&gt;user.role.*&lt;/code&gt; configuration entry missing its &lt;code&gt;permissions&lt;/code&gt; key entirely, for example due to an incomplete or corrupted config import in a site's history. Instead of crashing, the update hook now detects this case, logs a notice identifying the broken role, and skips it, letting the rest of the update process complete. The broken role's config is left in place (not deleted); administrators are pointed to the logs to investigate and clean it up manually.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;user_update_10000()&lt;/code&gt;, before calling &lt;code&gt;array_diff($role_config-&amp;gt;get('permissions'), $existing_permissions)&lt;/code&gt;, the code now checks whether &lt;code&gt;$role_config-&amp;gt;get('permissions')&lt;/code&gt; returns &lt;code&gt;NULL&lt;/code&gt;. If so, it logs a notice via &lt;code&gt;\Drupal::logger('update')&lt;/code&gt; naming the role (&lt;code&gt;$role_config-&amp;gt;getName()&lt;/code&gt;) and reporting that it &amp;quot;has no permissions and should be removed&amp;quot;, then &lt;code&gt;continue&lt;/code&gt;s to the next role instead of calling &lt;code&gt;array_diff()&lt;/code&gt; with a null argument (which previously threw a &lt;code&gt;TypeError&lt;/code&gt; under PHP 8's strict typing and aborted the update run).&lt;/p&gt;
-&lt;p&gt;The fix intentionally does not delete or repair the broken config, since removing configuration during an update hook was considered too risky without certainty about side effects; it only prevents the fatal error and surfaces the problem in the logs (&lt;code&gt;admin/reports/dblog&lt;/code&gt;) for the site administrator to address separately.&lt;/p&gt;
-&lt;p&gt;Test coverage was added in &lt;code&gt;UserUpdatePathTest&lt;/code&gt;, inserting a &lt;code&gt;user.role.broken_role&lt;/code&gt; config row with empty serialized data (&lt;code&gt;a:0:{}&lt;/code&gt;) directly into the &lt;code&gt;config&lt;/code&gt; table, then asserting the update completes, the dblog notice appears, and the broken role's config row is left untouched in the database.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 9, 2023&lt;/li&gt;
-&lt;li&gt;Committed: August 28, 2026 (3 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;fabienscotto (Symetris)&lt;/li&gt;
-&lt;li&gt;daletrexel (University of Minnesota)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;thidd&lt;/li&gt;
-&lt;li&gt;danielveza (PreviousNext)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3587797: Move views data cache to cache_discovery</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3587797.md</link>
-      <guid isPermaLink="false">01a0471b-b07e-7252-8153-cbcac03c67fb</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 27 Aug 2026 22:02:17 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +8/−19 · php +8/−19&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7d8143e6d2d06299a17a275dc1bcdc011f4c60f7"&gt;7d8143e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3587797"&gt;#3587797&lt;/a&gt; · 7 contributors · 40 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Views builds a large in-memory data structure describing every database table exposed to Views (via &lt;code&gt;hook_views_data()&lt;/code&gt;), and caches it both as one big entry and as many smaller per-table entries. Per-table entries were previously stored in the regular persistent cache (&lt;code&gt;cache.default&lt;/code&gt;); they are now stored in the &lt;code&gt;cache.discovery&lt;/code&gt; bin, which is chained with a fast, per-process backend like APCu when available. Since the set of tables is finite and rebuilt rarely, this lets repeat lookups for the same table on a page be served from local memory instead of the primary cache backend (Redis, database, etc.), reducing cache reads on pages that use Views. The single &amp;quot;all views data&amp;quot; entry stays in &lt;code&gt;cache.default&lt;/code&gt; because it can be very large and the maintainers were concerned that pushing it into a fast in-memory bin could evict other cached data on large, multilingual sites.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;\Drupal\views\ViewsData::cacheGet()&lt;/code&gt; and &lt;code&gt;cacheSet()&lt;/code&gt; are deprecated in Drupal 11.5.0 and removed in 12.0.0, with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The initial commit simply swapped the constructor's &lt;code&gt;#[Autowire]&lt;/code&gt; target for &lt;code&gt;ViewsData::$cacheBackend&lt;/code&gt; from &lt;code&gt;cache.default&lt;/code&gt; to &lt;code&gt;cache.discovery&lt;/code&gt;, but this was reverted after &lt;code&gt;berdir&lt;/code&gt; pointed out that the combined &amp;quot;all tables&amp;quot; entry can be tens of megabytes on sites with many languages or entity bundles, and forcing all of that into the chained-fast (APCu-backed) bin risked frequent APCu expunges and a performance regression rather than an improvement.&lt;/p&gt;
-&lt;p&gt;The follow-up &lt;code&gt;perf&lt;/code&gt; commit instead adds a second injected backend, &lt;code&gt;$chainedFastBackend&lt;/code&gt; (&lt;code&gt;cache.discovery&lt;/code&gt;), used only for the per-table cache entries in &lt;code&gt;ViewsData::get()&lt;/code&gt;, while &lt;code&gt;getData()&lt;/code&gt; keeps using &lt;code&gt;$cacheBackend&lt;/code&gt; (&lt;code&gt;cache.default&lt;/code&gt;) for the full &amp;quot;all tables&amp;quot; entry. A new &lt;code&gt;ViewsData::CACHE_TAGS&lt;/code&gt; constant centralizes the &lt;code&gt;views_data&lt;/code&gt; and &lt;code&gt;config:core.extension&lt;/code&gt; cache tags used when setting either bin. The old protected &lt;code&gt;cacheGet()&lt;/code&gt;/&lt;code&gt;cacheSet()&lt;/code&gt; helpers, which always prefixed the langcode and used &lt;code&gt;$cacheBackend&lt;/code&gt;, are no longer used internally and are deprecated with &lt;code&gt;@trigger_error&lt;/code&gt;; callers should use the injected cache backends directly, following how the rest of the class now works.&lt;/p&gt;
-&lt;p&gt;Performance test fixtures (&lt;code&gt;FrontPageTest&lt;/code&gt;, &lt;code&gt;StandardPerformanceTestTrait&lt;/code&gt;, &lt;code&gt;Umami&lt;/code&gt;/&lt;code&gt;Standard&lt;/code&gt; profile test YAMLs) were updated to reflect the shift: &lt;code&gt;discovery&lt;/code&gt; cache-get counts go up and &lt;code&gt;default&lt;/code&gt; cache-get counts go down by the same amount, confirming per-table lookups now hit &lt;code&gt;cache.discovery&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Subclasses or code relying on &lt;code&gt;\Drupal\views\ViewsData::cacheGet()&lt;/code&gt; or &lt;code&gt;cacheSet()&lt;/code&gt; will get a deprecation notice starting in Drupal 11.5.0 and must stop using them before 12.0.0, since there is no direct replacement method. Interact with the injected &lt;code&gt;$cacheBackend&lt;/code&gt; (&lt;code&gt;cache.default&lt;/code&gt;, for the &amp;quot;all data&amp;quot; entry) or the new &lt;code&gt;$chainedFastBackend&lt;/code&gt; (&lt;code&gt;cache.discovery&lt;/code&gt;, for per-table entries) directly instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (deprecated):
-$data = $this-&amp;gt;cacheGet($cid);
-$this-&amp;gt;cacheSet($cid, $data);
-
-// After, for per-table entries:
-$data = $this-&amp;gt;chainedFastBackend-&amp;gt;get($this-&amp;gt;prepareCid($cid));
-$this-&amp;gt;chainedFastBackend-&amp;gt;set($this-&amp;gt;prepareCid($cid), $data, Cache::PERMANENT, static::CACHE_TAGS);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 30, 2026&lt;/li&gt;
-&lt;li&gt;First commit: April 30, 2026&lt;/li&gt;
-&lt;li&gt;Last commit: August 27, 2026 (3 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch proposed moving the whole &lt;code&gt;ViewsData&lt;/code&gt; cache to &lt;code&gt;cache_discovery&lt;/code&gt; and alexpott committed it, but berdir flagged a regression risk: on large or heavily multilingual sites the combined &amp;quot;all tables&amp;quot; cache entry can be megabytes in size, and pushing that into APCu-backed chained-fast storage risks frequent expunges that hurt performance more broadly (citing real-world monitoring data from sites using an APCu-expunge sensor). alexpott reverted the commit the same day. berdir then measured actual cache entry sizes with a script run against a production-like Redis dataset, showing the &amp;quot;all tables&amp;quot; entries were an order of magnitude larger than the sum of per-table entries, and suggested moving only the per-table entries into the fast bin. catch implemented that split (two injected cache backends), and the two also floated further ideas (a &lt;code&gt;hook_views_data_table()&lt;/code&gt;-style API, and not caching views data per-language) that were not pursued in this issue. berdir later reviewed again and preferred catch's simplified follow-up that dropped the old &lt;code&gt;cacheGet&lt;/code&gt;/&lt;code&gt;cacheSet&lt;/code&gt; helpers entirely in favor of calling the backends directly, calling it &amp;quot;much nicer.&amp;quot;&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

@@ -1,4 +1,4 @@
-**TL;DR:** [1015 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1018 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [200 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_550 summaries · 20 new this week_
+_553 summaries · 22 new this week_
 
-- [#3315265: Improve support of native MERGE with RETURNING merge_action()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3315265.md)
-- [#3615415: Remove using preg_replace() on every query for PostgreSQL](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615415.md)
-- [#3585455: Fix return types and baselined errors of core/tests/ Unit code - round 6](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585455.md)
+- [#3586688: Add support for generated columns to the DB Schema Definition API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md)
+- [#3605702: Remove remaining Gin and Claro implementation names from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605702.md)
+- [#3620804: Remove search references from Umami theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620804.md)
 
 ### Drupal Canvas
 
-_247 summaries · 5 new this week_
+_247 summaries · 4 new this week_
 
 - [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
 - [#3592001: Apply page variant translation overrides to previews](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592001.md)
@@ -30,7 +30,7 @@ _127 summaries · 2 new this week_
 
 ### Drupal CMS
 
-_91 summaries · 1 new this week_
+_91 summaries · 0 new this week_
 
 - [#3591440: Fix installer page backgrounds and add interstitial at the end](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591440.md)
 - [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
