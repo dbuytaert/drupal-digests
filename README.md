@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_550 summaries · 24 new this week_
+_550 summaries · 21 new this week_
 
 - [#3315265: Improve support of native MERGE with RETURNING merge_action()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3315265.md)
 - [#3615415: Remove using preg_replace() on every query for PostgreSQL](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615415.md)
