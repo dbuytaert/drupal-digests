@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_554 summaries · 23 new this week_
+_554 summaries · 20 new this week_
 
 - [#3580705: Deprecate update.compare functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md)
 - [#3586688: Add support for generated columns to the DB Schema Definition API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_201 rules · 8 new this week_
+_201 rules · 7 new this week_
 
 - [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
 - [Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php)
