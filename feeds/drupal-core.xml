@@ -5,6 +5,118 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2865710: Dependencies from only one instance of a widget are used in display modes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md</link>
+      <guid isPermaLink="false">01a07187-bb69-771a-af82-9112a8313878</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 05 Sep 2026 11:10:04 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +446/−2 · php +417/−2 · yml +29&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d496db022d49e7de96cdac75d1df1b4355bb35a0"&gt;d496db0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2865710"&gt;#2865710&lt;/a&gt; · 17 contributors · 111 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 23&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 17 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Entity view and form displays calculate their config dependencies from the widget and formatter plugins used on each field, so that deleting something a plugin depends on (a view mode, an image style, a taxonomy vocabulary, etc.) is blocked or handled safely. This calculation was broken whenever a display used the same plugin on more than one field: only the last field's dependencies were kept, so the others were silently dropped. A common trigger is two comment fields each set to show a different comment view mode, or two image fields using different image styles. If the missing dependency was later deleted, the display could break with a fatal error instead of being cleanly protected. Existing sites do not need to change anything, but should run database updates after upgrading so the new post update hooks can recalculate and fix the dependencies stored in their existing displays.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;field_post_update_recalculate_entity_form_display_dependencies()&lt;/code&gt; and &lt;code&gt;field_post_update_recalculate_entity_view_display_dependencies()&lt;/code&gt; post update hooks resave all &lt;code&gt;entity_form_display&lt;/code&gt; and &lt;code&gt;entity_view_display&lt;/code&gt; config entities to recalculate their dependencies.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EntityFormDisplay::getPluginCollections()&lt;/code&gt; and &lt;code&gt;EntityViewDisplay::getPluginCollections()&lt;/code&gt; build a &lt;code&gt;EntityDisplayPluginCollection&lt;/code&gt; keyed by &lt;code&gt;$configuration['type']&lt;/code&gt; (the plugin ID). When two fields on the same display use the same widget or formatter, the second field's configuration overwrote the first's in that array, so &lt;code&gt;ConfigEntityBase::calculateDependencies()&lt;/code&gt;, which iterates the plugin collection to merge in each plugin's &lt;code&gt;calculateDependencies()&lt;/code&gt; result, only ever saw one instance's dependencies. The fix rekeys both collections by &lt;code&gt;$field_name&lt;/code&gt; instead of plugin type, which is guaranteed unique per display; &lt;code&gt;calculateDependencies()&lt;/code&gt; never relied on the array keys, so this is safe.&lt;/p&gt;
+&lt;p&gt;Because existing config was calculated with the old, lossy keying, two new post update functions, &lt;code&gt;field_post_update_recalculate_entity_form_display_dependencies()&lt;/code&gt; and &lt;code&gt;field_post_update_recalculate_entity_view_display_dependencies()&lt;/code&gt;, use &lt;code&gt;ConfigEntityUpdater&lt;/code&gt; to resave every &lt;code&gt;entity_form_display&lt;/code&gt; and &lt;code&gt;entity_view_display&lt;/code&gt;, forcing dependencies to be recalculated with the corrected code. Test coverage includes a new &lt;code&gt;field_dynamic_dependencies_test&lt;/code&gt; module with a formatter/widget pair whose &lt;code&gt;calculateDependencies()&lt;/code&gt; adds a configurable module dependency, used in &lt;code&gt;EntityDisplayDependenciesTest&lt;/code&gt; to prove dependencies from multiple fields using the same plugin are all retained, plus &lt;code&gt;RecalculateDependenciesUpdateTest&lt;/code&gt; to verify the update path against a pre-fix fixture.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 31, 2017&lt;/li&gt;
+&lt;li&gt;Committed: September 5, 2026 (9 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;hchonov (bio.logis Genetic Information Management GmbH)&lt;/li&gt;
+&lt;li&gt;dcam (USDA-ARS)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;jofitz (ComputerMinds)&lt;/li&gt;
+&lt;li&gt;heatherwoz (University of Washington)&lt;/li&gt;
+&lt;li&gt;Adev22 (Google Code-In)&lt;/li&gt;
+&lt;li&gt;hctom (undpaul)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;bhanu951&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;james.williams (ComputerMinds)&lt;/li&gt;
+&lt;li&gt;james.nugent7&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The underlying rekeying fix (using field name instead of plugin type) was proposed early on by hchonov and james.williams, who then wrote the patch and tests over many reroll cycles. dcam reviewed extensively, confirmed the bug independently while building a contrib module (Entity Reference Facet Link) whose formatter depends on facet entities, and pushed for the update hook needed to repair already-broken production config, contributing draft code for it. larowlan's review pushed back on an early patch that refactored unrelated shared test code across &lt;code&gt;EntityDisplayTest&lt;/code&gt; and &lt;code&gt;EntityFormDisplayTest&lt;/code&gt;; james.williams agreed it had gone too far and reworked it into a narrower shared trait instead.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3565781: Deprecate the Search module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565781.md</link>
+      <guid isPermaLink="false">01a07187-3a89-7413-9d70-62b325b9120f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 05 Sep 2026 11:03:32 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 60 files, +113/−54 · php +105/−2 · yml +8/−52&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/cdd48761789618988150d7ed1d7f862a40515b44"&gt;cdd4876&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3565781"&gt;#3565781&lt;/a&gt; · 5 contributors · 36 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Search module (and its submodules that index content, users, and help) is now officially marked deprecated in Drupal core, following the policy decision made in &lt;a href="https://www.drupal.org/node/3476883"&gt;#3476883&lt;/a&gt; to move Search from core into a contributed project. Sites that currently have the Search module enabled will start seeing a deprecation notice, and should begin planning to migrate to a contributed search solution before Search is removed from a future core release. No functionality was removed yet: this issue only starts the formal deprecation clock and cleans up the codebase in preparation for eventual removal.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;search&lt;/code&gt;, &lt;code&gt;node_search&lt;/code&gt;, &lt;code&gt;user_search&lt;/code&gt;, and &lt;code&gt;help_search&lt;/code&gt; modules are now marked &lt;code&gt;lifecycle: deprecated&lt;/code&gt; in their &lt;code&gt;.info.yml&lt;/code&gt; files, per the decision in #3476883 to move Search from core to a contributed project.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change adds &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and &lt;code&gt;lifecycle_link: https://www.drupal.org/node/3223395#s-search&lt;/code&gt; to the &lt;code&gt;.info.yml&lt;/code&gt; files of &lt;code&gt;search.module&lt;/code&gt;, &lt;code&gt;node_search&lt;/code&gt;, &lt;code&gt;user_search&lt;/code&gt;, and &lt;code&gt;help_search&lt;/code&gt;, which is the standard Drupal core mechanism (per the module/theme removal process) for flagging an extension for future removal. Because installing or using a deprecated module now triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice via the module installer, every test in these four modules (and tests elsewhere that install them, such as &lt;code&gt;SearchPageTest&lt;/code&gt;, the JSON:API/REST &lt;code&gt;SearchPage*&lt;/code&gt; resource tests, and Olivero's &lt;code&gt;testConfigSchema&lt;/code&gt;/&lt;code&gt;testPreprocessBlock&lt;/code&gt;) gained the &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; PHPUnit attribute so the notices don't fail the test suite.&lt;/p&gt;
+&lt;p&gt;As part of the cleanup pass required before deprecation (&amp;quot;thorough search of core for any remaining references&amp;quot;), four leftover config fixture files (&lt;code&gt;core.entity_view_mode.node.search_index.yml&lt;/code&gt; and &lt;code&gt;core.entity_view_mode.node.search_result.yml&lt;/code&gt;, in both the &lt;code&gt;multilingual&lt;/code&gt; and &lt;code&gt;testing_config_install&lt;/code&gt; fixture sets) were deleted; investigation showed these view modes had no actual dependency on the Search module. Claro and Olivero's own search-related theme code was intentionally left in place because those two themes are themselves slated for deprecation, with separate follow-up issues (&lt;a href="https://www.drupal.org/node/3620801"&gt;#3620801&lt;/a&gt; for &lt;code&gt;default_admin&lt;/code&gt;, &lt;a href="https://www.drupal.org/node/3620804"&gt;#3620804&lt;/a&gt; for Umami) handling their theme-specific references instead.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Modules or sites that depend on the &lt;code&gt;search&lt;/code&gt;, &lt;code&gt;node_search&lt;/code&gt;, &lt;code&gt;user_search&lt;/code&gt;, or &lt;code&gt;help_search&lt;/code&gt; modules should plan to migrate to a contributed replacement before these are removed from core. Contributed or custom code that installs one of these modules in tests should add the &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; PHPUnit attribute to avoid failures from the new deprecation notice, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+
+#[Group('search')]
+#[IgnoreDeprecations]
+class MyCustomSearchTest extends BrowserTestBase {
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 6, 2026&lt;/li&gt;
+&lt;li&gt;First commit: September 4, 2026 (8 months later)&lt;/li&gt;
+&lt;li&gt;Last commit: September 5, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Getting this issue to a committable state took several rounds of tracking down stray references to Search across core. quietone repeatedly ran &lt;code&gt;git grep&lt;/code&gt; for &amp;quot;search&amp;quot; and found leftover config fixtures (&lt;code&gt;core.entity_view_mode.node.search_index.yml&lt;/code&gt; and related files) that acbramley then investigated, confirming via local test runs that they had no real dependency on the Search module and could simply be removed. After commit, longwave found the 11.x backport didn't cleanly cherry-pick, and quietone tracked down several tests still installing Search on 11.x because a related cleanup issue (&lt;a href="https://www.drupal.org/node/3575587"&gt;#3575587&lt;/a&gt;) hadn't been backported, reopening it and preparing a fix so the backport could land. catch settled an open question about Claro and Olivero by deciding their search-related theme code did not need to be stripped out immediately, since both themes are themselves being deprecated, and opened separate follow-up issues for &lt;code&gt;default_admin&lt;/code&gt; and Umami instead.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3580705: Deprecate update.compare functions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md</link>
       <guid isPermaLink="false">01a06e13-02ea-70fb-b6e1-2621e22028ac</guid>
@@ -1019,131 +1131,6 @@ new ProjectInfo($project_name, \Drupal::service(\Drupal\update\UpdateManagerInte
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;dww raised a broader concern about the update module's ad hoc service organization (&amp;quot;we already have some weird services that are sort of incomplete and interact with each other in 'interesting' ways&amp;quot;) and suggested a wider &amp;quot;Modernize Update Status&amp;quot; effort rather than adding more piecemeal services; the issue proceeded with the deprecation as scoped. During implementation, berdir caught that a batch operation callback was storing an &lt;code&gt;UpdateManager&lt;/code&gt; instance directly in batch data rather than calling it as a service, which nicxvan then corrected. nicxvan also noted while doing the migration that some code incorrectly used the key/value collection name &lt;code&gt;update_available_release&lt;/code&gt; instead of &lt;code&gt;update_available_releases&lt;/code&gt;, and fixed the two occurrences found.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3584347: Deprecate and replace system_admin_compact_mode()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584347.md</link>
-      <guid isPermaLink="false">01a05551-5bd2-7136-98ef-60bbb431fc44</guid>
-      <category>Module maintainers</category>
-      <category>Front-end developers</category>
-      <category>Site owners</category>
-      <pubDate>Sun, 30 Aug 2026 21:37:36 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +259/−101 · php +155/−70 · js +78 · yml +12/−6 · css +8 · twig +6/−25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3e3315d60374ef14effd2967e240f9452f0060f4"&gt;3e3315d&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3584347"&gt;#3584347&lt;/a&gt; · 11 contributors · 72 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 11 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Admin pages such as the permissions page offer a &amp;quot;compact mode&amp;quot; that hides field descriptions to reduce clutter. This used to be implemented server-side: clicking the toggle loaded the &lt;code&gt;/admin/compact/{mode}&lt;/code&gt; route, which set a &lt;code&gt;Drupal_visitor_admin_compact_mode&lt;/code&gt; cookie (with a &lt;code&gt;system.site:admin_compact_mode&lt;/code&gt; config fallback), and every request re-rendered the page accordingly. That mechanism has been deprecated and replaced with a purely client-side implementation: toggling compact mode now happens instantly via JavaScript and &lt;code&gt;localStorage&lt;/code&gt;, with no page reload and no cookie or config lookup on the server.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers, front-end developers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;system.site:admin_compact_mode&lt;/code&gt; config key is deprecated in 11.5.0, removed from 12.0.0, and cleared by the new &lt;code&gt;system_post_update_clear_admin_compact_mode_config()&lt;/code&gt; update function.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Admin block templates (&lt;code&gt;system-admin-block-content.html.twig&lt;/code&gt; and the &lt;code&gt;claro&lt;/code&gt;/&lt;code&gt;gin&lt;/code&gt; equivalents) no longer receive a &lt;code&gt;compact&lt;/code&gt; boolean variable; description elements are now always rendered and marked with a &lt;code&gt;data-admin-compact-collapsible&lt;/code&gt; attribute that CSS hides based on a &lt;code&gt;data-admin-compact-mode&lt;/code&gt; attribute on &lt;code&gt;&amp;lt;html&amp;gt;&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;system_admin_compact_mode()&lt;/code&gt; and &lt;code&gt;SystemController::compactPage()&lt;/code&gt; (route &lt;code&gt;system.admin_compact_page&lt;/code&gt;) are deprecated in Drupal 11.5.0 and removed in Drupal 12.0.0, with no server-side replacement.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Admin compact mode moved entirely to the client: the &lt;code&gt;system.site:admin_compact_mode&lt;/code&gt; config key and the cookie/config based toggle are deprecated in favor of a &lt;code&gt;localStorage&lt;/code&gt; flag set purely in JavaScript.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The old flow relied on &lt;code&gt;system_admin_compact_mode()&lt;/code&gt; reading a cookie (falling back to &lt;code&gt;system.site:admin_compact_mode&lt;/code&gt; config) and controllers/preprocess functions like &lt;code&gt;SystemAdminThemePreprocess::preprocessAdminBlockContent()&lt;/code&gt; and &lt;code&gt;UserPermissionsForm::buildForm()&lt;/code&gt; conditionally omitting description markup server-side. Both &lt;code&gt;system_admin_compact_mode()&lt;/code&gt; and &lt;code&gt;SystemController::compactPage()&lt;/code&gt; now call &lt;code&gt;@trigger_error()&lt;/code&gt; and are marked &lt;code&gt;@deprecated&lt;/code&gt; in 11.5.0 for removal in 12.0.0, with no replacement (see the linked change record 3588109). The &lt;code&gt;admin_compact_mode&lt;/code&gt; key is stripped from &lt;code&gt;system.site.yml&lt;/code&gt; defaults and cleared from existing sites via &lt;code&gt;system_post_update_clear_admin_compact_mode_config()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The replacement lives entirely in a new &lt;code&gt;system/drupal.system.admin_compact&lt;/code&gt; library (&lt;code&gt;system.admin_compact.js&lt;/code&gt; + &lt;code&gt;.css&lt;/code&gt;). It sets a &lt;code&gt;data-admin-compact-mode&lt;/code&gt; attribute on the document root from a &lt;code&gt;Drupal.admin.compact_mode&lt;/code&gt; &lt;code&gt;localStorage&lt;/code&gt; value before behaviors attach (to avoid flicker), and toggles it on click of any &lt;code&gt;[data-admin-compact-toggle]&lt;/code&gt; element. Description elements that used to be conditionally rendered are now always rendered but wrapped with &lt;code&gt;data-admin-compact-collapsible&lt;/code&gt;, hidden purely via the CSS rule &lt;code&gt;:root[data-admin-compact-mode] [data-admin-compact-collapsible] { display: none; }&lt;/code&gt;. &lt;code&gt;Drupal\Core\Render\Element\SystemCompactLink::preRenderCompactLink()&lt;/code&gt; no longer builds a URL to the toggle route; it renders a static &lt;code&gt;#&lt;/code&gt; link carrying &lt;code&gt;data-admin-compact-toggle&lt;/code&gt; that the new behavior intercepts. An accessibility follow-up to turn this link into a proper switch/button is tracked in &lt;a href="https://www.drupal.org/node/3593539"&gt;#3593539&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If a theme overrides &lt;code&gt;system-admin-block-content.html.twig&lt;/code&gt; (or the &lt;code&gt;claro&lt;/code&gt;/&lt;code&gt;gin&lt;/code&gt; versions) and checks the old &lt;code&gt;compact&lt;/code&gt; variable, remove that check. Descriptions are now always passed through; mark the collapsible element instead, matching core:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-twig"&gt;&amp;lt;dd class=&amp;quot;list-group__description&amp;quot; data-admin-compact-collapsible&amp;gt;{{ item.description }}&amp;lt;/dd&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Replace any calls to &lt;code&gt;system_admin_compact_mode()&lt;/code&gt; or links to &lt;code&gt;/admin/compact/{mode}&lt;/code&gt;: there is no server-side replacement. Compact mode is now a purely client-side &lt;code&gt;localStorage&lt;/code&gt; flag (&lt;code&gt;Drupal.admin.compact_mode&lt;/code&gt;), toggled by attaching &lt;code&gt;data-admin-compact-toggle&lt;/code&gt; to a clickable element and depending on the &lt;code&gt;system/drupal.system.admin_compact&lt;/code&gt; library.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 12, 2026&lt;/li&gt;
-&lt;li&gt;First commit: August 12, 2026 (4 months later)&lt;/li&gt;
-&lt;li&gt;Last commit: August 30, 2026 (17 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;znerol&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;kentr&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;longwave-bot&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The design shifted during review. znerol originally proposed moving compact mode entirely into &lt;code&gt;localStorage&lt;/code&gt;, but andypost cautioned that server-side controllers still rely on knowing the compact state, questioning whether a client-only replacement was feasible. nicxvan then built an MR implementing the &lt;code&gt;localStorage&lt;/code&gt; approach anyway, noting &amp;quot;all of the core interactions with this do it server side&amp;quot;, and mstrelan separately suggested making it a per-user account preference instead (similar to Gin theme's appearance setting). nicxvan reported discussing the tradeoffs in Slack with catch and andypost before settling on the final approach, crediting them and Godotislate for help working out the details.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3580733: Views status field triggers a PHP 8.5 deprecation on /admin/people</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580733.md</link>
-      <guid isPermaLink="false">01a04d7a-f774-733a-ac53-113e80c4996b</guid>
-      <category>Front-end developers</category>
-      <pubDate>Sat, 29 Aug 2026 11:36:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +447/−8 · php +438 · twig +9/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/51ff2c2fe01e1060c64a14d81e0b425df41afdb2"&gt;51ff2c2&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580733"&gt;#3580733&lt;/a&gt; · 15 contributors · 61 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 22&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 15 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On sites using core's experimental default_admin theme, visiting admin pages built from Views status fields (such as /admin/people) triggered a PHP 8.5 deprecation warning, &amp;quot;Using null as an array offset is deprecated&amp;quot;, because the &amp;quot;Published&amp;quot;/&amp;quot;Unpublished&amp;quot; badge template tried to look up a translation using a language code that could be null. The same faulty logic also meant the published/unpublished badge could show the wrong color on views not based on nodes (for example taxonomy term listings), since it relied on a variable that only exists for node-based views. Both problems are fixed: the warning no longer appears, and the badge now reflects the correct publication state for any publishable entity type shown in a status field.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The &lt;code&gt;default_admin&lt;/code&gt; theme's &lt;code&gt;views-view-field--status.html.twig&lt;/code&gt; template no longer resolves the row's translated entity itself; it now receives a computed &lt;code&gt;is_published&lt;/code&gt; boolean/null variable from a new preprocess hook, and no longer receives an &lt;code&gt;entity&lt;/code&gt; variable.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The old &lt;code&gt;views-view-field--status.html.twig&lt;/code&gt; template inlined Twig logic to fetch the row's entity translation via &lt;code&gt;row._entity.getTranslation(row.node_field_data_langcode)&lt;/code&gt; before checking &lt;code&gt;isPublished()&lt;/code&gt;. &lt;code&gt;node_field_data_langcode&lt;/code&gt; is a row property that only exists for node-based views, so on other views (or monolingual sites) it evaluated to &lt;code&gt;NULL&lt;/code&gt;, which is what triggered the deprecation inside &lt;code&gt;ContentEntityBase::hasTranslation()&lt;/code&gt;, and also silently produced the wrong publication state for non-node entities like taxonomy terms.&lt;/p&gt;
-&lt;p&gt;The fix moves this logic out of the template entirely. A new &lt;code&gt;hook_preprocess_HOOK()&lt;/code&gt; implementation, &lt;code&gt;PreprocessHooks::preprocessViewsViewFieldStatus()&lt;/code&gt; (theme suggestion &lt;code&gt;views_view_field__status&lt;/code&gt;, which fires for any views field with the machine ID &lt;code&gt;status&lt;/code&gt; on any entity type), resolves the row's entity through the field handler's own &lt;code&gt;EntityField::getEntity()&lt;/code&gt; (respecting configured relationships via &lt;code&gt;row._relationship_entities&lt;/code&gt;), and only sets a boolean &lt;code&gt;is_published&lt;/code&gt; variable when the field's underlying entity field type is &lt;code&gt;boolean&lt;/code&gt;. Otherwise &lt;code&gt;is_published&lt;/code&gt; is &lt;code&gt;NULL&lt;/code&gt;. The template was simplified to branch purely on &lt;code&gt;is_published&lt;/code&gt;: &lt;code&gt;TRUE&lt;/code&gt; renders the &lt;code&gt;marker--published&lt;/code&gt; span, &lt;code&gt;FALSE&lt;/code&gt; renders the plain &lt;code&gt;marker&lt;/code&gt; span, and &lt;code&gt;NULL&lt;/code&gt; renders the raw &lt;code&gt;output&lt;/code&gt; with no marker at all, so fields that aren't a real published flag (e.g. &lt;code&gt;views_test_data.status&lt;/code&gt; handled by the &lt;code&gt;boolean&lt;/code&gt; plugin) pass through unaffected.&lt;/p&gt;
-&lt;p&gt;Because the entity is now resolved through the field handler, translation handling follows the view's configured rendering language instead of a hardcoded node-specific row property, fixing the mismatch for non-node views. Follow-up issues &lt;a href="https://www.drupal.org/node/3608223"&gt;#3608223&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3619121"&gt;#3619121&lt;/a&gt; were opened to move this kind of status-badge formatting into a proper Views field formatter rather than being hardcoded in the theme layer.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Themes that override &lt;code&gt;core/themes/default_admin/templates/views/views-view-field--status.html.twig&lt;/code&gt; need to update their copy: the template no longer receives an &lt;code&gt;entity&lt;/code&gt; variable and instead receives &lt;code&gt;is_published&lt;/code&gt; (&lt;code&gt;TRUE&lt;/code&gt;, &lt;code&gt;FALSE&lt;/code&gt;, or &lt;code&gt;NULL&lt;/code&gt;):&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-twig"&gt;{% if is_published is null %}
-  {{ output -}}
-{% elseif is_published %}
-  &amp;lt;span class=&amp;quot;marker marker--published&amp;quot;&amp;gt;{{ output -}}&amp;lt;/span&amp;gt;
-{% else %}
-  &amp;lt;span class=&amp;quot;marker&amp;quot;&amp;gt;{{ output -}}&amp;lt;/span&amp;gt;
-{% endif %}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 29, 2026 (5 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;idebr (iO)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;li&gt;boromino (LakeDrops)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The fix went through several rounds of design disagreement before landing. penyaskito's initial proposal was to simply delete the translation lookup from the template, but berdir and alexpott argued the theme layer should not be resolving entity translations at all, and considered removing the status badge feature from default_admin entirely (with alexpott noting it should be reintroduced later with the multilingual issue fixed properly). jurgenhaas then produced MR!16557, moving the logic into a preprocess hook that computes a boolean published state; boromino reviewed it and suggested extracting named helper methods (&lt;code&gt;getResultRowEntity()&lt;/code&gt;, &lt;code&gt;isPublishedStatusField()&lt;/code&gt;) for clarity, which jurgenhaas applied. godotislate then explored two further alternatives, MR!16768 (preprocess using the field handler's entity resolution) and MR!16769 (template-only), after finding the original approach didn't handle entities like &lt;code&gt;user&lt;/code&gt; that lack a published key or &lt;code&gt;EntityPublishedInterface&lt;/code&gt;. berdir pushed back against using &lt;code&gt;getFieldMap()&lt;/code&gt; in MR!16768 due to performance concerns raised in &lt;a href="https://www.drupal.org/node/3565128"&gt;#3565128&lt;/a&gt;, so godotislate removed it in favor of calling &lt;code&gt;EntityField::getEntity()&lt;/code&gt; directly. The group ultimately converged on MR!16768 as the pragmatic minimal fix, with berdir and jurgenhaas agreeing to defer the &amp;quot;proper&amp;quot; solution (a configurable Views boolean formatter) to follow-up issues &lt;a href="https://www.drupal.org/node/3608223"&gt;#3608223&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3619121"&gt;#3619121&lt;/a&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

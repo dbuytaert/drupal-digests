@@ -1,4 +1,4 @@
-**TL;DR:** [1019 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1021 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_554 summaries · 20 new this week_
+_556 summaries · 21 new this week_
 
+- [#2865710: Dependencies from only one instance of a widget are used in display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md)
+- [#3565781: Deprecate the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565781.md)
 - [#3580705: Deprecate update.compare functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md)
-- [#3586688: Add support for generated columns to the DB Schema Definition API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md)
-- [#3605702: Remove remaining Gin and Claro implementation names from Default Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605702.md)
 
 ### Drupal Canvas
 
