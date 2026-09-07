@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_556 summaries · 21 new this week_
+_556 summaries · 20 new this week_
 
 - [#2865710: Dependencies from only one instance of a widget are used in display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md)
 - [#3565781: Deprecate the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565781.md)
