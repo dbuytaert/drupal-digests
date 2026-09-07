@@ -5,6 +5,180 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent] attribute</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php</link>
+      <guid isPermaLink="false">01a07d8d-cde9-71fa-9f1e-f3e6b577b7d5</guid>
+      <pubDate>Mon, 07 Sep 2026 20:27:20 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3561302"&gt;#3561302&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Calling &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent($number, $version)&lt;/code&gt; with only the legacy 2 arguments inside a &lt;code&gt;hook_update_N()&lt;/code&gt; body is deprecated. The replacement is the &lt;code&gt;#[MarkFutureUpdateEquivalent($number, $version)]&lt;/code&gt; attribute placed on the update function itself, which also lets the equivalent update register on module install (not just during database updates). This rule moves the two literal arguments from the removed statement onto the enclosing function as an attribute.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function my_module_update_10400(): void {
+  \Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(11101, '11.1.1');
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[\Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent(11101, '11.1.1')]
+function my_module_update_10400(): void {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites calls with exactly 2 positional literal arguments (&lt;code&gt;int&lt;/code&gt;, &lt;code&gt;string&lt;/code&gt;) on &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(...)&lt;/code&gt;, and only when the call is a direct top-level statement in a function named like &lt;code&gt;..._update_&amp;lt;number&amp;gt;&lt;/code&gt;. Calls already passing the newer &lt;code&gt;$module&lt;/code&gt;/&lt;code&gt;$ran_update_number&lt;/code&gt; arguments, calls using named arguments, non-literal argument values, or calls inside non-update-hook-named functions are left untouched to avoid mis-rewrites. The attribute is emitted with its fully qualified class name rather than adding a &lt;code&gt;use&lt;/code&gt; statement, since automatic import-cleanup in Rector's config also strips backslashes from unrelated &lt;code&gt;\Drupal::...&lt;/code&gt; calls elsewhere in the same file.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\Int_;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\Function_;
+use Rector\Config\RectorConfig;
+use Rector\PhpParser\Node\Value\ValueResolver;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ConvertMarkFutureUpdateEquivalentCallToAttributeRector extends AbstractRector
+{
+    public function __construct(
+        private readonly ValueResolver $valueResolver,
+    ) {
+    }
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Converts a 2-argument UpdateHookRegistry::markFutureUpdateEquivalent() call inside a hook_update_N() body into the #[MarkFutureUpdateEquivalent] attribute on the function.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+function my_module_update_10400(): void {
+  \Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(11101, '11.1.1');
+}
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+#[\Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent(11101, '11.1.1')]
+function my_module_update_10400(): void {
+}
+CODE_SAMPLE
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Function_::class];
+    }
+
+    /** @param Function_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof Function_) {
+            return null;
+        }
+        // The attribute only takes effect on an actual hook_update_N()
+        // function: module install reflects on &amp;quot;{module}_update_{schema}&amp;quot;.
+        if (!preg_match('/_update_\d+$/', $this-&amp;gt;getName($node) ?? '')) {
+            return null;
+        }
+
+        $hasChanged = false;
+        foreach ($node-&amp;gt;stmts as $key =&amp;gt; $stmt) {
+            $attribute = $this-&amp;gt;matchMarkFutureUpdateEquivalentAttribute($stmt);
+            if ($attribute === null) {
+                continue;
+            }
+
+            $node-&amp;gt;attrGroups[] = new AttributeGroup([$attribute]);
+            unset($node-&amp;gt;stmts[$key]);
+            $hasChanged = true;
+        }
+
+        if (!$hasChanged) {
+            return null;
+        }
+
+        $node-&amp;gt;stmts = array_values($node-&amp;gt;stmts);
+
+        return $node;
+    }
+
+    private function matchMarkFutureUpdateEquivalentAttribute(Node $stmt): ?Attribute
+    {
+        if (!$stmt instanceof Expression) {
+            return null;
+        }
+        $call = $stmt-&amp;gt;expr;
+        if (!$call instanceof MethodCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($call-&amp;gt;name, 'markFutureUpdateEquivalent')) {
+            return null;
+        }
+        // Only the deprecated 2-argument call is rewritten. A call already
+        // passing $module and $ran_update_number is not the deprecated shape.
+        if (count($call-&amp;gt;args) !== 2) {
+            return null;
+        }
+        [$numberArg, $versionArg] = $call-&amp;gt;args;
+        if (!$numberArg instanceof Arg || !$versionArg instanceof Arg) {
+            return null;
+        }
+        // Named arguments could reorder the values; skip rather than risk
+        // swapping the number and version when rebuilding as an attribute.
+        if ($numberArg-&amp;gt;name !== null || $versionArg-&amp;gt;name !== null) {
+            return null;
+        }
+        // Attribute arguments must be constant expressions: restrict to the
+        // literal shapes actually used in core and contrib.
+        if (!$numberArg-&amp;gt;value instanceof Int_ || !$versionArg-&amp;gt;value instanceof String_) {
+            return null;
+        }
+
+        $caller = $call-&amp;gt;var;
+        if (!$caller instanceof StaticCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($caller-&amp;gt;class, 'Drupal')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($caller-&amp;gt;name, 'service')) {
+            return null;
+        }
+        if (count($caller-&amp;gt;args) !== 1 || !$caller-&amp;gt;args[0] instanceof Arg) {
+            return null;
+        }
+        if (!$this-&amp;gt;valueResolver-&amp;gt;isValue($caller-&amp;gt;args[0]-&amp;gt;value, 'update.update_hook_registry')) {
+            return null;
+        }
+
+        return new Attribute(
+            new FullyQualified('Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent'),
+            [new Arg($numberArg-&amp;gt;value), new Arg($versionArg-&amp;gt;value)],
+        );
+    }
+}
+
+return RectorConfig::configure()
+    -&amp;gt;withRules([ConvertMarkFutureUpdateEquivalentCallToAttributeRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace user_role_*_permissions() functions with RoleInterface methods</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php</link>
       <guid isPermaLink="false">01a07bdb-da88-71e2-9c9a-172d3d0134a8</guid>
@@ -2088,47 +2262,6 @@ final class ReplaceFileStorageFactoryGetSyncRector extends AbstractRector
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([ReplaceFileStorageFactoryGetSyncRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Rename UserSearch to SearchUser from search_user module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rename-usersearch-to-searchuser-from-search-user-module-3588379.php</link>
-      <guid isPermaLink="false">019f9cdb-27c8-711b-966e-276537212c5f</guid>
-      <pubDate>Sun, 26 Jul 2026 05:17:16 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3588379"&gt;#3588379&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Drupal\user\Plugin\Search\UserSearch was moved into a new search_user submodule and renamed to Drupal\search_user\Plugin\Search\SearchUser, deprecated in drupal:11.5.0 and removed in drupal:12.0.0. The constructor signature is unchanged, so this rule uses Rector's built-in RenameClassRector to rewrite &lt;code&gt;use&lt;/code&gt;, &lt;code&gt;extends&lt;/code&gt;, &lt;code&gt;instanceof&lt;/code&gt;, and &lt;code&gt;new&lt;/code&gt; references from the old class to the new one across contrib and custom search plugins.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\user\Plugin\Search\UserSearch;
-
-class MyPlugin extends UserSearch {
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\search_user\Plugin\Search\SearchUser;
-
-class MyPlugin extends SearchUser {
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Uses require the search_user submodule to be enabled alongside search; RenameClassRector only rewrites the PHP-level reference, so module dependency declarations (info.yml) must still be updated manually if a contrib module extends this class.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Renaming\Rector\Name\RenameClassRector;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
-        'Drupal\\user\\Plugin\\Search\\UserSearch' =&amp;gt; 'Drupal\\search_user\\Plugin\\Search\\SearchUser',
-    ]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

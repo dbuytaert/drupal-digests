@@ -5,6 +5,66 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3561302: Register equivalent updates on site install</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561302.md</link>
+      <guid isPermaLink="false">01a07d85-96d4-70c8-8ed7-e246c3d72967</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 07 Sep 2026 16:37:18 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +150/−24 · php +145/−24 · yml +5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/1ab223a55d388d3d4edf19db948aadd2b27dccca"&gt;1ab223a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3561302"&gt;#3561302&lt;/a&gt; · 9 contributors · 33 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal tracks &amp;quot;equivalent updates&amp;quot; so that a database update backported to an older, still-supported branch is recognized as equivalent to the update that originally shipped it in a newer branch, preventing confusing warnings or double-running of updates. Previously this registration only happened when the corresponding &lt;code&gt;hook_update_N()&lt;/code&gt; actually ran through &lt;code&gt;update.php&lt;/code&gt;, but hook_update_N() functions never run on a brand-new site install. That meant a site installed directly on the older version (e.g. 10.4) never got the equivalent update recorded, so it could later show incorrect &amp;quot;you are trying to go backwards&amp;quot; warnings once it was upgraded past the version containing the original update. This fix registers those equivalent updates during module installation too, so freshly installed sites behave the same as sites that arrived at that version through running updates.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Calling &lt;code&gt;UpdateHookRegistry::markFutureUpdateEquivalent()&lt;/code&gt; without the new &lt;code&gt;$module&lt;/code&gt; and &lt;code&gt;$ran_update_number&lt;/code&gt; arguments is deprecated in &lt;code&gt;drupal:11.5.0&lt;/code&gt; and will be required in &lt;code&gt;drupal:13.0.0&lt;/code&gt;; the method is now &lt;code&gt;@internal&lt;/code&gt;, use the &lt;code&gt;#[MarkFutureUpdateEquivalent]&lt;/code&gt; attribute instead (see #3617733).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent&lt;/code&gt; PHP attribute for &lt;code&gt;hook_update_N()&lt;/code&gt; functions, letting the update be registered as equivalent even when the function never runs (e.g. on a fresh site install).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The mechanism is a new &lt;code&gt;#[MarkFutureUpdateEquivalent(futureUpdateNumber, futureVersionString)]&lt;/code&gt; PHP attribute applied directly to a &lt;code&gt;hook_update_N()&lt;/code&gt; function, replacing the old pattern of calling &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent()&lt;/code&gt; from inside the update function body. Because attributes can be discovered by reflection without invoking the function, &lt;code&gt;ModuleInstaller::doInstall()&lt;/code&gt; now loops through every available update number returned by &lt;code&gt;updateRegistry-&amp;gt;getAvailableUpdates($module)&lt;/code&gt; during install, reflects each &lt;code&gt;{$module}_update_{$version}&lt;/code&gt; function with &lt;code&gt;ReflectionFunction&lt;/code&gt;, and if it carries the attribute, calls &lt;code&gt;markFutureUpdateEquivalent()&lt;/code&gt; on its behalf, wrapping the reflection/registration in a try/catch that logs via &lt;code&gt;Error::logException()&lt;/code&gt;. The same reflection check was added to &lt;code&gt;update_do_one()&lt;/code&gt; in &lt;code&gt;update.inc&lt;/code&gt; so the attribute also drives registration when updates run through &lt;code&gt;update.php&lt;/code&gt; (previously that path relied on the explicit service call still present in the update function body).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;UpdateHookRegistry::markFutureUpdateEquivalent()&lt;/code&gt; gained two new parameters, &lt;code&gt;$module&lt;/code&gt; and &lt;code&gt;$ran_update_number&lt;/code&gt;, currently accepted only via &lt;code&gt;func_get_args()&lt;/code&gt; (commented out in the signature) to avoid a hard API break; calling it the old way now triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice and falls back to &lt;code&gt;determineModuleAndVersion()&lt;/code&gt;. The method is documented &lt;code&gt;@internal&lt;/code&gt; since the attribute is now the supported way to register these. Core's own &lt;code&gt;system.install&lt;/code&gt; equivalent-update declarations and the &lt;code&gt;equivalent_update_test&lt;/code&gt; fixture module were converted to use the attribute, and a new &lt;code&gt;equivalent_update_test_attribute_install&lt;/code&gt; test module and &lt;code&gt;testAttributeOnInstall()&lt;/code&gt; test verify the install-time registration path.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace direct calls to &lt;code&gt;markFutureUpdateEquivalent()&lt;/code&gt; inside an update function body with the attribute:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent;
+
+#[MarkFutureUpdateEquivalent(11101, '11.1.1')]
+function my_module_update_10400(): void {
+  // The function can be no-op.
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Calling &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(11101, '11.1.1')&lt;/code&gt; directly from inside the update function still works but is deprecated and will require the &lt;code&gt;$module&lt;/code&gt; and &lt;code&gt;$ran_update_number&lt;/code&gt; arguments in Drupal 13 (see &lt;a href="https://www.drupal.org/node/3617733"&gt;#3617733&lt;/a&gt; and the change record at drupal.org/node/3572245).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 3, 2025&lt;/li&gt;
+&lt;li&gt;Committed: September 7, 2026 (9 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;godotislate's initial proposal to solve this with a pair of attributes (&lt;code&gt;MarkFutureUpdateEquivalent&lt;/code&gt;/&lt;code&gt;CheckEquivalentUpdate&lt;/code&gt;) was discussed against an alternative catch raised, hard-coding equivalent branch numbers directly in update.php and site install, as brought up by xjm in Slack, before the reflection-based attribute approach was pursued in the MR. After review, alexpott pushed for the direct-call convention to be deprecated and &lt;code&gt;markFutureUpdateEquivalent()&lt;/code&gt; marked &lt;code&gt;@internal&lt;/code&gt; since &amp;quot;there is no reason to call it&amp;quot; once the attribute exists, which godotislate implemented and followed up on by filing &lt;a href="https://www.drupal.org/node/3617733"&gt;#3617733&lt;/a&gt; to make the new &lt;code&gt;$module&lt;/code&gt;/&lt;code&gt;$ran_update_number&lt;/code&gt; parameters required in Drupal 13. quietone later made substantial edits to the change record, trimming it to focus on the change itself and the action sites need to take, after noting a good example communicates more than lengthy prose.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3452493: Remove images that have been replaced with svg files</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3452493.md</link>
       <guid isPermaLink="false">01a07cab-e5e5-752c-a03c-32b5fc12be75</guid>
@@ -1064,57 +1124,6 @@ if ($source-&amp;gt;isUpdateAvailable()) { ... }
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The design went through several rounds of rethinking captured in the thread. gábor hojtsy initially special-cased the welcome text back into Olivero's templates, but lauriii pushed back that a persistent per-request template didn't fit and asked whether it should instead be a one-time post-install message. gábor hojtsy prototyped both options, comparing screenshots of the ephemeral installer message versus the persistent view-driven one, and pameeela weighed in from the Drupal CMS perspective that the disappearing-on-content-creation behavior was confusing and that a one-time message was clearer. That feedback settled the final approach: moving the welcome text into a one-off &lt;code&gt;standard_install_finished()&lt;/code&gt; message and removing the generic installer message entirely. Separately, berdir did repeated close reviews of the performance test assertions across several rebases to make sure the query/cache-count changes in &lt;code&gt;StandardPerformanceTest&lt;/code&gt; and the new &lt;code&gt;NodePerformanceTest&lt;/code&gt; were fully understood and justified, flagging a roughly 3x increase in config-invalidation rebuild cost that was discussed and accepted as a worthwhile tradeoff for the lighter default front page.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3151555: Deprecate user_picture_enabled()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3151555.md</link>
-      <guid isPermaLink="false">01a05979-68c7-7490-bcf4-f132356a3fe8</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 31 Aug 2026 20:12:01 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +10/−2 · php +10/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/d7ba4a8b5bf5a195b998bf56f3c4d4124d96a19a"&gt;d7ba4a8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3151555"&gt;#3151555&lt;/a&gt; · 4 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The procedural function &lt;code&gt;user_picture_enabled()&lt;/code&gt;, which checked whether the &lt;code&gt;user_picture&lt;/code&gt; field exists on the user entity, is now deprecated. It had only one known usage in contrib and two internal usages in core, so it is being phased out rather than kept as a permanent API. Sites and modules calling this function directly will see a deprecation notice starting in Drupal 11.5.0, and the function will be removed entirely in Drupal 13.0.0.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;user_picture_enabled()&lt;/code&gt; is deprecated in Drupal 11.5.0 and removed in 13.0.0, with no replacement function.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The function's only real logic was &lt;code&gt;isset(\Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user')['user_picture'])&lt;/code&gt;, a thin wrapper that added little value over calling the entity field manager directly. Both of core's own call sites, &lt;code&gt;\Drupal\system\Form\ThemeSettingsForm::buildForm()&lt;/code&gt; and the &lt;code&gt;#[Hook('user_view_alter')]&lt;/code&gt; implementation in the user module, were updated to inline that field-definition lookup instead of calling the deprecated function, so core itself no longer triggers the deprecation. &lt;code&gt;user_picture_enabled()&lt;/code&gt; itself keeps its original behavior but now emits an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error via &lt;code&gt;@trigger_error()&lt;/code&gt;, per Drupal's deprecation policy, pointing to the change record at drupal.org/node/3619932.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace calls to &lt;code&gt;user_picture_enabled()&lt;/code&gt; with a direct field-definition check:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$field_definitions = \Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user');
-if (isset($field_definitions['user_picture'])) {
-  // ...
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The function will be removed in Drupal 13.0.0.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 14, 2020&lt;/li&gt;
-&lt;li&gt;Committed: August 31, 2026 (6 years and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;andypost (Skilld)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

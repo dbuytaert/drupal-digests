@@ -1,4 +1,4 @@
-**TL;DR:** [1023 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1024 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_558 summaries · 20 new this week_
+_559 summaries · 20 new this week_
 
+- [#3561302: Register equivalent updates on site install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561302.md)
 - [#3452493: Remove images that have been replaced with svg files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3452493.md)
 - [#2025089: Deprecate user_role_grant_permissions(), user_role_revoke_permissions() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2025089.md)
-- [#2865710: Dependencies from only one instance of a widget are used in display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md)
 
 ### Drupal Canvas
 
@@ -22,7 +22,7 @@ _247 summaries · 4 new this week_
 
 ### Drupal AI
 
-_127 summaries · 1 new this week_
+_127 summaries · 0 new this week_
 
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_202 rules · 7 new this week_
+_203 rules · 7 new this week_
 
+- [Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent]...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php)
 - [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
 - [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
-- [Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php)
 
 
 ## RSS feeds
