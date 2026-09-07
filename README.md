@@ -1,4 +1,4 @@
-**TL;DR:** [1022 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1023 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_557 summaries · 19 new this week_
+_558 summaries · 20 new this week_
 
+- [#3452493: Remove images that have been replaced with svg files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3452493.md)
 - [#2025089: Deprecate user_role_grant_permissions(), user_role_revoke_permissions() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2025089.md)
 - [#2865710: Dependencies from only one instance of a widget are used in display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md)
-- [#3565781: Deprecate the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565781.md)
 
 ### Drupal Canvas
 
@@ -22,7 +22,7 @@ _247 summaries · 4 new this week_
 
 ### Drupal AI
 
-_127 summaries · 2 new this week_
+_127 summaries · 1 new this week_
 
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
 - [#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_202 rules · 8 new this week_
+_202 rules · 7 new this week_
 
 - [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
 - [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
