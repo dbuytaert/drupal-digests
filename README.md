@@ -1,4 +1,4 @@
-**TL;DR:** [1021 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1022 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_556 summaries · 20 new this week_
+_557 summaries · 19 new this week_
 
+- [#2025089: Deprecate user_role_grant_permissions(), user_role_revoke_permissions() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2025089.md)
 - [#2865710: Dependencies from only one instance of a widget are used in display modes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md)
 - [#3565781: Deprecate the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3565781.md)
-- [#3580705: Deprecate update.compare functions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580705.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [201 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [202 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_201 rules · 7 new this week_
+_202 rules · 8 new this week_
 
+- [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
 - [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
 - [Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php)
-- [Replace deprecated locale.module global constants with class constant/enum...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php)
 
 
 ## RSS feeds

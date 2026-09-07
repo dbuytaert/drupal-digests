@@ -5,6 +5,120 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace user_role_*_permissions() functions with RoleInterface methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php</link>
+      <guid isPermaLink="false">01a07bdb-da88-71e2-9c9a-172d3d0134a8</guid>
+      <pubDate>Mon, 07 Sep 2026 12:33:21 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2025089"&gt;#2025089&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;user_role_grant_permissions()&lt;/code&gt;, &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt;, and &lt;code&gt;user_role_change_permissions()&lt;/code&gt; in favor of the &lt;code&gt;grantPermissions()&lt;/code&gt;, &lt;code&gt;revokePermissions()&lt;/code&gt;, and &lt;code&gt;changePermissions()&lt;/code&gt; methods on &lt;code&gt;RoleInterface&lt;/code&gt;. This rule rewrites each &lt;code&gt;FuncCall&lt;/code&gt; into &lt;code&gt;\Drupal\user\Entity\Role::loadOverrideFree($rid)?-&amp;gt;method($permissions)?-&amp;gt;save()&lt;/code&gt;, using nullsafe chaining so behavior stays safe when the role does not exist, matching the pattern Drupal core itself uses in &lt;code&gt;media.install&lt;/code&gt; and &lt;code&gt;node.install&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_role_grant_permissions('anonymous', ['access content']);
+user_role_revoke_permissions('anonymous', ['access content']);
+user_role_change_permissions('anonymous', ['access content' =&amp;gt; TRUE]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;grantPermissions(['access content'])?-&amp;gt;save();
+\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;revokePermissions(['access content'])?-&amp;gt;save();
+\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;changePermissions(['access content' =&amp;gt; TRUE])?-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Skips calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;), and calls with more than two positional arguments (the deprecated functions never had a third). &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt; did not null-check the loaded role internally (it would fatal on an unknown &lt;code&gt;$rid&lt;/code&gt;), while the rewritten nullsafe chain silently no-ops instead; this is strictly safer and matches the pattern core itself adopted for the other two functions.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\NullsafeMethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserRolePermissionFunctionsRector extends AbstractRector
+{
+    /** @var array&amp;lt;string, string&amp;gt; */
+    private const FUNCTION_TO_METHOD = [
+        'user_role_grant_permissions' =&amp;gt; 'grantPermissions',
+        'user_role_revoke_permissions' =&amp;gt; 'revokePermissions',
+        'user_role_change_permissions' =&amp;gt; 'changePermissions',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace user_role_grant_permissions(), user_role_revoke_permissions() and user_role_change_permissions() with the corresponding RoleInterface method, loading the role with Role::loadOverrideFree() first.',
+            [new CodeSample(
+                &amp;quot;user_role_grant_permissions('anonymous', ['access content']);&amp;quot;,
+                &amp;quot;\\Drupal\\user\\Entity\\Role::loadOverrideFree('anonymous')?-&amp;gt;grantPermissions(['access content'])?-&amp;gt;save();&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_TO_METHOD[$functionName])) {
+            return null;
+        }
+
+        if (count($node-&amp;gt;args) &amp;lt; 1 || count($node-&amp;gt;args) &amp;gt; 2) {
+            return null;
+        }
+
+        // Skip named arguments and argument unpacking; too rare to be worth the complexity.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg) {
+                return null;
+            }
+            if ($arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        $ridArg = $node-&amp;gt;args[0];
+        $permissionsArg = $node-&amp;gt;args[1] ?? new Arg(new Array_([]));
+
+        $methodName = self::FUNCTION_TO_METHOD[$functionName];
+
+        $loadCall = new StaticCall(
+            new FullyQualified('Drupal\\user\\Entity\\Role'),
+            'loadOverrideFree',
+            [$ridArg],
+        );
+
+        $permissionsCall = new NullsafeMethodCall($loadCall, $methodName, [$permissionsArg]);
+
+        return new NullsafeMethodCall($permissionsCall, 'save');
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserRolePermissionFunctionsRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Rewrite deprecated update.compare.inc functions to UpdateCalculator/UpdateManager services</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php</link>
       <guid isPermaLink="false">01a06e16-b6e2-7555-bfaf-e286e65000c0</guid>
@@ -2015,84 +2129,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\\user\\Plugin\\Search\\UserSearch' =&amp;gt; 'Drupal\\search_user\\Plugin\\Search\\SearchUser',
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace StubPDO::class with \PDO::class in tests</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-stubpdo-class-with-pdo-class-in-tests-3585476.php</link>
-      <guid isPermaLink="false">019f9a1e-992c-7713-aa51-ac2e959e4c24</guid>
-      <pubDate>Sat, 25 Jul 2026 16:32:04 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585476"&gt;#3585476&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;code&gt;Drupal\Tests\Core\Database\Stub\StubPDO&lt;/code&gt; is deprecated with no replacement: it existed only because older PHPUnit could not mock &lt;code&gt;\PDO&lt;/code&gt; directly, so core wrapped it in a no-op subclass. Now that PHPUnit can stub &lt;code&gt;\PDO&lt;/code&gt; itself, tests that pass &lt;code&gt;StubPDO::class&lt;/code&gt; to &lt;code&gt;createStub()&lt;/code&gt;/&lt;code&gt;createMock()&lt;/code&gt;/&lt;code&gt;getMockBuilder()&lt;/code&gt; should reference &lt;code&gt;\PDO::class&lt;/code&gt; directly. This rule rewrites the &lt;code&gt;::class&lt;/code&gt; constant fetch only, since &lt;code&gt;StubPDO&lt;/code&gt;'s constructor is a no-op while &lt;code&gt;\PDO&lt;/code&gt;'s is not: rewriting &lt;code&gt;new StubPDO()&lt;/code&gt;, &lt;code&gt;extends StubPDO&lt;/code&gt;, or &lt;code&gt;instanceof StubPDO&lt;/code&gt; would change runtime behavior, so those forms are intentionally left untouched.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$mock_pdo = $this-&amp;gt;createStub(\Drupal\Tests\Core\Database\Stub\StubPDO::class);
-$connection = new StubConnection($mock_pdo, []);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$mock_pdo = $this-&amp;gt;createStub(\PDO::class);
-$connection = new StubConnection($mock_pdo, []);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites the &lt;code&gt;::class&lt;/code&gt; constant fetch. Direct instantiation (&lt;code&gt;new StubPDO()&lt;/code&gt;), &lt;code&gt;extends StubPDO&lt;/code&gt;, and &lt;code&gt;instanceof StubPDO&lt;/code&gt; are left untouched because &lt;code&gt;StubPDO&lt;/code&gt;'s constructor is a no-op while &lt;code&gt;\PDO&lt;/code&gt;'s real constructor requires connection arguments; blindly renaming those forms could produce a fatal error. Leftover unused &lt;code&gt;use Drupal\Tests\Core\Database\Stub\StubPDO;&lt;/code&gt; imports are not removed.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplaceStubPdoClassConstantRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace \Drupal\Tests\Core\Database\Stub\StubPDO::class with \PDO::class.',
-            [new CodeSample(
-                '$mock = $this-&amp;gt;createStub(\Drupal\Tests\Core\Database\Stub\StubPDO::class);',
-                '$mock = $this-&amp;gt;createStub(\PDO::class);',
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [ClassConstFetch::class];
-    }
-
-    /** @param ClassConstFetch $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof ClassConstFetch) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'class')) {
-            return null;
-        }
-        if (!$node-&amp;gt;class instanceof Node\Name) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Tests\\Core\\Database\\Stub\\StubPDO')) {
-            return null;
-        }
-
-        return new ClassConstFetch(new FullyQualified('PDO'), 'class');
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplaceStubPdoClassConstantRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

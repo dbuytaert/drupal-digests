@@ -5,6 +5,73 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2025089: Deprecate user_role_grant_permissions(), user_role_revoke_permissions() and user_role_change_permissions()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2025089.md</link>
+      <guid isPermaLink="false">01a07bd8-1386-7029-afa3-68f9cae3073e</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 07 Sep 2026 08:30:22 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 43 files, +354/−173 · php +354/−173&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/0f7caab85792ea82caaea4bbd871491384bc79b8"&gt;0f7caab&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2025089"&gt;#2025089&lt;/a&gt; · 12 contributors · 72 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 12 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal has long had three procedural helper functions for adding, removing, or bulk-changing the permissions on a user role: &lt;code&gt;user_role_grant_permissions()&lt;/code&gt;, &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt;, and &lt;code&gt;user_role_change_permissions()&lt;/code&gt;. These are now deprecated in favor of equivalent methods directly on the role entity's &lt;code&gt;RoleInterface&lt;/code&gt;. Core's own call sites (tests, &lt;code&gt;filter.module&lt;/code&gt;, the permissions form, and several contrib-adjacent modules) have all been converted to the new object-oriented API. Sites and contributed modules that call the old functions will get a deprecation notice and must switch before Drupal 13, where the functions are removed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;user_role_grant_permissions()&lt;/code&gt;, &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt; and &lt;code&gt;user_role_change_permissions()&lt;/code&gt; are deprecated in favor of &lt;code&gt;RoleInterface::grantPermissions()&lt;/code&gt;, &lt;code&gt;RoleInterface::revokePermissions()&lt;/code&gt; and &lt;code&gt;RoleInterface::changePermissions()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;RoleInterface&lt;/code&gt; gains &lt;code&gt;grantPermissions(array $permissions)&lt;/code&gt;, &lt;code&gt;revokePermissions(array $permissions)&lt;/code&gt; and &lt;code&gt;changePermissions(array $permissions)&lt;/code&gt; methods for bulk permission changes on a role entity.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;RoleInterface&lt;/code&gt; gains three new methods: &lt;code&gt;grantPermissions(array $permissions): static&lt;/code&gt;, &lt;code&gt;revokePermissions(array $permissions): static&lt;/code&gt;, and &lt;code&gt;changePermissions(array $permissions): static&lt;/code&gt;. The existing singular &lt;code&gt;grantPermission()&lt;/code&gt; and &lt;code&gt;revokePermission()&lt;/code&gt; methods on &lt;code&gt;Role&lt;/code&gt; are now thin wrappers that cast their argument to an array and delegate to the new plural methods, so no behavior changes there. &lt;code&gt;changePermissions()&lt;/code&gt; (previously only a procedural function's logic) is now a first-class interface method: it filters the given associative array into permissions to grant versus revoke and calls the other two methods accordingly.&lt;/p&gt;
+&lt;p&gt;The three deprecated procedural functions in &lt;code&gt;user.module&lt;/code&gt; now load the role with &lt;code&gt;\Drupal::entityTypeManager()-&amp;gt;getStorage('user_role')-&amp;gt;loadOverrideFree($rid)&lt;/code&gt;, call the corresponding new &lt;code&gt;RoleInterface&lt;/code&gt; method, save, and emit an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; trigger_error. Call sites throughout core (comment, file, filter, image, media, node, responsive_image, system, taxonomy, user tests, and &lt;code&gt;filter.module&lt;/code&gt;'s &lt;code&gt;FilterFormat::postSave()&lt;/code&gt; and the permissions form submit handler) were updated to the pattern &lt;code&gt;Role::loadOverrideFree($rid)-&amp;gt;grantPermissions([...])-&amp;gt;save()&lt;/code&gt; (or &lt;code&gt;revokePermissions()&lt;/code&gt;/&lt;code&gt;changePermissions()&lt;/code&gt;), replacing direct calls to the deprecated functions. See &lt;a href="https://www.drupal.org/node/3620216"&gt;#3620216&lt;/a&gt; for the &lt;code&gt;loadOverrideFree()&lt;/code&gt;/&lt;code&gt;loadMultipleOverrideFree()&lt;/code&gt; API this conversion depends on.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace calls to the deprecated procedural functions with the equivalent &lt;code&gt;RoleInterface&lt;/code&gt; methods on a loaded role entity:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+user_role_grant_permissions($rid, ['administer nodes']);
+user_role_revoke_permissions($rid, ['administer nodes']);
+user_role_change_permissions($rid, ['administer nodes' =&amp;gt; TRUE, 'access content' =&amp;gt; FALSE]);
+
+// After:
+use Drupal\user\Entity\Role;
+
+Role::loadOverrideFree($rid)-&amp;gt;grantPermissions(['administer nodes'])-&amp;gt;save();
+Role::loadOverrideFree($rid)-&amp;gt;revokePermissions(['administer nodes'])-&amp;gt;save();
+Role::loadOverrideFree($rid)-&amp;gt;changePermissions([
+  'administer nodes' =&amp;gt; TRUE,
+  'access content' =&amp;gt; FALSE,
+])-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note &lt;code&gt;loadOverrideFree()&lt;/code&gt; can return &lt;code&gt;NULL&lt;/code&gt; if the role doesn't exist, so guard with &lt;code&gt;?-&amp;gt;&lt;/code&gt; where appropriate, as done in &lt;code&gt;media_install()&lt;/code&gt; and &lt;code&gt;node_install()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 21, 2013&lt;/li&gt;
+&lt;li&gt;Committed: September 7, 2026 (13 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The API shape was debated for years between andypost and alexpott: whether &lt;code&gt;grantPermissions()&lt;/code&gt;/&lt;code&gt;revokePermissions()&lt;/code&gt; should take an array argument or be variadic extensions of the singular methods, and whether the plural methods were even worth adding alongside the singular ones. alexpott argued a dedicated plural array-accepting method was clearer than overloading the singular method with variadic arguments, which andypost preferred for its type-safety of individual string arguments. When nicxvan picked up the implementation, they resolved the long-standing disagreement by following alexpott's array-based approach, and opened a follow-up (&lt;a href="https://www.drupal.org/node/3621087"&gt;#3621087&lt;/a&gt;) to address the singular/plural question for &lt;code&gt;UserCreationTrait&lt;/code&gt; separately. berdir's review noted the diff didn't change the actual list of permissions, only how the calls were made, and estimated contrib has roughly 700 call sites that would need similar conversion, suggesting Rector automation.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#2865710: Dependencies from only one instance of a widget are used in display modes</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2865710.md</link>
       <guid isPermaLink="false">01a07187-bb69-771a-af82-9112a8313878</guid>
@@ -1049,88 +1116,6 @@ if (isset($field_definitions['user_picture'])) {
 &lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3580703: Deprecate update.module functions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3580703.md</link>
-      <guid isPermaLink="false">01a057cd-93f7-77c7-98c8-b12791cd5b35</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 31 Aug 2026 09:14:14 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +449/−196 · php +449/−196&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b0d6a1940a3bcd13ace7675e23b152da505c1ccd"&gt;b0d6a19&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580703"&gt;#3580703&lt;/a&gt; · 6 contributors · 26 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Update Status module's last remaining legacy procedural functions have been deprecated in favor of object-oriented equivalents. There is no behavior change for site visitors or administrators using the update reports UI; this is purely an internal API migration. Custom code or contrib modules that call these functions directly will see deprecation notices starting in Drupal 11.5 and must switch to the replacements before Drupal 13.0, when the old functions are removed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Nine procedural functions in &lt;code&gt;update.module&lt;/code&gt; are deprecated for removal in Drupal 13.0.0: &lt;code&gt;_update_no_data()&lt;/code&gt;, &lt;code&gt;update_get_available()&lt;/code&gt;, &lt;code&gt;update_create_fetch_task()&lt;/code&gt;, &lt;code&gt;update_refresh()&lt;/code&gt;, &lt;code&gt;update_fetch_data()&lt;/code&gt;, &lt;code&gt;update_fetch_data_finished()&lt;/code&gt;, &lt;code&gt;_update_message_text()&lt;/code&gt;, &lt;code&gt;_update_project_status_sort()&lt;/code&gt;, &lt;code&gt;update_storage_clear()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;UpdateManagerInterface&lt;/code&gt; gains &lt;code&gt;getAvailable(bool $refresh)&lt;/code&gt; and &lt;code&gt;reset(): void&lt;/code&gt; methods.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Most of the deprecated functions were already thin wrappers around service calls; they now just trigger an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error and delegate to the same service. &lt;code&gt;update_get_available()&lt;/code&gt; moves its full logic onto a new &lt;code&gt;UpdateManagerInterface::getAvailable()&lt;/code&gt; method (implemented in &lt;code&gt;UpdateManager&lt;/code&gt;), and &lt;code&gt;update_storage_clear()&lt;/code&gt; becomes &lt;code&gt;UpdateManagerInterface::reset()&lt;/code&gt;, which clears both the &lt;code&gt;update&lt;/code&gt; key/value store and the &lt;code&gt;update_available_releases&lt;/code&gt; expirable temp store. &lt;code&gt;update_create_fetch_task()&lt;/code&gt;, &lt;code&gt;update_refresh()&lt;/code&gt;, and &lt;code&gt;update_fetch_data()&lt;/code&gt; simply forward to the existing &lt;code&gt;update.processor&lt;/code&gt; and &lt;code&gt;update.manager&lt;/code&gt; services.&lt;/p&gt;
-&lt;p&gt;Two functions have no direct replacement because they were internal implementation details, not really general-purpose utilities: &lt;code&gt;update_fetch_data_finished()&lt;/code&gt;'s logic moved to a new &lt;code&gt;UpdateController::updateFetchDataFinished()&lt;/code&gt; method (the batch finish callback is now &lt;code&gt;self::class . ':updateFetchDataFinished'&lt;/code&gt; instead of the bare function name), and &lt;code&gt;_update_project_status_sort()&lt;/code&gt;'s comparison logic was inlined as an anonymous function inside &lt;code&gt;UpdateRequirements::runtime()&lt;/code&gt;. The message-building helpers &lt;code&gt;_update_no_data()&lt;/code&gt; and &lt;code&gt;_update_message_text()&lt;/code&gt; moved into a new &lt;code&gt;UpdateMessageTrait&lt;/code&gt; (&lt;code&gt;noData()&lt;/code&gt; and &lt;code&gt;getText()&lt;/code&gt;), which is now used by &lt;code&gt;UpdateHooks&lt;/code&gt;, &lt;code&gt;UpdateRequirements&lt;/code&gt;, and &lt;code&gt;UpdateThemeHooks&lt;/code&gt;. A new &lt;code&gt;Drupal\update\Hook\UpdateExtensionHooks&lt;/code&gt; class centralizes the &lt;code&gt;hook_themes_installed&lt;/code&gt;/&lt;code&gt;uninstalled&lt;/code&gt; and &lt;code&gt;hook_modules_installed&lt;/code&gt;/&lt;code&gt;uninstalled&lt;/code&gt; implementations that previously lived in &lt;code&gt;UpdateHooks&lt;/code&gt; and called &lt;code&gt;update_storage_clear()&lt;/code&gt;; they now call &lt;code&gt;$this-&amp;gt;updateManager-&amp;gt;reset()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;While migrating callers, the author noticed some code was reading from the key/value collection &lt;code&gt;update_available_release&lt;/code&gt; (singular) instead of the correct &lt;code&gt;update_available_releases&lt;/code&gt; (plural), including in Package Manager's admin cache-clearing code and a related test; those were corrected as part of this change. &lt;code&gt;Drupal\package_manager\ProjectInfo&lt;/code&gt;'s constructor also gained a required &lt;code&gt;UpdateManagerInterface $updateManager&lt;/code&gt; argument so it can call &lt;code&gt;getAvailable()&lt;/code&gt; as a service instead of the deprecated function, which affects its callers &lt;code&gt;SupportedReleaseValidator&lt;/code&gt; and related tests.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace calls to the deprecated functions with their service-based equivalents:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-update_get_available($refresh);
-// After:
-\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;getAvailable($refresh);
-
-// Before:
-update_create_fetch_task($project);
-// After:
-\Drupal::service('update.processor')-&amp;gt;createFetchTask($project);
-
-// Before:
-update_refresh();
-// After:
-\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;refreshUpdateData();
-
-// Before:
-update_fetch_data();
-// After:
-\Drupal::service('update.processor')-&amp;gt;fetchData();
-
-// Before:
-update_storage_clear();
-// After:
-\Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;reset();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;code&gt;_update_no_data()&lt;/code&gt; and &lt;code&gt;_update_message_text()&lt;/code&gt; are replaced by &lt;code&gt;noData()&lt;/code&gt; and &lt;code&gt;getText()&lt;/code&gt; on the new &lt;code&gt;\Drupal\update\UpdateMessageTrait&lt;/code&gt;, which classes needing them should &lt;code&gt;use&lt;/code&gt;. &lt;code&gt;update_fetch_data_finished()&lt;/code&gt; and &lt;code&gt;_update_project_status_sort()&lt;/code&gt; have no replacement; their logic is now private to &lt;code&gt;UpdateController&lt;/code&gt; and &lt;code&gt;UpdateRequirements&lt;/code&gt; respectively.&lt;/p&gt;
-&lt;p&gt;If you construct &lt;code&gt;\Drupal\package_manager\ProjectInfo&lt;/code&gt; directly, it now requires an &lt;code&gt;UpdateManagerInterface&lt;/code&gt; service as a second constructor argument:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-new ProjectInfo($project_name);
-// After:
-new ProjectInfo($project_name, \Drupal::service(\Drupal\update\UpdateManagerInterface::class));
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: August 31, 2026 (5 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;dww (3281d Consulting)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;dww raised a broader concern about the update module's ad hoc service organization (&amp;quot;we already have some weird services that are sort of incomplete and interact with each other in 'interesting' ways&amp;quot;) and suggested a wider &amp;quot;Modernize Update Status&amp;quot; effort rather than adding more piecemeal services; the issue proceeded with the deprecation as scoped. During implementation, berdir caught that a batch operation callback was storing an &lt;code&gt;UpdateManager&lt;/code&gt; instance directly in batch data rather than calling it as a service, which nicxvan then corrected. nicxvan also noted while doing the migration that some code incorrectly used the key/value collection name &lt;code&gt;update_available_release&lt;/code&gt; instead of &lt;code&gt;update_available_releases&lt;/code&gt;, and fixed the two occurrences found.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
