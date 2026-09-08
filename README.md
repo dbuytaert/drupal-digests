@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_561 summaries · 19 new this week_
+_561 summaries · 16 new this week_
 
 - [#3594334: Add a module and theme install command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594334.md)
 - [#3619804: Remove unused templates from the Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619804.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_203 rules · 7 new this week_
+_203 rules · 4 new this week_
 
 - [Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent]...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php)
 - [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
