@@ -5,6 +5,51 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3390907: Protect / help avoid validation logic problems</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3390907.md</link>
+      <guid isPermaLink="false">01a081d4-4137-721a-91f7-30903614792d</guid>
+      <pubDate>Tue, 08 Sep 2026 13:02:52 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 3.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +294/−25 · php +294/−25&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/field_validation/-/commit/cc9ba2e7b58b64cfb883dad4b6e94caea1e57089"&gt;cc9ba2e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3390907"&gt;#3390907&lt;/a&gt; · 6 contributors · 19 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Field Validation's Regex rule lets site builders validate a field's value against a PCRE pattern. If the pattern was malformed, most commonly missing its required delimiters (a common mistake when migrating rules from Drupal 7, where delimiters were optional), the module previously let a raw PHP warning from &lt;code&gt;preg_match()&lt;/code&gt; leak straight into the site, both while configuring the rule and later while validating real content. This is fixed: the rule's configuration form now validates the pattern up front and shows a clear, actionable error, and the pattern field's description explicitly states that the expression must include delimiters (e.g. &lt;code&gt;/^[a-z0-9]+$/&lt;/code&gt;). As a safety net, if a bad pattern still slips through and is run against actual field data, the module now traps the underlying warning, logs it, and reports a normal validation failure instead of a PHP warning.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lands in two places. &lt;code&gt;RegexConstraintFieldValidationRule::validateConfigurationForm()&lt;/code&gt; (new) runs the submitted &lt;code&gt;pattern&lt;/code&gt; through &lt;code&gt;preg_match()&lt;/code&gt; under a temporary &lt;code&gt;set_error_handler()&lt;/code&gt; that traps the &lt;code&gt;E_WARNING&lt;/code&gt; &lt;code&gt;preg_match()&lt;/code&gt; emits on a malformed pattern (rather than relying on the &lt;code&gt;@&lt;/code&gt; operator, which is unreliable across error-handler configurations); on failure it calls &lt;code&gt;$form_state-&amp;gt;setErrorByName('pattern', ...)&lt;/code&gt; with a message including the underlying PCRE error. Because this plugin form is nested inside &lt;code&gt;FieldValidationRuleFormBase&lt;/code&gt;, which builds a separate &lt;code&gt;FormState&lt;/code&gt; object for the plugin's own &lt;code&gt;validateConfigurationForm()&lt;/code&gt; call, that base class was also changed to copy any errors recorded on the nested &lt;code&gt;FormState&lt;/code&gt; back onto the real &lt;code&gt;$form_state&lt;/code&gt; via &lt;code&gt;setErrorByName('data][' . $name, ...)&lt;/code&gt;, otherwise the plugin-level error would be silently swallowed.&lt;/p&gt;
+&lt;p&gt;At runtime, &lt;code&gt;FieldValidationConstraintValidator::validate()&lt;/code&gt; and &lt;code&gt;validatePropertyValue()&lt;/code&gt; no longer call &lt;code&gt;$validator-&amp;gt;validate()&lt;/code&gt; directly; they now go through a new &lt;code&gt;safeValidate()&lt;/code&gt; helper that installs the same kind of temporary &lt;code&gt;E_WARNING&lt;/code&gt; handler around the Symfony constraint validator call. If a warning fires (e.g. from Symfony's &lt;code&gt;RegexValidator&lt;/code&gt;) and the validator did not already record a violation, &lt;code&gt;safeValidate()&lt;/code&gt; logs the warning via the &lt;code&gt;field_validation&lt;/code&gt; logger channel and adds a fallback &lt;code&gt;&amp;quot;This value is not valid.&amp;quot;&lt;/code&gt; violation, so a bad pattern saved before this fix (or introduced via config import) no longer surfaces a raw PHP warning to content editors.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 1, 2023&lt;/li&gt;
+&lt;li&gt;Committed: September 8, 2026 (2 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;damienmckenna (Current)&lt;/li&gt;
+&lt;li&gt;pcambra (Cambrico)&lt;/li&gt;
+&lt;li&gt;marc.bau&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;damienmckenna's original report identified the root cause himself in the thread: regex strings needed leading/trailing delimiter slashes but the UI gave no hint, so he reframed the issue from &amp;quot;bug&amp;quot; to a UI/guidance improvement. abhisekmazumdar opened the fixing MR and, on closing the issue, credited ahmad-khalil-imagex for a thorough review.&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3471408: not_blank_constraint_rule fail on fields with multiple values</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md</link>
       <guid isPermaLink="false">01a0589f-df15-7633-8b96-f76363f30570</guid>
@@ -752,51 +797,6 @@ ai_best_practices.yaml
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;ronaldtebrake caught that the initial proposal used &lt;code&gt;index.md&lt;/code&gt; as the skill entry point instead of the spec-compliant &lt;code&gt;SKILL.md&lt;/code&gt;, and restructured the frontmatter to use the Agent Skills specification's required &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; fields, preserving the prose-heavy guidance style while making it interoperable with the broader ecosystem. jrockowitz raised the namespacing concern: without prefixes, skill names from different packages would collide (citing existing conflicts on skills.sh), and pointed to the Drupal.org CLI repo as an example already using namespacing. That observation drove the &lt;code&gt;drupal-*&lt;/code&gt; prefix standard that the final architecture adopted.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601380: Separate composer and recipe</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3601380.md</link>
-      <guid isPermaLink="false">019f7f98-bad5-7157-9fc1-3cac784a0146</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 20 Jul 2026 11:40:47 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601380"&gt;#3601380&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;recipes&lt;/code&gt; key in &lt;code&gt;.drupalaibp.json&lt;/code&gt; no longer fetches packages from Composer. It is now apply-only: the installer runs &lt;code&gt;drush recipe&lt;/code&gt; for each entry but never calls &lt;code&gt;composer require&lt;/code&gt;. Contrib recipes (e.g. &lt;code&gt;drupal/drupal_cms_blog&lt;/code&gt;) must be listed in both &lt;code&gt;composer_projects&lt;/code&gt; (to fetch) and &lt;code&gt;recipes&lt;/code&gt; (to apply). Core or already-present recipes (e.g. &lt;code&gt;core/recipes/standard&lt;/code&gt;) still work in &lt;code&gt;recipes&lt;/code&gt; alone because no fetch is needed. A new boolean key &lt;code&gt;composer_with_all_dependencies&lt;/code&gt; passes &lt;code&gt;--with-all-dependencies&lt;/code&gt; (&lt;code&gt;-W&lt;/code&gt;) to the &lt;code&gt;composer_projects&lt;/code&gt; require step for packages that pull in a broader dependency tree.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;recipes&lt;/code&gt; key is now apply-only; contrib recipes must also be listed in &lt;code&gt;composer_projects&lt;/code&gt; for the fetch step. New &lt;code&gt;composer_with_all_dependencies&lt;/code&gt; boolean key adds &lt;code&gt;--with-all-dependencies&lt;/code&gt; to the &lt;code&gt;composer_projects&lt;/code&gt; require call.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Previously &lt;code&gt;step_provision_from_config&lt;/code&gt; handled the &lt;code&gt;RECIPES&lt;/code&gt; array by calling &lt;code&gt;composer require&lt;/code&gt; followed by &lt;code&gt;drush recipe&lt;/code&gt; in one loop, conflating fetch and apply. The refactor splits them into two strictly ordered phases: &lt;code&gt;COMPOSER_PROJECTS&lt;/code&gt; are &lt;code&gt;composer require --no-interaction&lt;/code&gt;'d (no apply); &lt;code&gt;RECIPES&lt;/code&gt; are &lt;code&gt;drush recipe&lt;/code&gt;'d (no fetch). A &lt;code&gt;drupal/&amp;lt;name&amp;gt;&lt;/code&gt; entry in &lt;code&gt;RECIPES&lt;/code&gt; maps to &lt;code&gt;../recipes/${name#drupal/}&lt;/code&gt; because &lt;code&gt;ddev drush&lt;/code&gt; runs from the &lt;code&gt;web/&lt;/code&gt; docroot and Composer installs contrib recipes one level up in &lt;code&gt;recipes/&lt;/code&gt;; any other recipe locator (e.g. &lt;code&gt;core/recipes/standard&lt;/code&gt;) is passed to drush verbatim. The &lt;code&gt;COMPOSER_WITH_ALL_DEPS&lt;/code&gt; global, loaded from the new &lt;code&gt;composer_with_all_dependencies&lt;/code&gt; config key, appends &lt;code&gt;--with-all-dependencies&lt;/code&gt; to the single &lt;code&gt;composer require&lt;/code&gt; call when a recipe or package requires a broader dependency-tree update. The &lt;code&gt;provision_from_config.sh&lt;/code&gt; source file and the AGENTS.md, README, and &lt;code&gt;docs/drupalaibp-json.md&lt;/code&gt; documentation were all updated to reflect the separation.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any &lt;code&gt;.drupalaibp.json&lt;/code&gt; that listed a contrib recipe solely in &lt;code&gt;recipes&lt;/code&gt; must be updated to also list it in &lt;code&gt;composer_projects&lt;/code&gt;. Core or built-in recipes that need no download are unaffected.&lt;/p&gt;
-&lt;p&gt;Before:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;recipes&amp;quot;: [&amp;quot;drupal/drupal_cms_blog&amp;quot;]
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;After:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;composer_projects&amp;quot;: [&amp;quot;drupal/drupal_cms_blog&amp;quot;],
-  &amp;quot;composer_with_all_dependencies&amp;quot;: true,
-  &amp;quot;recipes&amp;quot;: [&amp;quot;drupal/drupal_cms_blog&amp;quot;]
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;code&gt;composer_with_all_dependencies&lt;/code&gt; is optional; set it to &lt;code&gt;true&lt;/code&gt; when the recipe pulls in packages that require their shared dependencies to be updated together.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 20, 2026&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

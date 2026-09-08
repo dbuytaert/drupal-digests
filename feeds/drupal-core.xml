@@ -5,6 +5,60 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3594334: Add a module and theme install command</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594334.md</link>
+      <guid isPermaLink="false">01a081d3-96e8-749e-a057-be4ff428e39b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 08 Sep 2026 14:24:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +805/−106 · php +802/−106 · yml +2 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/94a65fff7a2f157633c65806c83ec2f7bfe7c709"&gt;94a65ff&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3594334"&gt;#3594334&lt;/a&gt; · 9 contributors · 58 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core now ships its own console command for installing modules and themes, &lt;code&gt;ex:install&lt;/code&gt; (also invokable as &lt;code&gt;exin&lt;/code&gt;, &lt;code&gt;pm:install&lt;/code&gt;, &lt;code&gt;pm:enable&lt;/code&gt;, &lt;code&gt;enable&lt;/code&gt;, or &lt;code&gt;en&lt;/code&gt;), part of the &amp;quot;CLI in Core&amp;quot; initiative (&lt;a href="https://www.drupal.org/node/3582246"&gt;#3582246&lt;/a&gt;). Previously this required a contributed tool like Drush. The command accepts a comma-separated list of module or theme machine names, resolves and reports any dependencies that will be pulled in, checks installation requirements the same way the admin &amp;quot;Extend&amp;quot; page does, and asks for confirmation before installing dependencies that were not explicitly requested (bypassable with &lt;code&gt;--yes&lt;/code&gt;/&lt;code&gt;-y&lt;/code&gt;). A &lt;code&gt;--dry-run&lt;/code&gt; option previews what would happen without making changes. On success it lists Help, Permissions, and Configure links for each installed extension, mirroring what a site builder sees after installing from the UI. Modules and themes cannot be mixed in a single invocation.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ModuleInstallerInterface::getModulesToInstall()&lt;/code&gt; and &lt;code&gt;ThemeInstallerInterface::getThemesToInstall()&lt;/code&gt; methods return the dependency-resolved list of modules/themes that would be installed, without installing them.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The command lives in &lt;code&gt;Drupal\system\Command\ExtensionInstallCommand&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) and classifies each requested name as a module or theme by checking the reset module/theme extension lists before delegating to installer services.&lt;/p&gt;
+&lt;p&gt;To support &amp;quot;show what would happen&amp;quot; without installing, &lt;code&gt;ModuleInstallerInterface&lt;/code&gt; and &lt;code&gt;ThemeInstallerInterface&lt;/code&gt; gained new methods, &lt;code&gt;getModulesToInstall()&lt;/code&gt; and &lt;code&gt;getThemesToInstall()&lt;/code&gt;, which return the dependency-resolved, install-ordered list of extensions (already-installed ones omitted) without side effects, throwing &lt;code&gt;MissingDependencyException&lt;/code&gt;, &lt;code&gt;ObsoleteExtensionException&lt;/code&gt;, or &lt;code&gt;UnknownExtensionException&lt;/code&gt; on invalid input. &lt;code&gt;ModuleInstaller::install()&lt;/code&gt; and &lt;code&gt;ThemeInstaller::install()&lt;/code&gt; were refactored to call these new methods internally rather than duplicating the resolution logic, with the side effect that deprecation notices for &lt;code&gt;DEPRECATED&lt;/code&gt;-lifecycle extensions are now emitted only for the extensions the caller explicitly requested, not for dependencies pulled in automatically. &lt;code&gt;ModulesListForm::buildModuleList()&lt;/code&gt; (the admin Extend confirmation form) was also refactored to call &lt;code&gt;getModulesToInstall()&lt;/code&gt; via new &lt;code&gt;classifyByStability()&lt;/code&gt; and &lt;code&gt;groupDependenciesByParent()&lt;/code&gt; helper methods, so the CLI and the UI now share the same dependency-resolution and validation code path. The methods were added directly to the interfaces rather than left as class-only additions, per Drupal's BC policy allowing this in minor releases when there is a 1-1 interface/class relationship (raised by catch in review).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that implements &lt;code&gt;Drupal\Core\Extension\ModuleInstallerInterface&lt;/code&gt; or &lt;code&gt;Drupal\Core\Extension\ThemeInstallerInterface&lt;/code&gt; directly (rather than extending the core &lt;code&gt;ModuleInstaller&lt;/code&gt;/&lt;code&gt;ThemeInstaller&lt;/code&gt; classes) must implement the new interface methods:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function getModulesToInstall(array $module_list, bool $enable_dependencies = TRUE): array;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function getThemesToInstall(array $theme_list, bool $install_dependencies = TRUE): array;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 8, 2026 (3 months and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;moshe weitzman&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;ressa&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Manual testing surfaced a real bug: mradcliffe tried &lt;code&gt;dr ex:install workspaces_ui,rest&lt;/code&gt; and a fresh quick-start install and hit a white screen caused by a &lt;code&gt;FieldException&lt;/code&gt; on the &lt;code&gt;workspace&lt;/code&gt; entity reference field. moshe weitzman traced it to the &lt;code&gt;$allow_dumping&lt;/code&gt; DrupalKernel parameter and fixed it by flipping its default to &lt;code&gt;TRUE&lt;/code&gt; (matching Drush's long-standing behavior) and consolidating duplicate &lt;code&gt;applicationTester()&lt;/code&gt; test helper methods, which also fixed quick-start; the same underlying issue was independently fixed in &lt;a href="https://www.drupal.org/node/3611084"&gt;#3611084&lt;/a&gt;. nicxvan did extensive manual testing of module and theme installs, including with dependencies and via the UI confirmation form, and asked why the new methods weren't added to the interfaces; catch pointed to core's BC policy permitting interface additions in minor releases for classes with a 1-1 interface relationship, and nicxvan agreed to add them despite earlier hesitation about disruption.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3619804: Remove unused templates from the Admin theme</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619804.md</link>
       <guid isPermaLink="false">01a080fe-0b81-7479-b023-1d0b337063f7</guid>
@@ -1071,46 +1125,6 @@ if ($source-&amp;gt;isUpdateAvailable()) { ... }
 &lt;li&gt;dcam&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3619751: Remove links from filter permission descriptions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619751.md</link>
-      <guid isPermaLink="false">01a05cf1-3f60-7245-bea0-fc0c9a133a22</guid>
-      <pubDate>Tue, 01 Sep 2026 08:55:30 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +1/−7 · php +1/−7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/12b38bdacee43912be4808b9a3c0cf25a58dcf99"&gt;12b38bd&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3619751"&gt;#3619751&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Generating the permissions list for the Filter module used to build a link (to the text format's edit page) inside each permission's title. Constructing that link forced Drupal's lazy-built router to rebuild, adding about 500ms to every standard Drupal installation and to any test that installs the Filter module. This change removes the link from the permission title text, which now just reads &amp;quot;Use the [format label] text format&amp;quot; without a hyperlink. The fix has no functional effect beyond faster installs and slightly plainer wording on the permissions page.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The slowdown traced back to &lt;code&gt;Drupal\filter\FilterPermissions::permissions()&lt;/code&gt;, which built each permission's &lt;code&gt;title&lt;/code&gt; with &lt;code&gt;$this-&amp;gt;t('Use the &amp;lt;a href=&amp;quot;:url&amp;quot;&amp;gt;@label&amp;lt;/a&amp;gt; text format', [':url' =&amp;gt; $format-&amp;gt;toUrl()-&amp;gt;toString(), ...])&lt;/code&gt;. Calling &lt;code&gt;$format-&amp;gt;toUrl()-&amp;gt;toString()&lt;/code&gt; triggers URL generation, which in turn caused the install-time lazy router to rebuild on every call, the actual source of the ~500ms overhead per installation. The fix simply drops the &lt;code&gt;:url&lt;/code&gt; argument and the anchor markup, leaving &lt;code&gt;$this-&amp;gt;t('Use the @label text format', ['@label' =&amp;gt; $format-&amp;gt;label()])&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A related cleanup landed in &lt;code&gt;FilterDefaultConfigTest&lt;/code&gt;: a comment and an &lt;code&gt;installEntitySchema('user')&lt;/code&gt; call that existed only to support the now-removed URL generation were deleted from &lt;code&gt;setUp()&lt;/code&gt;, since the test still installs user configuration via &lt;code&gt;installConfig(['user', 'filter_test'])&lt;/code&gt; for its role-related assertions.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 28, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 1, 2026 (3 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;While reviewing, longwave noticed an outdated comment in &lt;code&gt;FilterDefaultConfigTest&lt;/code&gt; referencing the old link-building behavior and flagged that related setup code could likely be removed. Catch confirmed the comment and the &lt;code&gt;installEntitySchema('user')&lt;/code&gt; call could go, while noting the test still needed the user module installed for its role-related checks.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
