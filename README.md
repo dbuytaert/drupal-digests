@@ -1,4 +1,4 @@
-**TL;DR:** [1024 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1025 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_559 summaries · 19 new this week_
+_560 summaries · 19 new this week_
 
+- [#3619804: Remove unused templates from the Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619804.md)
 - [#3561302: Register equivalent updates on site install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561302.md)
 - [#3452493: Remove images that have been replaced with svg files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3452493.md)
-- [#2025089: Deprecate user_role_grant_permissions(), user_role_revoke_permissions() and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2025089.md)
 
 ### Drupal Canvas
 
