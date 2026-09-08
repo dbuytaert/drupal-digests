@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_559 summaries · 20 new this week_
+_559 summaries · 19 new this week_
 
 - [#3561302: Register equivalent updates on site install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561302.md)
 - [#3452493: Remove images that have been replaced with svg files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3452493.md)
