@@ -1,4 +1,4 @@
-**TL;DR:** [1029 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1031 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_563 summaries · 18 new this week_
+_565 summaries · 19 new this week_
 
+- [#2660338: Deprecate locale_get_plural](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2660338.md)
+- [#3620912: Deprecate user.module cancel methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620912.md)
 - [#3620746: Remove deprecated methods and functions tagged for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620746.md)
-- [#3620747: Remove deprecated method arguments tagged for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620747.md)
-- [#3594334: Add a module and theme install command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594334.md)
 
 ### Drupal AI
 
@@ -22,7 +22,7 @@ _128 summaries · 1 new this week_
 
 ### Drupal Canvas
 
-_247 summaries · 4 new this week_
+_247 summaries · 1 new this week_
 
 - [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
 - [#3592001: Apply page variant translation overrides to previews](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592001.md)
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_203 rules · 4 new this week_
+_204 rules · 5 new this week_
 
+- [Replace deprecated user.module cancel functions with the AccountCancellation...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php)
 - [Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent]...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php)
 - [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
-- [Rewrite deprecated update.compare.inc functions to...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php)
 
 
 ## RSS feeds

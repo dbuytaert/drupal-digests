@@ -5,6 +5,106 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace deprecated user.module cancel functions with the AccountCancellation service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php</link>
+      <guid isPermaLink="false">01a086fe-a88c-7570-afd6-b020635e8e3e</guid>
+      <pubDate>Wed, 09 Sep 2026 16:27:11 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620912"&gt;#3620912&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;user_cancel()&lt;/code&gt;, &lt;code&gt;_user_cancel()&lt;/code&gt;, &lt;code&gt;_user_cancel_session_regenerate()&lt;/code&gt;, and &lt;code&gt;user_cancel_methods()&lt;/code&gt; in favor of the new &lt;code&gt;Drupal\user\AccountCancellation&lt;/code&gt; service, which exposes equivalent &lt;code&gt;cancel()&lt;/code&gt;, &lt;code&gt;cancelAccount()&lt;/code&gt;, &lt;code&gt;regenerateSession()&lt;/code&gt;, and &lt;code&gt;cancelMethods()&lt;/code&gt; methods. This rule rewrites direct calls to these global functions into calls on the service fetched via &lt;code&gt;\Drupal::service(AccountCancellation::class)&lt;/code&gt;, so contrib and custom code invoking user account cancellation continues to work once the functions are removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_cancel($edit, $uid, $method);
+_user_cancel($edit, $account, $method);
+_user_cancel_session_regenerate();
+$methods = user_cancel_methods();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancel($edit, $uid, $method);
+\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancelAccount($edit, $account, $method);
+\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;regenerateSession();
+$methods = \Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancelMethods();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites direct calls to these four global function names; dynamic calls (&lt;code&gt;$fn()&lt;/code&gt;, &lt;code&gt;call_user_func()&lt;/code&gt;) and same-named methods/static calls on unrelated classes are left untouched since they cannot be safely disambiguated at the AST level.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserCancelFunctionsWithAccountCancellationRector extends AbstractRector
+{
+    /**
+     * @var array&amp;lt;string, string&amp;gt;
+     */
+    private const FUNCTION_TO_METHOD = [
+        'user_cancel' =&amp;gt; 'cancel',
+        '_user_cancel' =&amp;gt; 'cancelAccount',
+        '_user_cancel_session_regenerate' =&amp;gt; 'regenerateSession',
+        'user_cancel_methods' =&amp;gt; 'cancelMethods',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user.module account cancellation functions with the AccountCancellation service.',
+            [new CodeSample(
+                'user_cancel($edit, $uid, $method);',
+                &amp;quot;\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancel(\$edit, \$uid, \$method);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if ($node-&amp;gt;name instanceof Node\Expr) {
+            // Dynamic function calls (e.g. $fn()) are never a match.
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_TO_METHOD[$functionName])) {
+            return null;
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg($this-&amp;gt;nodeFactory-&amp;gt;createClassConstFetch('Drupal\\user\\AccountCancellation', 'class'))],
+        );
+
+        return new MethodCall($service, self::FUNCTION_TO_METHOD[$functionName], $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserCancelFunctionsWithAccountCancellationRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent] attribute</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php</link>
       <guid isPermaLink="false">01a07d8d-cde9-71fa-9f1e-f3e6b577b7d5</guid>
@@ -2180,88 +2280,6 @@ CODE_SAMPLE
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([PromoteRouteAttributeTitleRector::class]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace FileStorageFactory::getSync() with the config.storage.sync service</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-filestoragefactory-getsync-with-the-config-storage-2951046.php</link>
-      <guid isPermaLink="false">019fa47e-60f6-706b-9b5f-e64fbcc01c9c</guid>
-      <pubDate>Mon, 27 Jul 2026 16:52:53 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2951046"&gt;#2951046&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;code&gt;Drupal\Core\Config\FileStorageFactory::getSync()&lt;/code&gt; is deprecated in favor of the &lt;code&gt;config.storage.sync&lt;/code&gt; service, which now wraps the sync directory in an &lt;code&gt;AutoloadingStorage&lt;/code&gt; decorator so PHP constants and enums referenced in YAML config can be resolved even for not-yet-installed extensions. This rule rewrites zero-argument calls to the static factory method into a call to &lt;code&gt;\Drupal::service('config.storage.sync')&lt;/code&gt;, which contrib code commonly uses to read or compare staged configuration.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$sync = \Drupal\Core\Config\FileStorageFactory::getSync();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$sync = \Drupal::service('config.storage.sync');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites zero-argument calls to &lt;code&gt;getSync()&lt;/code&gt;; the method takes no parameters upstream, so this is not a real limitation. Does not rewrite &lt;code&gt;new FileStorageFactory()&lt;/code&gt; construction, which is also deprecated but rare in practice since the class exposes no other usable API once instantiated.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplaceFileStorageFactoryGetSyncRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace FileStorageFactory::getSync() with the config.storage.sync service.',
-            [new CodeSample(
-                '$sync = \Drupal\Core\Config\FileStorageFactory::getSync();',
-                &amp;quot;\$sync = \\Drupal::service('config.storage.sync');&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [StaticCall::class];
-    }
-
-    /** @param StaticCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof StaticCall) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Core\\Config\\FileStorageFactory')) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'getSync')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) !== 0) {
-            return null;
-        }
-        return new StaticCall(
-            new FullyQualified('Drupal'),
-            'service',
-            [new Arg(new String_('config.storage.sync'))],
-        );
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplaceFileStorageFactoryGetSyncRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
