@@ -1,4 +1,4 @@
-**TL;DR:** [1027 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1029 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [203 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_561 summaries · 16 new this week_
+_563 summaries · 18 new this week_
 
+- [#3620746: Remove deprecated methods and functions tagged for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620746.md)
+- [#3620747: Remove deprecated method arguments tagged for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620747.md)
 - [#3594334: Add a module and theme install command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594334.md)
-- [#3619804: Remove unused templates from the Admin theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619804.md)
-- [#3561302: Register equivalent updates on site install](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3561302.md)
 
 ### Drupal AI
 
