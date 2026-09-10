@@ -1,4 +1,4 @@
-**TL;DR:** [1031 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1032 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_565 summaries · 19 new this week_
+_566 summaries · 20 new this week_
 
+- [#3569121: [meta] Tasks to remove the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569121.md)
 - [#2660338: Deprecate locale_get_plural](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2660338.md)
 - [#3620912: Deprecate user.module cancel methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620912.md)
-- [#3620746: Remove deprecated methods and functions tagged for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620746.md)
 
 ### Drupal AI
 
