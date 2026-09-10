@@ -5,6 +5,81 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#941970: Rebuild router only when something related to routing changes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md</link>
+      <guid isPermaLink="false">01a08c20-2fd1-7400-a330-70f335d683cd</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 10 Sep 2026 13:54:51 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +893/−25 · php +477/−25 · yml +416&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/99c79fcdb7ff86911733b3818a7f357dac10d43f"&gt;99c79fc&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/941970"&gt;#941970&lt;/a&gt; · 27 contributors · 170 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 43&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 27 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Saving a View in Drupal no longer unconditionally rebuilds the router (menu) and clears the block plugin cache. Previously, saving any view, even one with only a block display, or a page display where nothing routing-related changed, triggered a full router rebuild. Now Views checks whether something that actually affects routing (a path, route name, arguments, access, enabled status, or, for page displays, menu/tab options) or serialization formats (for REST export displays) actually changed before requesting a rebuild, and block displays only queue a block-cache clear when relevant. This can noticeably speed up saving views, particularly for block-only views or views config imports, since the same site request will no longer pay for a router rebuild it doesn't need.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;views_invalidate_cache()&lt;/code&gt; is deprecated in Drupal 11.5.0 and removed in 13.0.0; use &lt;code&gt;\Drupal\views\Views::invalidateCache()&lt;/code&gt; for cache invalidation and call the &lt;code&gt;router.builder&lt;/code&gt;/&lt;code&gt;views.route_subscriber&lt;/code&gt; services directly when a route rebuild is actually needed.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;\Drupal\views\PostSaveViewInterface::postSaveView()&lt;/code&gt;, implemented by views plugins (default empty in &lt;code&gt;PluginBase&lt;/code&gt;), lets a plugin flag on a shared &lt;code&gt;\Drupal\views\PostSaveProcess&lt;/code&gt; object that a router rebuild or plugin-manager cache clear is required after a view is saved.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core mechanism is a new value object, &lt;code&gt;\Drupal\views\PostSaveProcess&lt;/code&gt;, passed through &lt;code&gt;View::postSave()&lt;/code&gt; to every display handler, its per-type handlers, and its plugins. Instead of each plugin acting immediately, it can call &lt;code&gt;$postSaveProcess-&amp;gt;setRouterRebuild()&lt;/code&gt; or &lt;code&gt;$postSaveProcess-&amp;gt;addDiscoveryToClear($discovery)&lt;/code&gt; to flag work; &lt;code&gt;View::postSave()&lt;/code&gt; performs the router rebuild (&lt;code&gt;router.builder&lt;/code&gt;'s &lt;code&gt;setRebuildNeeded()&lt;/code&gt; plus resetting &lt;code&gt;views.route_subscriber&lt;/code&gt;) and clears queued plugin manager caches at most once per save, deduplicated by class name.&lt;/p&gt;
+&lt;p&gt;Plugins participate via the new &lt;code&gt;PostSaveViewInterface::postSaveView(PostSaveProcess $postSaveProcess, ?DisplayPluginInterface $original_display = NULL)&lt;/code&gt;. &lt;code&gt;PathPluginBase&lt;/code&gt; implements it to flag a rebuild when the display is new, when the view's enabled status changed, or when any of &lt;code&gt;getRouteAffectingOptions()&lt;/code&gt; (&lt;code&gt;path&lt;/code&gt;, &lt;code&gt;route_name&lt;/code&gt;, &lt;code&gt;arguments&lt;/code&gt;, &lt;code&gt;access&lt;/code&gt;, &lt;code&gt;enabled&lt;/code&gt;) differs from the original display; &lt;code&gt;Page&lt;/code&gt; extends that option list with &lt;code&gt;menu&lt;/code&gt; and &lt;code&gt;tab_options&lt;/code&gt;. The REST &lt;code&gt;Serializer&lt;/code&gt; style plugin flags a rebuild only when the &lt;code&gt;formats&lt;/code&gt; option changes, since formats are baked into the route. The &lt;code&gt;Block&lt;/code&gt; display plugin queues the block plugin manager (&lt;code&gt;plugin.manager.block&lt;/code&gt;) via &lt;code&gt;addDiscoveryToClear()&lt;/code&gt; instead of unconditionally clearing it.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;views_invalidate_cache()&lt;/code&gt; is split: cache-tag invalidation and the &lt;code&gt;hook_views_invalidate_cache()&lt;/code&gt; invocation move to the new &lt;code&gt;\Drupal\views\Views::invalidateCache()&lt;/code&gt;, called from &lt;code&gt;View::postSave()&lt;/code&gt; and &lt;code&gt;postDelete()&lt;/code&gt;, while the deprecated procedural function keeps its old unconditional &lt;code&gt;router.builder-&amp;gt;setRebuildNeeded()&lt;/code&gt; behavior for backward compatibility. A new kernel test, &lt;code&gt;ViewsSaveProcessTest&lt;/code&gt;, asserts that changing multiple paths or formats across several displays in one save still triggers only one router rebuild and one block-cache clear, and that resaving without relevant changes triggers none.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace direct calls to the deprecated function:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+views_invalidate_cache();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// After:
+use Drupal\views\Views;
+
+Views::invalidateCache();
+// Only if the change actually affects routing:
+\Drupal::service('router.builder')-&amp;gt;setRebuildNeeded();
+\Drupal::service('views.route_subscriber')-&amp;gt;reset();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Custom views plugins (display, style, etc.) that need to react to a view being saved should implement &lt;code&gt;\Drupal\views\PostSaveViewInterface::postSaveView()&lt;/code&gt; and call &lt;code&gt;$postSaveProcess-&amp;gt;setRouterRebuild()&lt;/code&gt; or &lt;code&gt;$postSaveProcess-&amp;gt;addDiscoveryToClear($discovery)&lt;/code&gt; instead of performing router rebuilds or cache clears directly in their own save/postSave logic.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 14, 2010&lt;/li&gt;
+&lt;li&gt;Committed: September 10, 2026 (15 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dawehner&lt;/li&gt;
+&lt;li&gt;andrewbelcher&lt;/li&gt;
+&lt;li&gt;damiankloip&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;mortona2k (Forum One)&lt;/li&gt;
+&lt;li&gt;mpdonadio&lt;/li&gt;
+&lt;li&gt;lendude (Noctilaris)&lt;/li&gt;
+&lt;li&gt;joelpittet&lt;/li&gt;
+&lt;li&gt;alexpott (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
+&lt;li&gt;xjm (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;dave reid&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;graber (MoveOnline)&lt;/li&gt;
+&lt;li&gt;oily&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue originated in 2010 and went through many stalled patch attempts before converging on its current design. Lendude drove the final round of patches from 2016 onward, iterating in response to review from dawehner, damiankloip, and alexpott, who pushed the design from a style-plugin-specific &lt;code&gt;postSaveView()&lt;/code&gt; call toward the generalized approach where any plugin type implementing &lt;code&gt;PostSaveViewInterface&lt;/code&gt; (moved up to the shared &lt;code&gt;PluginBase&lt;/code&gt;) is invoked uniformly from &lt;code&gt;View::postSave()&lt;/code&gt;. In 2022, catch reassessed the issue's severity, noting that router rebuild/link discovery had already been decoupled and rebuilds coalesced via &lt;code&gt;setRebuildNeeded()&lt;/code&gt; since the original report, and reclassified it from a critical bug to a task since the remaining benefit was limited to reducing rebuild counts for admins and config deploys rather than fixing a severe performance regression.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3621981: Remove admin-custom.css </title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621981.md</link>
       <guid isPermaLink="false">01a08a6c-d1fc-7141-8476-1844bbd785f4</guid>
@@ -1030,63 +1105,6 @@ $query-&amp;gt;where(&amp;quot;[title]$suffix LIKE :pattern&amp;quot;, [
 &lt;li&gt;daffie&lt;/li&gt;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585455: Fix return types and baselined errors of core/tests/ Unit code - round 6</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585455.md</link>
-      <guid isPermaLink="false">01a068ee-4db6-720d-af41-3ed345b261c4</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 03 Sep 2026 17:58:24 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 80 files, +346/−1371 · php +345/−1371 · dist +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4ef3e3b7a5623ec5ae6ad184cce20d7a0e26bb30"&gt;4ef3e3b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3585455"&gt;#3585455&lt;/a&gt; · 5 contributors · 30 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is round 6, and the final round, of a series adding explicit PHP return type declarations across Drupal core's test code (&lt;code&gt;core/tests/&lt;/code&gt;) and cleaning up the corresponding PHPStan baseline suppressions. It is almost entirely internal test tooling, but it does add return types to several widely used, subclassable test helper methods, most notably on &lt;code&gt;BrowserTestBase&lt;/code&gt;, &lt;code&gt;UiHelperTrait&lt;/code&gt;, &lt;code&gt;SessionTestTrait&lt;/code&gt;, and &lt;code&gt;DrupalTestBrowser&lt;/code&gt;, the base classes and traits that essentially every functional test in Drupal core and contributed modules extends or uses. Custom test code that overrides the affected methods without matching return types will fail with a fatal PHP error after this change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Protected methods on &lt;code&gt;UiHelperTrait&lt;/code&gt;, &lt;code&gt;SessionTestTrait&lt;/code&gt;, &lt;code&gt;DrupalTestBrowser&lt;/code&gt;, and &lt;code&gt;BrowserTestBase&lt;/code&gt; (the base for nearly all Drupal functional tests) gained explicit return types, e.g. &lt;code&gt;submitForm()&lt;/code&gt;, &lt;code&gt;drupalLogin()&lt;/code&gt;, &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;click()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;generateSessionName()&lt;/code&gt;: &lt;code&gt;void&lt;/code&gt;, and &lt;code&gt;getTextContent()&lt;/code&gt;, &lt;code&gt;getSessionName()&lt;/code&gt;: &lt;code&gt;string&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Most of the diff removes now-obsolete &lt;code&gt;$ignoreErrors[]&lt;/code&gt; entries from &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; that were suppressing &lt;code&gt;missingType.return&lt;/code&gt; and related identifiers, with the fixes landing in the corresponding test files: adding &lt;code&gt;: void&lt;/code&gt;, &lt;code&gt;: string&lt;/code&gt;, or other return types to methods, typing class properties (e.g. &lt;code&gt;protected int $timeLimit&lt;/code&gt;, &lt;code&gt;protected ?Mink $mink&lt;/code&gt;, &lt;code&gt;protected string $sessionName&lt;/code&gt;), and a few unrelated small fixes surfaced by stricter typing.&lt;/p&gt;
-&lt;p&gt;The most consequential changes are in &lt;code&gt;core/tests/Drupal/Tests/UiHelperTrait.php&lt;/code&gt;, &lt;code&gt;SessionTestTrait.php&lt;/code&gt;, &lt;code&gt;DrupalTestBrowser.php&lt;/code&gt;, and &lt;code&gt;BrowserTestBase.php&lt;/code&gt;, which back nearly all functional testing in Drupal: &lt;code&gt;submitForm()&lt;/code&gt;, &lt;code&gt;drupalLogin()&lt;/code&gt;, &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;click()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, and &lt;code&gt;generateSessionName()&lt;/code&gt; now return &lt;code&gt;void&lt;/code&gt;, and &lt;code&gt;getTextContent()&lt;/code&gt;/&lt;code&gt;getSessionName()&lt;/code&gt; now return &lt;code&gt;string&lt;/code&gt;. Typing &lt;code&gt;BrowserTestBase::$mink&lt;/code&gt; as &lt;code&gt;?Mink&lt;/code&gt; (previously untyped, defaulting to implicit &lt;code&gt;NULL&lt;/code&gt;) also required changing &lt;code&gt;if ($this-&amp;gt;mink)&lt;/code&gt; to &lt;code&gt;if (isset($this-&amp;gt;mink))&lt;/code&gt; in &lt;code&gt;tearDown()&lt;/code&gt;, since accessing an uninitialized typed property throws rather than evaluating falsy.&lt;/p&gt;
-&lt;p&gt;Outside &lt;code&gt;core/tests/&lt;/code&gt;, the only production code touched is a docblock precision improvement on &lt;code&gt;ArgumentsResolver::$objects&lt;/code&gt; (&lt;code&gt;@var array&lt;/code&gt; to &lt;code&gt;@var array&amp;lt;string,object&amp;gt;&lt;/code&gt;), and &lt;code&gt;core/phpstan.neon.dist&lt;/code&gt; gained an additional excluded path for Doctrine annotation fixtures. Everything else (&lt;code&gt;core/tests/Drupal/Tests/Core/*&lt;/code&gt;, &lt;code&gt;Component/*&lt;/code&gt;, &lt;code&gt;Composer/*&lt;/code&gt;) is internal unit test code not intended for external reuse. Related prior rounds: &lt;a href="https://www.drupal.org/node/3551596"&gt;#3551596&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562361"&gt;#3562361&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562868"&gt;#3562868&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3562645"&gt;#3562645&lt;/a&gt;, and &lt;a href="https://www.drupal.org/node/3579189"&gt;#3579189&lt;/a&gt; (Kernel tests), the last of which similarly touched a shared &lt;code&gt;KernelTestBase&lt;/code&gt;/&lt;code&gt;AssertContentTrait&lt;/code&gt; surface.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If a custom test class overrides any of these methods, add a matching return type:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-protected function submitForm(array $edit, $submit, $form_html_id = NULL) { ... }
-protected function drupalLogin(AccountInterface $account) { ... }
-protected function click(string $css_selector) { ... }
-
-// After
-protected function submitForm(array $edit, $submit, $form_html_id = NULL): void { ... }
-protected function drupalLogin(AccountInterface $account): void { ... }
-protected function click(string $css_selector): void { ... }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same applies to &lt;code&gt;drupalLogout()&lt;/code&gt;, &lt;code&gt;prepareRequest()&lt;/code&gt;, &lt;code&gt;clickLink()&lt;/code&gt;, and &lt;code&gt;generateSessionName()&lt;/code&gt; (all &lt;code&gt;void&lt;/code&gt;), and &lt;code&gt;getTextContent()&lt;/code&gt;/&lt;code&gt;getSessionName()&lt;/code&gt; (&lt;code&gt;string&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 3, 2026 (4 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

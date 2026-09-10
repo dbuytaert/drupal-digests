@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 
 // Not included (standalone configs, run separately):
+//   rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php
 //   rules/update-references-to-text-with-summary-field-plugins-moved-3549134.php
 //   rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php
 //   rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php

@@ -1,8 +1,16 @@
-**TL;DR:** [1034 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1035 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_568 summaries · 22 new this week_
+
+- [#941970: Rebuild router only when something related to routing changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md)
+- [#3621981: Remove admin-custom.css ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621981.md)
+- [#3569121: [meta] Tasks to remove the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569121.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _129 summaries · 2 new this week_
 - [#3620132: Uses ai_search_tracker instead of default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620132.md)
 - [#3390907: Protect / help avoid validation logic problems](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3390907.md)
 - [#3471408: not_blank_constraint_rule fail on fields with multiple values](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md)
-
-### Drupal Core
-
-_567 summaries · 21 new this week_
-
-- [#3621981: Remove admin-custom.css ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621981.md)
-- [#3569121: [meta] Tasks to remove the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569121.md)
-- [#2660338: Deprecate locale_get_plural](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2660338.md)
 
 ### Drupal Canvas
 
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [204 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_204 rules · 5 new this week_
+_205 rules · 6 new this week_
 
+- [Replace views_invalidate_cache() with Views::invalidateCache()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php)
 - [Replace deprecated user.module cancel functions with the AccountCancellation...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php)
 - [Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent]...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php)
-- [Replace user_role_*_permissions() functions with RoleInterface methods](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php)
 
 
 ## RSS feeds
