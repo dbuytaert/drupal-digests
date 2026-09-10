@@ -1,4 +1,4 @@
-**TL;DR:** [1035 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1036 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_568 summaries · 22 new this week_
+_569 summaries · 22 new this week_
 
+- [#3620812: Move toolbar support from Workspaces to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620812.md)
 - [#941970: Rebuild router only when something related to routing changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md)
 - [#3621981: Remove admin-custom.css ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621981.md)
-- [#3569121: [meta] Tasks to remove the Shortcut module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3569121.md)
 
 ### Drupal AI
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_205 rules · 6 new this week_
+_205 rules · 5 new this week_
 
 - [Replace views_invalidate_cache() with Views::invalidateCache()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php)
 - [Replace deprecated user.module cancel functions with the AccountCancellation...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php)
