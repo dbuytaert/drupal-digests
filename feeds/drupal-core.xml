@@ -5,6 +5,187 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3391683: Convert initial functions in update.inc file to a class</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3391683.md</link>
+      <guid isPermaLink="false">01a09146-3273-77f5-adf5-296893de389f</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 11 Sep 2026 15:55:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +327/−159 · php +324/−159 · yml +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5ac5b9c39bdd458b00aa6557c18e063aafbf09fa"&gt;5ac5b9c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3391683"&gt;#3391683&lt;/a&gt; · 11 contributors · 42 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 11 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core has deprecated several procedural functions from the update.inc include file: &lt;code&gt;update_check_requirements()&lt;/code&gt;, &lt;code&gt;update_system_schema_requirements()&lt;/code&gt;, &lt;code&gt;update_do_one()&lt;/code&gt;, and the internal &lt;code&gt;_update_fix_missing_schema()&lt;/code&gt;. Their logic has moved to a new &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; service class. This is part of a longer-running effort to stop relying on manually included legacy &lt;code&gt;.inc&lt;/code&gt; files and let the class autoloader handle this code instead. There is no behavioral change for site owners; this only affects developers and contrib/custom code that calls these functions directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;update_check_requirements()&lt;/code&gt;, &lt;code&gt;update_system_schema_requirements()&lt;/code&gt;, &lt;code&gt;update_do_one()&lt;/code&gt;, and &lt;code&gt;_update_fix_missing_schema()&lt;/code&gt; in update.inc are deprecated in favor of methods on the new &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; service.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; autowired service providing &lt;code&gt;getRequirements()&lt;/code&gt;, &lt;code&gt;systemSchemaRequirements()&lt;/code&gt;, and &lt;code&gt;doOne()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; class (registered as an autowired service) exposes &lt;code&gt;getRequirements()&lt;/code&gt;, &lt;code&gt;systemSchemaRequirements()&lt;/code&gt;, &lt;code&gt;doOne()&lt;/code&gt;, and an &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;fixMissingSchema()&lt;/code&gt; method, reproducing the logic that used to live in the standalone functions but using constructor-injected dependencies (&lt;code&gt;UpdateHookRegistry&lt;/code&gt;, &lt;code&gt;ModuleHandlerInterface&lt;/code&gt;, &lt;code&gt;MessengerInterface&lt;/code&gt;, &lt;code&gt;LoggerChannelFactoryInterface&lt;/code&gt;) instead of &lt;code&gt;\Drupal::service()&lt;/code&gt; lookups. The old update.inc functions are now thin deprecated wrappers that trigger &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; and delegate to &lt;code&gt;\Drupal::service(DatabaseUpdate::class)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DbUpdateController&lt;/code&gt; was updated to take &lt;code&gt;DatabaseUpdate&lt;/code&gt; and &lt;code&gt;UpdateHookRegistry&lt;/code&gt; as (nullable, for backward-compatible construction) constructor arguments, using them internally instead of calling &lt;code&gt;update_check_requirements()&lt;/code&gt; or &lt;code&gt;\Drupal::service('update.update_hook_registry')&lt;/code&gt; directly. The batch operation that used to invoke the procedural &lt;code&gt;update_do_one&lt;/code&gt; callback now calls the class method callable &lt;code&gt;DatabaseUpdate::class . ':doOne'&lt;/code&gt;. This issue was scoped to the first three functions of update.inc; it is a followup to the &amp;quot;&lt;a href="https://www.drupal.org/node/2999721"&gt;#2999721&lt;/a&gt;: [META] Deprecate the legacy include files before Drupal 9&amp;quot; effort, and further update.inc functions are handled in separate follow-up issues.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace direct calls to the deprecated update.inc functions with the new service:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$requirements = update_check_requirements();
+$schema_requirements = update_system_schema_requirements();
+update_do_one($module, $number, $dependency_map, $context);
+
+// After:
+$requirements = \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;getRequirements();
+$schema_requirements = \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;systemSchemaRequirements();
+\Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;doOne($module, (int) $number, $dependency_map, $context);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;_update_fix_missing_schema()&lt;/code&gt; has no direct public replacement; its logic is now &lt;code&gt;DatabaseUpdate::fixMissingSchema()&lt;/code&gt;, which is marked &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Any code constructing &lt;code&gt;DbUpdateController&lt;/code&gt; directly should pass the new &lt;code&gt;$databaseUpdate&lt;/code&gt; and &lt;code&gt;$updateHookRegistry&lt;/code&gt; constructor arguments; omitting them still works but triggers a deprecation notice and will be required in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 4, 2023&lt;/li&gt;
+&lt;li&gt;Committed: September 11, 2026 (2 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;xjm (HeroDevs)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;prashant.c (QED42)&lt;/li&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;dcam&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue sat dormant for a long time after initial review from xjm and larowlan before mradcliffe picked it up, rebased it repeatedly through several conflicting core changes (including &lt;a href="https://www.drupal.org/node/3303751"&gt;#3303751&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3561302"&gt;#3561302&lt;/a&gt;), and iterated through multiple rounds of review feedback from nicxvan, dcam, kim.pepper, and amateescu, including a design discussion about whether to use &lt;code&gt;ClassResolver&lt;/code&gt; versus &lt;code&gt;\Drupal::service()&lt;/code&gt; for the new service (resolved in favor of &lt;code&gt;::service()&lt;/code&gt; per nicxvan's comment) and whether &lt;code&gt;doOne()&lt;/code&gt; should be static (resolved as a protected instance method per larowlan's earlier review).&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3035343: Deprecate drupal_attach_tabledrag(). Move its logic in Table form element</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035343.md</link>
+      <guid isPermaLink="false">01a09147-35ca-70e8-8960-98ae46228265</guid>
+      <category>Module maintainers</category>
+      <category>Front-end developers</category>
+      <pubDate>Fri, 11 Sep 2026 13:20:16 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +231/−153 · php +226/−152 · js +4/−1 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/770e6f08d1195281cf5efedd348f895b69e2f6e8"&gt;770e6f0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3035343"&gt;#3035343&lt;/a&gt; · 15 contributors · 98 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 23&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 15 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal has long supported &amp;quot;tabledrag&amp;quot;: draggable table rows used for reordering things like block regions, menu items, or field weights. The logic that wires this behavior to a table (previously the procedural &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt; function) has been moved into the &lt;code&gt;Table&lt;/code&gt; form element as a proper static method, and the old function is now deprecated. This is part of the ongoing effort to remove procedural code from &lt;code&gt;common.inc&lt;/code&gt;. Site builders and users won't notice any functional difference; draggable tables continue to work exactly as before. Module developers who called &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt; directly (for example, custom admin tables with reorderable rows) should switch to the new method ahead of Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Tables using &lt;code&gt;#tabledrag&lt;/code&gt; now render with an added &lt;code&gt;tabledrag-enabled&lt;/code&gt; class and a &lt;code&gt;data-drupal-tabledrag&lt;/code&gt; attribute; the JS no longer relies solely on the table's &lt;code&gt;id&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt; is deprecated in drupal:11.5.0 and removed in drupal:13.0.0; use &lt;code&gt;\Drupal\Core\Render\Element\Table::attachTabledrag()&lt;/code&gt; instead.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public static method &lt;code&gt;\Drupal\Core\Render\Element\Table::attachTabledrag()&lt;/code&gt; contains the logic formerly in &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The function body of &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt; in &lt;code&gt;core/includes/common.inc&lt;/code&gt; was moved verbatim into a new public static method, &lt;code&gt;\Drupal\Core\Render\Element\Table::attachTabledrag()&lt;/code&gt;, and the original function now just triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error and delegates to it. All core callers (&lt;code&gt;Table::preRenderTable()&lt;/code&gt;, &lt;code&gt;FieldUiTable::tablePreRender()&lt;/code&gt;, and the Views UI rearrange-filter form) were updated to call the new method directly.&lt;/p&gt;
+&lt;p&gt;As part of the move, the internal counter used to generate a unique tabledrag instance ID per table (previously stored via &lt;code&gt;drupal_static()&lt;/code&gt;) was reworked twice during the issue's long history: first to a static class property, then, after concerns raised about correctness in the memory cache and long-running PHP contexts, to &lt;code&gt;\Drupal::cache('memory')&lt;/code&gt; keyed by &lt;code&gt;Table::TABLE_DRAG_CACHE_ID&lt;/code&gt;, so the counter doesn't get reset unexpectedly between requests handled by the same PHP process (e.g. FrankenPHP, RoadRunner). The table's HTML &lt;code&gt;id&lt;/code&gt; is still printed for backward compatibility, but the internal selector used to wire up the JS behavior was switched from the raw &lt;code&gt;id&lt;/code&gt; to a dedicated &lt;code&gt;data-drupal-tabledrag&lt;/code&gt; attribute (plus a &lt;code&gt;tabledrag-enabled&lt;/code&gt; class), and &lt;code&gt;core/misc/tabledrag.js&lt;/code&gt;'s &lt;code&gt;once()&lt;/code&gt; selector was updated to match on &lt;code&gt;[data-drupal-tabledrag=&amp;quot;${base}&amp;quot;]&lt;/code&gt; instead of &lt;code&gt;#${base}&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 24, 2019&lt;/li&gt;
+&lt;li&gt;Committed: September 11, 2026 (7 years and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;andypost (Skilld)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;finnsky (Skilld)&lt;/li&gt;
+&lt;li&gt;voleger (Drupal Ukraine Community)&lt;/li&gt;
+&lt;li&gt;naresh_bavaskar (QED42)&lt;/li&gt;
+&lt;li&gt;nod_ (Smile)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;claudiu.cristea (Webikon)&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue took over six years to land because of a substantive, recurring technical debate. Early on, &lt;code&gt;claudiu.cristea&lt;/code&gt; and &lt;code&gt;andypost&lt;/code&gt; argued over whether the new method should be called via &lt;code&gt;self::&lt;/code&gt; or &lt;code&gt;static::&lt;/code&gt; so subclasses could override just &lt;code&gt;attachTabledrag()&lt;/code&gt; without duplicating &lt;code&gt;preRenderTable()&lt;/code&gt;; &lt;code&gt;claudiu.cristea&lt;/code&gt;'s late-static-binding explanation (with a 3v4l.org example) settled it in favor of allowing proper overriding.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;catch&lt;/code&gt; then pointed out that relying on an incrementing counter tied to a table's HTML &lt;code&gt;id&lt;/code&gt; is unsafe with dynamic page cache, since two independently-cached blocks rendered in different requests could collide on the same ID, and proposed switching to a &lt;code&gt;data-*&lt;/code&gt; attribute (issue &lt;a href="https://www.drupal.org/node/1090592"&gt;#1090592&lt;/a&gt; territory). &lt;code&gt;nod_&lt;/code&gt; significantly simplified the resulting JS patch, showing that only the &lt;code&gt;once()&lt;/code&gt; selector needed to change, without new CSS classes or state-tracking. &lt;code&gt;alexpott&lt;/code&gt; later caught a subtle off-by-one regression in the counter refactor (starting at 1 instead of 0) introduced by the static-property rewrite. Years later, &lt;code&gt;catch&lt;/code&gt; re-raised the original concern that a static property still didn't solve the multi-request collision problem, and &lt;code&gt;nicxvan&lt;/code&gt; and &lt;code&gt;catch&lt;/code&gt; worked out the eventual fix: storing the counter in the &lt;code&gt;memory&lt;/code&gt; cache bin instead of a static property.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3618971: Use Admin theme in installer</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618971.md</link>
+      <guid isPermaLink="false">01a09145-aa47-71a9-82ca-96fa77580de0</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 11 Sep 2026 13:07:42 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +167/−36 · php +167/−36&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/865fea9ce2c2a827031a0c2e1f98866fbdb038ef"&gt;865fea9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3618971"&gt;#3618971&lt;/a&gt; · 11 contributors · 59 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 11 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The installer, update.php, and any early maintenance-mode pages (shown when the database or bootstrap is unavailable) now use the Admin theme (default_admin) instead of Claro. This is a step toward deprecating Claro. Distribution profiles that need a different installer theme can still request one via the &lt;code&gt;distribution.install.theme&lt;/code&gt; key in their info file, and sites can still override the theme by setting &lt;code&gt;$settings['maintenance_theme']&lt;/code&gt; in &lt;code&gt;settings.php&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;maintenance_theme&lt;/code&gt; example in &lt;code&gt;default.settings.php&lt;/code&gt; now shows &lt;code&gt;default_admin&lt;/code&gt; instead of &lt;code&gt;claro&lt;/code&gt;; sites that explicitly set &lt;code&gt;$settings['maintenance_theme'] = 'claro';&lt;/code&gt; keep working, but the out of the box default for install, update.php and early maintenance pages is now &lt;code&gt;default_admin&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;\Drupal\Core\Installer\InstallerKernel::INSTALL_THEME&lt;/code&gt; constant identifies the theme used for install, update, and early maintenance pages, replacing hardcoded &lt;code&gt;'claro'&lt;/code&gt; strings throughout core.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The hardcoded &lt;code&gt;'claro'&lt;/code&gt; fallback used in &lt;code&gt;install_state_defaults()&lt;/code&gt;, &lt;code&gt;_drupal_maintenance_theme()&lt;/code&gt;, and &lt;code&gt;InstallerKernel::getExtensions()&lt;/code&gt; was replaced with a new &lt;code&gt;InstallerKernel::INSTALL_THEME&lt;/code&gt; constant (&lt;code&gt;'default_admin'&lt;/code&gt;). &lt;code&gt;InstallerKernel::getExtensions()&lt;/code&gt; was refactored into a new private &lt;code&gt;getInstallThemes()&lt;/code&gt; helper that resolves the install theme (and its base themes, unless the theme is the default install theme, which declares &lt;code&gt;base theme: false&lt;/code&gt; so no filesystem scan is needed) whether or not a profile has been selected yet.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;InstallerKernel::updateThemes()&lt;/code&gt; override keeps the install theme's hook implementations registered throughout the whole install process: normally, installing a profile or recipe replaces the theme registry with just the themes the profile installed, which drops the install theme's hooks (&lt;code&gt;Drupal\Core\Hook\ThemeHookCollectorPass&lt;/code&gt;) even though the install theme keeps rendering the remaining pages, including the final &amp;quot;configure site&amp;quot; step. This previously caused subtle breakage such as fonts not being preloaded and custom installer-theme hook implementations disappearing mid-install; both are now covered by new assertions in &lt;code&gt;InstallerTest&lt;/code&gt; and &lt;code&gt;test_installer_theme&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Other fixes needed to make &lt;code&gt;default_admin&lt;/code&gt; usable during install: &lt;code&gt;HtmlResponseAttachmentsProcessor::processAttachments()&lt;/code&gt; now uses &lt;code&gt;$this-&amp;gt;fileUrlGenerator-&amp;gt;generateString()&lt;/code&gt; for preloaded fonts so the URL is root-relative instead of relative to &lt;code&gt;install.php&lt;/code&gt;; &lt;code&gt;default_admin&lt;/code&gt;'s &lt;code&gt;PreprocessHooks::preprocessHtml()&lt;/code&gt; now short-circuits toolbar/navigation class handling via &lt;code&gt;InstallerKernel::installationAttempted()&lt;/code&gt; because permission checks need a database that does not exist yet during install; and &lt;code&gt;default_admin\Settings::getAdminTheme()&lt;/code&gt; now returns &lt;code&gt;?string&lt;/code&gt; (falling back to the active theme) since &lt;code&gt;system.theme&lt;/code&gt; configuration is unavailable during install.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 25, 2026&lt;/li&gt;
+&lt;li&gt;First commit: September 10, 2026 (15 days later)&lt;/li&gt;
+&lt;li&gt;Last commit: September 11, 2026 (1 day and 2 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;daffie (Finalist)&lt;/li&gt;
+&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Several contributors manually re-tested the installer end to end as the MR evolved and turned up real regressions rather than cosmetic issues: mherchel found the requirements/status-report styling was broken by an incorrect &lt;code&gt;.root&lt;/code&gt; CSS selector (instead of &lt;code&gt;:root&lt;/code&gt;) in the admin theme's variables and split that into &lt;a href="https://www.drupal.org/node/3619253"&gt;#3619253&lt;/a&gt; so it could be fixed and backported quickly; jurgenhaas and quietone both hit a 404/&lt;code&gt;PluginNotFoundException&lt;/code&gt; after completing install, which took several rounds of independent reproduction attempts (including ruling out contrib modules and ECA) before daffie, disclosing use of AI to find the fix, resolved the &amp;quot;site install functionality&amp;quot; breakage. godotislate's later review caught that the 11.x backport had missed removing the obsolete &lt;code&gt;test_installer_theme.theme&lt;/code&gt; file from an earlier unrelated cleanup (&lt;a href="https://www.drupal.org/node/3579903"&gt;#3579903&lt;/a&gt;), which quietone corrected before the backport landed. xjm documented, for posterity, that she had previously opposed committing this ahead of the Admin theme reaching stable, but agreed to allow it for the installer only (not for backporting to stable branches) to unblock the broader Claro deprecation effort.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3182064: Allow min &amp; max exposed numeric/date filters to be configured</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3182064.md</link>
       <guid isPermaLink="false">01a09070-ab16-7089-8e0c-608cbd57660e</guid>
@@ -953,159 +1134,6 @@ $project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Early on, dww (a module maintainer) pushed back on the plan, noting the update module already has several incomplete services that interact in &amp;quot;interesting&amp;quot; ways, and that he'd rather see a more holistic reorganization before introducing new ones. nicxvan replied that they would try not to make things worse while still moving forward with the deprecations. After several rounds of rework, berdir reshaped the final design before commit: the main &lt;code&gt;calculateProjectData()&lt;/code&gt; method was moved onto &lt;code&gt;UpdateManager&lt;/code&gt; (since it already deals with storage), letting &lt;code&gt;UpdateCalculator&lt;/code&gt; depend on &lt;code&gt;UpdateManager&lt;/code&gt;'s public methods, and giving the new &lt;code&gt;UpdateProject&lt;/code&gt;/&lt;code&gt;UpdateServerProjectInfo&lt;/code&gt; value objects a real API boundary (marked &lt;code&gt;@internal&lt;/code&gt; for now) instead of just a protected method's array shape.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586688: Add support for generated columns to the DB Schema Definition API</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586688.md</link>
-      <guid isPermaLink="false">01a06d3d-3361-723a-a7f6-6767ab9002ee</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 04 Sep 2026 15:54:20 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +831/−18 · php +831/−18&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fa4fd791c5143683640674d782119053daed81ec"&gt;fa4fd79&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586688"&gt;#3586688&lt;/a&gt; · 4 contributors · 32 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal's schema definition API (introduced in &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt;) can now declare &amp;quot;generated&amp;quot; columns: columns whose value the database computes automatically from an expression over other columns, rather than one that application code writes. This was motivated by the need to index data inside JSON columns (see &lt;a href="https://www.drupal.org/node/3343634"&gt;#3343634&lt;/a&gt;): since MariaDB doesn't support indexing arbitrary SQL expressions, the practical way to index derived data is to expose it as a generated column and index that. A generated column can be &amp;quot;stored&amp;quot; (computed on write and kept on disk, like a regular column) or &amp;quot;virtual&amp;quot; (computed on read, saving storage but not supported for indexing on PostgreSQL). This is a new opt-in capability for code that adopts the new schema API; it does not change any existing database table.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Column::generated()&lt;/code&gt; factory and &lt;code&gt;Drupal\Core\Database\SchemaDefinition\GeneratedColumnStorage&lt;/code&gt; enum let schema definitions declare database-computed (generated) columns, stored or virtual.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The core addition is &lt;code&gt;Column::generated()&lt;/code&gt;, a static factory on the &lt;code&gt;Column&lt;/code&gt; value object that requires a &lt;code&gt;ColumnType&lt;/code&gt;, a &lt;code&gt;GeneratedColumnExpression&lt;/code&gt; (a small &lt;code&gt;Expression&lt;/code&gt; subclass holding the raw SQL expression text), and a &lt;code&gt;GeneratedColumnStorage&lt;/code&gt; enum case (&lt;code&gt;Virtual&lt;/code&gt; or &lt;code&gt;Stored&lt;/code&gt;). &lt;code&gt;Column::validate()&lt;/code&gt; rejects a generated expression on a &lt;code&gt;Serial&lt;/code&gt; column, and &lt;code&gt;Table::validate()&lt;/code&gt; rejects a generated column in the primary key, since MariaDB and SQLite don't allow that. &lt;code&gt;Column::toArray()&lt;/code&gt; puts the whole &lt;code&gt;Column&lt;/code&gt; object under the array spec's &lt;code&gt;generated&lt;/code&gt; key, which the &lt;code&gt;mysql&lt;/code&gt;, &lt;code&gt;pgsql&lt;/code&gt;, and &lt;code&gt;sqlite&lt;/code&gt; driver &lt;code&gt;createFieldSql()&lt;/code&gt; implementations translate into &lt;code&gt;GENERATED ALWAYS AS (...) VIRTUAL|STORED&lt;/code&gt; clauses (with &lt;code&gt;DEFAULT NULL&lt;/code&gt; suppressed for generated columns).&lt;/p&gt;
-&lt;p&gt;SQLite required the most work because it has no &lt;code&gt;ALTER TABLE&lt;/code&gt; support for adding a &lt;code&gt;STORED&lt;/code&gt; generated column (only &lt;code&gt;VIRTUAL&lt;/code&gt; can be added in place; &lt;code&gt;STORED&lt;/code&gt; forces the driver's usual create-new-table-and-copy-data path), and its &lt;code&gt;PRAGMA table_info&lt;/code&gt; doesn't report generated columns at all. The driver's &lt;code&gt;introspectSchema()&lt;/code&gt; now uses &lt;code&gt;PRAGMA table_xinfo&lt;/code&gt; (which exposes a &lt;code&gt;hidden&lt;/code&gt; flag distinguishing ordinary, virtual-table, &lt;code&gt;VIRTUAL&lt;/code&gt; generated, and &lt;code&gt;STORED&lt;/code&gt; generated columns) and, for generated columns, recovers the original column definition text by parsing the &lt;code&gt;CREATE TABLE&lt;/code&gt; statement out of &lt;code&gt;sqlite_master&lt;/code&gt; (new &lt;code&gt;getColumnDefinitions()&lt;/code&gt;, &lt;code&gt;splitColumnDefinitions()&lt;/code&gt;, &lt;code&gt;skipQuotedRun()&lt;/code&gt;, &lt;code&gt;skipComment()&lt;/code&gt; helpers), since SQLite exposes no pragma for a generated column's expression or storage kind. That recovered text is stored under a &lt;code&gt;sqlite_definition&lt;/code&gt; key and reused verbatim by &lt;code&gt;createFieldSql()&lt;/code&gt;/&lt;code&gt;processField()&lt;/code&gt; on rebuild; if recovery fails, a &lt;code&gt;SchemaException&lt;/code&gt; is thrown rather than silently dropping the column. Table rebuilds (&lt;code&gt;alterTable()&lt;/code&gt;) also exclude generated columns from the data-copy mapping, since the database rejects writes to them.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 4, 2026 (4 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The implementation went through a design pivot before landing here: the issue was originally going to add expression indexes, but MariaDB's lack of support for indexing arbitrary expressions ruled that out, leaving generated columns as the only portable path (per the issue's Problem/Motivation section). mondrake built the initial MR on top of the then-in-progress &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt; value-object schema API and got all three core-supported databases implemented, then postponed the issue twice pending that dependency and &lt;a href="https://www.drupal.org/node/3604286"&gt;#3604286&lt;/a&gt; (for the &lt;code&gt;Expression&lt;/code&gt; class). catch, reviewing before commit, questioned whether virtual generated columns were worth the added API surface; amateescu explained they let MySQL, MariaDB and SQLite index derived data while paying storage cost only for the index, not a duplicated column, which settled the design and was folded into the issue summary before commit.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3605702: Remove remaining Gin and Claro implementation names from Default Admin theme</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3605702.md</link>
-      <guid isPermaLink="false">01a06d3c-2328-756e-8697-c60dbd4d5931</guid>
-      <pubDate>Fri, 04 Sep 2026 15:28:52 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 172 files, +1809/−1240 · js +692/−451 · css +592/−656 · php +334/−54 · json +112 · twig +79/−79&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/877c222e45279b1c59abc219ac501d3609bfcf39"&gt;877c222&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3605702"&gt;#3605702&lt;/a&gt; · 5 contributors · 22 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core's new &amp;quot;Default Admin&amp;quot; theme (the experimental successor being built from Gin, intended to eventually replace Claro) was forked with many leftover &lt;code&gt;gin&lt;/code&gt; and &lt;code&gt;claro&lt;/code&gt; names baked into its CSS classes, data attributes, JavaScript behaviors, settings, and local storage keys. This issue is the tracking/implementation issue for a full cleanup: renaming those implementation details to a consistent Default Admin naming scheme, while keeping an explicitly reviewed and documented allowlist for names that legitimately still need to reference Gin or Claro (historical attribution, upstream project links, or a persisted configuration value). No visual or behavioral regressions are intended; this is a naming and internal-consistency cleanup, not a redesign.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit touches 173 files across the &lt;code&gt;default_admin&lt;/code&gt; theme (CSS/PCSS sources and their compiled output, JS, PHP hook classes, Twig templates, and tests). CSS selectors and custom properties lost their &lt;code&gt;gin-&lt;/code&gt;/&lt;code&gt;claro&lt;/code&gt; prefixes, for example &lt;code&gt;.gin-details&lt;/code&gt; to &lt;code&gt;.details&lt;/code&gt;, &lt;code&gt;.gin-breadcrumb__*&lt;/code&gt; to &lt;code&gt;.breadcrumb__*&lt;/code&gt;, &lt;code&gt;[data-gin-accent]&lt;/code&gt; to &lt;code&gt;[data-accent]&lt;/code&gt;, &lt;code&gt;[data-gin-layout-density]&lt;/code&gt; to &lt;code&gt;[data-layout-density]&lt;/code&gt;, &lt;code&gt;.gin--dark-mode&lt;/code&gt; to &lt;code&gt;.dark-mode&lt;/code&gt;, and &lt;code&gt;@keyframes gin-throbber&lt;/code&gt;/&lt;code&gt;claro-throbber&lt;/code&gt; merged into a single &lt;code&gt;throbber&lt;/code&gt; keyframe. On the JS side, &lt;code&gt;Drupal.behaviors.ginSettings&lt;/code&gt; became &lt;code&gt;Drupal.behaviors.adminSettings&lt;/code&gt;, &lt;code&gt;Drupal.ginSettings&lt;/code&gt;/&lt;code&gt;Drupal.ginAccent&lt;/code&gt; became &lt;code&gt;Drupal.adminAccent&lt;/code&gt;/&lt;code&gt;Drupal.adminSettings&lt;/code&gt;, and &lt;code&gt;drupalSettings.gin&lt;/code&gt; became &lt;code&gt;drupalSettings.defaultAdmin&lt;/code&gt; in &lt;code&gt;ThemeHooks::pagePreRender()&lt;/code&gt;; the old &lt;code&gt;drupalSettings.gin&lt;/code&gt; key is deliberately still populated as a compatibility alias &amp;quot;while the theme is experimental&amp;quot; per an entry in the new allowlist. PHP-side form classes (&lt;code&gt;FormHooks&lt;/code&gt;) renamed attribute/class names such as &lt;code&gt;gin-sticky-form-actions&lt;/code&gt; to &lt;code&gt;sticky-form-actions&lt;/code&gt; and &lt;code&gt;gin-sidebar&lt;/code&gt; to &lt;code&gt;admin-sidebar&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Persisted browser state is migrated rather than silently dropped: &lt;code&gt;migration/js/init.js&lt;/code&gt; now runs a &lt;code&gt;migrateLegacyStorage()&lt;/code&gt; routine that copies old keys like &lt;code&gt;GinSidebarOpen&lt;/code&gt;, &lt;code&gt;Drupal.gin.toolbarExpanded&lt;/code&gt;, &lt;code&gt;Drupal.gin.sidebarExpanded.mobile/desktop&lt;/code&gt;, and &lt;code&gt;Drupal.gin.sidebarWidth&lt;/code&gt; into their new &lt;code&gt;Drupal.navigation.sidebarExpanded&lt;/code&gt; / &lt;code&gt;Drupal.defaultAdmin.sidebarExpanded.*&lt;/code&gt; / &lt;code&gt;Drupal.defaultAdmin.sidebarWidth&lt;/code&gt; equivalents (without overwriting an already-set new value) before removing the legacy keys; purely internal flags like &lt;code&gt;GinDarkMode&lt;/code&gt; are just deleted. A stored theme setting value of &lt;code&gt;preset_focus_color: 'claro'&lt;/code&gt; is intentionally kept as a machine name (its label changed from &amp;quot;Claro Green&amp;quot; to &amp;quot;Legacy green&amp;quot;) so existing site configuration keeps working.&lt;/p&gt;
-&lt;p&gt;To prevent regressions, the change adds &lt;code&gt;ImplementationNameTest&lt;/code&gt; (a unit test scanning theme source for a list of superseded &lt;code&gt;gin&lt;/code&gt;/&lt;code&gt;claro&lt;/code&gt;/intermediate &lt;code&gt;default-admin&lt;/code&gt;-prefixed identifiers) and &lt;code&gt;LegacyStorageTest&lt;/code&gt; (a JS functional test asserting the local-storage migration behavior), plus &lt;code&gt;tests/fixtures/implementation-name-allowlist.json&lt;/code&gt;, which documents every remaining Gin/Claro reference and the reason it is intentionally kept.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Default Admin is &lt;code&gt;lifecycle: experimental&lt;/code&gt;, but sites or contributed code that already integrate with it should update references:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;/* CSS */
-.gin-details              -&amp;gt; .details
-.gin-breadcrumb__item     -&amp;gt; .breadcrumb__item
-[data-gin-accent]         -&amp;gt; [data-accent]
-.gin--dark-mode           -&amp;gt; .dark-mode
-&lt;/code&gt;&lt;/pre&gt;
-&lt;pre&gt;&lt;code class="language-js"&gt;// JS
-Drupal.behaviors.ginSettings -&amp;gt; Drupal.behaviors.adminSettings
-Drupal.ginAccent             -&amp;gt; Drupal.adminAccent
-drupalSettings.gin           -&amp;gt; drupalSettings.defaultAdmin // old `gin` key still populated for now, but treat as deprecated
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Local storage keys under &lt;code&gt;Drupal.gin.*&lt;/code&gt; are migrated automatically on first page load after upgrading; no manual action is needed for persisted browser state.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 4, 2026 (2 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
-&lt;li&gt;bernardm28&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;thejimbirch (Kanopi Studios)&lt;/li&gt;
-&lt;li&gt;cilefen&lt;/li&gt;
-&lt;li&gt;mgifford&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;mherchel reviewed the large (173-file) MR from jurgenhaas in several passes, pushing back that many identifiers could drop the intermediate &lt;code&gt;default-admin-&lt;/code&gt; prefix entirely: &amp;quot;Gin had to worry about namespace conflicts in places that we do not. I'd like to err on the side of simplicity.&amp;quot; jurgenhaas applied that pattern consistently across the codebase in a follow-up round, and mherchel did a further hour-long review before committing, noting that fixing a broken selector (&lt;code&gt;#block-gin-content&lt;/code&gt; becoming &lt;code&gt;#block-default-admin-content&lt;/code&gt;) incidentally corrected some pre-existing CSS spacing bugs as a side effect of the rename.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3620804: Remove search references from Umami theme</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620804.md</link>
-      <guid isPermaLink="false">01a06d38-7240-73d4-847c-5bd429097845</guid>
-      <category>Front-end developers</category>
-      <pubDate>Fri, 04 Sep 2026 13:48:48 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +15/−522 · yml +13/−21 · css +1/−324 · php +1/−21 · svg +0/−1 · twig +0/−155&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/e943d8536c947fdea3c3bd946dce230eb5daf33d"&gt;e943d85&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620804"&gt;#3620804&lt;/a&gt; · 6 contributors · 18 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;As part of moving Search out of Drupal core into a contrib module, the Umami demo theme has had all of its search-specific theming removed. Umami no longer ships custom templates, CSS, or a keyword placeholder for the search block and search results page, and its breadcrumb logic no longer special-cases search page titles. If you run the Umami profile and separately install the contrib Search module, the search form and results will render with Drupal's default markup and styling instead of Umami's custom design.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The Umami demo theme no longer overrides search markup or styling: &lt;code&gt;block--search-form-block.html.twig&lt;/code&gt;, &lt;code&gt;search-result.html.twig&lt;/code&gt;, and &lt;code&gt;item-list--search-results.html.twig&lt;/code&gt; are deleted, the &lt;code&gt;classy.search-results&lt;/code&gt; library and &lt;code&gt;css/components/blocks/search/*.css&lt;/code&gt; are removed from &lt;code&gt;umami.libraries.yml&lt;/code&gt;, and the custom search placeholder text and search-icon SVG are gone.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change strips every trace of the Search module from the &lt;code&gt;umami&lt;/code&gt; theme. &lt;code&gt;umami.theme&lt;/code&gt; no longer implements &lt;code&gt;hook_form_search_block_form_alter()&lt;/code&gt; (which set a &amp;quot;Search by keyword, ingredient, dish&amp;quot; placeholder), and &lt;code&gt;preprocessBreadcrumb()&lt;/code&gt; drops its special case for &lt;code&gt;SearchPageInterface&lt;/code&gt; entities, now always resolving the current page title via the &lt;code&gt;title_resolver&lt;/code&gt; service. The Twig overrides &lt;code&gt;block--search-form-block.html.twig&lt;/code&gt;, &lt;code&gt;search-result.html.twig&lt;/code&gt;, and &lt;code&gt;item-list--search-results.html.twig&lt;/code&gt; are deleted along with their CSS (&lt;code&gt;search.css&lt;/code&gt;, &lt;code&gt;search-results.css&lt;/code&gt;, and the classy &lt;code&gt;search-results.css&lt;/code&gt;), the &lt;code&gt;classy.search-results&lt;/code&gt; library entry, and the search icon SVG. The global CSS library no longer attaches the search block/results stylesheets, and several performance test fixtures were updated to reflect the reduced stylesheet byte counts. The fix landed on &lt;code&gt;main&lt;/code&gt; (commit &lt;code&gt;dde124da&lt;/code&gt;) and was backported to &lt;code&gt;11.x&lt;/code&gt; (commit &lt;code&gt;e943d853&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 4, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 4, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Before RTBC, quietone verified the scope of the change by running &lt;code&gt;git grep -i search | grep -v array_search | grep -i umami&lt;/code&gt; against the unpatched and patched code, confirming references dropped from 103 to 0, which gave reviewers confidence the removal was complete.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

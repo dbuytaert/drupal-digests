@@ -1,4 +1,4 @@
-**TL;DR:** [1037 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1040 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [206 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_570 summaries · 20 new this week_
+_573 summaries · 20 new this week_
 
-- [#3182064: Allow min & max exposed numeric/date filters to be configured](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3182064.md)
-- [#3620812: Move toolbar support from Workspaces to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620812.md)
-- [#941970: Rebuild router only when something related to routing changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md)
+- [#3391683: Convert initial functions in update.inc file to a class](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3391683.md)
+- [#3035343: Deprecate drupal_attach_tabledrag(). Move its logic in Table form element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035343.md)
+- [#3618971: Use Admin theme in installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3618971.md)
 
 ### Drupal AI
 
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [206 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_205 rules · 5 new this week_
+_206 rules · 6 new this week_
 
+- [Replace drupal_attach_tabledrag() with Table::attachTabledrag()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-drupal-attach-tabledrag-with-table-attachtabledrag-3035343.php)
 - [Replace views_invalidate_cache() with Views::invalidateCache()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php)
 - [Replace deprecated user.module cancel functions with the AccountCancellation...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php)
-- [Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent]...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php)
 
 
 ## RSS feeds
