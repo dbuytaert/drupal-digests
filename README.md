@@ -1,4 +1,4 @@
-**TL;DR:** [1036 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1037 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [205 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_569 summaries · 19 new this week_
+_570 summaries · 20 new this week_
 
+- [#3182064: Allow min & max exposed numeric/date filters to be configured](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3182064.md)
 - [#3620812: Move toolbar support from Workspaces to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620812.md)
 - [#941970: Rebuild router only when something related to routing changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md)
-- [#3621981: Remove admin-custom.css ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621981.md)
 
 ### Drupal AI
 
