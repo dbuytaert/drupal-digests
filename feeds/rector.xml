@@ -5,6 +5,143 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace deprecated update.inc global functions with the DatabaseUpdate service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php</link>
+      <guid isPermaLink="false">01a09221-5bc1-70d3-84ba-e03bff18bda9</guid>
+      <pubDate>Fri, 11 Sep 2026 20:20:54 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3391683"&gt;#3391683&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated global functions &lt;code&gt;update_check_requirements()&lt;/code&gt;, &lt;code&gt;update_system_schema_requirements()&lt;/code&gt;, and &lt;code&gt;update_do_one()&lt;/code&gt; (defined in &lt;code&gt;core/includes/update.inc&lt;/code&gt;) into calls on the new &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; service, obtained via &lt;code&gt;\Drupal::service(DatabaseUpdate::class)&lt;/code&gt;. For &lt;code&gt;update_do_one()&lt;/code&gt;, the &lt;code&gt;$number&lt;/code&gt; argument is also cast to &lt;code&gt;int&lt;/code&gt; to match the new method's strict type. This helps contrib code (custom update requirement checks, custom batch update runners) migrate ahead of the functions' removal.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function mymodule_update_10001() {
+  $requirements = update_check_requirements();
+  return $requirements;
+}
+
+function mymodule_batch_wrapper($module, $number, $dependency_map, &amp;amp;$context) {
+  update_do_one($module, $number, $dependency_map, $context);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function mymodule_update_10001() {
+  $requirements = \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;getRequirements();
+  return $requirements;
+}
+
+function mymodule_batch_wrapper($module, $number, $dependency_map, &amp;amp;$context) {
+  \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;doOne($module, (int) $number, $dependency_map, $context);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not rewrite &lt;code&gt;_update_fix_missing_schema()&lt;/code&gt;: that function is documented as internal-use-only with no public replacement, so it is intentionally left out. Does not rewrite the string &lt;code&gt;'update_do_one'&lt;/code&gt; when passed as a batch operation callback name (e.g. &lt;code&gt;$batch_builder-&amp;gt;addOperation('update_do_one', [...])&lt;/code&gt;); that shape is a plain string literal, not a function call, and must be updated manually to &lt;code&gt;DatabaseUpdate::class . ':doOne'&lt;/code&gt;. Calls using named arguments, argument unpacking (&lt;code&gt;...$args&lt;/code&gt;), or a non-default arg count are left untouched to avoid mis-rewriting call shapes the rule cannot safely reason about.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Cast\Int_;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUpdateIncFunctionsWithDatabaseUpdateServiceRector extends AbstractRector
+{
+    /**
+     * Maps deprecated global function name to the DatabaseUpdate method
+     * name and the exact argument count each one requires.
+     *
+     * @var array&amp;lt;string, array{0: string, 1: int}&amp;gt;
+     */
+    private const FUNCTION_MAP = [
+        'update_check_requirements' =&amp;gt; ['getRequirements', 0],
+        'update_system_schema_requirements' =&amp;gt; ['systemSchemaRequirements', 0],
+        'update_do_one' =&amp;gt; ['doOne', 4],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace calls to the deprecated update.inc functions update_check_requirements(), update_system_schema_requirements() and update_do_one() with calls to the Drupal\Core\Update\DatabaseUpdate service.',
+            [new CodeSample(
+                'update_do_one($module, $number, $dependency_map, $context);',
+                '\\Drupal::service(\\Drupal\\Core\\Update\\DatabaseUpdate::class)-&amp;gt;doOne($module, (int) $number, $dependency_map, $context);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        // Dynamic call target such as $fn(); the name is not a Name node.
+        if (!$node-&amp;gt;name instanceof Node\Name) {
+            return null;
+        }
+
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_MAP[$functionName])) {
+            return null;
+        }
+
+        [$methodName, $expectedArgCount] = self::FUNCTION_MAP[$functionName];
+
+        if (count($node-&amp;gt;args) !== $expectedArgCount) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;args;
+
+        if ($functionName === 'update_do_one') {
+            // Only rewrite when every argument is a plain positional Arg
+            // (skip named args, spreads and unpacked args to stay safe).
+            foreach ($args as $arg) {
+                if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                    return null;
+                }
+            }
+
+            // update_do_one($module, $number, ...) took $number untyped;
+            // doOne() requires an int, so cast it explicitly.
+            $args[1] = new Arg(new Int_($args[1]-&amp;gt;value));
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\Core\\Update\\DatabaseUpdate'), 'class'))],
+        );
+
+        return new MethodCall($service, $methodName, $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUpdateIncFunctionsWithDatabaseUpdateServiceRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace drupal_attach_tabledrag() with Table::attachTabledrag()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-drupal-attach-tabledrag-with-table-attachtabledrag-3035343.php</link>
       <guid isPermaLink="false">01a0914b-17c4-74b9-a5c4-6869620cf048</guid>
@@ -1934,102 +2071,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\navigation\Plugin\Block\NavigationShortcutsBlock' =&amp;gt; 'Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock',
     ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace options_allowed_values() with the OptionsAllowedValuesInterface service</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-options-allowed-values-with-the-2171397.php</link>
-      <guid isPermaLink="false">019fee3e-98ed-7675-8a3d-ad4926a3f858</guid>
-      <pubDate>Tue, 11 Aug 2026 00:35:07 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2171397"&gt;#2171397&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Drupal core deprecated the global function &lt;code&gt;options_allowed_values()&lt;/code&gt; and moved its logic into the &lt;code&gt;Drupal\options\OptionsAllowedValuesInterface&lt;/code&gt; service (&lt;code&gt;getAllowedValues()&lt;/code&gt; method). This rule rewrites direct calls to the old global function into a call on the new service, preserving the original arguments (the field storage definition and optional entity), so contrib and custom code calling it directly keeps working after the function is removed.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$values = options_allowed_values($definition, $entity);
-// or without an entity:
-$values = options_allowed_values($definition);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$values = \Drupal::service(\Drupal\options\OptionsAllowedValuesInterface::class)-&amp;gt;getAllowedValues($definition, $entity);
-// or without an entity:
-$values = \Drupal::service(\Drupal\options\OptionsAllowedValuesInterface::class)-&amp;gt;getAllowedValues($definition);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites calls with 1 or 2 positional arguments (the documented signature of &lt;code&gt;options_allowed_values()&lt;/code&gt;); calls with other arg counts, named arguments, or first-class callable syntax (&lt;code&gt;options_allowed_values(...)&lt;/code&gt;) are left untouched for manual review. Does not inject the service via dependency injection; it always uses &lt;code&gt;\Drupal::service()&lt;/code&gt;, which is safe everywhere but not idiomatic inside injectable classes such as plugins or services (manual follow-up recommended there).&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplaceOptionsAllowedValuesFunctionRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace options_allowed_values() with the options.allowed_values service.',
-            [new CodeSample(
-                '$values = options_allowed_values($definition, $entity);',
-                &amp;quot;\$values = \\Drupal::service(\\Drupal\\options\\OptionsAllowedValuesInterface::class)-&amp;gt;getAllowedValues(\$definition, \$entity);&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-        if ($node-&amp;gt;isFirstClassCallable()) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'options_allowed_values')) {
-            return null;
-        }
-        if (count($node-&amp;gt;args) &amp;lt; 1 || count($node-&amp;gt;args) &amp;gt; 2) {
-            return null;
-        }
-
-        $interfaceClassConst = new ClassConstFetch(
-            new FullyQualified('Drupal\options\OptionsAllowedValuesInterface'),
-            'class',
-        );
-
-        $service = new StaticCall(
-            new FullyQualified('Drupal'),
-            'service',
-            [new Arg($interfaceClassConst)],
-        );
-
-        return new MethodCall($service, 'getAllowedValues', $node-&amp;gt;args);
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplaceOptionsAllowedValuesFunctionRector::class]);
 
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;

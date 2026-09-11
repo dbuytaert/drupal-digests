@@ -1,4 +1,4 @@
-**TL;DR:** [1040 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [206 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1040 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [207 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_573 summaries · 20 new this week_
+_573 summaries · 19 new this week_
 
 - [#3391683: Convert initial functions in update.inc file to a class](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3391683.md)
 - [#3035343: Deprecate drupal_attach_tabledrag(). Move its logic in Table form element](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3035343.md)
@@ -39,7 +39,7 @@ _91 summaries · 0 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [206 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [207 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_206 rules · 6 new this week_
+_207 rules · 7 new this week_
 
+- [Replace deprecated update.inc global functions with the DatabaseUpdate service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php)
 - [Replace drupal_attach_tabledrag() with Table::attachTabledrag()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-drupal-attach-tabledrag-with-table-attachtabledrag-3035343.php)
 - [Replace views_invalidate_cache() with Views::invalidateCache()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php)
-- [Replace deprecated user.module cancel functions with the AccountCancellation...](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php)
 
 
 ## RSS feeds
