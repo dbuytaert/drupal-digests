@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_569 summaries · 22 new this week_
+_569 summaries · 19 new this week_
 
 - [#3620812: Move toolbar support from Workspaces to Toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620812.md)
 - [#941970: Rebuild router only when something related to routing changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/941970.md)
