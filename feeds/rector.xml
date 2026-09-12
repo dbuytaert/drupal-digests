@@ -5,6 +5,119 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Remove deprecated no-op InstallerTestBase::setUpProfile() calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/remove-deprecated-no-op-installertestbase-setupprofile-calls-3520028.php</link>
+      <guid isPermaLink="false">01a09321-4739-749d-908f-147711895cb4</guid>
+      <pubDate>Sat, 12 Sep 2026 01:00:26 +0000</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3520028"&gt;#3520028&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.4 removed the UI installer's profile-selection step, so &lt;code&gt;InstallerTestBase::setUpProfile()&lt;/code&gt; is now a no-op that only triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice with no replacement. Contrib and distribution functional tests that extend this base class and replicate the old step-by-step installer sequence (a common pattern in core's own installer tests) call &lt;code&gt;$this-&amp;gt;setUpProfile();&lt;/code&gt; as a bare statement. This rule removes that statement, silencing the deprecation notice without changing test behavior, since the step no longer exists.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyDistroInstallerTest extends \Drupal\FunctionalTests\Installer\InstallerTestBase {
+  public function testInstaller(): void {
+    $this-&amp;gt;visitInstaller();
+    $this-&amp;gt;setUpLanguage();
+    $this-&amp;gt;setUpProfile();
+    $this-&amp;gt;setUpRequirementsProblem();
+    $this-&amp;gt;setUpSettings();
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyDistroInstallerTest extends \Drupal\FunctionalTests\Installer\InstallerTestBase {
+  public function testInstaller(): void {
+    $this-&amp;gt;visitInstaller();
+    $this-&amp;gt;setUpLanguage();
+    $this-&amp;gt;setUpRequirementsProblem();
+    $this-&amp;gt;setUpSettings();
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only removes bare, no-argument &lt;code&gt;$this-&amp;gt;setUpProfile();&lt;/code&gt; statement calls. It does not touch method overrides of &lt;code&gt;setUpProfile()&lt;/code&gt; (e.g. a subclass that adds assertions and then calls &lt;code&gt;parent::setUpProfile();&lt;/code&gt;), since those mix custom logic that needs human review; nor calls with arguments or on non-&lt;code&gt;$this&lt;/code&gt; receivers, which never matched the deprecated API shape.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeVisitor;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class RemoveDeprecatedInstallerTestSetUpProfileCallRector extends AbstractRector
+{
+    private const BASE_CLASS = 'Drupal\FunctionalTests\Installer\InstallerTestBase';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove calls to the now-deprecated, no-op InstallerTestBase::setUpProfile().',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$this-&amp;gt;visitInstaller();
+$this-&amp;gt;setUpLanguage();
+$this-&amp;gt;setUpProfile();
+$this-&amp;gt;setUpRequirementsProblem();
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$this-&amp;gt;visitInstaller();
+$this-&amp;gt;setUpLanguage();
+$this-&amp;gt;setUpRequirementsProblem();
+CODE_SAMPLE
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Expression::class];
+    }
+
+    /** @param Expression $node */
+    public function refactor(Node $node)
+    {
+        if (!$node instanceof Expression) {
+            return null;
+        }
+        if (!$node-&amp;gt;expr instanceof MethodCall) {
+            return null;
+        }
+        $methodCall = $node-&amp;gt;expr;
+        if (!$this-&amp;gt;isName($methodCall-&amp;gt;name, 'setUpProfile')) {
+            return null;
+        }
+        if (count($methodCall-&amp;gt;args) !== 0) {
+            return null;
+        }
+        if (!$methodCall-&amp;gt;var instanceof Variable || !$this-&amp;gt;isName($methodCall-&amp;gt;var, 'this')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isObjectType($methodCall-&amp;gt;var, new ObjectType(self::BASE_CLASS))) {
+            return null;
+        }
+
+        return NodeVisitor::REMOVE_NODE;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveDeprecatedInstallerTestSetUpProfileCallRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Replace deprecated update.inc global functions with the DatabaseUpdate service</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php</link>
       <guid isPermaLink="false">01a09221-5bc1-70d3-84ba-e03bff18bda9</guid>
@@ -2027,49 +2140,6 @@ return RectorConfig::configure()
     -&amp;gt;withConfiguredRule(RenameClassRector::class, [
         'Drupal\\Core\\Installer\\InstallerModuleExtensionList' =&amp;gt; 'Drupal\\Core\\Extension\\ModuleExtensionList',
         'Drupal\\Core\\Installer\\InstallerThemeExtensionList' =&amp;gt; 'Drupal\\Core\\Extension\\ThemeExtensionList',
-    ]);
-
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Rename NavigationShortcutsBlock to ShortcutNavigationBlock</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rename-navigationshortcutsblock-to-shortcutnavigationblock-3581816.php</link>
-      <guid isPermaLink="false">01a009a5-33c6-71fa-ab0a-54d6af595851</guid>
-      <pubDate>Sun, 16 Aug 2026 08:16:56 +0000</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581816"&gt;#3581816&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Drupal core moved the shortcuts navigation block plugin class out of the Navigation module and into the Shortcut module. &lt;code&gt;Drupal\navigation\Plugin\Block\NavigationShortcutsBlock&lt;/code&gt; is deprecated in drupal:11.5.0 and removed in drupal:12.0.0 in favor of &lt;code&gt;Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock&lt;/code&gt;, which has the same constructor signature. This rule rewrites &lt;code&gt;use&lt;/code&gt;, &lt;code&gt;extends&lt;/code&gt;, &lt;code&gt;instanceof&lt;/code&gt;, &lt;code&gt;new&lt;/code&gt;, and type-hint references from the old class to the new one.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\navigation\Plugin\Block\NavigationShortcutsBlock;
-
-class MyCustomBlock extends NavigationShortcutsBlock {
-
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock;
-
-class MyCustomBlock extends ShortcutNavigationBlock {
-
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Does not cover the related internal rename of &lt;code&gt;Drupal\navigation\ShortcutLazyBuilder&lt;/code&gt; to &lt;code&gt;Drupal\shortcut\ShortcutNavigationLazyBuilder&lt;/code&gt;, since that class carries no &lt;code&gt;@deprecated&lt;/code&gt; marker or back-compat shim in core (it is &lt;code&gt;@internal&lt;/code&gt; and was removed outright), so there is no documented deprecation to target.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use Rector\Config\RectorConfig;
-use Rector\Renaming\Rector\Name\RenameClassRector;
-
-return RectorConfig::configure()
-    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
-        'Drupal\navigation\Plugin\Block\NavigationShortcutsBlock' =&amp;gt; 'Drupal\shortcut\Plugin\Block\ShortcutNavigationBlock',
     ]);
 
 &lt;/code&gt;&lt;/pre&gt;
