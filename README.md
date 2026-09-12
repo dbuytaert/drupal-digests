@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_576 summaries · 22 new this week_
+_576 summaries · 20 new this week_
 
 - [#3620645: Guzzle FW Gadget Chain shim followup](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620645.md)
 - [#2638250: The label "Member for" on user profiles is hardcoded markup that is different...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2638250.md)
