@@ -1,0 +1,769 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Drupal Canvas</title>
+    <description>Stay informed about developments in Drupal Canvas.</description>
+    <link>https://www.drupal.org/project/canvas</link>
+    <item>
+      <title>#3592062: Support rendering SVGs in SDC and code components with an image prop</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592062.md</link>
+      <guid isPermaLink="false">01a0af58-c6ab-75b5-880f-84dc02da4314</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 17 Sep 2026 12:19:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592062"&gt;#3592062&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas (Experience Builder) lets editors place an SVG media item into a component's &lt;code&gt;image&lt;/code&gt; prop, but until now the SVG silently failed to render: the image was requested through a resizing/derivative pipeline that cannot process SVGs, producing broken image requests, and the unknown width/height of an unprocessable image was recorded as &lt;code&gt;0&lt;/code&gt; rather than &amp;quot;unknown&amp;quot;, which makes an &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; invisible. A third, related bug made the &lt;code&gt;Image&lt;/code&gt; wrapper used by code components always assume a resizing loader was available, logging an error for every candidate size on an SVG. With this fix, SVGs assigned to an &lt;code&gt;image&lt;/code&gt; prop (in SDCs and code components) render correctly, sized from the SVG's own &lt;code&gt;width&lt;/code&gt;/&lt;code&gt;height&lt;/code&gt; or &lt;code&gt;viewBox&lt;/code&gt; when available. SVG support remains opt-in per media type; Canvas' default allowed file extensions are unchanged.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Evaluator&lt;/code&gt; no longer casts a NULL-resolving primitive prop value to &lt;code&gt;0&lt;/code&gt;, &lt;code&gt;''&lt;/code&gt;, or &lt;code&gt;false&lt;/code&gt;; an optional object prop with no value is now omitted/absent (visible in &lt;code&gt;inputs_resolved&lt;/code&gt; and in code component props) instead of a false-y placeholder, and empty items in a multiple-cardinality static prop preview are omitted instead of becoming &lt;code&gt;0&lt;/code&gt;. Required props are unaffected since they still map onto required field properties that throw when empty.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix targets three call sites that assumed every image file could be resized. &lt;code&gt;ImageDerivativeWithParametrizedWidth&lt;/code&gt; and &lt;code&gt;ComputedUrlWithQueryString&lt;/code&gt; (and &lt;code&gt;ImageAndStyleAdapter&lt;/code&gt;) now check &lt;code&gt;ImageStyle::supportsUri()&lt;/code&gt; before building a &lt;code&gt;canvas_parametrized_width--{width}&lt;/code&gt; derivative URL or appending an &lt;code&gt;?alternateWidths=&lt;/code&gt; query string, and omit the query parameter entirely when it would evaluate to NULL, so &lt;code&gt;srcset&lt;/code&gt; candidates are no longer generated for files the image toolkit can't process.&lt;/p&gt;
+&lt;p&gt;Separately, &lt;code&gt;Evaluator&lt;/code&gt; stopped casting NULL-resolving primitive field property values with &lt;code&gt;(int)&lt;/code&gt;/&lt;code&gt;(string)&lt;/code&gt;/&lt;code&gt;(bool)&lt;/code&gt;, which previously turned an unreadable image's &lt;code&gt;width&lt;/code&gt;/&lt;code&gt;height&lt;/code&gt; into &lt;code&gt;0&lt;/code&gt;. Object props that evaluate to NULL are now omitted rather than serialized as a false-y value, since &lt;code&gt;null&lt;/code&gt; doesn't validate against most prop shapes. This uncovered two related bugs that were also fixed: access-denied inference for a required-but-empty field property had assumed Typed Data marks &lt;code&gt;width&lt;/code&gt;/&lt;code&gt;height&lt;/code&gt; as required (it doesn't), and a computed field property that resolves to NULL still needs to carry cacheability from the property definition rather than from the (absent) computed value. At save time, SVG intrinsic dimensions are now read from the SVG's own &lt;code&gt;width&lt;/code&gt;/&lt;code&gt;height&lt;/code&gt; attributes (when in pixels) or its &lt;code&gt;viewBox&lt;/code&gt;, so an icon without explicit width/height doesn't get stretched to fill its containing block.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;Image&lt;/code&gt; wrapper for code components (built on &lt;code&gt;next-image-standalone&lt;/code&gt;) now marks an image &lt;code&gt;unoptimized&lt;/code&gt; when there's no &lt;code&gt;alternateWidths&lt;/code&gt; to build a loader from, which omits &lt;code&gt;srcset&lt;/code&gt;/&lt;code&gt;sizes&lt;/code&gt; instead of invoking a loader that assumes optimization always applies.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that reads &lt;code&gt;inputs_resolved&lt;/code&gt; or code component props for an optional &lt;code&gt;image&lt;/code&gt;-shaped prop should no longer expect a &lt;code&gt;0&lt;/code&gt;, &lt;code&gt;''&lt;/code&gt;, or &lt;code&gt;false&lt;/code&gt; placeholder when the value is absent or unresolvable; such props are now simply omitted. Required props are unaffected. See the change record at &lt;a href="https://www.drupal.org/node/3623307"&gt;#3623307&lt;/a&gt; for details.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 11, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;amangrover90 (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3549232: Canvas AI: Updating page contents with agents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md</link>
+      <guid isPermaLink="false">01a06663-7947-76f5-af9e-20b5c9fa81af</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 03 Sep 2026 05:39:38 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +2130/−332 · php +1589/−55 · yml +498/−250 · js +43/−27&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3549232"&gt;#3549232&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal Canvas's AI &amp;quot;Page Builder&amp;quot; chat agent previously could only add new components to a page. This issue extends it so it can also update the content of a component already on the page (for example, &amp;quot;summarize this text&amp;quot; or &amp;quot;change the button color to blue&amp;quot; on a selected component) and move an existing component to a different region, slot, or position relative to another component. A single chat request can combine adding, editing, and moving in one go, and the orchestrating agent's instructions were rewritten so it correctly routes &amp;quot;edit the text&amp;quot; requests to the page builder agent instead of treating them as a code-component change. The admin form for customizing how components are described to the AI also gains an optional &amp;quot;detailed description&amp;quot; field, giving site builders finer control over the guidance the AI receives for each component.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; config schema changed from a mapping to a sequence and gained &lt;code&gt;label&lt;/code&gt; and &lt;code&gt;detailed_description&lt;/code&gt; keys; sites with saved component descriptions should re-save the settings form.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Three new &lt;code&gt;FunctionCall&lt;/code&gt; plugins were added to the &lt;code&gt;canvas_ai&lt;/code&gt; module: &lt;code&gt;get_component_content&lt;/code&gt; returns the current prop values (and, recursively, slot children) of a placed component by reading &lt;code&gt;CanvasAiTempStore::COMPONENTS_IN_PAGE_WITH_PROP_VALUES_KEY&lt;/code&gt;; &lt;code&gt;update_component_data&lt;/code&gt; validates the target UUID and the new prop values through &lt;code&gt;AiResponseValidator::validateComponentPropUpdate()&lt;/code&gt; (which builds a single-item component tree and runs it through Canvas's constraint validator, and rejects array-shaped values for media props, requiring a media ID instead) before returning a structured &lt;code&gt;{uuid, fieldValues}&lt;/code&gt; payload; &lt;code&gt;move_component_in_page&lt;/code&gt; validates the UUID/region/reference-UUID/placement combination and asks the new &lt;code&gt;CanvasAiPageBuilderHelper::calculateNodepathToMoveComponent()&lt;/code&gt; for the resulting &lt;code&gt;nodePath&lt;/code&gt;. &lt;code&gt;CanvasBuilder::render()&lt;/code&gt; now clears the tempstore at the start of every request, seeds the components-with-values key from the submitted layout, and merges &lt;code&gt;UpdateComponentData&lt;/code&gt;/&lt;code&gt;MoveComponentInPage&lt;/code&gt; tool output into the JSON response as &lt;code&gt;UPDATE&lt;/code&gt;/&lt;code&gt;MOVE&lt;/code&gt; operations alongside the existing &lt;code&gt;ADD&lt;/code&gt; operations, via the new &lt;code&gt;CanvasAiPageBuilderHelper::includeUpdateOperations()&lt;/code&gt;/&lt;code&gt;includeMoveOperations()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;canvas_page_builder_agent&lt;/code&gt; system prompt is restructured into three explicit workflows (A: add, B: modify, C: move), and a new &lt;code&gt;get_metadata_of_components&lt;/code&gt; tool lets the agent fetch full prop/slot definitions on demand instead of receiving them all upfront in the &amp;quot;Available Components Catalog.&amp;quot; A new &lt;code&gt;PageBuilderAgentPreExecuteSubscriber&lt;/code&gt; listens for &lt;code&gt;AgentRequestEvent&lt;/code&gt; and prepends the selected component's UUID to the user's chat message before the page builder agent sees it. &lt;code&gt;CanvasAiPageBuilderHelper::populateMediaPropIfNeeded()&lt;/code&gt; resolves an already-placed image's public file URL back to its media entity ID (via &lt;code&gt;PublicStream&lt;/code&gt; and a &lt;code&gt;field_media_image&lt;/code&gt; query) so that editing unrelated props on a component doesn't blank out its image. Separately, &lt;code&gt;CanvasAiPageBuilderHelper::getAllComponentsKeyedBySource()&lt;/code&gt; now calls &lt;code&gt;ApiConfigControllers::list()&lt;/code&gt; directly instead of issuing an internal HTTP sub-request, and caches the result via &lt;code&gt;CacheBackendInterface&lt;/code&gt;. This work builds on the original add-only agent from &lt;a href="https://www.drupal.org/node/3533079"&gt;#3533079&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you customized component descriptions via the &amp;quot;Canvas AI Component Description&amp;quot; settings form, re-save the form once this lands: the stored config for &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; moved from&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;component_context:
+  type: mapping
+  mapping:
+    '*':
+      type: component_source_entry
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;to a sequence that also stores a &lt;code&gt;label&lt;/code&gt; per source:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;component_context:
+  type: sequence
+  sequence:
+    type: mapping
+    mapping:
+      enabled: { type: boolean }
+      data: { type: text }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 29, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592001: Apply page variant translation overrides to previews</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592001.md</link>
+      <guid isPermaLink="false">01a062ee-9950-77e5-8081-d6ffbd807ae0</guid>
+      <pubDate>Wed, 02 Sep 2026 15:23:04 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592001"&gt;#3592001&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In Drupal Canvas, when a &lt;code&gt;PageVariant&lt;/code&gt; (or a page region) has a config translation, the translated text never showed up in the editor's own preview of that variant, and it also failed to show up in the page chrome wrapped around content previews whenever the page variant had an unsaved auto-save draft. Switching the language dropdown in the editor, or opening a preview URL with a language parameter, kept showing the original base-language text even though the live front end correctly rendered the translation. This made the editor's language switcher effectively non-functional on those two preview surfaces. The fix makes both preview paths apply the language's translation override before rendering, so what editors see in preview now matches what visitors actually see on the live site.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Canvas intentionally keeps its client model and PATCH operations on untranslated base config; translation is meant to surface only at preview/render time, driven by the requested preview language. Two rendering paths were missing that step. &lt;code&gt;ApiLayoutController::buildPreviewRenderable()&lt;/code&gt; built the preview straight from the upcast base entity's component tree via &lt;code&gt;componentTreeLoader&lt;/code&gt;, never consulting any &lt;code&gt;LanguageConfigOverride&lt;/code&gt;. &lt;code&gt;CanvasPageVariant::buildPageVariant()&lt;/code&gt;, when a valid auto-save draft exists, renders that draft's tree, but drafts live in key/value storage outside the config system, so a &lt;code&gt;LanguageConfigOverride&lt;/code&gt; structurally cannot apply to them, leaving the chrome permanently base-language whenever a draft was present.&lt;/p&gt;
+&lt;p&gt;Both fixes reuse the existing &lt;code&gt;ComponentTreeConfigEntityBase::getTranslatedComponentTree()&lt;/code&gt;, which merges the base tree (including a draft's tree) with a language's override. In &lt;code&gt;ApiLayoutController&lt;/code&gt;, the current interface language (from the newly injected &lt;code&gt;LanguageManagerInterface&lt;/code&gt;) is checked against &lt;code&gt;$entity-&amp;gt;getTranslationLanguages(include_default: FALSE)&lt;/code&gt;; if it has a stored override, the merged tree is used instead of the raw one, and the render array gets a &lt;code&gt;languages:interface&lt;/code&gt; cache context added (no separate cache tag is needed since the override shares the base config's cache tag). &lt;code&gt;CanvasPageVariant&lt;/code&gt; gets a new private &lt;code&gt;getPreviewComponentTree()&lt;/code&gt; helper that does the same check and is used by both &lt;code&gt;buildPageVariant()&lt;/code&gt; and the legacy-regions rendering path, but only when &lt;code&gt;$is_preview&lt;/code&gt; is true; live (non-preview) rendering is untouched. &lt;code&gt;LanguageManagerInterface&lt;/code&gt; was added to the plugin's constructor via &lt;code&gt;create()&lt;/code&gt;.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592000: Translating a component tree config entity (such as PageVariant) that has an auto-save draft breaks Canvas layout validation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592000.md</link>
+      <guid isPermaLink="false">01a0621a-08e8-779a-a9b4-5076cadc4bd5</guid>
+      <pubDate>Wed, 02 Sep 2026 10:29:10 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592000"&gt;#3592000&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;If a &lt;code&gt;PageVariant&lt;/code&gt; or &lt;code&gt;ContentTemplate&lt;/code&gt; had unpublished changes sitting in Canvas's auto-save draft when it was translated via config translation, the next time anyone opened the Canvas editor it would crash with a 500 error on every layout request, and stay crashed since the error masked the whole screen (there was no way to publish or discard the draft to recover). This affected plain, single-language-default sites, not just multilingual ones with langcode drift. The fix stops this crash: translating an entity that has a pending auto-save draft no longer breaks the editor.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The crash came from &lt;code&gt;CanvasConfigEntityTranslationsAreValidConstraintValidator::validate()&lt;/code&gt;, which simulates &lt;code&gt;Config::setOverriddenData()&lt;/code&gt; by running &lt;code&gt;NestedArray::mergeDeepArray()&lt;/code&gt; on the entity's base &lt;code&gt;component_tree&lt;/code&gt; and the &lt;code&gt;LanguageConfigOverride&lt;/code&gt;'s translated data, then validates the merged array against config schema. A saved &lt;code&gt;component_tree&lt;/code&gt; is re-keyed by instance UUID in &lt;code&gt;ComponentTreeConfigEntityBase::preSave()&lt;/code&gt;, but an auto-save draft never runs &lt;code&gt;preSave()&lt;/code&gt;, so a draft created before the translation existed keeps the client's delta keys (&lt;code&gt;0, 1, 2, …&lt;/code&gt;). A &lt;code&gt;LanguageConfigOverride&lt;/code&gt;, however, always targets instances by UUID. Merging a delta-keyed base with a UUID-keyed override made the merge treat them as disjoint sets, appending the override's sparse translated inputs as a phantom component instance with no &lt;code&gt;component_id&lt;/code&gt;, &lt;code&gt;component_version&lt;/code&gt;, or &lt;code&gt;uuid&lt;/code&gt;. Validating that merged data tripped the &lt;code&gt;assert(\array_key_exists('component_id', $component_instance))&lt;/code&gt; in &lt;code&gt;ComponentInputsMapping::__construct()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix re-keys the base &lt;code&gt;component_tree&lt;/code&gt; by UUID before the merge, calling &lt;code&gt;ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence()&lt;/code&gt;, mirroring what &lt;code&gt;getTranslatedComponentTree()&lt;/code&gt; already did for a different code path (as noted in that method's own docblock). Test coverage was added in &lt;code&gt;PageVariantValidationTest::testValidationWithTranslationOverrideAndDeltaKeyedTree&lt;/code&gt;, which reconstructs the delta-keyed draft shape, adds a UUID-targeted &lt;code&gt;hu&lt;/code&gt; override, and asserts no validation errors. This fix was split out of the broader langcode-drift work in &lt;a href="https://www.drupal.org/node/3591850"&gt;#3591850&lt;/a&gt; (MR !1400) because it reproduces under plain, single-language-default conditions.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No action needed for typical Canvas usage; this is an internal bug fix. For context: &lt;code&gt;ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence()&lt;/code&gt; was changed from &lt;code&gt;private&lt;/code&gt; to &lt;code&gt;public&lt;/code&gt; (and marked &lt;code&gt;@internal&lt;/code&gt;) so the validator could reuse the same re-keying logic. It remains an internal method not intended for use outside Canvas core.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591981: Provide consistent Code Component metadata validation across CLI and Drupal</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md</link>
+      <guid isPermaLink="false">01a0492f-11a7-713f-8e98-670080d35c1a</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 28 Aug 2026 16:17:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591981"&gt;#3591981&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas Code Components are described by an authored &lt;code&gt;component.yml&lt;/code&gt; file, but until now the rules for what counts as valid metadata were scattered across the CLI, JSON Schema prop definitions, Drupal config schema, and PHP entity constraints. That made local feedback incomplete and meant errors could surface only partway through a &lt;code&gt;canvas push&lt;/code&gt;, after other components had already been updated. This change publishes a single, hand-authored JSON Schema for the authored &lt;code&gt;component.yml&lt;/code&gt; envelope and adds a Drupal endpoint that authoritatively validates a component's metadata against the target site without saving it. The Canvas CLI now runs local structural and ESLint checks first, then calls the target site to confirm acceptance, and &lt;code&gt;canvas push&lt;/code&gt; preflights every component's metadata before making any changes so a rejected component no longer leaves a push partially applied. Sites without the new endpoint fall back to the previous per-component, save-time validation.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New authenticated, non-mutating &lt;code&gt;POST /canvas/api/v0/code-components/validate&lt;/code&gt; endpoint runs the same entity and metadata constraint chain as create/update and returns &lt;code&gt;204&lt;/code&gt; or structured constraint violations without saving anything.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The envelope contract lives in the repository-root &lt;code&gt;component-metadata.schema.json&lt;/code&gt; (draft-07, published at the &lt;code&gt;1.x&lt;/code&gt; rolling raw URL), requiring only &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;machineName&lt;/code&gt; and rejecting unknown keys and projected &lt;code&gt;x-allowed-*&lt;/code&gt; keys; it is statically bundled into the CLI rather than fetched at runtime, and prop definitions under &lt;code&gt;props.properties&lt;/code&gt; are validated directly as JSON Schema (including their first example) rather than generated from Drupal's config schema. A new private &lt;code&gt;packages/json-schema-validation&lt;/code&gt; workspace package (&lt;code&gt;createCanvasAjv&lt;/code&gt;) centralizes a strict draft-07 Ajv instance with &lt;code&gt;ajv-formats&lt;/code&gt; and &lt;code&gt;ajv-formats-draft2019&lt;/code&gt;, shared by the UI and CLI, replacing the UI's local &lt;code&gt;ui/src/utils/ajv.ts&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On the Drupal side, &lt;code&gt;ApiCodeComponentMetadataController::validatePayload&lt;/code&gt; (route &lt;code&gt;canvas.api.code_component.validate&lt;/code&gt;, permission &lt;code&gt;administer code components&lt;/code&gt;) builds an in-memory &lt;code&gt;JavaScriptComponent&lt;/code&gt; create or update candidate from the posted payload and runs &lt;code&gt;getTypedData()-&amp;gt;validate()&lt;/code&gt;, returning &lt;code&gt;204&lt;/code&gt; on success or throwing a &lt;code&gt;ConstraintViolationException&lt;/code&gt; with the structured violations otherwise; unresolvable &lt;code&gt;json-schema-definitions://&lt;/code&gt; references are converted into a violation instead of a fatal error. In &lt;code&gt;packages/cli&lt;/code&gt;, &lt;code&gt;validate.ts&lt;/code&gt; and &lt;code&gt;push.ts&lt;/code&gt; (via new &lt;code&gt;utils/target-component-metadata.ts&lt;/code&gt; and &lt;code&gt;services/api.ts&lt;/code&gt; additions) submit each component's normalized payload to this endpoint when an authenticated API service is available, and &lt;code&gt;canvas push&lt;/code&gt; now calls &lt;code&gt;preflightCodeComponentPayloads()&lt;/code&gt; before any create, update, or delete, aborting the push with &amp;quot;Nothing was pushed&amp;quot; if any component fails. When the target endpoint or authentication is unavailable, the CLI emits a warning that only local checks ran and continues, and older sites without the route retain the previous partial, per-save validation. The old duplicate validators &lt;code&gt;validate-content-entity-reference.ts&lt;/code&gt; and ESLint rules &lt;code&gt;component-content-entity-reference-props&lt;/code&gt; and &lt;code&gt;component-prop-example-value-image-url&lt;/code&gt; were removed in favor of the Drupal-side authoritative checks plus a new, more general &lt;code&gt;component-required-props&lt;/code&gt; ESLint rule.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591972: Code editor has no "Document" prop type for the document object shape</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591972.md</link>
+      <guid isPermaLink="false">01a03fde-9c5a-7332-8b3f-cd6091aa47e2</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 26 Aug 2026 20:02:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591972"&gt;#3591972&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas's code editor previously recognized only &amp;quot;Image&amp;quot; and &amp;quot;Video&amp;quot; object prop types. A code component prop using the newly added &lt;code&gt;document&lt;/code&gt; schema shape ($ref to &lt;code&gt;canvas.module/document&lt;/code&gt;) would silently vanish from the Props panel, and there was no way to add a new document prop from the UI. This fix adds full &amp;quot;Document&amp;quot; prop type support: it appears in the prop type selector, has its own configuration form, supports single and multi-value (allow multiple) modes, and shows a filename/file-type chip instead of a broken image preview when a document is set as a prop's default value.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Code components can declare a prop with &lt;code&gt;$ref: json-schema-definitions://canvas.module/document&lt;/code&gt;, exposed in the code editor as a &amp;quot;Document&amp;quot; prop type.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that &lt;code&gt;derivedPropTypes.ts&lt;/code&gt; had no entry mapping the &lt;code&gt;document&lt;/code&gt; &lt;code&gt;$ref&lt;/code&gt; to a prop type, so &lt;code&gt;Props.tsx&lt;/code&gt; derived &lt;code&gt;null&lt;/code&gt; for such props and filtered them out. The fix adds a &lt;code&gt;document&lt;/code&gt; entry (&lt;code&gt;displayName: 'Document'&lt;/code&gt;) whose &lt;code&gt;derive&lt;/code&gt; callback matches &lt;code&gt;$ref === 'json-schema-definitions://canvas.module/document'&lt;/code&gt;, with an &lt;code&gt;init&lt;/code&gt; example carrying &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt;. As part of this, the existing &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt; &lt;code&gt;derive&lt;/code&gt; callbacks were tightened from &lt;code&gt;$ref?.includes('image')&lt;/code&gt;/&lt;code&gt;includes('video')&lt;/code&gt; substring checks to exact &lt;code&gt;$ref&lt;/code&gt; equality checks, since substring matching became ambiguous with three object &lt;code&gt;$ref&lt;/code&gt;s in play.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Props.tsx&lt;/code&gt; gained a &lt;code&gt;case 'document':&lt;/code&gt; branch rendering a new &lt;code&gt;FormPropTypeDocument&lt;/code&gt; component, and &lt;code&gt;'document'&lt;/code&gt; was added alongside &lt;code&gt;'image'&lt;/code&gt;/&lt;code&gt;'video'&lt;/code&gt; everywhere those two were special-cased: the limited-count array handling, the &amp;quot;has a dedicated example form&amp;quot; check that suppresses the generic required-prop default, the allow-multiple whitelist, and the limited/unlimited &lt;code&gt;valueMode&lt;/code&gt; switch. &lt;code&gt;utils.ts&lt;/code&gt;'s &lt;code&gt;serializeExample&lt;/code&gt;/deserialization logic gained an &lt;code&gt;isDocument&lt;/code&gt; flag so multi-value document examples get the same empty-&lt;code&gt;src&lt;/code&gt; filtering and URL rewriting as image and video examples.&lt;/p&gt;
+&lt;p&gt;On the PHP side, &lt;code&gt;JsComponent::EXAMPLE_URL_ALLOW_LIST&lt;/code&gt; (replacing two separate constant checks) now also allows the new &lt;code&gt;EXAMPLE_DOCUMENT&lt;/code&gt; constant (&lt;code&gt;/ui/assets/documents/sample.pdf&lt;/code&gt;) as a root-relative example URL for validation purposes. &lt;code&gt;DefaultImagePreview.tsx&lt;/code&gt;, which previously rendered a raw &lt;code&gt;&amp;lt;img src&amp;gt;&lt;/code&gt; for any media-library-style prop default, now detects document values (&lt;code&gt;'filename' in value || 'mimetype' in value&lt;/code&gt;) and renders a file-extension chip with a filename label instead of attempting to render a PDF as an image.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;li&gt;f.mazeikis&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591970: Components library UI is broken if a single component preview rendering fails: treat them as "errored" instead so they cannot be placed but the listing is still functional</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md</link>
+      <guid isPermaLink="false">01a033b2-af31-7563-a427-b04363063e2c</guid>
+      <pubDate>Mon, 24 Aug 2026 10:56:28 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591970"&gt;#3591970&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In Canvas, if a single component's preview render failed (for example, a Views block whose display requires URL arguments that Canvas cannot supply), the entire Components library UI broke and became unusable, blocking editors from placing any component at all. Now such a component is simply marked as &amp;quot;broken&amp;quot; and excluded from placement, while every other component in the library keeps working normally.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The crash happened in &lt;code&gt;Component::normalizeForClientSide()&lt;/code&gt;. Previously, only components already known to be broken via &lt;code&gt;ComponentSourceInterface::isBroken()&lt;/code&gt; were wrapped in a try/catch; components that passed that check but then threw during &lt;code&gt;getClientSideInfo()&lt;/code&gt; or during &lt;code&gt;RendererInterface::renderInIsolation()&lt;/code&gt; were not caught, so an uncaught &lt;code&gt;\Throwable&lt;/code&gt; bubbled up and turned the whole &lt;code&gt;ApiConfigControllers::list()&lt;/code&gt; response into a 500, taking down the entire library listing.&lt;/p&gt;
+&lt;p&gt;The fix unifies both code paths (the &amp;quot;known broken&amp;quot; branch and the &amp;quot;renders preview&amp;quot; branch) under a single &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch (\Throwable $e)&lt;/code&gt; block, so any crash during preview building or rendering is now caught and converted into a per-component &amp;quot;broken&amp;quot; state via &lt;code&gt;RenderSafeComponentContainer::handleComponentException()&lt;/code&gt;, rather than propagating. &lt;code&gt;EnforcedResponseException&lt;/code&gt; and &lt;code&gt;FormAjaxException&lt;/code&gt; are explicitly re-thrown rather than swallowed, since those are Drupal Form API flow-control exceptions that must keep bubbling (noted as a workaround pending &lt;a href="https://www.drupal.org/node/2367555"&gt;#2367555&lt;/a&gt;). A related &lt;code&gt;@todo&lt;/code&gt; references &lt;a href="https://www.drupal.org/node/3521041"&gt;#3521041&lt;/a&gt; for eventually simplifying the &lt;code&gt;RenderSafeComponentContainer&lt;/code&gt; wrapping logic itself.&lt;/p&gt;
+&lt;p&gt;Test coverage was added: &lt;code&gt;CanvasTestBlockInputValidatableCrash&lt;/code&gt; gained a static &lt;code&gt;$forceCrash&lt;/code&gt; flag so a block can be made to crash unconditionally (mirroring a Views-backed block crashing while building its preview), and &lt;code&gt;BlockComponentTest::testCrashingPreviewDoesNotBreakComponentList()&lt;/code&gt; asserts that the crashing component is reported with &lt;code&gt;broken =&amp;gt; TRUE&lt;/code&gt; and a &amp;quot;Component failed to render&amp;quot; message, while unrelated components in the same listing remain present and &lt;code&gt;broken =&amp;gt; FALSE&lt;/code&gt;.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;fjgarlin (Drupal Association)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591916: Component version hashes go stale on single-process installs: prop-shape re-resolution is deferred to teardown and skipped on a cold cache</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591916.md</link>
+      <guid isPermaLink="false">01a02518-cc71-7528-b6e4-4d8f06e52c72</guid>
+      <pubDate>Fri, 21 Aug 2026 12:33:29 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591916"&gt;#3591916&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites built with the Canvas module and installed in a single process (for example via &lt;code&gt;drush site:install&lt;/code&gt; applying recipes, as opposed to the browser installer) could end up with Component config entities whose version hash did not match the site's actual configuration. This happened when one recipe created config that changes how a component's properties are stored, such as the first image media type changing how an image prop is saved. If a later recipe in the same install shipped a component tree (a page region, content template, or pattern) referencing the corrected version hash, that hash did not actually exist yet on the freshly installed site, causing a hard render failure. The bug was invisible in bug reports because running &lt;code&gt;drush cr&lt;/code&gt;, installing another module, or saving a View or Menu afterward silently fixed the stale hashes. This is now corrected: single-process installs produce the same, correct component version history as the browser installer.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt;, which caches &amp;quot;storable prop shapes&amp;quot; (how a component prop is actually stored, e.g. as a plain image field vs. a Media Library reference) and computes Component version hashes from them. When a cache tag invalidation queued a prop shape for re-resolution (&lt;code&gt;resolveBeforeWrite&lt;/code&gt;), that queue was previously only drained at &lt;code&gt;destruct()&lt;/code&gt; (request/process teardown), never before the current process's own component-generation pass read the shapes. Additionally, &lt;code&gt;updateCache()&lt;/code&gt; had a cold-cache guard that skipped &lt;code&gt;generateComponents()&lt;/code&gt; entirely, which is always true on a fresh install, so the corrected shapes got cached without ever regenerating the Components that depend on them.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;resolveInvalidatedPropShapes()&lt;/code&gt; to &lt;code&gt;PropShapeRepositoryInterface&lt;/code&gt;, implemented in &lt;code&gt;PersistentPropShapeRepository&lt;/code&gt; to synchronously drain the queued re-resolutions (and a no-op in &lt;code&gt;EphemeralPropShapeRepository&lt;/code&gt;, which never caches). This is now called from &lt;code&gt;JsonSchemaPropsComponentDiscoveryBase::getPropsForComponentPlugin()&lt;/code&gt;, right before it reads prop shapes to compute prop field definitions and version hashes, so &lt;code&gt;RecipeSubscriber::ensureComponentsExist()&lt;/code&gt;, &lt;code&gt;hook_rebuild()&lt;/code&gt;, and module-install triggers all see up-to-date shapes. &lt;code&gt;updateCache()&lt;/code&gt;'s cold-cache guard was also narrowed: it now only skips regeneration when nothing was actually invalidated during the process (i.e. shapes were merely resolved for the first time), but always regenerates when &lt;code&gt;resolveBeforeWrite&lt;/code&gt; was non-empty, even on a cold cache, since that means the storable shapes genuinely changed mid-process.&lt;/p&gt;
+&lt;p&gt;A related, separate gap, array-item prop shapes not carrying the &lt;code&gt;config:media_type_list&lt;/code&gt; cache tag, is tracked separately in &lt;a href="https://www.drupal.org/node/3591917"&gt;#3591917&lt;/a&gt; and was not addressed here.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591885: Add `document` object $ref for linking locally hosted documents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md</link>
+      <guid isPermaLink="false">01a01ff3-0ee4-71cc-9661-9aae46c5617b</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 20 Aug 2026 15:08:55 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591885"&gt;#3591885&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal Canvas code components and Single Directory Components (SDCs) can now declare a &amp;quot;document&amp;quot; prop, the same way they already can for image and video. A component that accepts a &lt;code&gt;document&lt;/code&gt; (or an array of them) gets a file upload widget for content authors, or the Media Library picker when Media Library is enabled and a compatible media type exists, and receives the document's URL, title, filename, size, and MIME type. This was split off from the broader video/embed proposal in &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; because linking a local document has no dependency on the postponed core oEmbed work, unlike remote video.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document&lt;/code&gt; object shape (&lt;code&gt;json-schema-definitions://canvas.module/document&lt;/code&gt;) that code components and SDCs can &lt;code&gt;$ref&lt;/code&gt; to declare a document/file-download prop with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;title&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new shape is defined in &lt;code&gt;schema.json&lt;/code&gt; as &lt;code&gt;document&lt;/code&gt;, requiring only &lt;code&gt;src&lt;/code&gt; (a &lt;code&gt;uri-reference&lt;/code&gt; restricted to &lt;code&gt;http&lt;/code&gt;/&lt;code&gt;https&lt;/code&gt; via &lt;code&gt;x-allowed-schemes&lt;/code&gt;) and adding an &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; annotation listing common office and document formats. It is registered as &lt;code&gt;JsonSchemaObjectRef::Document&lt;/code&gt; and added to the &lt;code&gt;Choice&lt;/code&gt; constraint in &lt;code&gt;config/schema/canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Storage matching is handled in &lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt;, which maps &lt;code&gt;Document&lt;/code&gt; to a &lt;code&gt;file&lt;/code&gt; field (&lt;code&gt;fieldWidget: file_generic&lt;/code&gt;) with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt; resolved from the referenced File entity's &lt;code&gt;uri&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;filemime&lt;/code&gt;; the field's &lt;code&gt;file_extensions&lt;/code&gt; instance setting is derived from the shape's &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; list via the new &lt;code&gt;JsonSchemaObjectRef::allowedFileExtensions()&lt;/code&gt;. &lt;code&gt;title&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; are left unmapped because a plain file field exposes neither.&lt;/p&gt;
+&lt;p&gt;To support Media Library, the media-source-to-schema mapping (previously a private array and method inside &lt;code&gt;ShapeMatchingHooks&lt;/code&gt;) was extracted into a new internal &lt;code&gt;MediaSourceObjectShapes&lt;/code&gt; class shared by both the media library integration and &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt;. It maps &lt;code&gt;Document&lt;/code&gt; to &lt;code&gt;\Drupal\media\Plugin\media\Source\File&lt;/code&gt;, matching any media type whose source is &lt;code&gt;File&lt;/code&gt; (but not a more specific subclass like &lt;code&gt;VideoFile&lt;/code&gt;) and whose source field's allowed extensions intersect the shape's list; this intersection logic is carried by a new no-op &lt;code&gt;UriTargetFileExtensionsConstraint&lt;/code&gt;/validator pair, mirroring how &lt;code&gt;UriTargetMediaTypeConstraint&lt;/code&gt; narrows matches by MIME type. &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt; gained &lt;code&gt;matchDocumentShapeToMediaTypes()&lt;/code&gt; to also suggest existing single-value media reference fields pointing at compatible media types, one reference level deep. Embedding or previewing the document, and remote-video support, remain out of scope, per the split from &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; and the still-postponed &lt;a href="https://www.drupal.org/node/3567249"&gt;#3567249&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;f.mazeikis&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591968: Forbid the reserved component tree root UUID as a component instance `uuid`/`parent_uuid`</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591968.md</link>
+      <guid isPermaLink="false">01a01f19-2305-7013-ac78-0f603eca219f</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 20 Aug 2026 11:14:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591968"&gt;#3591968&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Every Canvas component tree has a synthetic root, identified internally by a fixed, reserved UUID. Because that UUID happens to be a syntactically valid v4 UUID, nothing previously stopped a component instance from using it as its own &lt;code&gt;uuid&lt;/code&gt;, or from pointing to it as its &lt;code&gt;parent_uuid&lt;/code&gt;. Canvas itself never generates such data, but a hand-edited exported page, or content produced by an AI integration like &lt;code&gt;canvas_ai&lt;/code&gt;, could contain it. When it did, the component's children were silently reparented to the top level of the tree during hydration, with no error raised to flag the corrupted structure. This fix makes the reserved UUID explicitly forbidden in both positions, so such content is now caught by validation instead of silently misbehaving.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; The &lt;code&gt;Uuid&lt;/code&gt; constraint alone let a component instance use the reserved component tree root UUID (&lt;code&gt;a548b48d-58a8-4077-aa04-da9405a6f418&lt;/code&gt;) for its &lt;code&gt;uuid&lt;/code&gt; or &lt;code&gt;parent_uuid&lt;/code&gt;, silently reparenting its children to the top level during hydration with no validation error; &lt;code&gt;ComponentTreeStructureConstraintValidator&lt;/code&gt; now rejects it.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lives in &lt;code&gt;ComponentTreeStructureConstraintValidator&lt;/code&gt;, which validates component tree items for both content entity and config entity component trees. It now checks each item's &lt;code&gt;uuid&lt;/code&gt; and &lt;code&gt;parent_uuid&lt;/code&gt; against &lt;code&gt;ComponentTreeItemList::ROOT_UUID&lt;/code&gt;, using &lt;code&gt;strcasecmp()&lt;/code&gt; because the underlying database columns are case-insensitive even though the constraint previously compared case-sensitively. A &lt;code&gt;uuid&lt;/code&gt; matching the reserved value raises a violation at the &lt;code&gt;uuid&lt;/code&gt; path; a &lt;code&gt;parent_uuid&lt;/code&gt; matching it raises a violation at &lt;code&gt;parent_uuid&lt;/code&gt;, since placement at the root is expressed by omitting &lt;code&gt;parent_uuid&lt;/code&gt; and &lt;code&gt;slot&lt;/code&gt; entirely, not by pointing at the root UUID explicitly.&lt;/p&gt;
+&lt;p&gt;There is no update path: existing data with this violation is not migrated. &lt;code&gt;drush canvas:doctor&lt;/code&gt; re-runs these constraints as part of its data health checks, so any pre-existing offending component trees will now surface there. The issue also lists several related gaps left as follow-ups: parent cycles of length two or more still pass validation, duplicate-UUID violations don't name the offending UUID or delta, and config sequence keys aren't bound to each item's &lt;code&gt;uuid&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No code changes are required for callers. Sites with existing component trees should run &lt;code&gt;drush canvas:doctor&lt;/code&gt; after upgrading to detect any component instance that illegally used the reserved root UUID (&lt;code&gt;a548b48d-58a8-4077-aa04-da9405a6f418&lt;/code&gt;, compared case-insensitively) as its &lt;code&gt;uuid&lt;/code&gt; or &lt;code&gt;parent_uuid&lt;/code&gt;; such trees will now fail validation and need to be corrected manually since there is no automatic update path.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;danepowell&lt;/li&gt;
+&lt;li&gt;f.mazeikis&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by ?destination</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md</link>
+      <guid isPermaLink="false">019ff520-0a23-7022-9a0b-b8ae691edbd6</guid>
+      <pubDate>Wed, 12 Aug 2026 05:58:27 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591839"&gt;#3591839&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas's editor could show a blank gray screen on multilingual sites when the site's default language itself has a URL prefix (e.g. &lt;code&gt;/en/&lt;/code&gt; is configured as the prefix for the default English language). The redirect that strips the language prefix from &lt;code&gt;/canvas&lt;/code&gt; paths only fired when the current language differed from the default, so a prefixed default-language path reached the React app unstripped and it couldn't route it. Separately, clicking Edit on &lt;code&gt;/admin/content/pages&lt;/code&gt; for a page under a prefixed language could bounce the user back to the content overview instead of opening the editor, because the &lt;code&gt;destination&lt;/code&gt; query parameter carried by that link survived the redirect and Drupal's core redirect handling used it to override the target. Both problems are fixed: the prefix is now stripped based on what is actually configured for the current URL-negotiated language (default or not), and the query string is preserved on the redirect while &lt;code&gt;destination&lt;/code&gt; is cleared from the request so it can no longer hijack the target.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is in &lt;code&gt;CanvasRouteOptionsEventSubscriber&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;), whose redirect method was renamed from &lt;code&gt;redirectCanvasToDefaultLanguage()&lt;/code&gt; to &lt;code&gt;redirectCanvasToUnprefixedPath()&lt;/code&gt; to match its new behavior. Instead of comparing the current negotiated language against the site's default language, it now reads the prefix actually configured for the URL-negotiated language from &lt;code&gt;language.negotiation:url.prefixes&lt;/code&gt;; an empty prefix means there's nothing to strip, regardless of whether that language is the default. It also checks &lt;code&gt;language.negotiation:url.source&lt;/code&gt; against &lt;code&gt;LanguageNegotiationUrl::CONFIG_PATH_PREFIX&lt;/code&gt; so a leading path segment is only treated as a language prefix under path-prefix negotiation (not domain negotiation, where a matching segment is a real path component), and it bails out early if the &lt;code&gt;language&lt;/code&gt; module isn't installed, since &lt;code&gt;LanguageNegotiationUrl&lt;/code&gt; would not be autoloadable in that case.&lt;/p&gt;
+&lt;p&gt;When a prefix is stripped, the method now builds the &lt;code&gt;LocalRedirectResponse&lt;/code&gt; target from &lt;code&gt;$request-&amp;gt;getQueryString()&lt;/code&gt; so query parameters survive the redirect, and calls &lt;code&gt;$request-&amp;gt;query-&amp;gt;remove('destination')&lt;/code&gt; before building the response so &lt;code&gt;RedirectResponseSubscriber&lt;/code&gt; in core cannot later override the computed redirect target with a stale &lt;code&gt;destination&lt;/code&gt; value. New kernel tests in &lt;code&gt;CanvasLanguageRoutesTest&lt;/code&gt; cover: a default language with its own non-empty prefix, single-language sites with a configured prefix, query-string preservation including &lt;code&gt;destination&lt;/code&gt;, a non-matching leading path segment being left untouched, and domain-based negotiation not stripping a path segment that happens to match a configured prefix.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
+&lt;li&gt;f0ns&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;li&gt;isholgueras (Acquia)&lt;/li&gt;
+&lt;li&gt;narendrar (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3569120: Canvas AI: Expose Props of Blocks to the Agent</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md</link>
+      <guid isPermaLink="false">019feff0-0543-73f3-b97f-3d4398105990</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 11 Aug 2026 04:47:43 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +253/−8 · php +246/−8 · js +6 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3569120"&gt;#3569120&lt;/a&gt; · 5 contributors · 46 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When Canvas AI's page builder agent places a Block component (for example the Site Branding block), it can now see and set that block's actual configuration options instead of just its id and label. Previously the agent only received a block's id, name, and description, so it either produced validation errors when trying to place blocks with required settings, or the values it tried to set (like &lt;code&gt;use_site_logo&lt;/code&gt; or &lt;code&gt;use_site_name&lt;/code&gt;) were silently dropped and the block was always placed with its default configuration. Now the &amp;quot;Get component context&amp;quot; tool includes each block's available properties (name, description, type, default value, required flag, and allowed choices where applicable), so the agent can configure blocks correctly. Internal-only settings that have no effect on the rendered block (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;) are still left out.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Sites with previously saved block descriptions in &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; have that config automatically rebuilt by &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; to include the newly exposed props, while any custom-edited descriptions are preserved.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public &lt;code&gt;CanvasAiPageBuilderHelper::getEnabledBlockComponentsFromStorage()&lt;/code&gt; returns enabled block components with prop metadata, loaded directly from storage independent of the current user's access, for use by update hooks and other server-side code.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;CanvasAiPageBuilderHelper::getAllComponentsKeyedBySource()&lt;/code&gt; previously only branched into rich prop extraction for SDC and JS component sources (&lt;code&gt;processSdc()&lt;/code&gt;, &lt;code&gt;processCodeComponents()&lt;/code&gt;); everything else, including Block components, fell into a generic branch that emitted only &lt;code&gt;id&lt;/code&gt;/&lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt;. A new &lt;code&gt;processBlock()&lt;/code&gt; method now builds prop metadata for blocks by reading the block's config schema definition (&lt;code&gt;block.settings.&amp;lt;plugin_id&amp;gt;&lt;/code&gt;) via the newly injected &lt;code&gt;TypedConfigManagerInterface&lt;/code&gt;, mapping each schema key to a prop with &lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt; (from the schema label), &lt;code&gt;type&lt;/code&gt;, &lt;code&gt;default&lt;/code&gt; (preferring the component's saved &lt;code&gt;default_settings&lt;/code&gt; over the schema default), a &lt;code&gt;required&lt;/code&gt; flag (true unless the schema marks &lt;code&gt;requiredKey === FALSE&lt;/code&gt;), and &lt;code&gt;enum&lt;/code&gt; values pulled from any &lt;code&gt;Choice&lt;/code&gt; constraint. Keys that Canvas can't act on (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;, the latter because Canvas doesn't apply context mappings at render time) are filtered out via &lt;code&gt;isBlockPropExcluded()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because the AI update path (&lt;code&gt;drush updb&lt;/code&gt;) runs as the anonymous user, and the access-checked component listing returns nothing in that context, a new public &lt;code&gt;getEnabledBlockComponentsFromStorage()&lt;/code&gt; method loads enabled block components directly from the &lt;code&gt;Component&lt;/code&gt; storage instead. It backs a new &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; hook that rebuilds any previously saved &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; block data with the new prop structure, re-layering each block's previously customized &lt;code&gt;description&lt;/code&gt; text on top of the rebuilt data.&lt;/p&gt;
+&lt;p&gt;Two related bugs surfaced by the missing propSources on blocks were also fixed: &lt;code&gt;AiResponseValidator::validateComponentStructure()&lt;/code&gt; dereferenced &lt;code&gt;$clientNormalized['propSources']&lt;/code&gt; unconditionally, which is unset for blocks, now guarded with &lt;code&gt;?? []&lt;/code&gt;; and the UI's &lt;code&gt;removeMediaFields()&lt;/code&gt; (used by &lt;code&gt;AiWizard.tsx&lt;/code&gt; when placing AI-suggested components) now short-circuits with &lt;code&gt;isPropSourceComponent()&lt;/code&gt; since block component definitions have no &lt;code&gt;propSources&lt;/code&gt; to filter.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code integrating with Canvas AI's page builder helper can now fetch block component prop data directly from storage, independent of the current user's permissions:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$blocks = \Drupal::service('canvas_ai.page_builder_helper')
+  -&amp;gt;getEnabledBlockComponentsFromStorage();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Sites that previously saved custom block descriptions via the component description settings form will have that config automatically migrated by the &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; update hook; no manual action is required.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;prabha1997 (QED42)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;During review, mglaman suggested that guarding &lt;code&gt;isPropSourceComponent&lt;/code&gt; in &lt;code&gt;ui/src/components/aiExtension/AiWizard.tsx&lt;/code&gt; was a targeted fix that could avoid related bugs without needing to expose block inputs, along with some test and code-style nits. Scott Falconer followed up by making the enum-extraction helper always return an array (with the caller checking &lt;code&gt;count($enum) &amp;gt; 0&lt;/code&gt;), switching the kernel test to build the current user via &lt;code&gt;User::create(['uid' =&amp;gt; 1])&lt;/code&gt;, and confirming the &lt;code&gt;isPropSourceComponent&lt;/code&gt; guard mglaman asked for was already present in the MR.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591785: Strengthen AutoSaveManager to generate stable hashes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md</link>
+      <guid isPermaLink="false">019fd652-1f88-76c8-88ca-c46cf080ebd4</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 06 Aug 2026 07:23:11 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591785"&gt;#3591785&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal Canvas's AutoSaveManager hashes each entity's normalized data both to detect when a draft differs from the last saved version and to detect edit conflicts between concurrent editors. Because that normalization step did not consistently cast values to their canonical PHP types before hashing, equivalent data could produce different hashes, making conflict detection and auto-save comparisons unreliable. This issue strengthens the normalization so hashing is stable and deterministic. On update, a database update hook automatically rehashes all existing stored auto-save entries, so no manual action is required, and the previous fallback that treated entries without a stored hash as conflict-free has been removed since it is no longer needed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;canvas_post_update_0026_rehash_auto_save_items()&lt;/code&gt; update hook rewrites &lt;code&gt;data&lt;/code&gt;, &lt;code&gt;data_hash&lt;/code&gt; and &lt;code&gt;original_hash&lt;/code&gt; for every existing keyvalue-stored Canvas auto-save entry using the strengthened normalization.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that &lt;code&gt;AutoSaveManager::toStorableArray()&lt;/code&gt; stored raw &lt;code&gt;FieldItemListInterface::getValue()&lt;/code&gt; output while &lt;code&gt;normalizeEntity()&lt;/code&gt; separately cast primitives via &lt;code&gt;PrimitiveInterface::getCastedValue()&lt;/code&gt;, and a near-duplicate casting routine existed in &lt;code&gt;ComponentSourceBase&lt;/code&gt;. These divergent, partially-raw code paths meant &lt;code&gt;data_hash&lt;/code&gt; computation could differ for logically identical data.&lt;/p&gt;
+&lt;p&gt;Both are replaced by a single new helper, &lt;code&gt;Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()&lt;/code&gt;, which recursively normalizes any &lt;code&gt;TypedDataInterface&lt;/code&gt;: primitives are cast via &lt;code&gt;getCastedValue()&lt;/code&gt;, traversable elements are walked to arrays, an absent value stays &lt;code&gt;NULL&lt;/code&gt; while a present-but-empty complex value becomes &lt;code&gt;[]&lt;/code&gt;, and &lt;code&gt;ComponentTreeItem&lt;/code&gt; instances are cloned and run through &lt;code&gt;optimizeInputs()&lt;/code&gt; first so equivalent component trees always normalize identically. A few properties are special-cased to keep &lt;code&gt;NULL&lt;/code&gt; instead of being cast to &lt;code&gt;''&lt;/code&gt; or &lt;code&gt;0&lt;/code&gt;: &lt;code&gt;ComponentTreeItem::NULLABLE_STRING_PROPERTIES&lt;/code&gt; (&lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;), &lt;code&gt;PathItem::langcode&lt;/code&gt;, &lt;code&gt;EntityReferenceItem::target_uuid&lt;/code&gt;, and &lt;code&gt;TextItemBase::format&lt;/code&gt;. &lt;code&gt;AutoSaveManager::toStorableArray()&lt;/code&gt; now also uses this helper, and for config entities carrying a component tree it optimizes inputs on a clone before calling &lt;code&gt;toArray()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;With hashing now trustworthy for every entry, the special-case fallback in &lt;code&gt;AutoSaveManager&lt;/code&gt; that treated auto-save entries lacking &lt;code&gt;original_hash&lt;/code&gt; (from before an earlier commit) as having no conflict was removed from &lt;code&gt;detectConflicts()&lt;/code&gt;, &lt;code&gt;resolveConflict()&lt;/code&gt;, and &lt;code&gt;getAllAutoSaveList()&lt;/code&gt;; the &lt;code&gt;AutoSaveEntry&lt;/code&gt; phpstan type now declares &lt;code&gt;original_hash&lt;/code&gt; and &lt;code&gt;data_hash&lt;/code&gt; as always present. &lt;code&gt;canvas.post_update.php&lt;/code&gt; adds &lt;code&gt;canvas_post_update_0026_rehash_auto_save_items()&lt;/code&gt;, which uses reflection to invoke the now-private &lt;code&gt;normalizeEntity()&lt;/code&gt;, &lt;code&gt;generateHash()&lt;/code&gt;, and &lt;code&gt;toStorableArray()&lt;/code&gt; methods against every stored auto-save keyvalue entry, rebuilding its &lt;code&gt;data&lt;/code&gt;, &lt;code&gt;data_hash&lt;/code&gt;, and stored-entity hash in place.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 8, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591905: `drush config:import` can fail to update a Component whose `active_version` changed</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591905.md</link>
+      <guid isPermaLink="false">019fcf66-476f-7611-a3d9-e18529b54f93</guid>
+      <pubDate>Tue, 04 Aug 2026 22:03:15 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591905"&gt;#3591905&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Deploying a Canvas site with &lt;code&gt;drush deploy&lt;/code&gt; (or plain &lt;code&gt;drush config:import&lt;/code&gt;) could silently fail to update a &lt;code&gt;Component&lt;/code&gt; whenever that component's version had changed, for example after adding or removing a prop on a code component. The import would log an error and leave the component at its old version, with no obvious way to tell without checking logs. This particularly affected code components, since the previously known workaround, running a cache rebuild before importing, did not help them: their new configuration only exists in the import itself, so a cache clear just recomputed the old version. This fix makes &lt;code&gt;drush config:import&lt;/code&gt; and &lt;code&gt;drush deploy&lt;/code&gt; reliably bring &lt;code&gt;Component&lt;/code&gt; entities up to date, restoring the expected deploy workflow: edit a component in one environment, export configuration, and import it cleanly in another.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in how Drupal core's config import updates an existing config entity: &lt;code&gt;ConfigEntityStorage::updateFromStorageRecord()&lt;/code&gt; copies every exported property from the sync record, including &lt;code&gt;active_version&lt;/code&gt;, onto the already-loaded entity object. But &lt;code&gt;VersionedConfigEntityBase::$loadedVersion&lt;/code&gt; is derived, non-exported state that is only set once in the constructor. After the property copy, &lt;code&gt;active_version&lt;/code&gt; pointed at the new hash while &lt;code&gt;$loadedVersion&lt;/code&gt; still pointed at the old one, and &lt;code&gt;VersionedConfigEntityBase::preSave()&lt;/code&gt; throws an &lt;code&gt;EntityStorageException&lt;/code&gt; whenever those two disagree. &lt;code&gt;ConfigImporter::importInvokeOwner()&lt;/code&gt; catches that exception per-object and just logs it, so the import as a whole appeared to succeed while the &lt;code&gt;Component&lt;/code&gt; silently stayed on its old version.&lt;/p&gt;
+&lt;p&gt;The fix adds a new &lt;code&gt;VersionedConfigEntityStorage&lt;/code&gt; (extending &lt;code&gt;ConfigEntityStorage&lt;/code&gt;) that overrides &lt;code&gt;updateFromStorageRecord()&lt;/code&gt; to call &lt;code&gt;$entity-&amp;gt;resetToActiveVersion()&lt;/code&gt; after the parent copies the record's properties, re-deriving &lt;code&gt;$loadedVersion&lt;/code&gt; from the just-updated &lt;code&gt;active_version&lt;/code&gt;. &lt;code&gt;Component&lt;/code&gt; now declares this as its &lt;code&gt;storage&lt;/code&gt; handler directly. A new &lt;code&gt;VersionedConfigEntityHooks::entityTypeAlter()&lt;/code&gt; also assigns &lt;code&gt;VersionedConfigEntityStorage&lt;/code&gt; automatically to any entity type implementing &lt;code&gt;VersionedConfigEntityInterface&lt;/code&gt; that hasn't already customized its storage class, so other versioned config entity types get the same protection without extra wiring. The invariant that a deliberately loaded historical version cannot be saved (even while syncing) is preserved, since &lt;code&gt;resetToActiveVersion()&lt;/code&gt; only runs on the property-copy path triggered by config import, not on manual &lt;code&gt;loadVersion()&lt;/code&gt; calls.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 4, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591851: Allow patterns to be edited</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591851.md</link>
+      <guid isPermaLink="false">019fcf67-dd45-731d-8bd0-b474425bff69</guid>
+      <pubDate>Tue, 04 Aug 2026 21:47:42 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591851"&gt;#3591851&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the Canvas page builder, Patterns (reusable, saved component groupings) could previously only be inserted or deleted. There was no way to fix a mistake or evolve a pattern after it was saved. This adds an &amp;quot;Edit pattern&amp;quot; action that opens the pattern in the full canvas editor, and a &amp;quot;Rename&amp;quot; action for changing its name, both from the pattern's menu in the library panel.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The backend already supported updating a Pattern config entity (&lt;code&gt;Pattern::updateFromClientSide()&lt;/code&gt; and the &lt;code&gt;PATCH /canvas/api/v0/config/pattern/{id}&lt;/code&gt; route), so the work was mostly building the missing round-trip: loading a stored pattern back into the editor, editing its component tree as a draft, and publishing it back to config, plus wiring up the UI to reach that flow.&lt;/p&gt;
+&lt;p&gt;New routes &lt;code&gt;canvas.api.layout.get.pattern&lt;/code&gt;, &lt;code&gt;.patch.pattern&lt;/code&gt;, and &lt;code&gt;.post.pattern&lt;/code&gt; (all under &lt;code&gt;/canvas/api/v0/layout-pattern/{entity}&lt;/code&gt;) and a dedicated &lt;code&gt;canvas.api.form.component_instance.pattern&lt;/code&gt; route give Patterns their own layout/component-instance-form endpoints, since unlike content templates a Pattern renders standalone with no preview entity. &lt;code&gt;ApiLayoutController&lt;/code&gt; was generalized to accept &lt;code&gt;ComponentTreeConfigEntityBase&lt;/code&gt; (Pattern's base class) alongside &lt;code&gt;ContentTemplate&lt;/code&gt;, and &lt;code&gt;AutoSaveManager::entityIsConsideredNew()&lt;/code&gt; now treats any &lt;code&gt;ComponentTreeConfigEntityBase&lt;/code&gt; as &amp;quot;new&amp;quot; only while unsaved (&lt;code&gt;$entity-&amp;gt;isNew()&lt;/code&gt;), rather than relying on the default-title heuristic used for content entities. Since a Pattern has no host content entity for field widgets that need entity context (e.g. image or options widgets), &lt;code&gt;Pattern::createEmptyHostEntity()&lt;/code&gt; creates a throwaway, unsaved &lt;code&gt;canvas_page&lt;/code&gt; to serve that role, mirroring &lt;code&gt;ContentTemplate::createEmptyTargetEntity()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On the frontend, a new &lt;code&gt;/pattern/:patternId&lt;/code&gt; route and &lt;code&gt;PatternLayout&lt;/code&gt; component fetch and initialize the editor via &lt;code&gt;useGetPatternLayoutQuery&lt;/code&gt;, and new &lt;code&gt;postPatternLayout&lt;/code&gt;/&lt;code&gt;updateComponentInPattern&lt;/code&gt; RTK Query mutations save the draft. &lt;code&gt;PatternItem.tsx&lt;/code&gt; gains &amp;quot;Edit pattern&amp;quot; and &amp;quot;Rename&amp;quot; menu entries, the latter opening a new &lt;code&gt;RenamePatternDialog&lt;/code&gt; backed by &lt;code&gt;useUpdatePatternMutation&lt;/code&gt; (&lt;code&gt;PATCH /canvas/api/v0/config/pattern/{id}&lt;/code&gt;). A pattern's name is edited immediately through this config API call, separate from the draft/publish cycle used for its component tree. &lt;code&gt;Topbar&lt;/code&gt; and &lt;code&gt;PageInfo&lt;/code&gt; were updated to recognize the new &lt;code&gt;EditorFrameContext.PATTERN&lt;/code&gt; context, hiding the language selector (patterns aren't translated) and showing the pattern's name in the header.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591656: Support multi-target-bundle references in code component content-entity-reference props</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591656.md</link>
+      <guid isPermaLink="false">019faec0-b3d8-71a6-9b7d-5e5addcc9595</guid>
+      <pubDate>Wed, 29 Jul 2026 12:53:41 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591656"&gt;#3591656&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In Drupal Canvas, code components can declare props that pull data from content entity fields, including fields reached through an entity reference. Until now, if that reference field could point to more than one bundle (for example a &amp;quot;Related content&amp;quot; field that can hold either an Article or a Page), Canvas could not actually render it: the render path threw an explicit error rather than silently producing wrong output, and the Canvas UI's field picker did not let you browse into such a field at all. This issue adds real, end-to-end support: at render time Canvas now resolves the referenced entity first and then picks the correct set of fields for whatever bundle that entity actually turns out to be, and the field picker now lets you browse into a multi-bundle reference field on a per-target-bundle basis. Component authors and site builders no longer need to avoid multi-bundle reference fields when wiring up content-entity-reference props.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;JsComponent::buildReferencePayload()&lt;/code&gt; previously threw a &lt;code&gt;\LogicException&lt;/code&gt; whenever a reference expression's target was a &lt;code&gt;ReferencedBundleSpecificBranches&lt;/code&gt; (the coalesced form produced when a reference field targets multiple bundles, one branch per bundle). It now defers target selection until the referencer resolves to a concrete entity: for each &lt;code&gt;ReferencedBundleSpecificBranches&lt;/code&gt; target it calls the new &lt;code&gt;ReferencedBundleSpecificBranches::getBranchForEntityOrNull()&lt;/code&gt; to pick the branch matching the resolved entity's entity type and bundle, and for a plain single-bundle target reached through a multi-bundle referencer (an un-coalesced cross-bundle pick) it matches by the target's host entity type and bundle. When nothing matches the resolved entity's bundle, it falls back to a &lt;code&gt;__type&lt;/code&gt;-only payload, and cacheability now explicitly includes the traversed entity via &lt;code&gt;addCacheableDependency($entity)&lt;/code&gt; since that case has no leaf pick to carry the entity's own cache tags.&lt;/p&gt;
+&lt;p&gt;On the picker side, &lt;code&gt;ApiUiContentEntityReferenceControllers&lt;/code&gt; now offers browsing into a multi-target-bundle reference field, returning one &lt;code&gt;targetBundles&lt;/code&gt; entry per bundle. To avoid producing an inexpressible &amp;quot;branch inside a branch&amp;quot; (nested branching, which the string expression format can't yet represent and which the parser rejects), a further multi-bundle descent is withheld once the parent chain already passed through one multi-bundle reference (&lt;code&gt;parentDescendsThroughMultiTargetBundleReference()&lt;/code&gt;); that follow-up is tracked in &lt;a href="https://www.drupal.org/node/3591865"&gt;#3591865&lt;/a&gt;. The old &lt;code&gt;MultiTargetBundleReferenceNotSupportedConstraint&lt;/code&gt; (and its validator) is removed since multi-bundle references are no longer categorically rejected. Two new constraints take its place for the cases still unsupported: &lt;code&gt;EntityFieldExpressionsMustNotNestBranches&lt;/code&gt; rejects selections that would coalesce into a nested branch, and &lt;code&gt;EntityFieldExpressionsMustNotMixBundlesInObject&lt;/code&gt; rejects picks that read several different fields per bundle across bundles into one object (unrenderable, because each bundle-specific property would throw against the other bundle's entity); mixed-bundle objects becoming a supported branch is tracked in &lt;a href="https://www.drupal.org/node/3591873"&gt;#3591873&lt;/a&gt;. A new &lt;code&gt;NestedBranchNotSupportedException&lt;/code&gt; lets &lt;code&gt;Coalescer&lt;/code&gt; distinguish nested-branch failures from other invalid branch sets, so validation can report the precise &amp;quot;not yet supported&amp;quot; message. The other expression validators (raw-URI, internal-property, multi-valued-field guards) now descend into every branch of a multi-bundle reference instead of skipping it outright, since a violation hidden inside one bundle's branch is still a violation.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 10, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3582200: component_tree sequence keys sorted lexicographically instead of numerically, breaking component order at 10+ instances per level</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582200.md</link>
+      <guid isPermaLink="false">019fa7f9-7da8-70c4-a94e-d471a12d1cdd</guid>
+      <pubDate>Tue, 28 Jul 2026 07:12:49 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +40/−6 · php +40/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3582200"&gt;#3582200&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 1 contributor&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas content templates (and other config entities with a &lt;code&gt;component_tree&lt;/code&gt; field) could have their component order silently scrambled once a tree contained 10 or more components at the same level, or once a component's position key had multiple ':'-separated segments (e.g. items nested in a slot). This happened whenever Canvas normalized the stored order, such as on save or config import. A tree stored as &lt;code&gt;0, 1, 2, ..., 9, 10, 11&lt;/code&gt; would come back as &lt;code&gt;0, 1, 10, 11, 2, 3, ...&lt;/code&gt;, and this corrupted order then propagated to the Canvas layout API and to preview rendering. This fix ensures component order is preserved correctly regardless of how many components a level or slot contains.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that Canvas encodes a component tree's structure into string keys, such as &lt;code&gt;4&lt;/code&gt;, &lt;code&gt;4:the_body:0&lt;/code&gt;, or &lt;code&gt;4:the_body:0:&amp;lt;uuid&amp;gt;&lt;/code&gt;, and then relies on sorting those keys to recover the intended order. Three call sites, &lt;code&gt;ComponentTreeConfigEntityBase::preSave()&lt;/code&gt;, and &lt;code&gt;ComponentTreeConfigEntityTransformer::import()&lt;/code&gt; and its internal &lt;code&gt;computeExportSequenceKeys()&lt;/code&gt;, used PHP's &lt;code&gt;ksort()&lt;/code&gt;, which compares keys as plain strings. That makes &lt;code&gt;10&lt;/code&gt; sort before &lt;code&gt;2&lt;/code&gt;, since lexicographic comparison looks at the first character first.&lt;/p&gt;
+&lt;p&gt;The fix replaces all three &lt;code&gt;ksort()&lt;/code&gt; calls with &lt;code&gt;uksort($tree, \strnatcmp(...))&lt;/code&gt;, using PHP's natural-order string comparison so that whole-number segments within the ':'-delimited keys are compared numerically (&lt;code&gt;9&lt;/code&gt; before &lt;code&gt;10&lt;/code&gt;) while still keeping parent keys (&lt;code&gt;4&lt;/code&gt;) ordered before their child keys (&lt;code&gt;4:the_body:0&lt;/code&gt;). &lt;code&gt;ComponentTreeConfigEntityBase::preSave()&lt;/code&gt; additionally gained a new &lt;code&gt;componentTreeSequenceIsPositionEncoded()&lt;/code&gt; helper, which checks whether the tree's keys are still position-encoded (not yet re-keyed by UUID) so the natural sort is applied only when needed, covering the config install/update path that bypasses the sync import transformer.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 30, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;hanmant.sapkal&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591820: Publishing a symmetrically-translated canvas_page 422s when a default-language edit changes a non-translatable component input</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591820.md</link>
+      <guid isPermaLink="false">019fa7f8-1ba3-778d-93b4-15fc2ab655a0</guid>
+      <pubDate>Tue, 28 Jul 2026 05:28:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591820"&gt;#3591820&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites that translate &lt;code&gt;canvas_page&lt;/code&gt; entities with &lt;code&gt;content_translation&lt;/code&gt; could hit an HTTP 422 error when trying to publish a page after editing a non-translatable (&amp;quot;symmetric&amp;quot;) component input, such as an image's &lt;code&gt;width&lt;/code&gt;, a section's &lt;code&gt;padding_bottom&lt;/code&gt;, or a heading's &lt;code&gt;element&lt;/code&gt; (h1 to h6) tag, on a component instance that also exists in another language's translation. The publish would be rejected even though saving the same change directly would have succeeded. This is now fixed: publishing converges the non-default translation's copy of the changed input to match the default translation, and the publish succeeds as expected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was an ordering mismatch between validation and synchronization. &lt;code&gt;content_translation&lt;/code&gt;'s presave hook is what converges &amp;quot;symmetric&amp;quot; (non-translatable) field columns across a translated entity's translations, but that convergence only happens inside &lt;code&gt;EntityInterface::save()&lt;/code&gt;. Canvas's publish path, &lt;code&gt;ApiAutoSaveController::getConflictAwareContentEntityViolations()&lt;/code&gt;, validates the entity with &lt;code&gt;$entity-&amp;gt;validate()&lt;/code&gt; before &lt;code&gt;save()&lt;/code&gt; runs, so &lt;code&gt;ComponentTreeSymmetricalTranslationConstraint&lt;/code&gt; saw the pre-sync, stale, intermediate state (the auto-save snapshot only ever carries the edited default-language translation) and rejected it.&lt;/p&gt;
+&lt;p&gt;The fix introduces &lt;code&gt;SymmetricalTranslationSynchronizationTrait&lt;/code&gt;, used by both &lt;code&gt;ClientDataToEntityConverter&lt;/code&gt; and &lt;code&gt;ApiAutoSaveController&lt;/code&gt;. It wraps &lt;code&gt;content_translation.synchronizer&lt;/code&gt; (injected as an optional &lt;code&gt;$translationSynchronizer&lt;/code&gt; constructor argument, since &lt;code&gt;content_translation&lt;/code&gt; is an optional dependency) and exposes &lt;code&gt;synchronizeTranslations()&lt;/code&gt;/&lt;code&gt;canSynchronizeTranslations()&lt;/code&gt;. &lt;code&gt;getConflictAwareContentEntityViolations()&lt;/code&gt; now validates a cloned copy of the entity with translations synchronized, while leaving the entity that is actually saved untouched, so &lt;code&gt;content_translation&lt;/code&gt;'s presave hook remains the single synchronization pass. This distinction matters because &lt;code&gt;FieldTranslationSynchronizer::synchronizeItems()&lt;/code&gt; is not idempotent after a structural edit (an insert or reorder): running it twice on an already-synchronized entity maps inputs to the wrong deltas and corrupts translations. &lt;code&gt;ClientDataToEntityConverter::convert()&lt;/code&gt; similarly synchronizes in place before validating, but only on auto-save (never before an actual &lt;code&gt;save()&lt;/code&gt;), and only when the entity in hand is the default translation, since a non-default translation being edited is itself a synchronization target and must not be silently overwritten before its own violation can be reported.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 14, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;davituri (Omedia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591857: Removing a media item from one image prop deletes the stored value of every other media-backed prop on the same component instance</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591857.md</link>
+      <guid isPermaLink="false">019f9a1a-71c6-73a7-80cc-a6c3be49649f</guid>
+      <pubDate>Sat, 25 Jul 2026 09:15:43 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591857"&gt;#3591857&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the Canvas page builder, components with more than one image or media prop (for example a component with a &amp;quot;first image&amp;quot; and &amp;quot;second image&amp;quot;) had a data-loss bug: clicking the remove (X) button on one image would silently wipe out the other, untouched image prop as well. The saved page and preview would lose the second image even though the editor never touched it. This is now fixed: removing one media item only clears that item, and other media props on the same component instance keep their stored values.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in &lt;code&gt;buildRemoveModel()&lt;/code&gt; in &lt;code&gt;ui/src/components/form/components/drupal/DrupalMediaListContainer.tsx&lt;/code&gt;. It called &lt;code&gt;syncPropSourcesToResolvedValues()&lt;/code&gt; (from &lt;code&gt;layoutModelSlice.ts&lt;/code&gt;) across all of a component's props before sending the PATCH to &lt;code&gt;/canvas/api/v0/layout/...&lt;/code&gt;. That helper copies each prop's &lt;code&gt;resolved&lt;/code&gt; value back into its &lt;code&gt;source.value&lt;/code&gt;, but after a prior PATCH round trip the Redux model's &lt;code&gt;resolved&lt;/code&gt; value for a media prop is a server-evaluated object (&lt;code&gt;{src, alt, width, height}&lt;/code&gt;) rather than a media entity ID. Feeding that evaluated object back as a &lt;code&gt;source.value&lt;/code&gt; for the entity-reference-backed &lt;code&gt;StaticPropSource&lt;/code&gt; made &lt;code&gt;clientModelToInput()&lt;/code&gt; (&lt;code&gt;JsonSchemaPropsComponentSourceBase.php&lt;/code&gt;) treat the untouched prop as empty, dropping it from the stored inputs entirely.&lt;/p&gt;
+&lt;p&gt;The fix narrows &lt;code&gt;buildRemoveModel()&lt;/code&gt; to only rewrite the removed prop's &lt;code&gt;source&lt;/code&gt; entry (&lt;code&gt;source[propName] = { ...source[propName], value: resolved[propName] }&lt;/code&gt;), leaving every other prop's &lt;code&gt;source&lt;/code&gt; untouched, and removes the call to &lt;code&gt;syncPropSourcesToResolvedValues()&lt;/code&gt; from this code path since it's no longer needed here. The bug was introduced in &lt;a href="https://www.drupal.org/node/3577219"&gt;#3577219&lt;/a&gt;; prior remove-path tests only covered single-media-prop components, so the cross-prop corruption wasn't caught. A Playwright regression test was added using the &lt;code&gt;mixed-images-with-example&lt;/code&gt; component, populating two image props and removing one, and &lt;code&gt;CanvasMedia.ts&lt;/code&gt;'s &lt;code&gt;addMediaImage()&lt;/code&gt; test helper was extended with an optional &lt;code&gt;fieldset&lt;/code&gt; locator so tests can target a specific media widget when a component has multiple media fields.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;amangrover90 (Acquia)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591716: Boolean props auto-enable when another prop is changed in the Canvas form</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591716.md</link>
+      <guid isPermaLink="false">019f9500-5dfa-75d8-a2bf-7a07880fcd2a</guid>
+      <category>Front-end developers</category>
+      <pubDate>Fri, 24 Jul 2026 15:32:06 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591716"&gt;#3591716&lt;/a&gt; · 1 contributor · 23 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the Canvas experience builder, editing a component with boolean properties (for example a &amp;quot;card-program&amp;quot; component) could cause all of its boolean toggle switches to visually flip to ON as soon as any other, unrelated prop was changed, even though the user never touched the toggle. This was purely a display and initial-state bug: it could mislead editors into thinking a boolean prop was enabled when it was not. The fix ensures boolean &lt;code&gt;false&lt;/code&gt; values are correctly preserved and displayed as OFF throughout the component editing form, including after AJAX form rebuilds (such as those triggered by media library widgets).&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; The &lt;code&gt;input--checkbox--inwidget-boolean-checkbox.html.twig&lt;/code&gt; template now reads &lt;code&gt;element[#checked]&lt;/code&gt; instead of &lt;code&gt;element[#value]&lt;/code&gt; for its &lt;code&gt;current_value&lt;/code&gt; variable, and always renders &lt;code&gt;1&lt;/code&gt; or empty string rather than a raw value.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Two distinct bugs combined to produce the symptom. First, in &lt;code&gt;layoutModelSlice.ts&lt;/code&gt;, &lt;code&gt;_addNewComponentToLayout&lt;/code&gt;'s &lt;code&gt;buildInitialData()&lt;/code&gt; built a new component's initial prop values using &lt;code&gt;prop.default_values?.resolved || []&lt;/code&gt;. Since &lt;code&gt;false || []&lt;/code&gt; evaluates to &lt;code&gt;[]&lt;/code&gt; (a truthy value) rather than &lt;code&gt;false&lt;/code&gt;, any boolean prop defaulting to &lt;code&gt;false&lt;/code&gt; was silently coerced away from its actual value. This was changed to the nullish coalescing operator (&lt;code&gt;?? []&lt;/code&gt;), which only falls back to &lt;code&gt;[]&lt;/code&gt; when the value is &lt;code&gt;null&lt;/code&gt; or &lt;code&gt;undefined&lt;/code&gt;, preserving an explicit &lt;code&gt;false&lt;/code&gt;. The same &lt;code&gt;|| []&lt;/code&gt; to &lt;code&gt;?? []&lt;/code&gt; fix was applied to the &lt;code&gt;source&lt;/code&gt; field.&lt;/p&gt;
+&lt;p&gt;Second, on the server side, Drupal's &lt;code&gt;Checkbox::valueCallback()&lt;/code&gt; returns the integer &lt;code&gt;0&lt;/code&gt; (not PHP boolean &lt;code&gt;false&lt;/code&gt;) for an unchecked checkbox during an AJAX form rebuild. The &lt;code&gt;input--checkbox--inwidget-boolean-checkbox.html.twig&lt;/code&gt; template passed &lt;code&gt;element[#value]&lt;/code&gt; directly into the &lt;code&gt;current_value&lt;/code&gt; attribute consumed by the React &lt;code&gt;DrupalToggle&lt;/code&gt; component. Twig rendered the integer &lt;code&gt;0&lt;/code&gt; as the string &lt;code&gt;&amp;quot;0&amp;quot;&lt;/code&gt;, and since &lt;code&gt;!!&amp;quot;0&amp;quot; === true&lt;/code&gt; in JavaScript, &lt;code&gt;DrupalToggle&lt;/code&gt; interpreted this as checked. The template was changed to use &lt;code&gt;element[#checked]&lt;/code&gt;, a proper boolean set by &lt;code&gt;processCheckbox&lt;/code&gt;, and both &lt;code&gt;default_value&lt;/code&gt; and &lt;code&gt;current_value&lt;/code&gt; are now rendered as either &lt;code&gt;1&lt;/code&gt; or an empty string, never the ambiguous &lt;code&gt;&amp;quot;0&amp;quot;&lt;/code&gt;. As a defensive third layer, &lt;code&gt;DrupalToggle.tsx&lt;/code&gt; gained a &lt;code&gt;parseChecked()&lt;/code&gt; helper that explicitly treats the string &lt;code&gt;&amp;quot;0&amp;quot;&lt;/code&gt; and the number &lt;code&gt;0&lt;/code&gt; as falsy when computing its initial checked state.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+  </channel>
+</rss>

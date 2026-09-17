@@ -1,0 +1,2151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Drupal Rector Rules</title>
+    <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
+    <link>https://github.com/dbuytaert/drupal-digests</link>
+    <item>
+      <title>Remove deprecated no-op InstallerTestBase::setUpProfile() calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/remove-deprecated-no-op-installertestbase-setupprofile-calls-3520028.php</link>
+      <guid isPermaLink="false">01a09321-4739-749d-908f-147711895cb4</guid>
+      <pubDate>Sat, 12 Sep 2026 01:00:26 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3520028"&gt;#3520028&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.4.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.4 removed the UI installer's profile-selection step, so &lt;code&gt;InstallerTestBase::setUpProfile()&lt;/code&gt; is now a no-op that only triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice with no replacement. Contrib and distribution functional tests that extend this base class and replicate the old step-by-step installer sequence (a common pattern in core's own installer tests) call &lt;code&gt;$this-&amp;gt;setUpProfile();&lt;/code&gt; as a bare statement. This rule removes that statement, silencing the deprecation notice without changing test behavior, since the step no longer exists.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyDistroInstallerTest extends \Drupal\FunctionalTests\Installer\InstallerTestBase {
+  public function testInstaller(): void {
+    $this-&amp;gt;visitInstaller();
+    $this-&amp;gt;setUpLanguage();
+    $this-&amp;gt;setUpProfile();
+    $this-&amp;gt;setUpRequirementsProblem();
+    $this-&amp;gt;setUpSettings();
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyDistroInstallerTest extends \Drupal\FunctionalTests\Installer\InstallerTestBase {
+  public function testInstaller(): void {
+    $this-&amp;gt;visitInstaller();
+    $this-&amp;gt;setUpLanguage();
+    $this-&amp;gt;setUpRequirementsProblem();
+    $this-&amp;gt;setUpSettings();
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only removes bare, no-argument &lt;code&gt;$this-&amp;gt;setUpProfile();&lt;/code&gt; statement calls. It does not touch method overrides of &lt;code&gt;setUpProfile()&lt;/code&gt; (e.g. a subclass that adds assertions and then calls &lt;code&gt;parent::setUpProfile();&lt;/code&gt;), since those mix custom logic that needs human review; nor calls with arguments or on non-&lt;code&gt;$this&lt;/code&gt; receivers, which never matched the deprecated API shape.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeVisitor;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class RemoveDeprecatedInstallerTestSetUpProfileCallRector extends AbstractRector
+{
+    private const BASE_CLASS = 'Drupal\FunctionalTests\Installer\InstallerTestBase';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Remove calls to the now-deprecated, no-op InstallerTestBase::setUpProfile().',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$this-&amp;gt;visitInstaller();
+$this-&amp;gt;setUpLanguage();
+$this-&amp;gt;setUpProfile();
+$this-&amp;gt;setUpRequirementsProblem();
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$this-&amp;gt;visitInstaller();
+$this-&amp;gt;setUpLanguage();
+$this-&amp;gt;setUpRequirementsProblem();
+CODE_SAMPLE
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Expression::class];
+    }
+
+    /** @param Expression $node */
+    public function refactor(Node $node)
+    {
+        if (!$node instanceof Expression) {
+            return null;
+        }
+        if (!$node-&amp;gt;expr instanceof MethodCall) {
+            return null;
+        }
+        $methodCall = $node-&amp;gt;expr;
+        if (!$this-&amp;gt;isName($methodCall-&amp;gt;name, 'setUpProfile')) {
+            return null;
+        }
+        if (count($methodCall-&amp;gt;args) !== 0) {
+            return null;
+        }
+        if (!$methodCall-&amp;gt;var instanceof Variable || !$this-&amp;gt;isName($methodCall-&amp;gt;var, 'this')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isObjectType($methodCall-&amp;gt;var, new ObjectType(self::BASE_CLASS))) {
+            return null;
+        }
+
+        return NodeVisitor::REMOVE_NODE;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([RemoveDeprecatedInstallerTestSetUpProfileCallRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated update.inc global functions with the DatabaseUpdate service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php</link>
+      <guid isPermaLink="false">01a09221-5bc1-70d3-84ba-e03bff18bda9</guid>
+      <pubDate>Fri, 11 Sep 2026 20:20:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3391683"&gt;#3391683&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated global functions &lt;code&gt;update_check_requirements()&lt;/code&gt;, &lt;code&gt;update_system_schema_requirements()&lt;/code&gt;, and &lt;code&gt;update_do_one()&lt;/code&gt; (defined in &lt;code&gt;core/includes/update.inc&lt;/code&gt;) into calls on the new &lt;code&gt;Drupal\Core\Update\DatabaseUpdate&lt;/code&gt; service, obtained via &lt;code&gt;\Drupal::service(DatabaseUpdate::class)&lt;/code&gt;. For &lt;code&gt;update_do_one()&lt;/code&gt;, the &lt;code&gt;$number&lt;/code&gt; argument is also cast to &lt;code&gt;int&lt;/code&gt; to match the new method's strict type. This helps contrib code (custom update requirement checks, custom batch update runners) migrate ahead of the functions' removal.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function mymodule_update_10001() {
+  $requirements = update_check_requirements();
+  return $requirements;
+}
+
+function mymodule_batch_wrapper($module, $number, $dependency_map, &amp;amp;$context) {
+  update_do_one($module, $number, $dependency_map, $context);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function mymodule_update_10001() {
+  $requirements = \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;getRequirements();
+  return $requirements;
+}
+
+function mymodule_batch_wrapper($module, $number, $dependency_map, &amp;amp;$context) {
+  \Drupal::service(\Drupal\Core\Update\DatabaseUpdate::class)-&amp;gt;doOne($module, (int) $number, $dependency_map, $context);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not rewrite &lt;code&gt;_update_fix_missing_schema()&lt;/code&gt;: that function is documented as internal-use-only with no public replacement, so it is intentionally left out. Does not rewrite the string &lt;code&gt;'update_do_one'&lt;/code&gt; when passed as a batch operation callback name (e.g. &lt;code&gt;$batch_builder-&amp;gt;addOperation('update_do_one', [...])&lt;/code&gt;); that shape is a plain string literal, not a function call, and must be updated manually to &lt;code&gt;DatabaseUpdate::class . ':doOne'&lt;/code&gt;. Calls using named arguments, argument unpacking (&lt;code&gt;...$args&lt;/code&gt;), or a non-default arg count are left untouched to avoid mis-rewriting call shapes the rule cannot safely reason about.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Cast\Int_;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUpdateIncFunctionsWithDatabaseUpdateServiceRector extends AbstractRector
+{
+    /**
+     * Maps deprecated global function name to the DatabaseUpdate method
+     * name and the exact argument count each one requires.
+     *
+     * @var array&amp;lt;string, array{0: string, 1: int}&amp;gt;
+     */
+    private const FUNCTION_MAP = [
+        'update_check_requirements' =&amp;gt; ['getRequirements', 0],
+        'update_system_schema_requirements' =&amp;gt; ['systemSchemaRequirements', 0],
+        'update_do_one' =&amp;gt; ['doOne', 4],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace calls to the deprecated update.inc functions update_check_requirements(), update_system_schema_requirements() and update_do_one() with calls to the Drupal\Core\Update\DatabaseUpdate service.',
+            [new CodeSample(
+                'update_do_one($module, $number, $dependency_map, $context);',
+                '\\Drupal::service(\\Drupal\\Core\\Update\\DatabaseUpdate::class)-&amp;gt;doOne($module, (int) $number, $dependency_map, $context);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        // Dynamic call target such as $fn(); the name is not a Name node.
+        if (!$node-&amp;gt;name instanceof Node\Name) {
+            return null;
+        }
+
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_MAP[$functionName])) {
+            return null;
+        }
+
+        [$methodName, $expectedArgCount] = self::FUNCTION_MAP[$functionName];
+
+        if (count($node-&amp;gt;args) !== $expectedArgCount) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;args;
+
+        if ($functionName === 'update_do_one') {
+            // Only rewrite when every argument is a plain positional Arg
+            // (skip named args, spreads and unpacked args to stay safe).
+            foreach ($args as $arg) {
+                if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                    return null;
+                }
+            }
+
+            // update_do_one($module, $number, ...) took $number untyped;
+            // doOne() requires an int, so cast it explicitly.
+            $args[1] = new Arg(new Int_($args[1]-&amp;gt;value));
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\Core\\Update\\DatabaseUpdate'), 'class'))],
+        );
+
+        return new MethodCall($service, $methodName, $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUpdateIncFunctionsWithDatabaseUpdateServiceRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace drupal_attach_tabledrag() with Table::attachTabledrag()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-drupal-attach-tabledrag-with-table-attachtabledrag-3035343.php</link>
+      <guid isPermaLink="false">01a0914b-17c4-74b9-a5c4-6869620cf048</guid>
+      <pubDate>Fri, 11 Sep 2026 16:26:52 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3035343"&gt;#3035343&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated global function &lt;code&gt;drupal_attach_tabledrag()&lt;/code&gt; into calls to the new &lt;code&gt;\Drupal\Core\Render\Element\Table::attachTabledrag()&lt;/code&gt; static method, which now holds the logic. The function is deprecated in &lt;code&gt;drupal:11.5.0&lt;/code&gt; and will be removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;. Only two-argument calls (&lt;code&gt;$element&lt;/code&gt;, &lt;code&gt;$options&lt;/code&gt;) are rewritten; the argument list is passed through unchanged, preserving named arguments and by-reference semantics.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element = [];
+$options = [
+  'table_id' =&amp;gt; 'my-module-table',
+  'action' =&amp;gt; 'order',
+  'relationship' =&amp;gt; 'sibling',
+  'group' =&amp;gt; 'my-elements-weight',
+];
+drupal_attach_tabledrag($element, $options);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$element = [];
+$options = [
+  'table_id' =&amp;gt; 'my-module-table',
+  'action' =&amp;gt; 'order',
+  'relationship' =&amp;gt; 'sibling',
+  'group' =&amp;gt; 'my-elements-weight',
+];
+\Drupal\Core\Render\Element\Table::attachTabledrag($element, $options);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites calls with exactly two arguments, matching the function's fixed &lt;code&gt;(&amp;amp;$element, array $options)&lt;/code&gt; signature; calls with a different arity (which would already be fatal errors against the real function) are left untouched.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceDrupalAttachTabledragRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace drupal_attach_tabledrag() with \Drupal\Core\Render\Element\Table::attachTabledrag().',
+            [new CodeSample(
+                'drupal_attach_tabledrag($element, $options);',
+                '\Drupal\Core\Render\Element\Table::attachTabledrag($element, $options);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node, 'drupal_attach_tabledrag')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 2) {
+            return null;
+        }
+
+        return new StaticCall(
+            new FullyQualified('Drupal\\Core\\Render\\Element\\Table'),
+            'attachTabledrag',
+            $node-&amp;gt;args,
+        );
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceDrupalAttachTabledragRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace views_invalidate_cache() with Views::invalidateCache()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-views-invalidate-cache-with-views-invalidatecache-941970.php</link>
+      <guid isPermaLink="false">01a08c22-a850-7544-a709-d39ade4574b8</guid>
+      <pubDate>Thu, 10 Sep 2026 16:24:36 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/941970"&gt;#941970&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The global function &lt;code&gt;views_invalidate_cache()&lt;/code&gt; is deprecated in favor of &lt;code&gt;\Drupal\views\Views::invalidateCache()&lt;/code&gt;. The new static method only invalidates the &lt;code&gt;views_data&lt;/code&gt; cache tag and invokes &lt;code&gt;hook_views_invalidate_cache()&lt;/code&gt;; it no longer forces a router rebuild, since that is now handled per-display via the &lt;code&gt;PostSaveViewInterface&lt;/code&gt; machinery introduced in the same change. This rule rewrites simple call sites so modules keep working after the function is removed.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;views_invalidate_cache();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal\views\Views::invalidateCache();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites the cache-invalidation call itself. The old function also unconditionally called &lt;code&gt;\Drupal::service('router.builder')-&amp;gt;setRebuildNeeded()&lt;/code&gt;; callers that relied on &lt;code&gt;views_invalidate_cache()&lt;/code&gt; to also trigger a router rebuild must add that call explicitly (&lt;code&gt;\Drupal::service('router.builder')-&amp;gt;setRebuildNeeded();&lt;/code&gt; and, for Views' own route subscriber, &lt;code&gt;\Drupal::service('views.route_subscriber')-&amp;gt;reset();&lt;/code&gt;), since the replacement method no longer does this.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\FuncCall\RenameFunctionRector;
+
+return RectorConfig::configure()
+    -&amp;gt;withConfiguredRule(RenameFunctionRector::class, [
+        'views_invalidate_cache' =&amp;gt; 'Drupal\\views\\Views::invalidateCache',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated user.module cancel functions with the AccountCancellation service</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-user-module-cancel-functions-with-the-3620912.php</link>
+      <guid isPermaLink="false">01a086fe-a88c-7570-afd6-b020635e8e3e</guid>
+      <pubDate>Wed, 09 Sep 2026 16:27:11 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620912"&gt;#3620912&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;user_cancel()&lt;/code&gt;, &lt;code&gt;_user_cancel()&lt;/code&gt;, &lt;code&gt;_user_cancel_session_regenerate()&lt;/code&gt;, and &lt;code&gt;user_cancel_methods()&lt;/code&gt; in favor of the new &lt;code&gt;Drupal\user\AccountCancellation&lt;/code&gt; service, which exposes equivalent &lt;code&gt;cancel()&lt;/code&gt;, &lt;code&gt;cancelAccount()&lt;/code&gt;, &lt;code&gt;regenerateSession()&lt;/code&gt;, and &lt;code&gt;cancelMethods()&lt;/code&gt; methods. This rule rewrites direct calls to these global functions into calls on the service fetched via &lt;code&gt;\Drupal::service(AccountCancellation::class)&lt;/code&gt;, so contrib and custom code invoking user account cancellation continues to work once the functions are removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_cancel($edit, $uid, $method);
+_user_cancel($edit, $account, $method);
+_user_cancel_session_regenerate();
+$methods = user_cancel_methods();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancel($edit, $uid, $method);
+\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancelAccount($edit, $account, $method);
+\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;regenerateSession();
+$methods = \Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancelMethods();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites direct calls to these four global function names; dynamic calls (&lt;code&gt;$fn()&lt;/code&gt;, &lt;code&gt;call_user_func()&lt;/code&gt;) and same-named methods/static calls on unrelated classes are left untouched since they cannot be safely disambiguated at the AST level.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserCancelFunctionsWithAccountCancellationRector extends AbstractRector
+{
+    /**
+     * @var array&amp;lt;string, string&amp;gt;
+     */
+    private const FUNCTION_TO_METHOD = [
+        'user_cancel' =&amp;gt; 'cancel',
+        '_user_cancel' =&amp;gt; 'cancelAccount',
+        '_user_cancel_session_regenerate' =&amp;gt; 'regenerateSession',
+        'user_cancel_methods' =&amp;gt; 'cancelMethods',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user.module account cancellation functions with the AccountCancellation service.',
+            [new CodeSample(
+                'user_cancel($edit, $uid, $method);',
+                &amp;quot;\Drupal::service(\Drupal\user\AccountCancellation::class)-&amp;gt;cancel(\$edit, \$uid, \$method);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if ($node-&amp;gt;name instanceof Node\Expr) {
+            // Dynamic function calls (e.g. $fn()) are never a match.
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_TO_METHOD[$functionName])) {
+            return null;
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg($this-&amp;gt;nodeFactory-&amp;gt;createClassConstFetch('Drupal\\user\\AccountCancellation', 'class'))],
+        );
+
+        return new MethodCall($service, self::FUNCTION_TO_METHOD[$functionName], $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserCancelFunctionsWithAccountCancellationRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Convert markFutureUpdateEquivalent() call to #[MarkFutureUpdateEquivalent] attribute</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/convert-markfutureupdateequivalent-call-to-3561302.php</link>
+      <guid isPermaLink="false">01a07d8d-cde9-71fa-9f1e-f3e6b577b7d5</guid>
+      <pubDate>Mon, 07 Sep 2026 20:27:20 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3561302"&gt;#3561302&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Calling &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent($number, $version)&lt;/code&gt; with only the legacy 2 arguments inside a &lt;code&gt;hook_update_N()&lt;/code&gt; body is deprecated. The replacement is the &lt;code&gt;#[MarkFutureUpdateEquivalent($number, $version)]&lt;/code&gt; attribute placed on the update function itself, which also lets the equivalent update register on module install (not just during database updates). This rule moves the two literal arguments from the removed statement onto the enclosing function as an attribute.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function my_module_update_10400(): void {
+  \Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(11101, '11.1.1');
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[\Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent(11101, '11.1.1')]
+function my_module_update_10400(): void {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites calls with exactly 2 positional literal arguments (&lt;code&gt;int&lt;/code&gt;, &lt;code&gt;string&lt;/code&gt;) on &lt;code&gt;\Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(...)&lt;/code&gt;, and only when the call is a direct top-level statement in a function named like &lt;code&gt;..._update_&amp;lt;number&amp;gt;&lt;/code&gt;. Calls already passing the newer &lt;code&gt;$module&lt;/code&gt;/&lt;code&gt;$ran_update_number&lt;/code&gt; arguments, calls using named arguments, non-literal argument values, or calls inside non-update-hook-named functions are left untouched to avoid mis-rewrites. The attribute is emitted with its fully qualified class name rather than adding a &lt;code&gt;use&lt;/code&gt; statement, since automatic import-cleanup in Rector's config also strips backslashes from unrelated &lt;code&gt;\Drupal::...&lt;/code&gt; calls elsewhere in the same file.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\Int_;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\Function_;
+use Rector\Config\RectorConfig;
+use Rector\PhpParser\Node\Value\ValueResolver;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ConvertMarkFutureUpdateEquivalentCallToAttributeRector extends AbstractRector
+{
+    public function __construct(
+        private readonly ValueResolver $valueResolver,
+    ) {
+    }
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Converts a 2-argument UpdateHookRegistry::markFutureUpdateEquivalent() call inside a hook_update_N() body into the #[MarkFutureUpdateEquivalent] attribute on the function.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+function my_module_update_10400(): void {
+  \Drupal::service('update.update_hook_registry')-&amp;gt;markFutureUpdateEquivalent(11101, '11.1.1');
+}
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+#[\Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent(11101, '11.1.1')]
+function my_module_update_10400(): void {
+}
+CODE_SAMPLE
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Function_::class];
+    }
+
+    /** @param Function_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof Function_) {
+            return null;
+        }
+        // The attribute only takes effect on an actual hook_update_N()
+        // function: module install reflects on &amp;quot;{module}_update_{schema}&amp;quot;.
+        if (!preg_match('/_update_\d+$/', $this-&amp;gt;getName($node) ?? '')) {
+            return null;
+        }
+
+        $hasChanged = false;
+        foreach ($node-&amp;gt;stmts as $key =&amp;gt; $stmt) {
+            $attribute = $this-&amp;gt;matchMarkFutureUpdateEquivalentAttribute($stmt);
+            if ($attribute === null) {
+                continue;
+            }
+
+            $node-&amp;gt;attrGroups[] = new AttributeGroup([$attribute]);
+            unset($node-&amp;gt;stmts[$key]);
+            $hasChanged = true;
+        }
+
+        if (!$hasChanged) {
+            return null;
+        }
+
+        $node-&amp;gt;stmts = array_values($node-&amp;gt;stmts);
+
+        return $node;
+    }
+
+    private function matchMarkFutureUpdateEquivalentAttribute(Node $stmt): ?Attribute
+    {
+        if (!$stmt instanceof Expression) {
+            return null;
+        }
+        $call = $stmt-&amp;gt;expr;
+        if (!$call instanceof MethodCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($call-&amp;gt;name, 'markFutureUpdateEquivalent')) {
+            return null;
+        }
+        // Only the deprecated 2-argument call is rewritten. A call already
+        // passing $module and $ran_update_number is not the deprecated shape.
+        if (count($call-&amp;gt;args) !== 2) {
+            return null;
+        }
+        [$numberArg, $versionArg] = $call-&amp;gt;args;
+        if (!$numberArg instanceof Arg || !$versionArg instanceof Arg) {
+            return null;
+        }
+        // Named arguments could reorder the values; skip rather than risk
+        // swapping the number and version when rebuilding as an attribute.
+        if ($numberArg-&amp;gt;name !== null || $versionArg-&amp;gt;name !== null) {
+            return null;
+        }
+        // Attribute arguments must be constant expressions: restrict to the
+        // literal shapes actually used in core and contrib.
+        if (!$numberArg-&amp;gt;value instanceof Int_ || !$versionArg-&amp;gt;value instanceof String_) {
+            return null;
+        }
+
+        $caller = $call-&amp;gt;var;
+        if (!$caller instanceof StaticCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($caller-&amp;gt;class, 'Drupal')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($caller-&amp;gt;name, 'service')) {
+            return null;
+        }
+        if (count($caller-&amp;gt;args) !== 1 || !$caller-&amp;gt;args[0] instanceof Arg) {
+            return null;
+        }
+        if (!$this-&amp;gt;valueResolver-&amp;gt;isValue($caller-&amp;gt;args[0]-&amp;gt;value, 'update.update_hook_registry')) {
+            return null;
+        }
+
+        return new Attribute(
+            new FullyQualified('Drupal\Core\Update\Attribute\MarkFutureUpdateEquivalent'),
+            [new Arg($numberArg-&amp;gt;value), new Arg($versionArg-&amp;gt;value)],
+        );
+    }
+}
+
+return RectorConfig::configure()
+    -&amp;gt;withRules([ConvertMarkFutureUpdateEquivalentCallToAttributeRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace user_role_*_permissions() functions with RoleInterface methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-role-permissions-functions-with-roleinterface-2025089.php</link>
+      <guid isPermaLink="false">01a07bdb-da88-71e2-9c9a-172d3d0134a8</guid>
+      <pubDate>Mon, 07 Sep 2026 12:33:21 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2025089"&gt;#2025089&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;user_role_grant_permissions()&lt;/code&gt;, &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt;, and &lt;code&gt;user_role_change_permissions()&lt;/code&gt; in favor of the &lt;code&gt;grantPermissions()&lt;/code&gt;, &lt;code&gt;revokePermissions()&lt;/code&gt;, and &lt;code&gt;changePermissions()&lt;/code&gt; methods on &lt;code&gt;RoleInterface&lt;/code&gt;. This rule rewrites each &lt;code&gt;FuncCall&lt;/code&gt; into &lt;code&gt;\Drupal\user\Entity\Role::loadOverrideFree($rid)?-&amp;gt;method($permissions)?-&amp;gt;save()&lt;/code&gt;, using nullsafe chaining so behavior stays safe when the role does not exist, matching the pattern Drupal core itself uses in &lt;code&gt;media.install&lt;/code&gt; and &lt;code&gt;node.install&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_role_grant_permissions('anonymous', ['access content']);
+user_role_revoke_permissions('anonymous', ['access content']);
+user_role_change_permissions('anonymous', ['access content' =&amp;gt; TRUE]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;grantPermissions(['access content'])?-&amp;gt;save();
+\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;revokePermissions(['access content'])?-&amp;gt;save();
+\Drupal\user\Entity\Role::loadOverrideFree('anonymous')?-&amp;gt;changePermissions(['access content' =&amp;gt; TRUE])?-&amp;gt;save();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Skips calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;), and calls with more than two positional arguments (the deprecated functions never had a third). &lt;code&gt;user_role_revoke_permissions()&lt;/code&gt; did not null-check the loaded role internally (it would fatal on an unknown &lt;code&gt;$rid&lt;/code&gt;), while the rewritten nullsafe chain silently no-ops instead; this is strictly safer and matches the pattern core itself adopted for the other two functions.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\NullsafeMethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserRolePermissionFunctionsRector extends AbstractRector
+{
+    /** @var array&amp;lt;string, string&amp;gt; */
+    private const FUNCTION_TO_METHOD = [
+        'user_role_grant_permissions' =&amp;gt; 'grantPermissions',
+        'user_role_revoke_permissions' =&amp;gt; 'revokePermissions',
+        'user_role_change_permissions' =&amp;gt; 'changePermissions',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace user_role_grant_permissions(), user_role_revoke_permissions() and user_role_change_permissions() with the corresponding RoleInterface method, loading the role with Role::loadOverrideFree() first.',
+            [new CodeSample(
+                &amp;quot;user_role_grant_permissions('anonymous', ['access content']);&amp;quot;,
+                &amp;quot;\\Drupal\\user\\Entity\\Role::loadOverrideFree('anonymous')?-&amp;gt;grantPermissions(['access content'])?-&amp;gt;save();&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_TO_METHOD[$functionName])) {
+            return null;
+        }
+
+        if (count($node-&amp;gt;args) &amp;lt; 1 || count($node-&amp;gt;args) &amp;gt; 2) {
+            return null;
+        }
+
+        // Skip named arguments and argument unpacking; too rare to be worth the complexity.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg) {
+                return null;
+            }
+            if ($arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        $ridArg = $node-&amp;gt;args[0];
+        $permissionsArg = $node-&amp;gt;args[1] ?? new Arg(new Array_([]));
+
+        $methodName = self::FUNCTION_TO_METHOD[$functionName];
+
+        $loadCall = new StaticCall(
+            new FullyQualified('Drupal\\user\\Entity\\Role'),
+            'loadOverrideFree',
+            [$ridArg],
+        );
+
+        $permissionsCall = new NullsafeMethodCall($loadCall, $methodName, [$permissionsArg]);
+
+        return new NullsafeMethodCall($permissionsCall, 'save');
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserRolePermissionFunctionsRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Rewrite deprecated update.compare.inc functions to UpdateCalculator/UpdateManager services</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rewrite-deprecated-update-compare-inc-functions-to-3580705.php</link>
+      <guid isPermaLink="false">01a06e16-b6e2-7555-bfaf-e286e65000c0</guid>
+      <pubDate>Fri, 04 Sep 2026 20:22:57 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580705"&gt;#3580705&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal core deprecated three update.module global functions in favor of service methods: &lt;code&gt;update_process_project_info()&lt;/code&gt; and &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; moved to the internal &lt;code&gt;Drupal\update\UpdateCalculator&lt;/code&gt; service, and &lt;code&gt;update_calculate_project_data()&lt;/code&gt; moved to &lt;code&gt;Drupal\update\UpdateManagerInterface::calculateProjectData()&lt;/code&gt;. This rule rewrites call sites to the equivalent service calls, including converting the by-reference &lt;code&gt;update_calculate_project_update_status()&lt;/code&gt; call into an assignment that wraps arguments in the new &lt;code&gt;UpdateProject&lt;/code&gt;/&lt;code&gt;UpdateServerProjectInfo&lt;/code&gt; value objects and unwraps the result with &lt;code&gt;toArray()&lt;/code&gt;, mirroring the deprecated function's own forwarding implementation.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;update_process_project_info($projects);
+$data = update_calculate_project_data($available);
+update_calculate_project_update_status($project_data, $available);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;processProjectInfo($projects);
+$data = \Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;calculateProjectData($available);
+$project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;updateProjectStatus(\Drupal\update\UpdateProject::createFromArray($project_data), \Drupal\update\UpdateServerProjectInfo::createFromArray($available))-&amp;gt;toArray();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;) are skipped since the replacement shape depends on positional argument order; these are rare for internal update.module functions. Calls with an unexpected argument count are left untouched rather than guessed at.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class UpdateCompareFunctionsToServiceRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated update.compare.inc global functions with calls to the update.update_calculator / update.manager services.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+update_process_project_info($projects);
+$data = update_calculate_project_data($available);
+update_calculate_project_update_status($project_data, $available);
+CODE_SAMPLE,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+\Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;processProjectInfo($projects);
+$data = \Drupal::service(\Drupal\update\UpdateManagerInterface::class)-&amp;gt;calculateProjectData($available);
+$project_data = \Drupal::service(\Drupal\update\UpdateCalculator::class)-&amp;gt;updateProjectStatus(\Drupal\update\UpdateProject::createFromArray($project_data), \Drupal\update\UpdateServerProjectInfo::createFromArray($available))-&amp;gt;toArray();
+CODE_SAMPLE,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'update_process_project_info')
+            &amp;amp;&amp;amp; !$this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_data')
+            &amp;amp;&amp;amp; !$this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_update_status')
+        ) {
+            return null;
+        }
+
+        // Skip named args / spread args: the replacement shape depends on
+        // positional argument order.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'update_process_project_info')) {
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+            return $this-&amp;gt;createServiceMethodCall('Drupal\\update\\UpdateCalculator', 'processProjectInfo', $node-&amp;gt;args);
+        }
+
+        if ($this-&amp;gt;isName($node-&amp;gt;name, 'update_calculate_project_data')) {
+            if (count($node-&amp;gt;args) !== 1) {
+                return null;
+            }
+            return $this-&amp;gt;createServiceMethodCall('Drupal\\update\\UpdateManagerInterface', 'calculateProjectData', $node-&amp;gt;args);
+        }
+
+        // update_calculate_project_update_status(&amp;amp;$project_data, $available): void
+        // mutates $project_data by reference. The replacement method takes
+        // value objects and returns the new UpdateProject, so we rebuild the
+        // call as an assignment back onto the original first-argument
+        // expression, mirroring the deprecated function's own body.
+        if (count($node-&amp;gt;args) !== 2) {
+            return null;
+        }
+        $projectDataArg = $node-&amp;gt;args[0];
+        $availableArg = $node-&amp;gt;args[1];
+
+        $updateProject = new StaticCall(
+            new FullyQualified('Drupal\\update\\UpdateProject'),
+            'createFromArray',
+            [$projectDataArg],
+        );
+        $updateServerProjectInfo = new StaticCall(
+            new FullyQualified('Drupal\\update\\UpdateServerProjectInfo'),
+            'createFromArray',
+            [$availableArg],
+        );
+        $serviceCall = $this-&amp;gt;createServiceMethodCall(
+            'Drupal\\update\\UpdateCalculator',
+            'updateProjectStatus',
+            [new Arg($updateProject), new Arg($updateServerProjectInfo)],
+        );
+        $toArrayCall = new MethodCall($serviceCall, 'toArray');
+
+        return new Assign($projectDataArg-&amp;gt;value, $toArrayCall);
+    }
+
+    /**
+     * @param Arg[] $args
+     */
+    private function createServiceMethodCall(string $serviceClass, string $method, array $args): MethodCall
+    {
+        $serviceLookup = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified($serviceClass), 'class'))],
+        );
+
+        return new MethodCall($serviceLookup, $method, $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([UpdateCompareFunctionsToServiceRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Inline the deprecated FormBuilderInterface::HTMX_REQUEST constant</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/inline-the-deprecated-formbuilderinterface-htmx-request-3555916.php</link>
+      <guid isPermaLink="false">01a0681b-650f-7585-8e64-514fab819011</guid>
+      <pubDate>Thu, 03 Sep 2026 16:30:20 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3555916"&gt;#3555916&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 12.0.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;As part of the HTMX 4 upgrade, &lt;code&gt;FormBuilderInterface::HTMX_REQUEST&lt;/code&gt; is deprecated in favor of &lt;code&gt;HtmxRequestInfoTrait::isHtmxRequest()&lt;/code&gt; and will be removed in Drupal 13. Since the trait method needs the consuming class to use the trait and expose &lt;code&gt;getRequest()&lt;/code&gt;, which isn't safely inferable in arbitrary contrib code, this rule instead inlines the constant's literal value (&lt;code&gt;'HX-Request'&lt;/code&gt;) at every use site. This keeps behavior identical while avoiding a fatal error once the constant is removed.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Form\FormBuilderInterface;
+
+if ($request-&amp;gt;headers-&amp;gt;has(FormBuilderInterface::HTMX_REQUEST)) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;if ($request-&amp;gt;headers-&amp;gt;has('HX-Request')) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The deprecation message recommends adopting &lt;code&gt;HtmxRequestInfoTrait::isHtmxRequest()&lt;/code&gt; instead, which is the more idiomatic fix when the calling class already uses that trait. This rule cannot safely detect that context, so it inlines the constant's literal string value instead, which is behaviorally identical and works regardless of the surrounding class.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Scalar\String_;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class InlineFormBuilderHtmxRequestConstantRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace the deprecated FormBuilderInterface::HTMX_REQUEST constant with its literal header name value.',
+            [new CodeSample(
+                '$request-&amp;gt;headers-&amp;gt;has(FormBuilderInterface::HTMX_REQUEST);',
+                &amp;quot;\$request-&amp;gt;headers-&amp;gt;has('HX-Request');&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ClassConstFetch::class];
+    }
+
+    /** @param ClassConstFetch $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof ClassConstFetch) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'HTMX_REQUEST')) {
+            return null;
+        }
+        if (!$this-&amp;gt;isObjectType($node-&amp;gt;class, new ObjectType('Drupal\\Core\\Form\\FormBuilderInterface'))) {
+            return null;
+        }
+        return new String_('HX-Request');
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([InlineFormBuilderHtmxRequestConstantRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated locale.module global constants with class constant/enum equivalents</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-global-constants-with-2831617.php</link>
+      <guid isPermaLink="false">01a05de3-3617-709a-b5ce-3d8f8d91235c</guid>
+      <pubDate>Tue, 01 Sep 2026 16:52:46 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2831617"&gt;#2831617&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates ten global constants in &lt;code&gt;locale.module&lt;/code&gt; (&lt;code&gt;LOCALE_CUSTOMIZED&lt;/code&gt;, &lt;code&gt;LOCALE_NOT_CUSTOMIZED&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_USE_SOURCE_*&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_OVERWRITE_*&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_REMOTE&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_LOCAL&lt;/code&gt;, &lt;code&gt;LOCALE_TRANSLATION_CURRENT&lt;/code&gt;) in favor of &lt;code&gt;LocaleDefaultOptions&lt;/code&gt; class constants and &lt;code&gt;TranslationUpdateMode&lt;/code&gt;/&lt;code&gt;Overwrite&lt;/code&gt;/&lt;code&gt;SourceType&lt;/code&gt; backed-enum cases. This rule rewrites any &lt;code&gt;ConstFetch&lt;/code&gt; reference to one of these ten global constants into the corresponding &lt;code&gt;ClassConstFetch&lt;/code&gt; or &lt;code&gt;EnumCase-&amp;gt;value&lt;/code&gt; expression, so contrib and custom code using these constants keeps working after they are removed.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$customized = LOCALE_CUSTOMIZED;
+$use_source = LOCALE_TRANSLATION_USE_SOURCE_LOCAL;
+if ($source-&amp;gt;type == LOCALE_TRANSLATION_LOCAL || $source-&amp;gt;type == LOCALE_TRANSLATION_REMOTE) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$customized = \Drupal\locale\LocaleDefaultOptions::CUSTOMIZED;
+$use_source = \Drupal\locale\Model\TranslationUpdateMode::Local-&amp;gt;value;
+if ($source-&amp;gt;type == \Drupal\locale\Model\SourceType::Local-&amp;gt;value || $source-&amp;gt;type == \Drupal\locale\Model\SourceType::Remote-&amp;gt;value) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not touch &lt;code&gt;LOCALE_TRANSLATION_STATUS_TTL&lt;/code&gt; (inlined as a literal &lt;code&gt;600&lt;/code&gt;, no direct replacement) or &lt;code&gt;LOCALE_JS_STRING&lt;/code&gt;/&lt;code&gt;LOCALE_JS_OBJECT&lt;/code&gt;/&lt;code&gt;LOCALE_JS_OBJECT_CONTEXT&lt;/code&gt; (moved to local variables inside &lt;code&gt;LocaleJs::parseJsFile()&lt;/code&gt;, no public replacement); these have no equivalent expression to substitute, so call sites using them need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\PropertyFetch;
+use PhpParser\Node\Identifier;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceLocaleDeprecatedConstantsRector extends AbstractRector
+{
+    /**
+     * Old global constant name =&amp;gt; [FQCN, member name, isEnumCase].
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string, 2: bool}&amp;gt;
+     */
+    private const REPLACEMENTS = [
+        'LOCALE_NOT_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\LocaleDefaultOptions', 'NOT_CUSTOMIZED', false],
+        'LOCALE_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\LocaleDefaultOptions', 'CUSTOMIZED', false],
+        'LOCALE_TRANSLATION_USE_SOURCE_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\TranslationUpdateMode', 'Local', true],
+        'LOCALE_TRANSLATION_USE_SOURCE_REMOTE_AND_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\TranslationUpdateMode', 'RemoteAndLocal', true],
+        'LOCALE_TRANSLATION_OVERWRITE_ALL' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'All', true],
+        'LOCALE_TRANSLATION_OVERWRITE_NON_CUSTOMIZED' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'NonCustomized', true],
+        'LOCALE_TRANSLATION_OVERWRITE_NONE' =&amp;gt; ['Drupal\\locale\\Model\\Overwrite', 'None', true],
+        'LOCALE_TRANSLATION_REMOTE' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Remote', true],
+        'LOCALE_TRANSLATION_LOCAL' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Local', true],
+        'LOCALE_TRANSLATION_CURRENT' =&amp;gt; ['Drupal\\locale\\Model\\SourceType', 'Current', true],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.module global constants with their LocaleDefaultOptions class constant or Model enum case replacements.',
+            [new CodeSample(
+                '$customized = LOCALE_CUSTOMIZED;
+$use_source = LOCALE_TRANSLATION_USE_SOURCE_LOCAL;',
+                '$customized = \Drupal\locale\LocaleDefaultOptions::CUSTOMIZED;
+$use_source = \Drupal\locale\Model\TranslationUpdateMode::Local-&amp;gt;value;',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [ConstFetch::class];
+    }
+
+    /** @param ConstFetch $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof ConstFetch) {
+            return null;
+        }
+
+        foreach (self::REPLACEMENTS as $oldConstName =&amp;gt; [$class, $member, $isEnumCase]) {
+            if (!$this-&amp;gt;isName($node, $oldConstName)) {
+                continue;
+            }
+
+            $classConstFetch = $this-&amp;gt;nodeFactory-&amp;gt;createClassConstFetch($class, $member);
+
+            if (!$isEnumCase) {
+                return $classConstFetch;
+            }
+
+            return new PropertyFetch($classConstFetch, new Identifier('value'));
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleDeprecatedConstantsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated file upload functions with service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-file-upload-functions-with-service-calls-3375423.php</link>
+      <guid isPermaLink="false">01a05ddf-cf1e-7499-9ccb-c2e09951c368</guid>
+      <pubDate>Tue, 01 Sep 2026 16:49:03 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3375423"&gt;#3375423&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global functions &lt;code&gt;file_save_upload()&lt;/code&gt;, &lt;code&gt;file_managed_file_save_upload()&lt;/code&gt;, and &lt;code&gt;_file_save_upload_from_form()&lt;/code&gt; in favor of the &lt;code&gt;FormFileUploader&lt;/code&gt; and &lt;code&gt;ManagedFileElementHelper&lt;/code&gt; services. This rule rewrites calls to the equivalent &lt;code&gt;\Drupal::service(...)-&amp;gt;method(...)&lt;/code&gt; form, preserving argument order. For &lt;code&gt;file_save_upload()&lt;/code&gt;, a literal &lt;code&gt;FALSE&lt;/code&gt;/&lt;code&gt;NULL&lt;/code&gt; third argument (the old &lt;code&gt;$destination&lt;/code&gt; default) is rewritten to the string &lt;code&gt;'temporary://'&lt;/code&gt; since the new method's parameter is strictly typed as &lt;code&gt;string&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$file = file_save_upload('upload', $validators, FALSE, 0);
+$result = file_managed_file_save_upload($element, $form_state);
+$result2 = _file_save_upload_from_form($element, $form_state, 0);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$file = \Drupal::service(\Drupal\file\Upload\FormFileUploader::class)-&amp;gt;saveFormUploadedFiles('upload', $validators, 'temporary://', 0);
+$result = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)-&amp;gt;managedFileSaveUpload($element, $form_state);
+$result2 = \Drupal::service(\Drupal\file\Upload\ManagedFileElementHelper::class)-&amp;gt;saveFileUploads($element, $form_state, 0);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;If the &lt;code&gt;$destination&lt;/code&gt; argument to &lt;code&gt;file_save_upload()&lt;/code&gt; is a non-literal expression (a variable or function call) that may evaluate to &lt;code&gt;FALSE&lt;/code&gt; or &lt;code&gt;NULL&lt;/code&gt; at runtime, the rule leaves it unchanged; the rewritten service call requires a &lt;code&gt;string&lt;/code&gt;, so such a call would need manual review. Calls using named arguments or argument unpacking (&lt;code&gt;...$args&lt;/code&gt;) are skipped entirely rather than risk a wrong rewrite.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceDeprecatedFileSaveUploadFunctionsRector extends AbstractRector
+{
+    /** @var array&amp;lt;string, array{class: string, method: string, minArgs: int, maxArgs: int}&amp;gt; */
+    private const REPLACEMENTS = [
+        'file_save_upload' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\FormFileUploader',
+            'method' =&amp;gt; 'saveFormUploadedFiles',
+            'minArgs' =&amp;gt; 1,
+            'maxArgs' =&amp;gt; 5,
+        ],
+        'file_managed_file_save_upload' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\ManagedFileElementHelper',
+            'method' =&amp;gt; 'managedFileSaveUpload',
+            'minArgs' =&amp;gt; 2,
+            'maxArgs' =&amp;gt; 2,
+        ],
+        '_file_save_upload_from_form' =&amp;gt; [
+            'class' =&amp;gt; 'Drupal\\file\\Upload\\ManagedFileElementHelper',
+            'method' =&amp;gt; 'saveFileUploads',
+            'minArgs' =&amp;gt; 2,
+            'maxArgs' =&amp;gt; 4,
+        ],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace the deprecated file_save_upload(), file_managed_file_save_upload() and _file_save_upload_from_form() functions with calls to their replacement services.',
+            [new CodeSample(
+                '$file = file_save_upload(&amp;quot;upload&amp;quot;, $validators);',
+                '$file = \Drupal::service(\Drupal\file\Upload\FormFileUploader::class)-&amp;gt;saveFormUploadedFiles(&amp;quot;upload&amp;quot;, $validators);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $functionName = null;
+        foreach (self::REPLACEMENTS as $name =&amp;gt; $replacement) {
+            if ($this-&amp;gt;isName($node-&amp;gt;name, $name)) {
+                $functionName = $name;
+                break;
+            }
+        }
+        if ($functionName === null) {
+            return null;
+        }
+        $replacement = self::REPLACEMENTS[$functionName];
+
+        $argCount = count($node-&amp;gt;args);
+        if ($argCount &amp;lt; $replacement['minArgs'] || $argCount &amp;gt; $replacement['maxArgs']) {
+            return null;
+        }
+
+        // Named arguments and argument unpacking change the mapping between
+        // position and parameter; skip rather than risk a wrong rewrite.
+        foreach ($node-&amp;gt;args as $arg) {
+            if (!$arg instanceof Arg || $arg-&amp;gt;name !== null || $arg-&amp;gt;unpack) {
+                return null;
+            }
+        }
+
+        $args = $node-&amp;gt;args;
+
+        if ($functionName === 'file_save_upload') {
+            // The old function normalizes a FALSE/NULL $destination to
+            // 'temporary://' before delegating; the new method's parameter is
+            // a plain string, so a literal FALSE/NULL third argument must be
+            // rewritten to the string, or a TypeError results.
+            if (isset($args[2]) &amp;amp;&amp;amp; $args[2]-&amp;gt;value instanceof ConstFetch) {
+                $constName = $this-&amp;gt;getName($args[2]-&amp;gt;value-&amp;gt;name);
+                if ($constName !== null &amp;amp;&amp;amp; in_array(strtolower($constName), ['false', 'null'], true)) {
+                    $args[2] = new Arg(new String_('temporary://'));
+                }
+            }
+        }
+
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified($replacement['class']), 'class'))],
+        );
+
+        return new MethodCall($serviceCall, $replacement['method'], $args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceDeprecatedFileSaveUploadFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Update references to text_with_summary field plugins moved out of the text module</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/update-references-to-text-with-summary-field-plugins-moved-3549134.php</link>
+      <guid isPermaLink="false">01a05ddc-499c-71b1-ad68-97ce60740ece</guid>
+      <pubDate>Tue, 01 Sep 2026 16:45:12 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3549134"&gt;#3549134&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal core moved the &lt;code&gt;text_with_summary&lt;/code&gt; field type, its &lt;code&gt;text_textarea_with_summary&lt;/code&gt; widget, and its &lt;code&gt;text_summary_or_trimmed&lt;/code&gt; formatter out of the &lt;code&gt;text&lt;/code&gt; module into a new dedicated &lt;code&gt;text_with_summary&lt;/code&gt; module. The old classes in &lt;code&gt;Drupal\text\Plugin\Field\...&lt;/code&gt; are deprecated in &lt;code&gt;drupal:11.5.0&lt;/code&gt; and removed in &lt;code&gt;drupal:12.0.0&lt;/code&gt;. This rule rewrites &lt;code&gt;use&lt;/code&gt;, &lt;code&gt;extends&lt;/code&gt;, &lt;code&gt;instanceof&lt;/code&gt;, &lt;code&gt;new&lt;/code&gt;, and type-hint references from the old class locations to their new &lt;code&gt;Drupal\text_with_summary\Plugin\Field\...&lt;/code&gt; equivalents so custom subclasses and type checks keep working after the module split.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
+
+class MyItem extends TextWithSummaryItem {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;class MyItem extends \Drupal\text_with_summary\Plugin\Field\FieldType\TextWithSummaryItem {
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The rule rewrites the code reference itself but does not remove the now-unused &lt;code&gt;use&lt;/code&gt; statement for the old class, and it does not add &lt;code&gt;text_with_summary&lt;/code&gt; as a module dependency in the consuming module's &lt;code&gt;.info.yml&lt;/code&gt;; both are cosmetic/config follow-ups a developer should make by hand.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
+        'Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldType\TextWithSummaryItem',
+        'Drupal\text\Plugin\Field\FieldWidget\TextareaWithSummaryWidget' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldWidget\TextareaWithSummaryWidget',
+        'Drupal\text\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter' =&amp;gt; 'Drupal\text_with_summary\Plugin\Field\FieldFormatter\TextSummaryOrTrimmedFormatter',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Inline user_picture_enabled() calls into a field-definition check</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/inline-user-picture-enabled-calls-into-a-field-definition-3151555.php</link>
+      <guid isPermaLink="false">01a0597b-f570-76ed-aa4e-ad92bcc4d3a3</guid>
+      <pubDate>Mon, 31 Aug 2026 20:21:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3151555"&gt;#3151555&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;user_picture_enabled()&lt;/code&gt; is deprecated with no direct replacement; callers must inline the check it used to perform. This rule rewrites zero-argument calls to &lt;code&gt;user_picture_enabled()&lt;/code&gt; into &lt;code&gt;isset(\Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user')['user_picture'])&lt;/code&gt;, matching exactly what core's own call sites were changed to. It preserves surrounding boolean context (negation, &lt;code&gt;&amp;amp;&amp;amp;&lt;/code&gt;, etc.) since the replacement is a drop-in boolean expression.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;if (!user_picture_enabled()) {
+  $disabled['toggle_node_user_picture'] = TRUE;
+}
+
+if (!empty($build['user_picture']) &amp;amp;&amp;amp; user_picture_enabled()) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;if (!isset(\Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user')['user_picture'])) {
+  $disabled['toggle_node_user_picture'] = TRUE;
+}
+
+if (!empty($build['user_picture']) &amp;amp;&amp;amp; isset(\Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user')['user_picture'])) {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only matches calls with zero arguments (the function's real signature). A user-defined function or method that happens to share the name &lt;code&gt;user_picture_enabled&lt;/code&gt; but takes arguments, or is called as &lt;code&gt;$this-&amp;gt;user_picture_enabled(...)&lt;/code&gt;, is left untouched since the rule only targets global &lt;code&gt;FuncCall&lt;/code&gt; nodes.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\Isset_;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserPictureEnabledRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user_picture_enabled() with an inline check of the user_picture field definition.',
+            [new CodeSample(
+                'if (!user_picture_enabled()) { }',
+                &amp;quot;if (!isset(\\Drupal::service('entity_field.manager')-&amp;gt;getFieldDefinitions('user', 'user')['user_picture'])) { }&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if ($node-&amp;gt;isFirstClassCallable()) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, 'user_picture_enabled')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 0) {
+            return null;
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new String_('entity_field.manager'))],
+        );
+        $getFieldDefinitions = new MethodCall(
+            $service,
+            'getFieldDefinitions',
+            [new Arg(new String_('user')), new Arg(new String_('user'))],
+        );
+        $arrayDimFetch = new ArrayDimFetch($getFieldDefinitions, new String_('user_picture'));
+
+        return new Isset_([$arrayDimFetch]);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserPictureEnabledRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated update.module global functions with service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-update-module-global-functions-with-3580703.php</link>
+      <guid isPermaLink="false">01a057d1-2431-70bb-a3e7-73ce8b714f8b</guid>
+      <pubDate>Mon, 31 Aug 2026 12:35:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3580703"&gt;#3580703&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates five &lt;code&gt;update.module&lt;/code&gt; procedural functions in favor of methods on the &lt;code&gt;update.manager&lt;/code&gt; and &lt;code&gt;update.processor&lt;/code&gt; services, removed in Drupal 13. This rule rewrites &lt;code&gt;update_get_available()&lt;/code&gt;, &lt;code&gt;update_refresh()&lt;/code&gt;, &lt;code&gt;update_storage_clear()&lt;/code&gt;, &lt;code&gt;update_create_fetch_task()&lt;/code&gt;, and &lt;code&gt;update_fetch_data()&lt;/code&gt; calls to the equivalent &lt;code&gt;\Drupal::service(...)-&amp;gt;method(...)&lt;/code&gt; call, preserving all arguments. It skips dynamic calls (&lt;code&gt;$fn()&lt;/code&gt;) where the function name is not statically known, and leaves unrelated functions of the same short name alone.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$available = update_get_available(TRUE);
+update_refresh();
+update_storage_clear();
+update_create_fetch_task($project);
+update_fetch_data();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$available = \Drupal::service('update.manager')-&amp;gt;getAvailable(TRUE);
+\Drupal::service('update.manager')-&amp;gt;refreshUpdateData();
+\Drupal::service('update.manager')-&amp;gt;reset();
+\Drupal::service('update.processor')-&amp;gt;createFetchTask($project);
+\Drupal::service('update.processor')-&amp;gt;fetchData();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Does not cover &lt;code&gt;update_fetch_data_finished()&lt;/code&gt; or &lt;code&gt;_update_project_status_sort()&lt;/code&gt;, which core deprecates with no replacement, nor &lt;code&gt;_update_no_data()&lt;/code&gt;/&lt;code&gt;_update_message_text()&lt;/code&gt;, whose replacements are protected methods on &lt;code&gt;\Drupal\update\UpdateMessageTrait&lt;/code&gt; that cannot be called without a class using that trait; those call sites need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUpdateModuleFunctionsRector extends AbstractRector
+{
+    /**
+     * Maps a deprecated update.module global function to the [service id,
+     * method name] that replaces it. All of these functions were deprecated
+     * in drupal:11.5.0 and are removed from drupal:13.0.0.
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
+     */
+    private const FUNCTION_MAP = [
+        'update_get_available' =&amp;gt; ['update.manager', 'getAvailable'],
+        'update_refresh' =&amp;gt; ['update.manager', 'refreshUpdateData'],
+        'update_storage_clear' =&amp;gt; ['update.manager', 'reset'],
+        'update_create_fetch_task' =&amp;gt; ['update.processor', 'createFetchTask'],
+        'update_fetch_data' =&amp;gt; ['update.processor', 'fetchData'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated update.module global functions with calls to the update.manager and update.processor services.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$available = update_get_available(TRUE);
+update_storage_clear();
+CODE_SAMPLE,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$available = \Drupal::service('update.manager')-&amp;gt;getAvailable(TRUE);
+\Drupal::service('update.manager')-&amp;gt;reset();
+CODE_SAMPLE,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$node-&amp;gt;name instanceof Name) {
+            // Dynamic call, e.g. $fn(); the function name isn't statically known.
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::FUNCTION_MAP[$functionName])) {
+            return null;
+        }
+        [$serviceId, $method] = self::FUNCTION_MAP[$functionName];
+
+        $serviceCall = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new String_($serviceId))],
+        );
+
+        return new MethodCall($serviceCall, $method, $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUpdateModuleFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace user_login_finalize() and user_logout() with services</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-login-finalize-and-user-logout-with-services-2012976.php</link>
+      <guid isPermaLink="false">01a04a68-fab4-7012-aef0-55439f7656d5</guid>
+      <pubDate>Fri, 28 Aug 2026 22:06:29 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2012976"&gt;#2012976&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the procedural &lt;code&gt;user_login_finalize()&lt;/code&gt; and &lt;code&gt;user_logout()&lt;/code&gt; functions in &lt;code&gt;user.module&lt;/code&gt; in favor of &lt;code&gt;\Drupal\user\LoginFinalizer::finalizeLogin()&lt;/code&gt; and &lt;code&gt;\Drupal\user\LogoutFinalizer::finalizeLogout()&lt;/code&gt;, obtained via dependency injection or &lt;code&gt;\Drupal::service()&lt;/code&gt;. This rule rewrites call sites of both global functions to the equivalent service call, letting contrib and custom code (including auth/session modules that call these directly) migrate ahead of removal in drupal:13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;user_login_finalize($account);
+user_logout();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\LoginFinalizer::class)-&amp;gt;finalizeLogin($account);
+\Drupal::service(\Drupal\user\LogoutFinalizer::class)-&amp;gt;finalizeLogout();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Skips call sites that use named arguments (e.g. &lt;code&gt;user_login_finalize(account: $account)&lt;/code&gt;) because the new service method's parameter is named &lt;code&gt;$user&lt;/code&gt;, not &lt;code&gt;$account&lt;/code&gt;; rewriting those would break under strict named-argument binding. Such (rare) call sites are left untouched for manual review. The rule targets &lt;code&gt;\Drupal::service()&lt;/code&gt; call sites; it does not inject the service into a class constructor, since that requires editing the class's dependency list which is outside the scope of this rewrite.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserLoginLogoutFinalizeRector extends AbstractRector
+{
+    /**
+     * Maps deprecated global function name to [service FQCN, method name].
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
+     */
+    private const REPLACEMENTS = [
+        'user_login_finalize' =&amp;gt; ['Drupal\\user\\LoginFinalizer', 'finalizeLogin'],
+        'user_logout' =&amp;gt; ['Drupal\\user\\LogoutFinalizer', 'finalizeLogout'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated user_login_finalize() and user_logout() global functions with the LoginFinalizer and LogoutFinalizer services.',
+            [new CodeSample(
+                'user_login_finalize($account);
+user_logout();',
+                '\Drupal::service(\Drupal\user\LoginFinalizer::class)-&amp;gt;finalizeLogin($account);
+\Drupal::service(\Drupal\user\LogoutFinalizer::class)-&amp;gt;finalizeLogout();',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        foreach (self::REPLACEMENTS as $functionName =&amp;gt; [$serviceClass, $methodName]) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;name, $functionName)) {
+                continue;
+            }
+
+            // The new service method's parameter name differs from the old
+            // function's parameter name; a named argument would break.
+            foreach ($node-&amp;gt;args as $arg) {
+                if ($arg instanceof Arg &amp;amp;&amp;amp; $arg-&amp;gt;name !== null) {
+                    return null;
+                }
+            }
+
+            $serviceCall = new StaticCall(
+                new FullyQualified('Drupal'),
+                'service',
+                [new Arg(new ClassConstFetch(new FullyQualified($serviceClass), 'class'))],
+            );
+
+            return new MethodCall($serviceCall, $methodName, $node-&amp;gt;args);
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserLoginLogoutFinalizeRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace _user_mail_notify() calls with NotificationHandler methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-user-mail-notify-calls-with-notificationhandler-3539178.php</link>
+      <guid isPermaLink="false">01a03fe4-4974-7368-98e4-e18f672c7007</guid>
+      <pubDate>Wed, 26 Aug 2026 21:05:20 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3539178"&gt;#3539178&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the global function &lt;code&gt;_user_mail_notify($op, $account)&lt;/code&gt; in favor of dedicated methods on the internal &lt;code&gt;Drupal\user\NotificationHandler&lt;/code&gt; service, one method per notification type. This rule rewrites call sites where the &lt;code&gt;$op&lt;/code&gt; argument is a literal string it recognizes (e.g. &lt;code&gt;password_reset&lt;/code&gt;, &lt;code&gt;cancel_confirm&lt;/code&gt;, &lt;code&gt;status_blocked&lt;/code&gt;) into the equivalent &lt;code&gt;\Drupal::service(NotificationHandler::class)-&amp;gt;sendXxx($account)&lt;/code&gt; call, letting contrib modules migrate ahead of removal in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;_user_mail_notify('password_reset', $account);
+_user_mail_notify('cancel_confirm', $entity);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\user\NotificationHandler::class)-&amp;gt;sendPasswordReset($account);
+\Drupal::service(\Drupal\user\NotificationHandler::class)-&amp;gt;sendCancelConfirm($entity);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites calls whose &lt;code&gt;$op&lt;/code&gt; argument is a plain string literal matching one of the eight known operations (&lt;code&gt;register_admin_created&lt;/code&gt;, &lt;code&gt;register_no_approval_required&lt;/code&gt;, &lt;code&gt;register_pending_approval&lt;/code&gt;, &lt;code&gt;password_reset&lt;/code&gt;, &lt;code&gt;status_activated&lt;/code&gt;, &lt;code&gt;status_blocked&lt;/code&gt;, &lt;code&gt;cancel_confirm&lt;/code&gt;, &lt;code&gt;status_canceled&lt;/code&gt;). Calls that compute &lt;code&gt;$op&lt;/code&gt; dynamically (e.g. &lt;code&gt;$op = $active ? 'status_activated' : 'status_blocked'; _user_mail_notify($op, $account);&lt;/code&gt;), use named arguments, pass a custom/unsupported &lt;code&gt;$op&lt;/code&gt; value, or pass a different argument count are left untouched and must be migrated by hand. The old function could return &lt;code&gt;NULL&lt;/code&gt; (suppressed) or &lt;code&gt;FALSE&lt;/code&gt; (error) while the new methods always return &lt;code&gt;bool&lt;/code&gt;; call sites that rely on distinguishing &lt;code&gt;NULL&lt;/code&gt; from &lt;code&gt;FALSE&lt;/code&gt; (rather than a simple truthy/falsy check) need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceUserMailNotifyRector extends AbstractRector
+{
+    private const OP_TO_METHOD = [
+        'register_admin_created' =&amp;gt; 'sendRegisterAdminCreated',
+        'register_no_approval_required' =&amp;gt; 'sendRegisterNoApprovalRequired',
+        'register_pending_approval' =&amp;gt; 'sendRegisterPendingApproval',
+        'password_reset' =&amp;gt; 'sendPasswordReset',
+        'status_activated' =&amp;gt; 'sendStatusActivated',
+        'status_blocked' =&amp;gt; 'sendStatusBlocked',
+        'cancel_confirm' =&amp;gt; 'sendCancelConfirm',
+        'status_canceled' =&amp;gt; 'sendStatusCanceled',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace _user_mail_notify() calls with the equivalent Drupal\user\NotificationHandler method.',
+            [new CodeSample(
+                &amp;quot;_user_mail_notify('password_reset', \$account);&amp;quot;,
+                &amp;quot;\\Drupal::service(\\Drupal\\user\\NotificationHandler::class)-&amp;gt;sendPasswordReset(\$account);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;name, '_user_mail_notify')) {
+            return null;
+        }
+        if (count($node-&amp;gt;args) !== 2) {
+            return null;
+        }
+        if (!$node-&amp;gt;args[0] instanceof Arg || !$node-&amp;gt;args[1] instanceof Arg) {
+            return null;
+        }
+        // Named arguments change the calling convention; skip for safety.
+        if ($node-&amp;gt;args[0]-&amp;gt;name !== null || $node-&amp;gt;args[1]-&amp;gt;name !== null) {
+            return null;
+        }
+        $opArg = $node-&amp;gt;args[0]-&amp;gt;value;
+        if (!$opArg instanceof String_) {
+            // The $op argument is not a plain string literal (e.g. a
+            // variable); cannot determine which NotificationHandler method
+            // to call without evaluating runtime data.
+            return null;
+        }
+        if (!isset(self::OP_TO_METHOD[$opArg-&amp;gt;value])) {
+            // Unknown / custom $op value; no equivalent method exists on
+            // NotificationHandler.
+            return null;
+        }
+        $method = self::OP_TO_METHOD[$opArg-&amp;gt;value];
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\user\\NotificationHandler'), 'class'))],
+        );
+        return new MethodCall($service, $method, [$node-&amp;gt;args[1]]);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceUserMailNotifyRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated locale.module underscore functions with LocaleJs service calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-underscore-functions-with-3618358.php</link>
+      <guid isPermaLink="false">01a03fe1-2952-7131-86db-0b66a4342edd</guid>
+      <pubDate>Wed, 26 Aug 2026 21:01:55 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3618358"&gt;#3618358&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates the remaining &lt;code&gt;_locale_*&lt;/code&gt; underscore helper functions in &lt;code&gt;locale.module&lt;/code&gt; in favor of methods on the &lt;code&gt;Drupal\locale\LocaleJs&lt;/code&gt; service. This rule rewrites direct calls to &lt;code&gt;_locale_refresh_translations()&lt;/code&gt;, &lt;code&gt;_locale_invalidate_js()&lt;/code&gt;, &lt;code&gt;_locale_parse_js_file()&lt;/code&gt;, and &lt;code&gt;_locale_rebuild_js()&lt;/code&gt; into the equivalent &lt;code&gt;\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;method()&lt;/code&gt; call, preserving arguments unchanged. Contrib code that rebuilds or invalidates JavaScript translation files keeps working after these globals are removed in Drupal 13.0.0.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;_locale_invalidate_js($langcode);
+_locale_rebuild_js($langcode);
+_locale_parse_js_file($filepath);
+_locale_refresh_translations($langcodes, $lids);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;invalidate($langcode);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;rebuild($langcode);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;parseJsFile($filepath);
+\Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;refreshTranslations($langcodes, $lids);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;_locale_refresh_configuration()&lt;/code&gt; and &lt;code&gt;_locale_strip_quotes()&lt;/code&gt; are also deprecated by this issue but have no replacement API, so calls to them are intentionally left untouched; callers must be manually inlined or removed. &lt;code&gt;LocaleJs::parseJsFile()&lt;/code&gt; and &lt;code&gt;LocaleJs::rebuild()&lt;/code&gt; are marked &lt;code&gt;@internal&lt;/code&gt; in core (public only for test coverage), so rewritten call sites still depend on an internal API surface that core may change without a deprecation cycle.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceLocaleJsUnderscoreFunctionsRector extends AbstractRector
+{
+    /**
+     * @var array&amp;lt;string, string&amp;gt;
+     */
+    private const METHOD_MAP = [
+        '_locale_refresh_translations' =&amp;gt; 'refreshTranslations',
+        '_locale_invalidate_js' =&amp;gt; 'invalidate',
+        '_locale_parse_js_file' =&amp;gt; 'parseJsFile',
+        '_locale_rebuild_js' =&amp;gt; 'rebuild',
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.module underscore functions with Drupal\locale\LocaleJs service calls.',
+            [new CodeSample(
+                '_locale_invalidate_js($langcode);',
+                &amp;quot;\\Drupal::service(\\Drupal\\locale\\LocaleJs::class)-&amp;gt;invalidate(\$langcode);&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+        if (!$node-&amp;gt;name instanceof Name) {
+            // Skip dynamic calls, e.g. $fn(...).
+            return null;
+        }
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null || !isset(self::METHOD_MAP[$functionName])) {
+            return null;
+        }
+
+        $service = new StaticCall(
+            new FullyQualified('Drupal'),
+            'service',
+            [new Arg(new ClassConstFetch(new FullyQualified('Drupal\\locale\\LocaleJs'), 'class'))],
+        );
+
+        return new MethodCall($service, self::METHOD_MAP[$functionName], $node-&amp;gt;args);
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleJsUnderscoreFunctionsRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated locale.module global functions with class calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-global-functions-with-3616277.php</link>
+      <guid isPermaLink="false">01a03b76-df84-749b-b3ff-430b1683299c</guid>
+      <pubDate>Wed, 26 Aug 2026 00:27:21 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3616277"&gt;#3616277&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 11.5 deprecates several &lt;code&gt;locale.module&lt;/code&gt; global functions in favor of methods on new classes. &lt;code&gt;locale_string_is_safe()&lt;/code&gt; becomes the static &lt;code&gt;LocaleXss::stringIsSafe()&lt;/code&gt;; &lt;code&gt;locale_is_translatable()&lt;/code&gt;, &lt;code&gt;locale_translatable_language_list()&lt;/code&gt;, and &lt;code&gt;locale_js_translate()&lt;/code&gt; become instance methods on the &lt;code&gt;LocaleLanguages&lt;/code&gt; and &lt;code&gt;LocaleJs&lt;/code&gt; services, obtained via &lt;code&gt;\Drupal::service()&lt;/code&gt;. This rule rewrites direct calls to the old global functions so contrib and custom modules keep working after the functions are removed in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$safe = locale_string_is_safe($string);
+$translatable = locale_is_translatable($langcode);
+$languages = locale_translatable_language_list();
+$translation_file = locale_js_translate($files, $language_interface);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$safe = \Drupal\locale\LocaleXss::stringIsSafe($string);
+$translatable = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;isTranslatable($langcode);
+$languages = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;getTranslatableLanguages();
+$translation_file = \Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;jsTranslate($files, $language_interface);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only covers the four functions with a direct 1:1 replacement (&lt;code&gt;locale_string_is_safe&lt;/code&gt;, &lt;code&gt;locale_is_translatable&lt;/code&gt;, &lt;code&gt;locale_translatable_language_list&lt;/code&gt;, &lt;code&gt;locale_js_translate&lt;/code&gt;). &lt;code&gt;locale_translation_use_remote_source()&lt;/code&gt; and &lt;code&gt;locale_translation_language_table()&lt;/code&gt; are also deprecated by this issue but have no direct replacement (inlined config check, or a class method meant to be referenced by name as a &lt;code&gt;#after_build&lt;/code&gt; callback), so they are intentionally left untouched; callers of those two must be migrated by hand.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name\FullyQualified;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class ReplaceDeprecatedLocaleFunctionsRector extends AbstractRector
+{
+    /**
+     * Functions replaced by a static method call.
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
+     */
+    private const STATIC_MAP = [
+        'locale_string_is_safe' =&amp;gt; ['Drupal\locale\LocaleXss', 'stringIsSafe'],
+    ];
+
+    /**
+     * Functions replaced by a call on a service obtained via \Drupal::service().
+     *
+     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
+     */
+    private const SERVICE_MAP = [
+        'locale_is_translatable' =&amp;gt; ['Drupal\locale\LocaleLanguages', 'isTranslatable'],
+        'locale_translatable_language_list' =&amp;gt; ['Drupal\locale\LocaleLanguages', 'getTranslatableLanguages'],
+        'locale_js_translate' =&amp;gt; ['Drupal\locale\LocaleJs', 'jsTranslate'],
+    ];
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated locale.module global functions with calls on their replacement classes.',
+            [new CodeSample(
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$safe = locale_string_is_safe($string);
+$translatable = locale_is_translatable($langcode);
+$languages = locale_translatable_language_list();
+CODE_SAMPLE
+                ,
+                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
+$safe = \Drupal\locale\LocaleXss::stringIsSafe($string);
+$translatable = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;isTranslatable($langcode);
+$languages = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;getTranslatableLanguages();
+CODE_SAMPLE
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [FuncCall::class];
+    }
+
+    /** @param FuncCall $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof FuncCall) {
+            return null;
+        }
+
+        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
+        if ($functionName === null) {
+            return null;
+        }
+
+        if (isset(self::STATIC_MAP[$functionName])) {
+            [$class, $method] = self::STATIC_MAP[$functionName];
+            return new StaticCall(new FullyQualified($class), $method, $node-&amp;gt;args);
+        }
+
+        if (isset(self::SERVICE_MAP[$functionName])) {
+            [$class, $method] = self::SERVICE_MAP[$functionName];
+            $service = new StaticCall(
+                new FullyQualified('Drupal'),
+                'service',
+                [new Arg(new ClassConstFetch(new FullyQualified($class), 'class'))],
+            );
+            return new MethodCall($service, $method, $node-&amp;gt;args);
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([ReplaceDeprecatedLocaleFunctionsRector::class]);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Add $memoryCache argument to UpdateRegistry instantiations</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-memorycache-argument-to-updateregistry-instantiations-3303751.php</link>
+      <guid isPermaLink="false">01a0380c-430e-7307-8bb4-1b7bdf370122</guid>
+      <pubDate>Tue, 25 Aug 2026 08:32:02 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3303751"&gt;#3303751&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal\Core\Update\UpdateRegistry::__construct() now takes an optional MemoryCacheInterface $memoryCache parameter inserted before the trailing $updateType parameter. Omitting it triggers an E_USER_DEPRECATED notice and will be a hard error in Drupal 12. This rule rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; calls (positional or named) to pass &lt;code&gt;\Drupal::service('cache.memory')&lt;/code&gt; in the new slot, correctly shifting an explicitly-passed $updateType.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, 'post_update');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \Drupal::service('cache.memory'), 'post_update');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; instantiations; code that obtains the service via &lt;code&gt;\Drupal::service('update.post_update_registry')&lt;/code&gt; or dependency injection needs no change since core's service definition already passes the new argument. Calls using &lt;code&gt;...$args&lt;/code&gt; spread/unpacking are skipped because the argument position cannot be determined statically; these need manual review.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\VariadicPlaceholder;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class AddUpdateRegistryMemoryCacheArgumentRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Add the $memoryCache constructor argument to Drupal\Core\Update\UpdateRegistry instantiations.',
+            [new CodeSample(
+                'new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \'post_update\');',
+                &amp;quot;new UpdateRegistry(\$root, \$sitePath, \$module_list, \$keyValue, \$theme_handler, \\Drupal::service('cache.memory'), 'post_update');&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [New_::class];
+    }
+
+    /** @param New_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof New_) {
+            return null;
+        }
+        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Core\\Update\\UpdateRegistry')) {
+            return null;
+        }
+
+        $args = $node-&amp;gt;args;
+
+        // Bail on unpacked/spread args (`...$args`): position cannot be determined safely.
+        foreach ($args as $arg) {
+            if ($arg instanceof VariadicPlaceholder) {
+                return null;
+            }
+        }
+
+        $memoryCacheCall = new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg(new String_('cache.memory'))]);
+
+        $hasNamedArgs = false;
+        foreach ($args as $arg) {
+            if ($arg-&amp;gt;name !== null) {
+                $hasNamedArgs = true;
+                if ($this-&amp;gt;isName($arg-&amp;gt;name, 'memoryCache')) {
+                    // Already migrated.
+                    return null;
+                }
+            }
+        }
+
+        if ($hasNamedArgs) {
+            $node-&amp;gt;args[] = new Arg($memoryCacheCall, false, false, [], new Identifier('memoryCache'));
+            return $node;
+        }
+
+        $argCount = count($args);
+
+        // Fewer than 5 positional args is not a valid call to this constructor
+        // ($root, $sitePath, $module_list, $keyValue, $theme_handler are all required); skip.
+        if ($argCount &amp;lt; 5) {
+            return null;
+        }
+
+        // 7+ positional args already include $memoryCache; nothing to do.
+        if ($argCount &amp;gt;= 7) {
+            return null;
+        }
+
+        $memoryCacheArg = new Arg($memoryCacheCall);
+
+        if ($argCount === 5) {
+            // No $updateType passed: append $memoryCache as the 6th argument.
+            $node-&amp;gt;args[] = $memoryCacheArg;
+            return $node;
+        }
+
+        // $argCount === 6: an explicit $updateType was passed positionally in the old
+        // signature's 6th slot. Insert $memoryCache before it, shifting $updateType to 7th.
+        array_splice($node-&amp;gt;args, 5, 0, [$memoryCacheArg]);
+        return $node;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([AddUpdateRegistryMemoryCacheArgumentRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>Replace deprecated installer-specific extension list classes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-installer-specific-extension-list-classes-2934063.php</link>
+      <guid isPermaLink="false">01a00d1c-9edc-729a-a105-b91e133a521d</guid>
+      <pubDate>Mon, 17 Aug 2026 00:26:14 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2934063"&gt;#2934063&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal\Core\Installer\InstallerModuleExtensionList and InstallerThemeExtensionList are now empty backward-compatibility shims around Drupal\Core\Extension\ModuleExtensionList and ThemeExtensionList; the installer no longer swaps them into the container. This rule rewrites type hints, property types, &lt;code&gt;new&lt;/code&gt; calls, &lt;code&gt;instanceof&lt;/code&gt; checks, and &lt;code&gt;use&lt;/code&gt; imports from the deprecated installer classes to their base-class equivalents, which provide identical behavior.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Installer\InstallerModuleExtensionList;
+
+class MyService {
+  public function __construct(InstallerModuleExtensionList $module_list) {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Extension\ModuleExtensionList;
+
+class MyService {
+  public function __construct(ModuleExtensionList $module_list) {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Only rewrites the class references. It does not touch calls to the now-deprecated &lt;code&gt;ExtensionList::setPathname()&lt;/code&gt; method that some contrib code may still call on the resulting object; that method has no direct replacement and is out of scope for this rule.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    -&amp;gt;withConfiguredRule(RenameClassRector::class, [
+        'Drupal\\Core\\Installer\\InstallerModuleExtensionList' =&amp;gt; 'Drupal\\Core\\Extension\\ModuleExtensionList',
+        'Drupal\\Core\\Installer\\InstallerThemeExtensionList' =&amp;gt; 'Drupal\\Core\\Extension\\ThemeExtensionList',
+    ]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+  </channel>
+</rss>
