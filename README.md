@@ -1,8 +1,16 @@
-**TL;DR:** [1060 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1061 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_132 summaries · 3 new this week_
+
+- [#3436728: Check the status of a consumer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3436728.md)
+- [#3601362: DDEV: expose a VNC X display for non-headless agent-browser, plus optional...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601362.md)
+- [#3601383: Curated npx skills (agent-browser, drupal-module-finder, superpowers,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601383.md)
 
 ### Drupal CMS
 
@@ -27,14 +35,6 @@ _248 summaries · 1 new this week_
 - [#3592062: Support rendering SVGs in SDC and code components with an image prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592062.md)
 - [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
 - [#3592001: Apply page variant translation overrides to previews](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592001.md)
-
-### Drupal AI
-
-_131 summaries · 2 new this week_
-
-- [#3601362: DDEV: expose a VNC X display for non-headless agent-browser, plus optional...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601362.md)
-- [#3601383: Curated npx skills (agent-browser, drupal-module-finder, superpowers,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601383.md)
-- [#3620132: Uses ai_search_tracker instead of default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620132.md)
 
 
 ## Rector rules

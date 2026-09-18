@@ -5,6 +5,60 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3436728: Check the status of a consumer</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3436728.md</link>
+      <guid isPermaLink="false">node/3436728</guid>
+      <category>Site owners</category>
+      <pubDate>Fri, 18 Sep 2026 11:37:02 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 6.1.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +176/−7 · php +175/−6 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/simple_oauth/-/commit/14da1800ba4beff5ddb8c6ab339c9b81c614062c"&gt;14da180&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3436728"&gt;#3436728&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Simple OAuth now checks whether an OAuth client (a &amp;quot;consumer&amp;quot; entity) is published before granting it access. Previously, unpublishing a consumer did not actually stop it from working: it could still request new access tokens via the client credentials or refresh token grants, and tokens it had already obtained kept working against protected resources. Now an unpublished consumer is treated as if it doesn't exist: attempts to obtain a token fail with an &lt;code&gt;invalid_client&lt;/code&gt; error, and requests bearing a token issued by a now-disabled client are rejected with &amp;quot;The client is disabled.&amp;quot; The client selection dropdown in the client credentials token creation form also stops listing unpublished consumers.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Unpublished (disabled) consumers can no longer obtain new OAuth tokens or use previously issued bearer tokens; this closes an access control gap.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum &lt;code&gt;drupal/consumers&lt;/code&gt; dependency raised to &lt;code&gt;^1.24&lt;/code&gt; for the consumer entity &lt;code&gt;status&lt;/code&gt; field.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix relies on the &lt;code&gt;status&lt;/code&gt; field added to the &lt;code&gt;consumer&lt;/code&gt; entity by the consumers module (see &lt;a href="https://www.drupal.org/node/3436723"&gt;#3436723&lt;/a&gt;), and bumps the &lt;code&gt;drupal/consumers&lt;/code&gt; dependency to &lt;code&gt;^1.24&lt;/code&gt; to guarantee its availability.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ClientRepository::getClientEntity()&lt;/code&gt; now adds &lt;code&gt;'status' =&amp;gt; 1&lt;/code&gt; to the &lt;code&gt;loadByProperties()&lt;/code&gt; lookup used to find a consumer by &lt;code&gt;client_id&lt;/code&gt;, so an unpublished consumer resolves to no client entity at all, which makes &lt;code&gt;validateClient()&lt;/code&gt; return &lt;code&gt;FALSE&lt;/code&gt; for both the client credentials and refresh token grant types. &lt;code&gt;Oauth2ClientCredentialsTokenCreateForm&lt;/code&gt; applies the same &lt;code&gt;status&lt;/code&gt; condition to the client entity query and the storage lookup used during validation, so unpublished consumers disappear from the form's client list.&lt;/p&gt;
+&lt;p&gt;For tokens issued before a consumer was unpublished, &lt;code&gt;SimpleOauthAuthenticationProvider::authenticate()&lt;/code&gt; now calls &lt;code&gt;$account-&amp;gt;getConsumer()-&amp;gt;isPublished()&lt;/code&gt; and throws an &lt;code&gt;OAuthUnauthorizedHttpException&lt;/code&gt; (&amp;quot;The client is disabled.&amp;quot;) when it returns &lt;code&gt;FALSE&lt;/code&gt;, so previously granted bearer tokens stop working as soon as their consumer is disabled. Kernel tests cover all three paths: rejecting an unpublished client at the client credentials grant, at the refresh token grant, and at resource access with an already-issued bearer token.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update the &lt;code&gt;drupal/consumers&lt;/code&gt; dependency to at least 1.24, which is where the consumer &lt;code&gt;status&lt;/code&gt; field this feature relies on was introduced:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;drupal/consumers&amp;quot;: &amp;quot;^1.24&amp;quot;,
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Any code relying on a disabled/unpublished consumer still being able to authenticate or use previously issued tokens will now be blocked; disable a consumer only when access should actually be revoked.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 28, 2024&lt;/li&gt;
+&lt;li&gt;Committed: September 18, 2026 (2 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gorkagr (Erasmus Student Network)&lt;/li&gt;
+&lt;li&gt;bojan_dev&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue was postponed for a long time waiting on the consumers module to gain a status field (&lt;a href="https://www.drupal.org/node/3436723"&gt;#3436723&lt;/a&gt;). Once that landed, bojan_dev pointed out that &lt;code&gt;getClientEntity()&lt;/code&gt; could simply be restricted to loading published consumers, and later released consumers 1.23/pushed for 1.24 to make the status field available. attilatilman then implemented the fix in MR !234, adding kernel test coverage for the client credentials grant, refresh token grant, and already-issued bearer tokens, plus a few unrelated pre-existing issues found while working on the branch (missing type hints, a mismatched deprecation message, and a Drupal 11.4 compatibility fix). scott falconer tested the change and confirmed it caught the case correctly, and mglaman gave RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3601362: DDEV: expose a VNC X display for non-headless agent-browser, plus optional ffmpeg session recording</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601362.md</link>
       <guid isPermaLink="false">project/one_line_installer#3601362</guid>
@@ -719,43 +773,6 @@ drupalaibp https://git.drupalcode.org/project/foo@!12
 # With multiple configs in .drupalaibp/ — pick by name:
 drupalaibp https://git.drupalcode.org/project/foo --config config2 --yolo
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601384: Add an opt-in glab (GitLab CLI) extra: install and authenticate to git.drupalcode.org in the web container</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601384.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601384</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 21 Jul 2026 16:35:44 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601384"&gt;#3601384&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;one_line_installer&lt;/code&gt; project gains a new opt-in extra called &lt;code&gt;glab&lt;/code&gt; that installs the GitLab CLI (pinned at v1.64.0) into the DDEV web container and authenticates it to &lt;code&gt;git.drupalcode.org&lt;/code&gt; with a Personal Access Token you paste during setup. Once selected, the tool prompts you to create an &lt;code&gt;api&lt;/code&gt;-scoped PAT at drupal.org, stores it in &lt;code&gt;.ddev/.env&lt;/code&gt; (chmod 600, gitignored), bakes &lt;code&gt;glab&lt;/code&gt; into the web image so it survives rebuilds, and writes a DDEV post-start hook that re-authenticates on every container start. After a single &lt;code&gt;ddev restart&lt;/code&gt;, &lt;code&gt;glab mr list&lt;/code&gt;, HTTPS &lt;code&gt;git clone&lt;/code&gt;, and &lt;code&gt;git push&lt;/code&gt; to &lt;code&gt;git.drupalcode.org&lt;/code&gt; all work from inside the container. Because the extra requires an interactive token paste, it is never silently installed by &lt;code&gt;--yolo&lt;/code&gt; or unattended config-driven runs.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;glab&lt;/code&gt; installer extra: select it during &lt;code&gt;drupalaibp&lt;/code&gt; setup to install the GitLab CLI (glab v1.64.0) in the DDEV web container and authenticate it to git.drupalcode.org with a PAT.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The extra lives in &lt;code&gt;src/lib/extras/extra_glab.sh&lt;/code&gt; and follows the project's &lt;code&gt;extra_&amp;lt;id&amp;gt;_meta&lt;/code&gt; + &lt;code&gt;extra_&amp;lt;id&amp;gt;&lt;/code&gt; function-pair convention, so it is auto-discovered by &lt;code&gt;_extras_discover&lt;/code&gt; and appears in the installer's &amp;quot;Any extra Drupal installations?&amp;quot; multi-select without any other file needing to change.&lt;/p&gt;
-&lt;p&gt;Several sharp edges are addressed by design. The token is stored as &lt;code&gt;DRUPALCODE_GITLAB_TOKEN&lt;/code&gt; rather than &lt;code&gt;GITLAB_TOKEN&lt;/code&gt;: glab treats &lt;code&gt;GITLAB_TOKEN&lt;/code&gt; as a global override applied to every host, which causes 401s against gitlab.com and makes &lt;code&gt;glab auth status&lt;/code&gt; exit non-zero even when drupalcode auth works. Feeding the token through &lt;code&gt;glab auth login --stdin&lt;/code&gt; instead writes it into glab's own per-host config, scoped to &lt;code&gt;git.drupalcode.org&lt;/code&gt; alone. The extra also strips any pre-existing &lt;code&gt;GITLAB_TOKEN&lt;/code&gt; or &lt;code&gt;DRUPALCODE_GITLAB_TOKEN&lt;/code&gt; lines from &lt;code&gt;.ddev/.env&lt;/code&gt; on re-run to undo contamination from earlier versions.&lt;/p&gt;
-&lt;p&gt;The DDEV post-start hook in &lt;code&gt;.ddev/config.glab.yaml&lt;/code&gt; additionally runs &lt;code&gt;git config --global 'credential.https://git.drupalcode.org.helper' '!glab auth git-credential'&lt;/code&gt;, because &lt;code&gt;glab auth login --stdin&lt;/code&gt; does not wire the credential helper automatically (only the interactive prompt does). DDEV merges post-start hooks across &lt;code&gt;config.*.yaml&lt;/code&gt; files, so the hook coexists cleanly with the coding-agent add-ons' own post-start hooks.&lt;/p&gt;
-&lt;p&gt;Verification uses &lt;code&gt;ddev exec glab api user&lt;/code&gt; rather than &lt;code&gt;glab auth status&lt;/code&gt;, because &lt;code&gt;glab auth status&lt;/code&gt; always probes gitlab.com and reports failure even when &lt;code&gt;git.drupalcode.org&lt;/code&gt; auth is fully functional. The extra's meta line has no &lt;code&gt;|default&lt;/code&gt; suffix, so it is never pre-ticked or silently installed by &lt;code&gt;--yolo&lt;/code&gt;. &lt;code&gt;_glab_read_token&lt;/code&gt; is factored out into its own function so the bats suite can stub it instead of feeding keystrokes, following the project's &amp;quot;prompts are functions&amp;quot; testing rule.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
