@@ -1,4 +1,4 @@
-**TL;DR:** [1059 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1060 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_92 summaries · 1 new this week_
+_93 summaries · 2 new this week_
 
+- [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
 - [#3591452: Site template with multilingual demo content only works if its intended default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591452.md)
 - [#3591440: Fix installer page backgrounds and add interstitial at the end](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591440.md)
-- [#3489408: Enable filenames sanitization](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3489408.md)
 
 ### Drupal Core
 
-_588 summaries · 20 new this week_
+_588 summaries · 19 new this week_
 
 - [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
 - [#3623843: Remove Backbone.js and Underscore.js, not used in core anymore](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623843.md)
