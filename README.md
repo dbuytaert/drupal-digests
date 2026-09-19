@@ -1,8 +1,16 @@
-**TL;DR:** [1062 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1063 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_589 summaries · 15 new this week_
+
+- [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
+- [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
+- [#3623843: Remove Backbone.js and Underscore.js, not used in core anymore](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623843.md)
 
 ### Drupal Canvas
 
@@ -28,14 +36,6 @@ _93 summaries · 2 new this week_
 - [#3591452: Site template with multilingual demo content only works if its intended default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591452.md)
 - [#3591440: Fix installer page backgrounds and add interstitial at the end](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591440.md)
 
-### Drupal Core
-
-_588 summaries · 15 new this week_
-
-- [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
-- [#3623843: Remove Backbone.js and Underscore.js, not used in core anymore](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623843.md)
-- [#3595083: Deprecate the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595083.md)
-
 
 ## Rector rules
 
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_208 rules · 2 new this week_
+_208 rules · 1 new this week_
 
 - [Remove deprecated no-op InstallerTestBase::setUpProfile() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-no-op-installertestbase-setupprofile-calls-3520028.php)
 - [Replace deprecated update.inc global functions with the DatabaseUpdate service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php)
