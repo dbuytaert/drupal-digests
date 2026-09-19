@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_589 summaries · 15 new this week_
+_589 summaries · 13 new this week_
 
 - [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
 - [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_208 rules · 1 new this week_
+_208 rules · 0 new this week_
 
 - [Remove deprecated no-op InstallerTestBase::setUpProfile() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-no-op-installertestbase-setupprofile-calls-3520028.php)
 - [Replace deprecated update.inc global functions with the DatabaseUpdate service](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-deprecated-update-inc-global-functions-with-the-3391683.php)
