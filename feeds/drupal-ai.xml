@@ -5,6 +5,195 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585912: STDIO tool calls execute without an authenticated user, so permission-gated tools fail</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585912</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 18 Sep 2026 21:40:05 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585912"&gt;#3585912&lt;/a&gt; · 1 contributor · 22 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Previously, &lt;code&gt;drush mcp:server&lt;/code&gt; (the STDIO transport used by AI clients like Claude Desktop) ran every tool call as the anonymous user, so any permission-gated tool (most entity or configuration reads/writes) silently failed access checks. The command now requires a Drupal account argument, a user name or numeric ID, and runs the whole session as that account, so permission checks evaluate correctly. Passing &lt;code&gt;0&lt;/code&gt; still allows an explicit anonymous session. Existing MCP client configurations and manual invocations that call &lt;code&gt;mcp:server&lt;/code&gt; with no argument will now fail with an error rather than silently running as anonymous, so they need to be updated to pass an account. Running the command from an interactive terminal without an argument now opens a user picker instead of failing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum Drush version for the STDIO transport raised from 12.x to 13.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;drush mcp:server&lt;/code&gt; now takes a required &lt;code&gt;account&lt;/code&gt; argument (user name or numeric ID, or &lt;code&gt;0&lt;/code&gt; for anonymous); invocations that omit it now error instead of running as anonymous.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is in &lt;code&gt;McpServerCommands::server()&lt;/code&gt;, which gained a required &lt;code&gt;account&lt;/code&gt; positional argument. &lt;code&gt;loadAccount()&lt;/code&gt; resolves it: &lt;code&gt;'0'&lt;/code&gt; becomes an &lt;code&gt;AnonymousUserSession&lt;/code&gt;, an all-digit value loads the user by ID, anything else is looked up by user name via &lt;code&gt;entity_type.manager&lt;/code&gt;'s &lt;code&gt;user&lt;/code&gt; storage; blocked or unresolvable accounts throw before the transport is created. The resolved account is applied with the &lt;code&gt;account_switcher&lt;/code&gt; service (&lt;code&gt;AccountSwitcherInterface::switchTo()&lt;/code&gt;), and &lt;code&gt;switchBack()&lt;/code&gt; runs in a &lt;code&gt;finally&lt;/code&gt; block so the process-global account is always restored.&lt;/p&gt;
+&lt;p&gt;A Drush &lt;code&gt;#[CLI\Hook(type: HookManager::INTERACT, ...)]&lt;/code&gt; hook, &lt;code&gt;interactAccount()&lt;/code&gt;, handles the case where the argument is omitted: if STDIN is a TTY (a real terminal, not an MCP client's pipes), it prompts with &lt;code&gt;$this-&amp;gt;io()-&amp;gt;search()&lt;/code&gt; against &lt;code&gt;matchUsers()&lt;/code&gt; (a fuzzy, access-check-free lookup over active user names); otherwise Symfony's normal missing-argument error is reported on STDERR before the server is built, so nothing corrupts the STDIO transport. The &lt;code&gt;README.md&lt;/code&gt; and the &lt;code&gt;mcp_server_test&lt;/code&gt; module's new &lt;code&gt;test_current_user&lt;/code&gt; tool (which reports the acting &lt;code&gt;uid&lt;/code&gt;, name, and a permission check) were added to support this. The change also bumps the documented minimum Drush version for STDIO to 13.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Update any MCP client configuration or manual invocation of the STDIO transport to pass an account:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;mcpServers&amp;quot;: {
+    &amp;quot;drupal&amp;quot;: {
+      &amp;quot;command&amp;quot;: &amp;quot;vendor/bin/drush&amp;quot;,
+      &amp;quot;args&amp;quot;: [&amp;quot;mcp:server&amp;quot;, &amp;quot;admin&amp;quot;]
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or from the shell:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush mcp:server admin
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Use &lt;code&gt;drush mcp:server 0&lt;/code&gt; to keep running as anonymous. Also confirm the site runs Drush 13 or higher for the STDIO transport.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;richardbporter&lt;/li&gt;
+&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md</link>
+      <guid isPermaLink="false">project/tool#3583023</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 18 Sep 2026 16:52:53 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583023"&gt;#3583023&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's &lt;code&gt;drush tool:info &amp;lt;id&amp;gt; --format=json&lt;/code&gt; command previously reduced every input and output to a bare data type (&lt;code&gt;string&lt;/code&gt;, &lt;code&gt;map&lt;/code&gt;, etc.), with no way to see that a field only accepts a fixed set of values, or what keys a map input expects. Now the JSON output also includes &lt;code&gt;input_schema&lt;/code&gt; and &lt;code&gt;output_schema&lt;/code&gt; keys with the full JSON Schema for the tool, so a script or AI agent reading this command's output can discover enum choices, numeric ranges, formats, and nested map properties before invoking the tool. The human-readable table and markdown output formats gained a matching &lt;code&gt;Constraints&lt;/code&gt; column, and now show map inputs' individual properties as indented sub-rows, so all three output formats stay in sync.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;tool:info --format=json&lt;/code&gt; gains &lt;code&gt;input_schema&lt;/code&gt; and &lt;code&gt;output_schema&lt;/code&gt; keys carrying the full JSON Schema (enums, min/max, map properties) for a tool's inputs and outputs, alongside the unchanged flat &lt;code&gt;inputs&lt;/code&gt;/&lt;code&gt;outputs&lt;/code&gt; keys.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix routes &lt;code&gt;tool:info&lt;/code&gt; through the same &lt;code&gt;tool.definition_serializer&lt;/code&gt; (&lt;code&gt;ToolDefinitionSerializer&lt;/code&gt;) that already powers the MCP bridge and AI connector, instead of hand-building arrays. Because that serializer normalizes a tool instance rather than a bare definition (&lt;code&gt;ToolDefinitionNormalizeEvent&lt;/code&gt; subscribers key off the invoker), &lt;code&gt;ToolInfoCommand&lt;/code&gt; now instantiates the tool via a new &lt;code&gt;Drupal\tool\Drush\DrushInvoker&lt;/code&gt; (&lt;code&gt;@internal&lt;/code&gt;, ID &lt;code&gt;drush&lt;/code&gt;, no capabilities) and calls &lt;code&gt;$serializer-&amp;gt;normalizeInputSchema($tool, include_locked: TRUE)&lt;/code&gt; and &lt;code&gt;normalizeOutputDefinitions($tool)&lt;/code&gt; in a new &lt;code&gt;buildSchemas()&lt;/code&gt; helper. &lt;code&gt;ToolRunCommand::executeTool()&lt;/code&gt; was also switched from a bare &lt;code&gt;createInstance($tool_id)&lt;/code&gt; to passing &lt;code&gt;DrushInvoker::create()&lt;/code&gt;, so both commands now identify themselves consistently to invoker-aware subscribers. A one-shot Drush invoker declares no capabilities (in particular no &lt;code&gt;EntitiesAsHandles&lt;/code&gt;), unlike the MCP/AI connector invokers, since a CLI process has no session to hold entity handles.&lt;/p&gt;
+&lt;p&gt;The table and markdown renderers were reworked around the same schema data via new private helpers (&lt;code&gt;buildInputRows()&lt;/code&gt;, &lt;code&gt;buildPropertyRows()&lt;/code&gt;, &lt;code&gt;summarizeConstraints()&lt;/code&gt;, &lt;code&gt;schemaType()&lt;/code&gt;) so the three output formats can't drift: &lt;code&gt;summarizeConstraints()&lt;/code&gt; reads &lt;code&gt;enum&lt;/code&gt;, &lt;code&gt;const&lt;/code&gt;, &lt;code&gt;format&lt;/code&gt;, &lt;code&gt;pattern&lt;/code&gt;, &lt;code&gt;minimum&lt;/code&gt;/&lt;code&gt;maximum&lt;/code&gt;, &lt;code&gt;min/maxLength&lt;/code&gt;, &lt;code&gt;min/maxItems&lt;/code&gt; off a schema node, and &lt;code&gt;buildPropertyRows()&lt;/code&gt; recurses into a map input's &lt;code&gt;properties&lt;/code&gt; (or a multiple map's &lt;code&gt;items.properties&lt;/code&gt;) to emit indented &lt;code&gt;└ property&lt;/code&gt; rows. The &lt;code&gt;tool.definition_serializer&lt;/code&gt; service is wired with the optional &lt;code&gt;@?serializer&lt;/code&gt; argument, since Tool doesn't hard-depend on core's &lt;code&gt;serialization&lt;/code&gt; module; note that in this landed version, if that service is unavailable &lt;code&gt;ToolDefinitionSerializer&lt;/code&gt; throws &lt;code&gt;LogicException&lt;/code&gt; and &lt;code&gt;tool:info&lt;/code&gt; does not catch it (the issue's proposal to degrade gracefully by omitting the schema keys and printing a stderr notice is not present in the merged code). Tests in &lt;code&gt;ToolInfoCommandTest&lt;/code&gt; were extended against &lt;code&gt;schema_matrix_tool&lt;/code&gt;, asserting &lt;code&gt;enum&lt;/code&gt;, &lt;code&gt;properties&lt;/code&gt;, &lt;code&gt;required&lt;/code&gt;, and &lt;code&gt;minimum&lt;/code&gt;/&lt;code&gt;maximum&lt;/code&gt; show up correctly in &lt;code&gt;input_schema&lt;/code&gt; while the flat &lt;code&gt;inputs&lt;/code&gt;/&lt;code&gt;outputs&lt;/code&gt; keys stay unchanged.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 16, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585923: Session lock is released before streamed (SSE) responses finish</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585923.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585923</guid>
+      <category>Site owners</category>
+      <pubDate>Fri, 18 Sep 2026 15:37:27 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585923"&gt;#3585923&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;MCP Server's per-session lock, introduced to stop two requests from touching the same session at once, was being released too early for streamed (SSE) responses. Because the SDK does its actual work later, while the response is being sent, a second request could sneak in and read or write session state while the first request was still streaming. On PostgreSQL sites using the database lock backend this also produced a nastier symptom: a tool that opened a database transaction and then suspended could have its later rollback resurrect the just-deleted lock row, forcing the next request on that session to wait out the entire lock lease and hit client-side timeouts. This is fixed so the lock is now held for the full duration of the streamed response.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Session lock could be released while an SSE (streamed) response was still running, letting a concurrent request read or write the same MCP session's state.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is in &lt;code&gt;McpServerController::handle()&lt;/code&gt;. Previously the lock release lived only in the method's &lt;code&gt;finally&lt;/code&gt; block, which runs as soon as the controller returns, before a &lt;code&gt;StreamedResponse&lt;/code&gt;'s callback has actually executed. Now, when the transport's PSR response body is not seekable (the SSE path), the controller wraps the &lt;code&gt;StreamedResponse&lt;/code&gt;'s existing callback in a new closure that calls the original callback and releases &lt;code&gt;$lock_name&lt;/code&gt; in its own &lt;code&gt;finally&lt;/code&gt;, so the lock lives until the SDK's Fiber-driven stream actually completes or throws. A new &lt;code&gt;$release_lock&lt;/code&gt; flag tells the controller's outer &lt;code&gt;finally&lt;/code&gt; to skip releasing the lock itself in that case, since the wrapped callback now owns that responsibility. Non-streamed responses and exceptions thrown before a response is produced still release the lock the old way. If a streamed response is constructed but never sent, its callback never runs and thus never releases the lock explicitly. That case relies on &lt;code&gt;LockBackendInterface::releaseAll()&lt;/code&gt;, which &lt;code&gt;DatabaseLockBackend&lt;/code&gt; registers as a shutdown function, as covered by the new &lt;code&gt;testUnsentStreamedResponseLockIsFreedByReleaseAll&lt;/code&gt; kernel test. A companion test, &lt;code&gt;testStreamedResponseHoldsSessionLockUntilSent&lt;/code&gt;, drives a tool that suspends inside a Fiber and a real &lt;code&gt;DatabaseLockBackend&lt;/code&gt;, asserting the lock is still held after the controller returns and only released once &lt;code&gt;$response-&amp;gt;sendContent()&lt;/code&gt; finishes.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;jmcerda (Wilkes &amp;amp; Liberty)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585927: Remove McpToolSamplingTrait</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585927.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585927</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 18 Sep 2026 15:17:53 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585927"&gt;#3585927&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The mcp_server module removed &lt;code&gt;McpToolSamplingTrait&lt;/code&gt;, a convenience helper that tool plugins could use to ask the AI client to generate text (LLM &amp;quot;sampling&amp;quot;). The trait, its test coverage, and the test-only &lt;code&gt;SamplingEchoTool&lt;/code&gt; fixture are gone. This was done because the underlying &lt;code&gt;mcp/sdk&lt;/code&gt; package (0.8+) marked its own Sampling feature as deprecated, and the module, still in beta, does not carry deprecated code forward with a transition period. Sites and custom tools that used this trait need to update their code; everything else about the module is unaffected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Drupal\mcp_server\Traits\McpToolSamplingTrait&lt;/code&gt; and its &lt;code&gt;sample()&lt;/code&gt; helper were removed; tools that requested LLM sampling must call &lt;code&gt;ClientGateway::sample()&lt;/code&gt; directly.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; No deprecation period was provided before removal, per the module's beta no-BC-layers policy.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix deletes &lt;code&gt;src/Traits/McpToolSamplingTrait.php&lt;/code&gt;, its kernel test &lt;code&gt;tests/src/Kernel/Traits/McpToolSamplingTraitTest.php&lt;/code&gt;, and the fixture &lt;code&gt;tests/modules/mcp_server_test/src/Plugin/mcp_server/Tool/SamplingEchoTool.php&lt;/code&gt; that exercised it. These were the only source of the 7 PHPStan errors flagged after &lt;code&gt;mcp/sdk&lt;/code&gt; &lt;code&gt;^0.8&lt;/code&gt; was allowed in &lt;a href="https://www.drupal.org/node/3585925"&gt;#3585925&lt;/a&gt; (&lt;code&gt;mcp/sdk&lt;/code&gt; 0.8 deprecated &lt;code&gt;SamplingMessage&lt;/code&gt;/&lt;code&gt;CreateSamplingMessageResult&lt;/code&gt; usage and &lt;code&gt;ClientGateway::sample()&lt;/code&gt; under SEP-2577).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ClientGatewayAwareInterface&lt;/code&gt; (&lt;code&gt;src/ClientGatewayAwareInterface.php&lt;/code&gt;) is kept as is, its docblock updated to drop the sampling-specific framing and describe the gateway more generally (progress reporting, elicitation), since those SDK features are not deprecated. Any tool that still needs sampling now calls &lt;code&gt;$gateway-&amp;gt;sample()&lt;/code&gt; directly on the &lt;code&gt;ClientGateway&lt;/code&gt; instance passed into &lt;code&gt;execute()&lt;/code&gt;, which surfaces the SDK's own &lt;code&gt;@deprecated&lt;/code&gt; notice in PHPStan rather than having it masked by the trait. The issue notes &lt;code&gt;mcp_server_tool_bridge&lt;/code&gt; was the only known consumer, and only in test fixtures, addressed separately in that project's merge request 14.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace any use of &lt;code&gt;McpToolSamplingTrait::sample()&lt;/code&gt; with a direct call on the &lt;code&gt;ClientGateway&lt;/code&gt; passed into &lt;code&gt;execute()&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+use Drupal\mcp_server\Traits\McpToolSamplingTrait;
+
+final class MyTool extends ToolPluginBase implements ClientGatewayAwareInterface {
+  use McpToolSamplingTrait;
+
+  public function execute(array $arguments, ClientGateway $gateway): mixed {
+    $this-&amp;gt;setClientGateway($gateway);
+    $result = $this-&amp;gt;sample($arguments['prompt'] ?? '', 500);
+    // ...
+  }
+}
+
+// After:
+final class MyTool extends ToolPluginBase {
+  public function execute(array $arguments, ClientGateway $gateway): mixed {
+    $result = $gateway-&amp;gt;sample($arguments['prompt'] ?? '', 500);
+    // ...
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note that &lt;code&gt;mcp/sdk&lt;/code&gt;'s &lt;code&gt;ClientGateway::sample()&lt;/code&gt; itself is deprecated (earliest removal 2027-07-28 per SEP-2577), so PHPStan will now report that deprecation directly at the call site instead of it being hidden by the trait.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3436728: Check the status of a consumer</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3436728.md</link>
       <guid isPermaLink="false">node/3436728</guid>
@@ -54,6 +243,175 @@
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue was postponed for a long time waiting on the consumers module to gain a status field (&lt;a href="https://www.drupal.org/node/3436723"&gt;#3436723&lt;/a&gt;). Once that landed, bojan_dev pointed out that &lt;code&gt;getClientEntity()&lt;/code&gt; could simply be restricted to loading published consumers, and later released consumers 1.23/pushed for 1.24 to make the status field available. attilatilman then implemented the fix in MR !234, adding kernel test coverage for the client credentials grant, refresh token grant, and already-issued bearer tokens, plus a few unrelated pre-existing issues found while working on the branch (missing type hints, a mismatched deprecation message, and a Drupal 11.4 compatibility fix). scott falconer tested the change and confirmed it caught the case correctly, and mglaman gave RTBC.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585924: Drop mcp/sdk ^0.6 and require 0.7.1</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585924.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585924</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 17 Sep 2026 21:39:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585924"&gt;#3585924&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The mcp_server module's dependency on the &lt;code&gt;mcp/sdk&lt;/code&gt; package is tightened to require version 0.7.1 or newer. The previous constraint still allowed &lt;code&gt;^0.6&lt;/code&gt; and &lt;code&gt;0.7.0&lt;/code&gt;, both of which are covered by security advisory CVE-2026-53965. Sites that run &lt;code&gt;composer update&lt;/code&gt; will now be prevented from installing (or keeping) a vulnerable &lt;code&gt;mcp/sdk&lt;/code&gt; release, and sites that had disabled Composer's advisory check were previously left exposed. There is no code change in the module itself.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; The &lt;code&gt;mcp/sdk&lt;/code&gt; composer constraint now requires &lt;code&gt;^0.7.1 || ^0.8&lt;/code&gt;, excluding the &lt;code&gt;^0.6&lt;/code&gt; line and the &lt;code&gt;0.7.0&lt;/code&gt; release, both covered by CVE-2026-53965.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A prior fix (&lt;a href="https://www.drupal.org/node/3585916"&gt;#3585916&lt;/a&gt;) had temporarily widened the constraint to &lt;code&gt;^0.6 || ^0.7&lt;/code&gt; to unblock fresh installs from Composer's advisory blocking, but &lt;code&gt;0.6.0&lt;/code&gt; (the only 0.6 release) and &lt;code&gt;0.7.0&lt;/code&gt; are both within the Packagist advisory range &lt;code&gt;&amp;gt;=0.5.0,&amp;lt;0.7.1&lt;/code&gt;. This issue removes &lt;code&gt;^0.6&lt;/code&gt; entirely and raises the 0.7 floor to &lt;code&gt;0.7.1&lt;/code&gt;, the first release outside the advisory range. The change is a one-line edit to the &lt;code&gt;require.mcp/sdk&lt;/code&gt; constraint in &lt;code&gt;composer.json&lt;/code&gt;; the module has no 0.6-specific code paths, so no PHP code was touched.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run &lt;code&gt;composer update drupal/mcp_server mcp/sdk&lt;/code&gt; to pick up the new constraint. Confirm the installed &lt;code&gt;mcp/sdk&lt;/code&gt; version satisfies:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;quot;mcp/sdk&amp;quot;: &amp;quot;^0.7.1 || ^0.8&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If your project's lock file still resolves to &lt;code&gt;0.6.0&lt;/code&gt; or &lt;code&gt;0.7.0&lt;/code&gt;, update it to clear CVE-2026-53965.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585879: Use a lock for sessions to handle concurrency issue with session data</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585879.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585879</guid>
+      <pubDate>Thu, 17 Sep 2026 19:28:52 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585879"&gt;#3585879&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The MCP Server module's HTTP controller now serializes concurrent requests that belong to the same MCP session, preventing session data corruption. Previously, if two requests for the same &lt;code&gt;Mcp-Session-Id&lt;/code&gt; arrived at once (for example, two tool calls in flight at the same time), each worker could read stale session state and overwrite the other's changes when saving, silently corrupting the session's protocol state. Sites using the MCP Server module with concurrent clients will now see occasional brief waits, or in the worst case a &lt;code&gt;503 Service Unavailable&lt;/code&gt; response with a &lt;code&gt;Retry-After&lt;/code&gt; header, instead of silent data corruption.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The underlying issue traces to the PHP MCP SDK (see modelcontextprotocol/php-sdk#275), which stores protocol state (outgoing queue, request counter, pending requests) in a shared session blob using an unlocked read-modify-write pattern. &lt;code&gt;McpServerController::handle()&lt;/code&gt; now derives a lock name from the request's &lt;code&gt;Mcp-Session-Id&lt;/code&gt; header, hashed with &lt;code&gt;hash('sha256', ...)&lt;/code&gt; to keep the lock key bounded and safe regardless of client-supplied header content, and stored under the &lt;code&gt;mcp_session:&lt;/code&gt; prefix.&lt;/p&gt;
+&lt;p&gt;Before invoking &lt;code&gt;$server-&amp;gt;run($transport)&lt;/code&gt;, the controller attempts &lt;code&gt;$this-&amp;gt;lock-&amp;gt;acquire($lock_name)&lt;/code&gt;; on failure it calls &lt;code&gt;$this-&amp;gt;lock-&amp;gt;wait($lock_name)&lt;/code&gt; and retries once, throwing a &lt;code&gt;ServiceUnavailableHttpException&lt;/code&gt; (with &lt;code&gt;retryAfter: 1&lt;/code&gt;) if the lock still cannot be obtained. The lock is released in a &lt;code&gt;finally&lt;/code&gt; block via &lt;code&gt;$this-&amp;gt;lock-&amp;gt;release($lock_name)&lt;/code&gt;. Requests without a session ID (such as &lt;code&gt;initialize&lt;/code&gt;) skip locking entirely since there is no shared state yet to protect. The lock is injected via the new &lt;code&gt;LockBackendInterface $lock&lt;/code&gt; constructor parameter, wired to Drupal's core &lt;code&gt;lock&lt;/code&gt; service in &lt;code&gt;create()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Note that this initial implementation released the lock as soon as &lt;code&gt;$server-&amp;gt;run()&lt;/code&gt; returned, which was not correct for streamed (SSE) responses that continue writing after that point; this was addressed separately in &lt;a href="https://www.drupal.org/node/3585923"&gt;#3585923&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;e0ipso (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585914: Plugin subdirectory collides with Tool API on case-insensitive filesystems</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585914.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585914</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 17 Sep 2026 16:31:46 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585914"&gt;#3585914&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;MCP Server previously discovered its Tool plugins under a &lt;code&gt;src/Plugin/Tool/&lt;/code&gt; directory. That path collides with the separate Tool API module's &lt;code&gt;src/Plugin/tool/Tool/&lt;/code&gt; directory on case-insensitive filesystems (macOS, Windows), since those filesystems treat &lt;code&gt;Tool&lt;/code&gt; and &lt;code&gt;tool&lt;/code&gt; as the same folder. A module wanting to provide both an MCP Server tool and a Tool API tool could not create both directories. To fix this, MCP Server moved all five of its plugin manager subdirectories under a module-namespaced &lt;code&gt;Plugin/mcp_server/...&lt;/code&gt; path, following the same convention Tool API already uses.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; MCP Server plugin discovery subdirectories renamed from &lt;code&gt;Plugin/Tool&lt;/code&gt;, &lt;code&gt;Plugin/ArgumentCompletionProvider&lt;/code&gt;, &lt;code&gt;Plugin/Notification&lt;/code&gt;, &lt;code&gt;Plugin/ResourceProvider&lt;/code&gt;, and &lt;code&gt;Plugin/ResourceTemplateProvider&lt;/code&gt; to &lt;code&gt;Plugin/mcp_server/Tool&lt;/code&gt;, &lt;code&gt;Plugin/mcp_server/ArgumentCompletionProvider&lt;/code&gt;, &lt;code&gt;Plugin/mcp_server/Notification&lt;/code&gt;, &lt;code&gt;Plugin/mcp_server/ResourceProvider&lt;/code&gt;, and &lt;code&gt;Plugin/mcp_server/ResourceTemplateProvider&lt;/code&gt; respectively, with matching namespace changes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix updates the &lt;code&gt;parent::__construct()&lt;/code&gt; call in each of the five plugin manager classes (&lt;code&gt;ToolPluginManager&lt;/code&gt;, &lt;code&gt;ArgumentCompletionProviderManager&lt;/code&gt;, &lt;code&gt;NotificationProviderManager&lt;/code&gt;, &lt;code&gt;ResourceProviderManager&lt;/code&gt;, &lt;code&gt;ResourceTemplateProviderManager&lt;/code&gt; in &lt;code&gt;src/Plugin/&lt;/code&gt;) to pass a new subdirectory argument prefixed with &lt;code&gt;mcp_server&lt;/code&gt;, e.g. &lt;code&gt;'Plugin/Tool'&lt;/code&gt; becomes &lt;code&gt;'Plugin/mcp_server/Tool'&lt;/code&gt;. Existing plugin classes shipped in the module's own test fixtures were moved accordingly (for example &lt;code&gt;tests/modules/mcp_server_test/src/Plugin/Tool/EchoTool.php&lt;/code&gt; moved to &lt;code&gt;.../Plugin/mcp_server/Tool/EchoTool.php&lt;/code&gt;), and their namespace declarations were updated to match. The README's tool-authoring documentation was updated to reflect the new &lt;code&gt;src/Plugin/mcp_server/Tool/&lt;/code&gt; location and &lt;code&gt;Drupal\my_module\Plugin\mcp_server\Tool&lt;/code&gt; namespace.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Any custom or contrib module providing plugins for MCP Server must move its plugin classes into the new subdirectories and update their namespaces:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before: my_module/src/Plugin/Tool/SendEmail.php
+namespace Drupal\my_module\Plugin\Tool;
+
+// After: my_module/src/Plugin/mcp_server/Tool/SendEmail.php
+namespace Drupal\my_module\Plugin\mcp_server\Tool;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The same rename applies to &lt;code&gt;Plugin/ArgumentCompletionProvider&lt;/code&gt; to &lt;code&gt;Plugin/mcp_server/ArgumentCompletionProvider&lt;/code&gt;, &lt;code&gt;Plugin/Notification&lt;/code&gt; to &lt;code&gt;Plugin/mcp_server/Notification&lt;/code&gt;, &lt;code&gt;Plugin/ResourceProvider&lt;/code&gt; to &lt;code&gt;Plugin/mcp_server/ResourceProvider&lt;/code&gt;, and &lt;code&gt;Plugin/ResourceTemplateProvider&lt;/code&gt; to &lt;code&gt;Plugin/mcp_server/ResourceTemplateProvider&lt;/code&gt;. Plugins left in the old locations will no longer be discovered.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;e0ipso (Lullabot)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583014: Support example values in InputDefinitions (emit JSON Schema `examples`)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583014.md</link>
+      <guid isPermaLink="false">project/tool#3583014</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 17 Sep 2026 16:16:39 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583014"&gt;#3583014&lt;/a&gt; · 1 contributor · 8 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Tool input definitions can now carry illustrative example values, which the module emits as the standard JSON Schema &lt;code&gt;examples&lt;/code&gt; keyword when it normalizes a tool's inputs. This helps non-deterministic callers, such as LLM function calls or MCP clients, produce well-formed values for inputs whose correct shape is not obvious from the type and description alone (formatted strings, structured maps, IDs with a specific pattern). Tools that do not set examples are unaffected: the emitted schema is byte-for-byte unchanged.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Any class implementing &lt;code&gt;InputDefinitionInterface&lt;/code&gt; directly, rather than using &lt;code&gt;InputDefinitionTrait&lt;/code&gt;, must now also implement &lt;code&gt;getExamples()&lt;/code&gt; and &lt;code&gt;setExamples()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;getExamples()&lt;/code&gt;/&lt;code&gt;setExamples()&lt;/code&gt; methods on &lt;code&gt;InputDefinitionInterface&lt;/code&gt;, plus an &lt;code&gt;examples&lt;/code&gt; constructor parameter on &lt;code&gt;InputDefinition&lt;/code&gt; and &lt;code&gt;EntityInputDefinition&lt;/code&gt;, to emit a JSON Schema &lt;code&gt;examples&lt;/code&gt; keyword for an input.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;InputDefinitionTrait&lt;/code&gt; gains a &lt;code&gt;protected array $examples&lt;/code&gt; property with &lt;code&gt;getExamples(): array&lt;/code&gt; and &lt;code&gt;setExamples(array $examples): static&lt;/code&gt;, declared on &lt;code&gt;InputDefinitionInterface&lt;/code&gt; alongside the existing lock methods. &lt;code&gt;InputDefinition&lt;/code&gt; and &lt;code&gt;EntityInputDefinition&lt;/code&gt; also accept a new trailing &lt;code&gt;examples&lt;/code&gt; constructor argument so examples can be declared directly in a &lt;code&gt;#[Tool]&lt;/code&gt; attribute, in addition to the fluent &lt;code&gt;setExamples()&lt;/code&gt; call for imperatively built definitions.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ContextDefinitionNormalizer::getNormalizationSchema()&lt;/code&gt; emits &lt;code&gt;examples&lt;/code&gt; next to &lt;code&gt;default&lt;/code&gt;, guarded by an &lt;code&gt;InputDefinitionInterface&lt;/code&gt; instance check so output definitions (which don't implement the interface) are skipped. Because examples describe a single value, the emit is placed after the multiple-value array wrapping: for a &lt;code&gt;multiple: TRUE&lt;/code&gt; input, examples land on &lt;code&gt;items.examples&lt;/code&gt; and the array-level schema stays clean, rather than being duplicated or wrapped incorrectly. The emit reads &lt;code&gt;getExamples()&lt;/code&gt; off the post-transform definition (after &lt;code&gt;ToolInputDefinitionNormalizeEvent&lt;/code&gt; subscribers run), the same exposure &lt;code&gt;default&lt;/code&gt; already has: a subscriber that swaps in a whole replacement definition (as the entity-handle subscribers do) sheds stale examples automatically, since &lt;code&gt;examples&lt;/code&gt; only lives on &lt;code&gt;InputDefinitionInterface&lt;/code&gt;. Examples are treated purely as annotations: they are never validated or stripped at runtime. Instead, &lt;code&gt;InputExamplesEmissionTest&lt;/code&gt; asserts every emitted &lt;code&gt;examples&lt;/code&gt; entry validates against its own emitted schema, catching stale or mismatched examples for first-party tools at test time.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Set example values on an input definition either through the attribute:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;'field_name' =&amp;gt; new InputDefinition(
+  data_type: 'string',
+  label: new TranslatableMarkup('Field name'),
+  description: new TranslatableMarkup('The machine name of the field.'),
+  examples: ['field_tags', 'field_summary'],
+),
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or fluently on an already built definition:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$definition-&amp;gt;setExamples(['field_tags', 'field_summary']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If you implement &lt;code&gt;InputDefinitionInterface&lt;/code&gt; directly instead of using &lt;code&gt;InputDefinitionTrait&lt;/code&gt;, add &lt;code&gt;getExamples()&lt;/code&gt; and &lt;code&gt;setExamples()&lt;/code&gt; to your class.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 9, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
@@ -436,347 +794,6 @@
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: August 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588977: Behavioral eval runner: the default (claude) provider runs the agent inside the repo checkout with write access</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588977.md</link>
-      <guid isPermaLink="false">project/ai_best_practices#3588977</guid>
-      <pubDate>Sat, 08 Aug 2026 14:09:19 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3588977"&gt;#3588977&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The behavioral eval harness in this project runs AI agent CLIs (claude, codex, gemini) with real write permissions to test how they respond to prompts. Previously, the default provider (claude) was exempted from sandboxing and ran directly inside the project's repository checkout, so an agent could write files into the actual working tree, as happened when a test case caused the agent to create a stray &lt;code&gt;README.md&lt;/code&gt; in the repo root. Since this project accepts outside contributions and evaluates skill content as prompt input, a &lt;code&gt;--behavioral&lt;/code&gt; eval run over a contributed skill could execute third-party content with write access to the operator's checkout. Every eval provider now starts in a fresh, disposable temporary directory by default, closing that gap and making eval runs reproducible regardless of the operator's working tree state.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix moves isolation down into &lt;code&gt;providers.py&lt;/code&gt; instead of handling it ad hoc in each caller. A new &lt;code&gt;_isolated_cwd(provider, cwd)&lt;/code&gt; helper returns the caller-supplied &lt;code&gt;cwd&lt;/code&gt; when given, otherwise calls &lt;code&gt;tempfile.mkdtemp(prefix=f&amp;quot;eval-{provider}-&amp;quot;)&lt;/code&gt; to create a throwaway directory. All three CLI runners, &lt;code&gt;run_claude()&lt;/code&gt;, &lt;code&gt;run_codex()&lt;/code&gt;, and &lt;code&gt;run_gemini()&lt;/code&gt;, now call this helper instead of falling back to &lt;code&gt;REPO_ROOT&lt;/code&gt; (which is removed along with its &lt;code&gt;Path&lt;/code&gt; import).&lt;/p&gt;
-&lt;p&gt;This removes the previous claude-specific exemption in &lt;code&gt;run-evals.py&lt;/code&gt;, which used to special-case &lt;code&gt;provider != &amp;quot;claude&amp;quot;&lt;/code&gt; to assign a tempdir; that logic is deleted since every provider now gets the same treatment for free from &lt;code&gt;providers.py&lt;/code&gt;. &lt;code&gt;compare.py&lt;/code&gt; is updated only to fix its status output (&lt;code&gt;CWD: fresh tempdir per call (provider default)&lt;/code&gt;) since it already delegated to the same runners and had no explicit cwd handling of its own. Callers that need a specific working directory still pass &lt;code&gt;cwd&lt;/code&gt; explicitly and bypass the tempdir default. The related design discussion about grading observed site state and defined starting targets is tracked separately and does not block this isolation fix.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;zorz (Point Blank)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3553475: Deletion of chunks vectors fails upon saving a node after editing</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3553475.md</link>
-      <guid isPermaLink="false">node/3553475</guid>
-      <pubDate>Wed, 05 Aug 2026 14:52:22 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +17/−13 · php +17/−13&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_vdb_provider_postgres/-/commit/8582cb6f7cea4d785c9db60ca4a68d2ca494dcd4"&gt;8582cb6&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3553475"&gt;#3553475&lt;/a&gt; · 5 contributors · 16 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a node indexed with the Postgres pgvector Search API backend was edited and re-saved, the old vector chunks for that item were never actually removed before the new ones were inserted. Each re-save doubled the stored rows for that content, and searches could keep returning stale, outdated chunks alongside the current ones. The fix ensures the old chunks for an item are correctly deleted before the new chunks are written, so re-saving content keeps the row count stable and removes outdated text from search results. Sites that indexed and re-saved content on an affected version should re-index to clear out any duplicate or stale rows that already accumulated in their Postgres vector tables.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was in &lt;code&gt;PostgresProvider::deleteItems()&lt;/code&gt;. It first called &lt;code&gt;getVdbIds()&lt;/code&gt; to look up the numeric primary key &lt;code&gt;id&lt;/code&gt; values matching the given Search API item IDs (queried via &lt;code&gt;drupal_entity_id&lt;/code&gt;), then passed those primary keys into &lt;code&gt;deleteFromCollection()&lt;/code&gt;, whose underlying &lt;code&gt;PostgresPgvectorClient::deleteFromCollection()&lt;/code&gt; query deletes &lt;code&gt;WHERE drupal_entity_id IN (...)&lt;/code&gt;. Because the ids passed in were numeric primary keys rather than &lt;code&gt;drupal_entity_id&lt;/code&gt; strings, the &lt;code&gt;WHERE&lt;/code&gt; clause never matched, so nothing was actually deleted and old chunks piled up on every re-save.&lt;/p&gt;
-&lt;p&gt;The committed fix removes the primary-key lookup entirely: &lt;code&gt;deleteItems()&lt;/code&gt; now passes the Search API item IDs (e.g. &lt;code&gt;entity:node/1174:en&lt;/code&gt;) directly to &lt;code&gt;deleteFromCollection()&lt;/code&gt;, matching the column it actually filters on. This also sidesteps a fixed row-limit on the old lookup query that could have silently truncated which chunks got deleted for large items.&lt;/p&gt;
-&lt;p&gt;A second change in the same commit fixes &lt;code&gt;indexItems()&lt;/code&gt; for progressive/batched indexing: it now excludes IDs listed in &lt;code&gt;skipDeleteItemIds&lt;/code&gt; (from AI core) from the delete pass via &lt;code&gt;array_diff()&lt;/code&gt;, so chunks written by earlier passes of the same indexing operation are not deleted again on later passes, only stale chunks from a previous, completed indexing run are removed.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
-&lt;li&gt;Committed: August 5, 2026 (9 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;calmforce&lt;/li&gt;
-&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;calmforce reported the bug and submitted an initial patch that matched the issue's original diagnosis (changing the &lt;code&gt;DELETE&lt;/code&gt; query's column from &lt;code&gt;drupal_entity_id&lt;/code&gt; to &lt;code&gt;id&lt;/code&gt;), plus a follow-up patch raising the lookup limit. nikro later investigated further and found a different underlying cause: rather than changing the query column, the real fix was to stop looking up primary keys at all and pass the Search API item IDs straight into &lt;code&gt;deleteFromCollection()&lt;/code&gt;, since that query already filters on &lt;code&gt;drupal_entity_id&lt;/code&gt;. nikro also added a follow-up commit so progressive indexing honors AI core's &lt;code&gt;skipDeleteItemIds&lt;/code&gt;, preventing newly-written chunks from being deleted again on later passes of the same indexing operation. abhisekmazumdar reviewed the merge request and manually verified re-saving unchanged and edited nodes kept row counts stable with no stale content, marking it RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3612042: Enable RateLimits</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3612042.md</link>
-      <guid isPermaLink="false">node/3612042</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 30 Jul 2026 12:28:46 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +74/−4 · php +73/−4 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_openai/-/commit/0a8f9670dcc3e4c77a39f4181a933c699aea9b4e"&gt;0a8f967&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3612042"&gt;#3612042&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI module already had a data structure for reporting an AI provider's rate limit status (remaining requests, remaining tokens, and time until each resets), but the OpenAI provider never filled it in. This change makes the OpenAI provider read the rate limit information that OpenAI includes on every API response and populate that structure, so code that inspects a chat response's rate limits now gets real numbers back for OpenAI instead of nothing.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;OpenAiProvider::chat()&lt;/code&gt; now populates &lt;code&gt;ChatOutput::getRateLimits()&lt;/code&gt; (a &lt;code&gt;ChatProviderLimitsDto&lt;/code&gt;) with request and token limits parsed from OpenAI's &lt;code&gt;x-ratelimit-*&lt;/code&gt; response headers, instead of leaving it empty.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;OpenAiProvider::chat()&lt;/code&gt; calls the OpenAI PHP SDK's &lt;code&gt;responses()-&amp;gt;create()&lt;/code&gt;, which used to be cast to an array immediately, discarding the response object and its metadata. The fix keeps a reference to the raw SDK response (&lt;code&gt;$raw_response&lt;/code&gt;) alongside the array conversion, then passes it to a new &lt;code&gt;setResponsesRateLimits()&lt;/code&gt; method that reads &lt;code&gt;$response-&amp;gt;meta()-&amp;gt;requestLimit&lt;/code&gt; and &lt;code&gt;$response-&amp;gt;meta()-&amp;gt;tokenLimit&lt;/code&gt; (limit and remaining counts) and builds a &lt;code&gt;Drupal\ai\Dto\ChatProviderLimitsDto&lt;/code&gt;, set on the &lt;code&gt;ChatOutput&lt;/code&gt; via &lt;code&gt;setRateLimits()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;OpenAI reports reset windows as Go style duration strings (e.g. &lt;code&gt;6m0s&lt;/code&gt;, &lt;code&gt;1h20m30s&lt;/code&gt;), but the DTO expects seconds as an integer. A new &lt;code&gt;parseResetDuration()&lt;/code&gt; helper regex matches value/unit pairs (&lt;code&gt;ms&lt;/code&gt;, &lt;code&gt;s&lt;/code&gt;, &lt;code&gt;m&lt;/code&gt;, &lt;code&gt;h&lt;/code&gt;, checked in that order so &lt;code&gt;ms&lt;/code&gt; isn't misread as &lt;code&gt;m&lt;/code&gt;), converts each to seconds, sums them, and rounds up so a reset is never reported sooner than it actually is. If either header is entirely missing, &lt;code&gt;setResponsesRateLimits()&lt;/code&gt; returns early and the DTO stays empty, matching &lt;code&gt;ChatProviderLimitsDto::empty()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;This only affects the Responses API code path (&lt;code&gt;responses()-&amp;gt;create()&lt;/code&gt;), which since &lt;a href="https://www.drupal.org/node/3558801"&gt;#3558801&lt;/a&gt; is the sole path &lt;code&gt;chat()&lt;/code&gt; uses for both streamed and non-streamed requests.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 20, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 30, 2026 (9 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3568659: Support batched embeddings</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3568659.md</link>
-      <guid isPermaLink="false">node/3568659</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 30 Jul 2026 12:22:49 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.3.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +205/−3 · php +202/−3 · yml +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3568659"&gt;#3568659&lt;/a&gt; · 9 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 9 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The OpenAI provider now supports batched embeddings: instead of issuing one API call per text to embed, sites indexing content into a vector database (VDB) can send a batch of prompts in a single request, reducing the number of OpenAI API calls needed. Moderation, the safety check that runs before embeddings are generated, is also batch aware: a whole batch is checked in one moderation request rather than one request per item, and every result in the response is checked so a flagged item anywhere in the batch is caught. This depends on companion batching support landed in the base &lt;code&gt;ai&lt;/code&gt; module (issue &lt;a href="https://www.drupal.org/node/3568648"&gt;#3568648&lt;/a&gt;) and, for vector storage, in &lt;code&gt;ai_vdb_provider_milvus&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3568651"&gt;#3568651&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;OpenAiProvider::moderationEndpoints()&lt;/code&gt; now accepts &lt;code&gt;string|array $prompt&lt;/code&gt; (widened from &lt;code&gt;string&lt;/code&gt;) and validates every entry in &lt;code&gt;$response['results']&lt;/code&gt;, not just the first.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The base batching mechanics (&lt;code&gt;EmbeddingsCollectionInput&lt;/code&gt;, &lt;code&gt;embeddingsCollection()&lt;/code&gt;, chunking) live in &lt;code&gt;OpenAiBasedProviderClientBase&lt;/code&gt; in the &lt;code&gt;ai&lt;/code&gt; core module, added by a companion MR there. This MR only adds the OpenAI-specific pieces: a new &lt;code&gt;moderateEmbeddingsCollectionInput()&lt;/code&gt; override that forwards the entire batch of prompts to &lt;code&gt;moderationEndpoints()&lt;/code&gt; in one call instead of moderating per chunk, and a widened &lt;code&gt;moderationEndpoints(string|array $prompt, array $tags = [])&lt;/code&gt; that now loops over every entry in &lt;code&gt;$response['results']&lt;/code&gt; and throws &lt;code&gt;AiUnsafePromptException&lt;/code&gt; if any is flagged, rather than checking only &lt;code&gt;$response['results'][0]&lt;/code&gt;. A defensive check was also added to the single-item &lt;code&gt;embeddings()&lt;/code&gt; path that throws &lt;code&gt;\RuntimeException&lt;/code&gt; if the API response is missing &lt;code&gt;data[0]['embedding']&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;OpenAiProviderTest&lt;/code&gt; unit test suite exercises this against a mocked Guzzle handler wired into a real OpenAI SDK client, covering: embeddings returned out of index order get re-sorted, a count mismatch between requested and returned embeddings throws, a flagged batch item throws &lt;code&gt;AiUnsafePromptException&lt;/code&gt;, all moderation results (not just the first) are checked, and the &lt;code&gt;skip_moderation&lt;/code&gt; tag bypasses moderation entirely.&lt;/p&gt;
-&lt;p&gt;A hardcoded &lt;code&gt;omni-moderation-latest&lt;/code&gt; model name in the moderation payload was flagged during review (comment from nikro) as a concern for future multi-model moderation support, and was split off into follow-up issue &lt;a href="https://www.drupal.org/node/3607418"&gt;#3607418&lt;/a&gt; rather than addressed here.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;Reviewer scott_euser initially objected that the MR was not safe to merge because it targeted the wrong branch and depended on the companion &lt;code&gt;ai&lt;/code&gt; core MR still catering for long-running chunk processes; this held up the merge until the dependency stabilized. csakiistvan ran a detailed QA pass (unit-testing &lt;code&gt;EmbeddingsInput&lt;/code&gt;/batch code by hand and attempting a live API call) and, in the course of that testing, separately identified that the provider's rate limit detection relied on a string match (&amp;quot;Too Many Requests&amp;quot;) that never matches the actual &lt;code&gt;OpenAI\Exceptions\RateLimitException&lt;/code&gt; message. ahmad-khalil-imagex subsequently reworked the MR to remove duplication (delegating to the base class's &lt;code&gt;batchEmbeddings()&lt;/code&gt; instead of re-implementing it) and added the &lt;code&gt;OpenAiProviderTest&lt;/code&gt; suite. nikro raised a concern about the hardcoded moderation model name, which a.dmitriiev spun off into follow-up issue &lt;a href="https://www.drupal.org/node/3607418"&gt;#3607418&lt;/a&gt; rather than scope-creeping this issue. scott_euser later manually verified the full chain, including a case with more than 10 chunks in a single item, and flagged that the work was targeting the 1.2.x branch and needed forward-porting to 1.3.x so it would not regress; a.dmitriiev retargeted the MR to 1.3.x.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;paulsheldrake&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;li&gt;nikro (Dropsolid)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3613982: Bug with GPT 5.6 Luna</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613982.md</link>
-      <guid isPermaLink="false">node/3613982</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 30 Jul 2026 12:20:21 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +13/−3 · php +12/−3 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_provider_openai/-/commit/9994a28a22c2e0d404e7d4be9a3070bf1daf74a5"&gt;9994a28&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3613982"&gt;#3613982&lt;/a&gt; · 3 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Using OpenAI models like GPT-5.6-Luna (or the &lt;code&gt;o4&lt;/code&gt; family) together with function tools (e.g. in AI Agents) triggered an API error: &amp;quot;Function tools with reasoning_effort are not supported for gpt-5.6-luna in /v1/chat/completions.&amp;quot; This happened because the provider defaulted the &lt;code&gt;reasoning_effort&lt;/code&gt; setting to &lt;code&gt;medium&lt;/code&gt;, which OpenAI's Chat Completions endpoint rejects for these models when tools are in use. The &lt;code&gt;ai_provider_openai&lt;/code&gt; module now automatically defaults &lt;code&gt;reasoning_effort&lt;/code&gt; to &lt;code&gt;none&lt;/code&gt; for these models, so tool calling works out of the box without manual configuration. The module also adds &lt;code&gt;none&lt;/code&gt; and &lt;code&gt;xhigh&lt;/code&gt; as selectable &lt;code&gt;reasoning_effort&lt;/code&gt; values, matching OpenAI's current API.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;reasoning_effort&lt;/code&gt; setting for OpenAI models now offers &lt;code&gt;none&lt;/code&gt; and &lt;code&gt;xhigh&lt;/code&gt; as options (matching OpenAI's current API), and defaults to &lt;code&gt;none&lt;/code&gt; instead of &lt;code&gt;medium&lt;/code&gt; for &lt;code&gt;gpt-5.6*&lt;/code&gt; and &lt;code&gt;o4*&lt;/code&gt; models.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;OpenAiProvider&lt;/code&gt;'s configurable-fields logic, the &lt;code&gt;reasoning_effort&lt;/code&gt; constraint's &lt;code&gt;options&lt;/code&gt; list gained &lt;code&gt;none&lt;/code&gt; and &lt;code&gt;xhigh&lt;/code&gt; (previously only &lt;code&gt;minimal&lt;/code&gt;, &lt;code&gt;low&lt;/code&gt;, &lt;code&gt;medium&lt;/code&gt;, &lt;code&gt;high&lt;/code&gt;) and the field was marked &lt;code&gt;required&lt;/code&gt;. A new check, &lt;code&gt;str_starts_with($model_id, 'gpt-5.6') || str_starts_with($model_id, 'o4')&lt;/code&gt;, overrides the field's &lt;code&gt;default&lt;/code&gt; to &lt;code&gt;none&lt;/code&gt; for those model families, since OpenAI's &lt;code&gt;/v1/chat/completions&lt;/code&gt; endpoint (still used on the &lt;code&gt;1.2.x&lt;/code&gt; branch) rejects a non-&lt;code&gt;none&lt;/code&gt; reasoning effort when function tools are attached. The issue notes that on &lt;code&gt;1.3.x&lt;/code&gt;, which switches to &lt;code&gt;/v1/responses&lt;/code&gt;, this restriction doesn't apply, so this fix is scoped to &lt;code&gt;1.2.x&lt;/code&gt;. Separately, &lt;code&gt;OpenAiConfigForm&lt;/code&gt;'s constructor-promoted properties (&lt;code&gt;$aiProviderManager&lt;/code&gt;, &lt;code&gt;$keyRepository&lt;/code&gt;, &lt;code&gt;$openAiHelper&lt;/code&gt;) were changed from &lt;code&gt;private readonly&lt;/code&gt; to &lt;code&gt;protected&lt;/code&gt;, allowing subclasses to access them.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 30, 2026&lt;/li&gt;
-&lt;li&gt;Committed: July 30, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;li&gt;adrian83&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601386: Support multiple configs in one repo: order the picker by a weight key, falling back to alphabetical</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601386.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601386</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 28 Jul 2026 15:37:51 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601386"&gt;#3601386&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a repo or directory offers more than one installer config (several &lt;code&gt;*.json&lt;/code&gt; files under &lt;code&gt;.drupalaibp/&lt;/code&gt;), the picker prompt now lets each config declare an optional &lt;code&gt;weight&lt;/code&gt; to control its position in the list, and an optional &lt;code&gt;label&lt;/code&gt; to control how it's displayed. Configs are sorted by ascending weight (lower first), falling back to alphabetical order by file name for configs that omit weight, or as a tie break between equal weights. This is fully backwards compatible: a config that sets neither key behaves exactly as before, a set of configs that never set a weight sorts alphabetically as it always did, and a directory with only one config still loads immediately with no prompt.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New optional &lt;code&gt;weight&lt;/code&gt; (integer, default 0, lower sorts first) and &lt;code&gt;label&lt;/code&gt; (display name, default the file name) keys in &lt;code&gt;.drupalaibp.json&lt;/code&gt; order and label entries in the config picker shown when a source offers more than one config.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The picker logic lives in &lt;code&gt;select_config()&lt;/code&gt; in &lt;code&gt;src/lib/config/select_config.sh&lt;/code&gt;. For each &lt;code&gt;*.json&lt;/code&gt; candidate it now calls a new helper, &lt;code&gt;_config_picker_meta&lt;/code&gt;, which loads the file (via &lt;code&gt;json_load&lt;/code&gt;/&lt;code&gt;json_get&lt;/code&gt; in a subshell, so a malformed sibling config can't abort the whole pick and doesn't clobber the global &lt;code&gt;JSON_DATA&lt;/code&gt; before the real &lt;code&gt;drupalaibp_load&lt;/code&gt; runs) and reads &lt;code&gt;weight&lt;/code&gt; (default &lt;code&gt;0&lt;/code&gt;, with a non-integer value warning and falling back to &lt;code&gt;0&lt;/code&gt;) and &lt;code&gt;label&lt;/code&gt; (default the file's basename). When more than one config is found, a new &lt;code&gt;_select_config_sort&lt;/code&gt; reorders the parallel &lt;code&gt;files&lt;/code&gt;/&lt;code&gt;names&lt;/code&gt;/&lt;code&gt;labels&lt;/code&gt;/&lt;code&gt;weights&lt;/code&gt; arrays with &lt;code&gt;LC_ALL=C sort -t $'\t' -k1,1n -k2,2&lt;/code&gt;, i.e. numeric sort on weight then alphabetical on name, before building the &lt;code&gt;select_one&lt;/code&gt; menu. Each menu row shows &lt;code&gt;Label (name)&lt;/code&gt; when the label differs from the file's basename, or just the name when they match, so the value to pass to &lt;code&gt;--config &amp;lt;name&amp;gt;&lt;/code&gt; stays visible either way. Both keys were added to &lt;code&gt;DRUPALAIBP_KNOWN_KEYS&lt;/code&gt; in &lt;code&gt;load_config.sh&lt;/code&gt; (in two places) so they don't trigger unknown-key warnings, though they are picker-only metadata and never reach the build itself. A new &lt;code&gt;docs/examples/multi-config/&lt;/code&gt; example with four configs (two weighted, two not) demonstrates the ordering, and &lt;code&gt;tests/bats/lib/config/select_config.bats&lt;/code&gt; covers alphabetical fallback, weight ordering, tie-breaking, label display, non-integer weight handling, and the single-config no-prompt case.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3613451: Make it possible to select agent supplied/default model</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3613451.md</link>
-      <guid isPermaLink="false">node/3613451</guid>
-      <pubDate>Mon, 27 Jul 2026 18:17:26 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3613451"&gt;#3613451&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 1 contributor&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Agents Debugger's &amp;quot;Run Agent&amp;quot; form used to force you to pick a concrete provider and model on every run, which meant you could never see the model an agent is actually configured to use, since the debugger always overrode it. The Model dropdown now has an &amp;quot;Agent Supplied/Default&amp;quot; option, selected by default, so a debug run uses whichever provider/model the agent itself is configured with, falling back to the site's default chat provider only if the agent doesn't specify one. Explicitly picking a provider/model in the dropdown still works exactly as before and overrides the agent's own configuration.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;AIAgentsDebuggerForm&lt;/code&gt;, the model &lt;code&gt;#options&lt;/code&gt; array now gets an empty &lt;code&gt;''&lt;/code&gt; entry labeled &amp;quot;Agent Supplied/Default&amp;quot; prepended to &lt;code&gt;getSimpleProviderModelOptions()&lt;/code&gt;, the field is no longer &lt;code&gt;#required&lt;/code&gt;, and &lt;code&gt;#default_value&lt;/code&gt; is set to &lt;code&gt;''&lt;/code&gt; instead of being computed from &lt;code&gt;getDefaultProviderForOperationType('chat_with_tools')&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AIAgentsDebuggerController::runAgent()&lt;/code&gt; no longer treats an empty &lt;code&gt;provider_name&lt;/code&gt; as an error. When it's empty, the controller skips &lt;code&gt;$agent-&amp;gt;setAiProvider()&lt;/code&gt;/&lt;code&gt;setModelName()&lt;/code&gt; entirely, so a &lt;code&gt;ConfigAiAgentInterface&lt;/code&gt; agent resolves its own &lt;code&gt;provider_config&lt;/code&gt; (falling back to the site default on its own). Agent plugins that don't implement &lt;code&gt;ConfigAiAgentInterface&lt;/code&gt; can't self-resolve, so for those the controller explicitly loads &lt;code&gt;getDefaultProviderForOperationType('chat_with_tools')&lt;/code&gt; and calls &lt;code&gt;setAiProvider()&lt;/code&gt;/&lt;code&gt;setModelName()&lt;/code&gt; with that default. &lt;code&gt;askAi()&lt;/code&gt; follows the same pattern for the &amp;quot;Ask AI&amp;quot; side panel, falling back to &lt;code&gt;getDefaultProviderForOperationType('chat')&lt;/code&gt; instead of returning a &amp;quot;Missing model&amp;quot; error when no model was selected. Client-side, &lt;code&gt;debugger-init.js&lt;/code&gt; and &lt;code&gt;AskAiChat.tsx&lt;/code&gt; drop their &amp;quot;please select a model&amp;quot; validation since an empty model value is now a valid, meaningful choice.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601381: setup-site: positional config source, multiple named configs in a .drupalaibp/ directory, and git ref (branch/MR/fork) support</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601381.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601381</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Wed, 22 Jul 2026 11:47:49 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601381"&gt;#3601381&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;drupalaibp&lt;/code&gt; one-line installer (version 2.0.0) gains three related improvements to how a config source is specified. First, the config URL or path can now be passed as a plain positional argument (&lt;code&gt;drupalaibp https://git.drupalcode.org/project/foo&lt;/code&gt; or &lt;code&gt;drupalaibp ./team-config&lt;/code&gt;) instead of requiring the &lt;code&gt;--config-url&lt;/code&gt; or &lt;code&gt;--config-path&lt;/code&gt; flag; the installer auto-detects whether it is a URL, local directory, or saved global config name. Second, a single source can now carry multiple installer configs as &lt;code&gt;*.json&lt;/code&gt; files inside a &lt;code&gt;.drupalaibp/&lt;/code&gt; directory, with automatic selection when only one exists, an interactive menu when several do, and a &lt;code&gt;--config &amp;lt;name&amp;gt;&lt;/code&gt; flag for non-interactive disambiguation. Third, URL sources can target a specific branch, tag, or GitLab MR via an &lt;code&gt;@&amp;lt;ref&amp;gt;&lt;/code&gt; suffix (&lt;code&gt;foo@1.2.x&lt;/code&gt;, &lt;code&gt;foo@!12&lt;/code&gt;), or via the new &lt;code&gt;--ref&lt;/code&gt; flag. Breaking change (2.x): the root &lt;code&gt;.drupalaibp.json&lt;/code&gt; file is no longer recognized anywhere. All configs must now live as &lt;code&gt;*.json&lt;/code&gt; files directly under a &lt;code&gt;.drupalaibp/&lt;/code&gt; directory.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Breaking (2.x): root &lt;code&gt;.drupalaibp.json&lt;/code&gt; removed; configs must now live as &lt;code&gt;*.json&lt;/code&gt; files directly under &lt;code&gt;.drupalaibp/&lt;/code&gt;; &lt;code&gt;CONFIG_BASEDIR&lt;/code&gt; now resolves to &lt;code&gt;&amp;lt;source&amp;gt;/.drupalaibp/&lt;/code&gt; so relative hook and &lt;code&gt;copy_paths&lt;/code&gt; paths resolve there&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New positional &lt;code&gt;source&lt;/code&gt; argument on &lt;code&gt;setup-site&lt;/code&gt;, &lt;code&gt;--config &amp;lt;name&amp;gt;&lt;/code&gt; and &lt;code&gt;--ref &amp;lt;ref&amp;gt;&lt;/code&gt; flags, and &lt;code&gt;@&amp;lt;ref&amp;gt;&lt;/code&gt; suffix syntax on URL sources and the &lt;code&gt;pull&lt;/code&gt; command's &lt;code&gt;repo&lt;/code&gt; argument&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;setup-site&lt;/code&gt; command's new optional positional &lt;code&gt;source&lt;/code&gt; argument is classified by &lt;code&gt;resolve_config_source&lt;/code&gt; (&lt;code&gt;src/lib/config/resolve_config_source.sh&lt;/code&gt;). Resolution order: an existing local directory routes to &lt;code&gt;--config-path&lt;/code&gt;; a git URL (by &lt;code&gt;://&lt;/code&gt; scheme, SCP syntax &lt;code&gt;user@host:path&lt;/code&gt;, &lt;code&gt;.git&lt;/code&gt; suffix, or &lt;code&gt;owner/repo&lt;/code&gt; shorthand expanded to &lt;code&gt;https://git.drupalcode.org/&amp;lt;owner/repo&amp;gt;&lt;/code&gt;) routes to &lt;code&gt;--config-url&lt;/code&gt;; otherwise the value is looked up as a saved global config name under &lt;code&gt;~/.drupalaibp/configs/&lt;/code&gt;. Combining the positional form with an explicit &lt;code&gt;--config-*&lt;/code&gt; flag is a fatal error.&lt;/p&gt;
-&lt;p&gt;The root &lt;code&gt;.drupalaibp.json&lt;/code&gt; convention is replaced by a &lt;code&gt;.drupalaibp/&lt;/code&gt; directory holding one or more &lt;code&gt;*.json&lt;/code&gt; config files. &lt;code&gt;select_config&lt;/code&gt; (&lt;code&gt;src/lib/config/select_config.sh&lt;/code&gt;) picks which config to load: with exactly one &lt;code&gt;*.json&lt;/code&gt; it proceeds automatically; with multiple it requires &lt;code&gt;--config &amp;lt;name&amp;gt;&lt;/code&gt; or prompts interactively via &lt;code&gt;select_one&lt;/code&gt;; under &lt;code&gt;ASK_UNATTENDED&lt;/code&gt; it dies naming the available choices. The selector deliberately ignores the &lt;code&gt;config/&lt;/code&gt; YAML import subdir and hook scripts (&lt;code&gt;.sh&lt;/code&gt; files), only matching &lt;code&gt;*.json&lt;/code&gt; files directly under &lt;code&gt;.drupalaibp/&lt;/code&gt;. &lt;code&gt;CONFIG_BASEDIR&lt;/code&gt; now points to &lt;code&gt;&amp;lt;source&amp;gt;/.drupalaibp/&lt;/code&gt; (the dirname of the chosen config file) rather than the source root, so relative paths in &lt;code&gt;hooks[].script&lt;/code&gt;, &lt;code&gt;copy_paths&lt;/code&gt;, and &lt;code&gt;db_import_path&lt;/code&gt; resolve inside &lt;code&gt;.drupalaibp/&lt;/code&gt;; a &lt;code&gt;&amp;quot;../&amp;quot;&lt;/code&gt; prefix reaches the repo root.&lt;/p&gt;
-&lt;p&gt;Git ref support is added via &lt;code&gt;parse_git_ref&lt;/code&gt; (&lt;code&gt;src/lib/config/parse_git_ref.sh&lt;/code&gt;), which splits an &lt;code&gt;@&amp;lt;ref&amp;gt;&lt;/code&gt; suffix off a source string conservatively: plain SCP URLs (&lt;code&gt;user@host:path&lt;/code&gt; with no second &lt;code&gt;@&lt;/code&gt;) are left whole; for scheme URLs the split fires only when the remaining source still contains a path after &lt;code&gt;://&lt;/code&gt;. The extracted ref is consumed by &lt;code&gt;_git_clone_ref&lt;/code&gt; (&lt;code&gt;src/lib/config/_git_clone_ref.sh&lt;/code&gt;): a plain branch or tag name uses &lt;code&gt;git clone --depth 1 -b &amp;lt;ref&amp;gt;&lt;/code&gt;; a &lt;code&gt;refs/…&lt;/code&gt; refspec or &lt;code&gt;!&amp;lt;iid&amp;gt;&lt;/code&gt; (expanded to &lt;code&gt;refs/merge-requests/&amp;lt;iid&amp;gt;/head&lt;/code&gt; for GitLab MRs) does a full clone followed by a shallow &lt;code&gt;fetch&lt;/code&gt; and &lt;code&gt;checkout FETCH_HEAD&lt;/code&gt;. The &lt;code&gt;--ref&lt;/code&gt; flag is an alternative to the &lt;code&gt;@&amp;lt;ref&amp;gt;&lt;/code&gt; suffix and is accepted on both the positional &lt;code&gt;source&lt;/code&gt; form and &lt;code&gt;--config-url&lt;/code&gt;. The &lt;code&gt;pull&lt;/code&gt; command's &lt;code&gt;repo&lt;/code&gt; argument also accepts &lt;code&gt;@&amp;lt;ref&amp;gt;&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;_migrate_legacy_configs&lt;/code&gt; (&lt;code&gt;src/lib/config/_migrate_legacy_configs.sh&lt;/code&gt;) performs a one-time best-effort migration of pre-2.x flat saved configs (&lt;code&gt;~/.drupalaibp/configs/&amp;lt;name&amp;gt;.json&lt;/code&gt;) into the nested layout (&lt;code&gt;configs/&amp;lt;name&amp;gt;/.drupalaibp/&amp;lt;name&amp;gt;.json&lt;/code&gt;) on load. It is non-fatal: a warning is emitted and the old file is left in place on any failure.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;# Migrate a root .drupalaibp.json to the 2.x layout:
-mkdir -p .drupalaibp
-mv .drupalaibp.json .drupalaibp/config.json
-# A lone *.json in .drupalaibp/ is picked automatically — no rename required.
-
-# Relative hook and copy_paths paths now resolve inside .drupalaibp/, not the repo root.
-# If hooks[].script was &amp;quot;agent-extras.sh&amp;quot; (resolved from root), move the file:
-mv agent-extras.sh .drupalaibp/agent-extras.sh
-# Or keep it at the root and update the path to &amp;quot;../agent-extras.sh&amp;quot;.
-
-# Before (pre-2.x):
-drupalaibp --config-url https://git.drupalcode.org/project/foo
-
-# After (2.x) — positional form:
-drupalaibp https://git.drupalcode.org/project/foo
-
-# With a branch ref:
-drupalaibp https://git.drupalcode.org/project/foo@1.2.x
-
-# With a GitLab MR ref:
-drupalaibp https://git.drupalcode.org/project/foo@!12
-
-# With multiple configs in .drupalaibp/ — pick by name:
-drupalaibp https://git.drupalcode.org/project/foo --config config2 --yolo
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 21, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Key contributors&lt;/h3&gt;
 &lt;ul&gt;

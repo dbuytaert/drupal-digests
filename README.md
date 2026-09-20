@@ -1,4 +1,4 @@
-**TL;DR:** [1065 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1074 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_590 summaries · 14 new this week_
+_591 summaries · 15 new this week_
 
+- [#3576670: Deprecate Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576670.md)
 - [#3586217: Remove the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md)
 - [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
-- [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
 
 ### Drupal CMS
 
@@ -20,6 +20,14 @@ _94 summaries · 3 new this week_
 - [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
 - [#3591452: Site template with multilingual demo content only works if its intended default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591452.md)
 
+### Drupal AI
+
+_140 summaries · 11 new this week_
+
+- [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
+- [#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md)
+- [#3585923: Session lock is released before streamed (SSE) responses finish](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585923.md)
+
 ### Drupal Canvas
 
 _249 summaries · 2 new this week_
@@ -27,14 +35,6 @@ _249 summaries · 2 new this week_
 - [#3592090: Support multilingual previews in Canvas Headless](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592090.md)
 - [#3592062: Support rendering SVGs in SDC and code components with an image prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592062.md)
 - [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
-
-### Drupal AI
-
-_132 summaries · 3 new this week_
-
-- [#3436728: Check the status of a consumer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3436728.md)
-- [#3601362: DDEV: expose a VNC X display for non-headless agent-browser, plus optional...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601362.md)
-- [#3601383: Curated npx skills (agent-browser, drupal-module-finder, superpowers,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601383.md)
 
 
 ## Rector rules
