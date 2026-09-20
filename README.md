@@ -1,8 +1,16 @@
-**TL;DR:** [1064 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1065 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_590 summaries · 14 new this week_
+
+- [#3586217: Remove the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md)
+- [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
+- [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
 
 ### Drupal CMS
 
@@ -11,14 +19,6 @@ _94 summaries · 3 new this week_
 - [#3591466: Installing in another language does not translate shipped configuration: the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591466.md)
 - [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
 - [#3591452: Site template with multilingual demo content only works if its intended default...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591452.md)
-
-### Drupal Core
-
-_589 summaries · 13 new this week_
-
-- [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
-- [#3623097: Remove remaining Gin and Claro implementation names from Default Admin theme,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623097.md)
-- [#3623843: Remove Backbone.js and Underscore.js, not used in core anymore](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623843.md)
 
 ### Drupal Canvas
 
