@@ -1,12 +1,20 @@
-**TL;DR:** [1075 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1076 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_250 summaries · 3 new this week_
+
+- [#3592096: Headless preview of homepage drafts can serve stale published content from cache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592096.md)
+- [#3592090: Support multilingual previews in Canvas Headless](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592090.md)
+- [#3592062: Support rendering SVGs in SDC and code components with an image prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592062.md)
+
 ### Drupal Core
 
-_592 summaries · 16 new this week_
+_592 summaries · 15 new this week_
 
 - [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
 - [#3576670: Deprecate Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576670.md)
@@ -22,19 +30,11 @@ _94 summaries · 3 new this week_
 
 ### Drupal AI
 
-_140 summaries · 11 new this week_
+_140 summaries · 10 new this week_
 
 - [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
 - [#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md)
 - [#3585923: Session lock is released before streamed (SSE) responses finish](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585923.md)
-
-### Drupal Canvas
-
-_249 summaries · 2 new this week_
-
-- [#3592090: Support multilingual previews in Canvas Headless](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592090.md)
-- [#3592062: Support rendering SVGs in SDC and code components with an image prop](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592062.md)
-- [#3549232: Canvas AI: Updating page contents with agents](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3549232.md)
 
 
 ## Rector rules
