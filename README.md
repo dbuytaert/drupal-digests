@@ -1,4 +1,4 @@
-**TL;DR:** [1074 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1075 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_591 summaries · 15 new this week_
+_592 summaries · 16 new this week_
 
+- [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
 - [#3576670: Deprecate Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576670.md)
 - [#3586217: Remove the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md)
-- [#3595089: Remove the Olivero theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3595089.md)
 
 ### Drupal CMS
 
