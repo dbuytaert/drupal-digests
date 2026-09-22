@@ -5,6 +5,48 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583025: Show requirement status in tool:info, tool:list, and tool:search</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583025.md</link>
+      <guid isPermaLink="false">project/tool#3583025</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 21 Sep 2026 18:42:41 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583025"&gt;#3583025&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's Drush commands now show whether each tool is actually ready to run. &lt;code&gt;drush tool:list&lt;/code&gt; and &lt;code&gt;drush tool:search&lt;/code&gt; gain a &lt;code&gt;Requirements&lt;/code&gt; column showing &lt;code&gt;Met&lt;/code&gt; or the reason it is not (for example, a missing API key), plus a new &lt;code&gt;--unmet&lt;/code&gt; option (&lt;code&gt;show&lt;/code&gt;, the default; &lt;code&gt;hide&lt;/code&gt;; or &lt;code&gt;only&lt;/code&gt;) to filter the listing. &lt;code&gt;drush tool:info&lt;/code&gt; gains a &lt;code&gt;Requirements:&lt;/code&gt; line in its table and markdown output, and a &lt;code&gt;requirements&lt;/code&gt; key (&lt;code&gt;{&amp;quot;met&amp;quot;: ..., &amp;quot;message&amp;quot;: ...}&lt;/code&gt;) in its JSON output. Previously a builder had no way to see a tool would fail until they actually ran it with &lt;code&gt;tool:run&lt;/code&gt;; now the listing and info commands surface that up front. None of the commands change their exit code based on requirement status: &lt;code&gt;tool:list&lt;/code&gt; and &lt;code&gt;tool:search&lt;/code&gt; still exit &lt;code&gt;0&lt;/code&gt; for an empty or fully-filtered result, and &lt;code&gt;tool:info&lt;/code&gt; still exits &lt;code&gt;0&lt;/code&gt; for a tool whose requirements are unmet, since these commands answer &amp;quot;what exists&amp;quot; and &amp;quot;what is this&amp;quot;, not &amp;quot;can it run&amp;quot;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;tool:list&lt;/code&gt;, &lt;code&gt;tool:search&lt;/code&gt;, and &lt;code&gt;tool:info&lt;/code&gt; Drush commands report each tool's &lt;code&gt;checkRequirements()&lt;/code&gt; status; &lt;code&gt;tool:list&lt;/code&gt;/&lt;code&gt;tool:search&lt;/code&gt; gain a &lt;code&gt;--unmet=show|hide|only&lt;/code&gt; filter option and &lt;code&gt;tool:info --format=json&lt;/code&gt; gains a &lt;code&gt;requirements&lt;/code&gt; key.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The three commands share one probe: the new &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\tool\Drush\RequirementStatus&lt;/code&gt; value object. Its static &lt;code&gt;forTool()&lt;/code&gt; instantiates the plugin via &lt;code&gt;ToolManager::createInstance()&lt;/code&gt; (passing a &lt;code&gt;DrushInvoker&lt;/code&gt;) and calls &lt;code&gt;checkRequirements()&lt;/code&gt;. A caught &lt;code&gt;RequirementsException&lt;/code&gt; produces an unmet status carrying the exception message; any other &lt;code&gt;\Throwable&lt;/code&gt; (for example a broken &lt;code&gt;create()&lt;/code&gt;) is also caught and reported as unmet with a &lt;code&gt;Could not instantiate tool: ...&lt;/code&gt; message, so one plugin with a broken service dependency cannot take down the entire listing. &lt;code&gt;label()&lt;/code&gt; renders &lt;code&gt;Met&lt;/code&gt; or the message for table/markdown output, and &lt;code&gt;toArray()&lt;/code&gt; produces the JSON shape.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolOutputTrait&lt;/code&gt; gained &lt;code&gt;requirementStatuses()&lt;/code&gt; (probes every listed definition) and &lt;code&gt;filterByRequirementStatus()&lt;/code&gt;, driven by the new &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;UnmetFilter&lt;/code&gt; enum (&lt;code&gt;Show&lt;/code&gt;, &lt;code&gt;Hide&lt;/code&gt;, &lt;code&gt;Only&lt;/code&gt;), whose &lt;code&gt;keeps()&lt;/code&gt; method encodes the filtering logic and whose &lt;code&gt;tryFrom()&lt;/code&gt; validates the raw &lt;code&gt;--unmet&lt;/code&gt; option value, exiting &lt;code&gt;1&lt;/code&gt; with the same message shape as an invalid &lt;code&gt;--operation&lt;/code&gt; on failure. &lt;code&gt;ToolInfoCommand::buildSchemas()&lt;/code&gt; now returns &lt;code&gt;NULL&lt;/code&gt; instead of throwing when &lt;code&gt;createInstance()&lt;/code&gt; fails, so &lt;code&gt;tool:info&lt;/code&gt; on a tool whose &lt;code&gt;create()&lt;/code&gt; throws still reports its status and omits &lt;code&gt;input_schema&lt;/code&gt;/&lt;code&gt;output_schema&lt;/code&gt; rather than erroring out.&lt;/p&gt;
+&lt;p&gt;The test module &lt;code&gt;tool_test&lt;/code&gt; gained &lt;code&gt;broken_constructor_tool&lt;/code&gt;, a plugin whose &lt;code&gt;create()&lt;/code&gt; unconditionally throws, used to exercise the instantiation-failure path in the new &lt;code&gt;RequirementStatusTest&lt;/code&gt; and in the command kernel tests. This work builds on the &lt;code&gt;DrushInvoker&lt;/code&gt; machinery introduced in &lt;a href="https://www.drupal.org/node/3583023"&gt;#3583023&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No upgrade steps are needed for module users; this only adds output and an option to existing Drush commands. Scripts parsing &lt;code&gt;tool:info --format=json&lt;/code&gt; can now read the new &lt;code&gt;requirements&lt;/code&gt; key:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;requirements&amp;quot;: {&amp;quot;met&amp;quot;: false, &amp;quot;message&amp;quot;: &amp;quot;Test API key is not configured.&amp;quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Scripts parsing &lt;code&gt;tool:list&lt;/code&gt;/&lt;code&gt;tool:search&lt;/code&gt; table or markdown output should account for the new &lt;code&gt;Requirements&lt;/code&gt; column inserted after &lt;code&gt;Operation&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585912: STDIO tool calls execute without an authenticated user, so permission-gated tools fail</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md</link>
       <guid isPermaLink="false">project/mcp_server#3585912</guid>
@@ -767,37 +809,6 @@ namespace Drupal\my_module\Plugin\mcp_server\Tool;
 &lt;h3&gt;Key contributors&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601396: Handoff prompt: Enter should open the shell immediately, Esc to skip; --yolo skips the handoff entirely</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601396.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601396</guid>
-      <pubDate>Mon, 24 Aug 2026 07:13:25 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601396"&gt;#3601396&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The one_line_installer's final step, which offers to drop you into a shell inside your freshly installed project, had its confirmation key backwards: pressing Enter used to skip the handoff, while doing nothing for 30 seconds opened the shell. This is now fixed so Enter immediately opens the shell (matching normal “Enter confirms” expectations), Esc explicitly skips it, and letting the 30 second timer run out still opens the shell. Additionally, running the installer with &lt;code&gt;--yolo&lt;/code&gt; no longer bypasses this prompt entirely: as long as a real terminal is available, a &lt;code&gt;--yolo&lt;/code&gt; run gets the same prompt and lands you in the project directory, since that's what a human running it interactively almost always wants. The only remaining case where the handoff is skipped automatically is when &lt;code&gt;/dev/tty&lt;/code&gt; can't be opened at all, such as in CI or when an agent runs the installer without a pty.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;step_agent_handoff()&lt;/code&gt; in &lt;code&gt;src/lib/steps/agent_handoff.sh&lt;/code&gt;. Previously it did a single &lt;code&gt;IFS= read -r -t 30 &amp;lt;/dev/tty&lt;/code&gt; line-read: any Enter press (success exit status) meant &amp;quot;skip,&amp;quot; and only a timeout (non-zero exit) fell through to &lt;code&gt;exec &amp;quot;${SHELL:-bash}&amp;quot;&lt;/code&gt;. That logic is replaced by a new helper, &lt;code&gt;_agent_handoff_read_choice()&lt;/code&gt;, which loops on &lt;code&gt;read -rsn1 -t &amp;quot;$remaining&amp;quot;&lt;/code&gt; to read single keypresses against a shrinking time budget (tracked via &lt;code&gt;$SECONDS&lt;/code&gt; so the 30s window, configurable through &lt;code&gt;AGENT_HANDOFF_TIMEOUT&lt;/code&gt;, covers the whole wait rather than resetting per keystroke). Enter (&lt;code&gt;''&lt;/code&gt;, &lt;code&gt;$'\n'&lt;/code&gt;, or &lt;code&gt;$'\r'&lt;/code&gt;), a read timeout, or a read error all resolve to &lt;code&gt;&amp;quot;open&amp;quot;&lt;/code&gt;. A bare &lt;code&gt;Esc&lt;/code&gt; (&lt;code&gt;$'\e'&lt;/code&gt;) resolves to &lt;code&gt;&amp;quot;skip&amp;quot;&lt;/code&gt;, but the function first drains up to two more bytes to distinguish a real Esc from the start of an arrow/function-key escape sequence, treating a full sequence as &amp;quot;any other key&amp;quot; that just keeps the window running. Any other key is likewise ignored and the loop continues.&lt;/p&gt;
-&lt;p&gt;The early &lt;code&gt;if [[ $YOLO -eq 1 ]] || ! { : &amp;lt;/dev/tty; } 2&amp;gt;/dev/null; then&lt;/code&gt; guard was narrowed to just the &lt;code&gt;/dev/tty&lt;/code&gt; check, so &lt;code&gt;--yolo&lt;/code&gt; no longer bypasses the handoff when a terminal is actually available; the timeout path already served as the unattended/&lt;code&gt;--yolo&lt;/code&gt; fallback. The duplicated &amp;quot;your project is ready in ...&amp;quot; messaging used on both the no-tty and Esc-skip paths was factored into a new &lt;code&gt;_agent_handoff_skipped()&lt;/code&gt; helper. Test coverage in &lt;code&gt;tests/bats/lib/steps/agent_handoff.bats&lt;/code&gt; was substantially expanded to exercise Enter, Esc, timeout, arrow-key sequences, and the &lt;code&gt;--yolo&lt;/code&gt;-with-tty case.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

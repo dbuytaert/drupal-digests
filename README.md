@@ -1,8 +1,16 @@
-**TL;DR:** [1079 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1080 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_141 summaries · 10 new this week_
+
+- [#3583025: Show requirement status in tool:info, tool:list, and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583025.md)
+- [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
+- [#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md)
 
 ### Drupal CMS
 
@@ -22,19 +30,11 @@ _252 summaries · 5 new this week_
 
 ### Drupal Core
 
-_592 summaries · 13 new this week_
+_592 summaries · 11 new this week_
 
 - [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
 - [#3576670: Deprecate Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576670.md)
 - [#3586217: Remove the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md)
-
-### Drupal AI
-
-_140 summaries · 9 new this week_
-
-- [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
-- [#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md)
-- [#3585923: Session lock is released before streamed (SSE) responses finish](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585923.md)
 
 
 ## Rector rules
