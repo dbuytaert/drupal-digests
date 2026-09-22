@@ -5,6 +5,167 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585919: Nested empty object schemas still serialize as [] because normalizeObjectSchema() only normalizes the top level</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585919.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585919</guid>
+      <pubDate>Tue, 22 Sep 2026 15:29:37 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585919"&gt;#3585919&lt;/a&gt; · 1 contributor · 10 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The MCP Server module builds JSON Schema definitions for each registered tool and sends them to connecting MCP clients. An empty &lt;code&gt;properties&lt;/code&gt; map is indistinguishable from an empty array in PHP, and a prior fix (&lt;a href="https://www.drupal.org/node/3585899"&gt;#3585899&lt;/a&gt;) made sure the top-level &lt;code&gt;properties&lt;/code&gt; of a tool's input schema always serializes as a JSON object (&lt;code&gt;{}&lt;/code&gt;) rather than an array (&lt;code&gt;[]&lt;/code&gt;). This issue found that the fix only checked the top level: a nested empty object, for example a free-form &lt;code&gt;opts&lt;/code&gt; parameter, still serialized as &lt;code&gt;[]&lt;/code&gt; several levels down. Strict MCP clients reject schemas with an array where an object is required, so a tool declaring such a nested parameter could fail to register with those clients. The fix makes the normalization recursive so every nested schema position, not just the top level, is corrected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;McpServerFactory::normalizeObjectSchema()&lt;/code&gt; previously converted only the schema's top-level &lt;code&gt;properties&lt;/code&gt; value. It now delegates to a new &lt;code&gt;normalizeSchema()&lt;/code&gt; helper that walks every JSON Schema keyword that can hold a sub-schema: single sub-schema keywords (&lt;code&gt;additionalProperties&lt;/code&gt;, &lt;code&gt;contains&lt;/code&gt;, &lt;code&gt;if&lt;/code&gt;/&lt;code&gt;then&lt;/code&gt;/&lt;code&gt;else&lt;/code&gt;, &lt;code&gt;not&lt;/code&gt;, &lt;code&gt;propertyNames&lt;/code&gt;, &lt;code&gt;contentSchema&lt;/code&gt;, etc.), map keywords (&lt;code&gt;properties&lt;/code&gt;, &lt;code&gt;$defs&lt;/code&gt;, &lt;code&gt;definitions&lt;/code&gt;, &lt;code&gt;patternProperties&lt;/code&gt;, &lt;code&gt;dependentSchemas&lt;/code&gt;), and list keywords (&lt;code&gt;allOf&lt;/code&gt;, &lt;code&gt;anyOf&lt;/code&gt;, &lt;code&gt;oneOf&lt;/code&gt;, &lt;code&gt;prefixItems&lt;/code&gt;), recursing into each. &lt;code&gt;items&lt;/code&gt; and draft-07 &lt;code&gt;dependencies&lt;/code&gt; get special-cased handling since each can hold either a single sub-schema or a list, and an empty array means something different in each case (&lt;code&gt;items: []&lt;/code&gt; is the empty schema, &lt;code&gt;allOf: []&lt;/code&gt; is a valid empty list). Any sub-schema that is an empty PHP array is replaced with &lt;code&gt;\stdClass&lt;/code&gt; so it serializes as &lt;code&gt;{}&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The module's &lt;code&gt;tests/modules/mcp_server_test&lt;/code&gt; gained a &lt;code&gt;NestedSchemaTool&lt;/code&gt; fixture that declares empty object schemas in every nested position (&lt;code&gt;items&lt;/code&gt;, &lt;code&gt;additionalProperties&lt;/code&gt;, &lt;code&gt;anyOf&lt;/code&gt;, &lt;code&gt;$ref&lt;/code&gt; targets in &lt;code&gt;$defs&lt;/code&gt;, &lt;code&gt;contentSchema&lt;/code&gt;, &lt;code&gt;dependencies&lt;/code&gt;), and &lt;code&gt;ToolSchemaNormalizationTest&lt;/code&gt; asserts each one decodes back as &lt;code&gt;\stdClass&lt;/code&gt; rather than an empty list.&lt;/p&gt;
+&lt;p&gt;Two things called out in the issue were left out of scope deliberately: &lt;code&gt;registerTools()&lt;/code&gt; still passes a tool's &lt;code&gt;outputSchema&lt;/code&gt; through without normalization, so a top-level empty &lt;code&gt;outputSchema.properties&lt;/code&gt; still serializes as &lt;code&gt;[]&lt;/code&gt; (tracked separately per the issue); and &lt;code&gt;normalizeObjectSchema()&lt;/code&gt; still unconditionally overwrites &lt;code&gt;$schema['type']&lt;/code&gt; to &lt;code&gt;'object'&lt;/code&gt;, silently masking a tool that declared a different type instead of surfacing the SDK's &lt;code&gt;InvalidArgumentException&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585870: Tool definition from the plugin deriver all have the same label ("Tool API")</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585870.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585870</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 22 Sep 2026 15:09:34 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585870"&gt;#3585870&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the MCP Server module, a Tool plugin can use a deriver to expose several dynamic tools from one class, for example the Tool API bridge exposing each configured Tool API tool as its own MCP tool. Previously every one of those derived tools showed the same label, &amp;quot;Tool API&amp;quot;, because the deriver had no way to give each derivative its own name; it just inherited the base plugin's label. Now a deriver must supply a distinct label for each derivative, so clients see the actual name of each tool instead of a single repeated generic label.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ToolDefinition::withDerivative()&lt;/code&gt; now requires a &lt;code&gt;label&lt;/code&gt; argument for each derivative, and &lt;code&gt;description&lt;/code&gt; must be a &lt;code&gt;TranslatableMarkup&lt;/code&gt; (no longer accepts a raw string).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in &lt;code&gt;ToolDefinition::withDerivative()&lt;/code&gt;: the clone it built always reused &lt;code&gt;$this-&amp;gt;label&lt;/code&gt; from the base definition, with no parameter to override it, while other fields like &lt;code&gt;description&lt;/code&gt; and &lt;code&gt;inputSchema&lt;/code&gt; could already be overridden per derivative. The fix adds a required &lt;code&gt;TranslatableMarkup $label&lt;/code&gt; parameter, since (per the updated docblock) &amp;quot;the base label names the family of tools, never one derivative, so each derivative names itself,&amp;quot; matching how core's block and local task derivers behave.&lt;/p&gt;
+&lt;p&gt;While changing the signature, the method was also generalized: &lt;code&gt;outputSchema&lt;/code&gt;, &lt;code&gt;readOnly&lt;/code&gt;, and &lt;code&gt;idempotent&lt;/code&gt; are now overridable per derivative too (previously only &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;inputSchema&lt;/code&gt;, and &lt;code&gt;destructive&lt;/code&gt; were), and every optional parameter uniformly uses &amp;quot;&lt;code&gt;NULL&lt;/code&gt; keeps the base value&amp;quot; instead of &lt;code&gt;withDerivative()&lt;/code&gt; special-casing &lt;code&gt;description&lt;/code&gt;'s type. The &lt;code&gt;description&lt;/code&gt; parameter's type also narrowed from &lt;code&gt;TranslatableMarkup|string|null&lt;/code&gt; to &lt;code&gt;?TranslatableMarkup&lt;/code&gt;; a deriver that builds a description from config text is now expected to wrap it itself with &lt;code&gt;new TranslatableMarkup('@text', ['@text' =&amp;gt; $text])&lt;/code&gt; so config values are never accidentally used as translation source strings. Coverage for the new &lt;code&gt;withDerivative()&lt;/code&gt; contract lives in &lt;code&gt;ToolDefinitionTest&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Any deriver calling &lt;code&gt;ToolDefinition::withDerivative()&lt;/code&gt; must pass a &lt;code&gt;label&lt;/code&gt; argument, and pass &lt;code&gt;description&lt;/code&gt; as a &lt;code&gt;TranslatableMarkup&lt;/code&gt; (wrap raw/config text yourself):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$base-&amp;gt;withDerivative(
+  derivativeId: $id,
+  label: $record_label,
+  toolId: $tool_id,
+  mcpToolConfigId: $id,
+  description: $description,
+  inputSchema: $input_schema,
+  outputSchema: $output_schema,
+  readOnly: !$operation-&amp;gt;isModifying(),
+  destructive: $is_destructive,
+  idempotent: $operation-&amp;gt;isIdempotent(),
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 5, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;garphy&lt;/li&gt;
+&lt;li&gt;e0ipso (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;jaydub (Principal Financial Group)&lt;/li&gt;
+&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583036: Add --format=json to tool:list and tool:search</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583036.md</link>
+      <guid isPermaLink="false">project/tool#3583036</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 22 Sep 2026 14:54:33 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583036"&gt;#3583036&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's &lt;code&gt;drush tool:list&lt;/code&gt; and &lt;code&gt;drush tool:search&lt;/code&gt; commands now support &lt;code&gt;--format=json&lt;/code&gt;, in addition to the existing &lt;code&gt;table&lt;/code&gt; and &lt;code&gt;markdown&lt;/code&gt; formats. Previously these commands only produced a table (which truncates descriptions at 60 characters) or interleaved markdown, neither of which round-trips cleanly through &lt;code&gt;jq&lt;/code&gt; or a JSON decoder. This matters for automated agents that discover tools via &lt;code&gt;tool:list&lt;/code&gt;/&lt;code&gt;tool:search&lt;/code&gt; and then inspect one with &lt;code&gt;tool:info --format=json&lt;/code&gt;: they can now stay in JSON the whole way through instead of scraping rendered text.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;tool:list&lt;/code&gt; and &lt;code&gt;tool:search&lt;/code&gt; Drush commands accept &lt;code&gt;--format=json&lt;/code&gt;, emitting a JSON array of tool summaries (or &lt;code&gt;[]&lt;/code&gt; when empty).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change introduces &lt;code&gt;ToolOutputTrait::buildToolSummary()&lt;/code&gt;, a single private method that builds the per-tool fields (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;operation&lt;/code&gt;, &lt;code&gt;destructive&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;requirements&lt;/code&gt;) shared by &lt;code&gt;tool:info&lt;/code&gt;, &lt;code&gt;tool:list&lt;/code&gt;, and &lt;code&gt;tool:search&lt;/code&gt;. &lt;code&gt;ToolInfoCommand::outputInfoAsJson()&lt;/code&gt; now calls this shared builder and appends its &lt;code&gt;inputs&lt;/code&gt;/&lt;code&gt;outputs&lt;/code&gt;/schema fields on top, while a new &lt;code&gt;ToolOutputTrait::outputToolsAsJson()&lt;/code&gt; maps the builder over the filtered definitions for &lt;code&gt;tool:list&lt;/code&gt; and &lt;code&gt;tool:search&lt;/code&gt; and writes the array with &lt;code&gt;Json::encode()&lt;/code&gt;. This keeps the three commands' JSON field names from drifting apart since only one place declares them.&lt;/p&gt;
+&lt;p&gt;Both commands special-case &lt;code&gt;--format=json&lt;/code&gt; before their existing &amp;quot;no tools found&amp;quot; checks, so an empty result set still prints the JSON document &lt;code&gt;[]&lt;/code&gt; and exits 0, rather than the prose message used by the table and markdown formats. Neither command prints its usual trailing summary line (&lt;code&gt;Total tools: N&lt;/code&gt; or &lt;code&gt;Found N tool(s) matching: ...&lt;/code&gt;) in JSON mode, keeping the output a single parseable document; consumers get the count from the array length. The &lt;code&gt;requirements&lt;/code&gt; field mirrors the &lt;code&gt;RequirementStatus::forTool()&lt;/code&gt; work from &lt;a href="https://www.drupal.org/node/3583025"&gt;#3583025&lt;/a&gt;, and &lt;code&gt;--operation&lt;/code&gt;/&lt;code&gt;--unmet&lt;/code&gt; filtering apply to the JSON output exactly as they do to the table.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585930: Default settings omit langcode required for translatable server_instructions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585930.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585930</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 22 Sep 2026 14:23:59 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585930"&gt;#3585930&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Installing the mcp_server module on a site that enables strict configuration constraint validation, such as via recipes, &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; with constraints enabled, or Drupal's test-site installer, previously failed with a schema error because the shipped default configuration for &lt;code&gt;mcp_server.settings&lt;/code&gt; did not declare a language code even though it contains a translatable value (&lt;code&gt;server_instructions&lt;/code&gt;). The default configuration now ships with &lt;code&gt;langcode: en&lt;/code&gt;, so installation succeeds. Existing installed sites are unaffected since this only changes the shipped install default, not active configuration, and no update hook was added.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Shipped default configuration &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt; now includes &lt;code&gt;langcode: en&lt;/code&gt;, since the schema for &lt;code&gt;mcp_server.settings&lt;/code&gt; marks &lt;code&gt;server_instructions&lt;/code&gt; as translatable and Drupal 10.3+ requires a langcode on any simple config object with translatable values.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;server_instructions&lt;/code&gt; key in &lt;code&gt;mcp_server.settings&lt;/code&gt; config schema is typed as &lt;code&gt;text&lt;/code&gt;, which is translatable, and Drupal 10.3+'s &lt;code&gt;LangcodeRequiredIfTranslatableValues&lt;/code&gt; constraint requires any simple config object containing translatable values to declare a &lt;code&gt;langcode&lt;/code&gt;. The shipped &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt; omitted it, so &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; raised &amp;quot;The mcp_server.settings config object must specify a language code, because it contains translatable values&amp;quot; whenever constraint validation ran during install.&lt;/p&gt;
+&lt;p&gt;The fix adds a single &lt;code&gt;langcode: en&lt;/code&gt; line to the top of &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt;. A new kernel test, &lt;code&gt;McpDefaultSettingsSchemaTest&lt;/code&gt;, installs the module's config and runs the same &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; (instantiated with constraints enabled, mirroring the test-site installer path) against it, then asserts the &lt;code&gt;langcode&lt;/code&gt; is &lt;code&gt;en&lt;/code&gt; and that &lt;code&gt;server_instructions&lt;/code&gt; is still marked translatable in the typed config schema, guarding against regressions on either front.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jmcerda (Wilkes &amp;amp; Liberty)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585932: "mcp_prompt_config" entity type does not exist on Drupal 10 and 11.0</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585932.md</link>
       <guid isPermaLink="false">project/mcp_server#3585932</guid>
@@ -681,138 +842,6 @@ namespace Drupal\my_module\Plugin\mcp_server\Tool;
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;Contributor abhisekmazumdar diagnosed that the bug was not in the constraint validator's own per-delta loop but further upstream, in core's &lt;code&gt;filterEmptyItems()&lt;/code&gt; stripping blank deltas before validation ever ran, and explained in detail (comment &lt;a href="https://www.drupal.org/node/16738712"&gt;#16738712&lt;/a&gt;) why the fix has to treat missing deltas the same as a fully empty field while leaving unlimited-cardinality fields alone. After ahmad-khalil-imagex reviewed and follow-up commits extracted the shared helper and tightened test coverage, abhisekmazumdar merged the MR and flagged two behavior changes worth knowing about before upgrading: validation now applies to programmatic saves as well as form submissions, and violations on stripped deltas are reported at the field level rather than the specific delta, to avoid a &lt;code&gt;TypeError&lt;/code&gt; in core's &lt;code&gt;WidgetBase::flagErrors()&lt;/code&gt;.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3525460: Update symfony/expression-language to v7 (Compatibility with module_builder)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3525460.md</link>
-      <guid isPermaLink="false">node/3525460</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 31 Aug 2026 09:10:56 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 3.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−1 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/field_validation/-/commit/3de7733ade850041d73044673cecdee7e1633a82"&gt;3de7733&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3525460"&gt;#3525460&lt;/a&gt; · 6 contributors · 14 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Field Validation's &lt;code&gt;composer.json&lt;/code&gt; previously pinned &lt;code&gt;symfony/expression-language&lt;/code&gt; to &lt;code&gt;^6.3&lt;/code&gt;, which made it impossible to install alongside modules like module_builder that require &lt;code&gt;symfony/expression-language:^7&lt;/code&gt;. The requirement has been widened to &lt;code&gt;^6.3 || ^7&lt;/code&gt; so Composer can pick whichever major version satisfies all of a site's dependencies, removing that install-time conflict. If your site ends up resolving to v7 (because of another dependency), be aware that Symfony changed the &lt;code&gt;in&lt;/code&gt; and &lt;code&gt;not in&lt;/code&gt; operators in v7 to use strict comparison instead of loose comparison. This module's own code doesn't use those operators, but if you have written Expression constraint rules using &lt;code&gt;in&lt;/code&gt;/&lt;code&gt;not in&lt;/code&gt;, their behavior could change silently: double check them after the underlying library version changes on your site.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;composer.json&lt;/code&gt; now allows &lt;code&gt;symfony/expression-language&lt;/code&gt; &lt;code&gt;^6.3 || ^7&lt;/code&gt; instead of only &lt;code&gt;^6.3&lt;/code&gt;, resolving a conflict with modules (e.g. module_builder) that require v7.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is a one-line change to &lt;code&gt;composer.json&lt;/code&gt;, widening &lt;code&gt;symfony/expression-language&lt;/code&gt; from &lt;code&gt;&amp;quot;^6.3&amp;quot;&lt;/code&gt; to &lt;code&gt;&amp;quot;^6.3 || ^7&amp;quot;&lt;/code&gt;. &lt;code&gt;symfony/intl&lt;/code&gt; was deliberately left at &lt;code&gt;^6.3&lt;/code&gt; since it wasn't part of the module_builder conflict this issue was filed to fix.&lt;/p&gt;
-&lt;p&gt;The module's own &lt;code&gt;\Drupal\field_validation\Plugin\Validation\Constraint\ExpressionConstraint&lt;/code&gt; doesn't invoke &lt;code&gt;in&lt;/code&gt;/&lt;code&gt;not in&lt;/code&gt; itself, so no code changes were needed here, but the loosened constraint means the effective version of &lt;code&gt;symfony/expression-language&lt;/code&gt; on a given site is no longer guaranteed to be v6: it depends on whatever else is installed. Under v7, &lt;code&gt;in&lt;/code&gt;/&lt;code&gt;not in&lt;/code&gt; comparisons became strict (e.g. &lt;code&gt;'1' in [1, 2, 3]&lt;/code&gt; evaluates to &lt;code&gt;true&lt;/code&gt; under v6 but &lt;code&gt;false&lt;/code&gt; under v7), so any site-authored Expression constraint rule relying on loose comparison could behave differently depending on which major version Composer resolves.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 20, 2025&lt;/li&gt;
-&lt;li&gt;Committed: August 31, 2026 (1 year later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;tgauges&lt;/li&gt;
-&lt;li&gt;liuyuanchao (Digital Circus)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The original patch from tgauges set the requirement to a strict &lt;code&gt;^7&lt;/code&gt;, which would have forced PHP 8.2+ and Symfony 7 on every site. abhisekmazumdar reworked it to &lt;code&gt;^6.3 || ^7&lt;/code&gt; instead, explaining that locking to &lt;code&gt;^7&lt;/code&gt; alone would needlessly force the upgrade on sites that don't actually have the module_builder conflict, whereas the &lt;code&gt;||&lt;/code&gt; range only pulls in v7 when something else in the dependency tree requires it. abhisekmazumdar also tested the actual behavior difference between the two library versions (loose vs. strict &lt;code&gt;in&lt;/code&gt;/&lt;code&gt;not in&lt;/code&gt; comparison) and flagged it as something worth calling out in release notes for sites with existing Expression constraint rules.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601404: Let a config name the command the agent hand-off runs, instead of only opening a shell</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601404.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601404</guid>
-      <category>Site owners</category>
-      <pubDate>Fri, 28 Aug 2026 08:51:21 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601404"&gt;#3601404&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The installer's last step, &lt;code&gt;step_agent_handoff&lt;/code&gt;, used to only ever drop the operator into a shell in the freshly built project directory, leaving any follow-up command (like starting a migration script) to be printed in the welcome text and typed by hand. A config can now set a &lt;code&gt;handoff_command&lt;/code&gt; key so the installer offers to run that command itself at the very end, instead of opening a shell. The operator is still asked first: pressing Enter runs the command, Esc skips it, and, unlike the shell hand-off, letting the prompt time out also skips it rather than running the command unattended. When &lt;code&gt;handoff_command&lt;/code&gt; is left unset, the installer behaves exactly as before.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;handoff_command&lt;/code&gt; key in &lt;code&gt;.drupalaibp.json&lt;/code&gt;: when set, &lt;code&gt;step_agent_handoff&lt;/code&gt; offers to run it in the project directory instead of opening a shell there.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new key is threaded through the usual config plumbing: added to &lt;code&gt;DRUPALAIBP_KNOWN_KEYS&lt;/code&gt; in &lt;code&gt;load_config.sh&lt;/code&gt;, read into &lt;code&gt;HANDOFF_COMMAND&lt;/code&gt; via &lt;code&gt;json_get&lt;/code&gt;, and round-tripped back out by both &lt;code&gt;export_config.sh&lt;/code&gt; and the inline exporter in &lt;code&gt;drupalaibp&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;step_agent_handoff&lt;/code&gt; (&lt;code&gt;src/lib/steps/agent_handoff.sh&lt;/code&gt;), a new branch fires when &lt;code&gt;HANDOFF_COMMAND&lt;/code&gt; is non-empty: it prompts with the command and reuses &lt;code&gt;_agent_handoff_read_choice&lt;/code&gt;, then execs &lt;code&gt;&amp;quot;${SHELL:-bash}&amp;quot; -c &amp;quot;$HANDOFF_COMMAND&amp;quot; &amp;lt;/dev/tty&lt;/code&gt; in place of the process, same as the existing shell hand-off does with a bare &lt;code&gt;exec &amp;quot;${SHELL:-bash}&amp;quot; &amp;lt;/dev/tty&lt;/code&gt;. Any answer other than &lt;code&gt;open&lt;/code&gt; (i.e. &lt;code&gt;skip&lt;/code&gt; or &lt;code&gt;timeout&lt;/code&gt;) falls back to &lt;code&gt;_agent_handoff_skipped&lt;/code&gt; and prints the command so it can be run by hand.&lt;/p&gt;
-&lt;p&gt;To make that distinction possible, &lt;code&gt;_agent_handoff_read_choice&lt;/code&gt; now returns &lt;code&gt;timeout&lt;/code&gt; instead of &lt;code&gt;open&lt;/code&gt; when the read loop runs out its window without a keypress. The plain shell hand-off branch below still checks only for &lt;code&gt;== &amp;quot;skip&amp;quot;&lt;/code&gt;, so a &lt;code&gt;timeout&lt;/code&gt; return still opens the shell there, exactly as before; only the new command branch treats &lt;code&gt;timeout&lt;/code&gt; differently from an explicit &lt;code&gt;open&lt;/code&gt;.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601394: ensure_ddev refuses any distro outside Debian/RHEL, even when Docker and DDEV are already installed</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601394.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601394</guid>
-      <pubDate>Thu, 27 Aug 2026 14:47:42 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601394"&gt;#3601394&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The one_line_installer script used to abort immediately on any Linux distribution outside the Debian/Ubuntu or Fedora/RHEL families, even if Docker and DDEV were already installed and working on that machine. Now the distro check no longer blocks the whole install: it only matters if Docker Engine actually needs to be installed. If Docker is already present and running, the installer proceeds normally regardless of distro. If Docker is missing and the distro is unrecognized, the installer now fails with a clear message telling the user to install Docker manually, rather than an opaque &amp;quot;unsupported distribution&amp;quot; error at the very first step.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The distro detection in &lt;code&gt;linux_detect_distro&lt;/code&gt; (in &lt;code&gt;src/lib/platform/linux_detect_distro.sh&lt;/code&gt;, mirrored in the compiled &lt;code&gt;drupalaibp&lt;/code&gt; script) previously called &lt;code&gt;die&lt;/code&gt; for any &lt;code&gt;ID&lt;/code&gt;/&lt;code&gt;ID_LIKE&lt;/code&gt; outside the debian/ubuntu/fedora/rhel/centos set, setting the &lt;code&gt;PKG&lt;/code&gt; variable used to select &lt;code&gt;apt&lt;/code&gt; or &lt;code&gt;dnf&lt;/code&gt;. Since &lt;code&gt;PKG&lt;/code&gt; is only consumed by &lt;code&gt;linux_ensure_docker&lt;/code&gt; when it needs to install Docker Engine, and &lt;code&gt;linux_ensure_docker&lt;/code&gt; returns early whenever &lt;code&gt;docker info&lt;/code&gt; already succeeds, the distro check was failing installs that never needed &lt;code&gt;PKG&lt;/code&gt; at all.&lt;/p&gt;
-&lt;p&gt;The fix leaves &lt;code&gt;PKG&lt;/code&gt; empty (with a &lt;code&gt;warn&lt;/code&gt; instead of &lt;code&gt;die&lt;/code&gt;) for unmapped distros and lets &lt;code&gt;linux_detect_distro&lt;/code&gt; return successfully. The actual failure is moved into &lt;code&gt;linux_ensure_docker&lt;/code&gt;'s install branch: only when Docker is not found (&lt;code&gt;command -v docker&lt;/code&gt; fails) does it now check &lt;code&gt;[[ -n &amp;quot;${PKG:-}&amp;quot; ]]&lt;/code&gt;, dying with a Docker-specific message pointing to &lt;code&gt;docs.docker.com&lt;/code&gt; if &lt;code&gt;PKG&lt;/code&gt; is empty. Debian/RHEL behavior is unchanged since &lt;code&gt;PKG&lt;/code&gt; is still populated for those families. Corresponding bats tests in &lt;code&gt;tests/bats/lib/platform/linux_detect_distro.bats&lt;/code&gt; and &lt;code&gt;linux_ensure_docker.bats&lt;/code&gt; were updated to assert the new no-die/empty-&lt;code&gt;PKG&lt;/code&gt; behavior and the deferred failure message.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601400: Management mode hangs for ~60s with no output: `ddev exec true` starts the project instead of probing it</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601400.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601400</guid>
-      <pubDate>Thu, 27 Aug 2026 14:15:10 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601400"&gt;#3601400&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Running the installer's management mode (&lt;code&gt;drupalaibp&lt;/code&gt; inside an existing DDEV project) against a project that was configured but stopped used to appear to hang for about a minute with no output. The cause was the check used to decide whether DDEV needed starting: it ran &lt;code&gt;ddev exec true&lt;/code&gt; and threw away its output, but on a stopped project &lt;code&gt;ddev exec&lt;/code&gt; itself silently starts the project before running the command, taking roughly 60 seconds with nothing printed to explain the wait. The fix replaces that check with a read-only probe of DDEV's actual state, so a stopped project prints &amp;quot;Checking DDEV...&amp;quot; then &amp;quot;Starting DDEV...&amp;quot; with DDEV's own progress output, and a running project is confirmed in a fraction of a second without being touched.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The probe in &lt;code&gt;manage_existing()&lt;/code&gt; (&lt;code&gt;src/lib/shared/manage/manage_existing.sh&lt;/code&gt;) now runs &lt;code&gt;ddev describe -j 2&amp;gt;/dev/null | grep -q '&amp;quot;status&amp;quot;:&amp;quot;running&amp;quot;'&lt;/code&gt; instead of &lt;code&gt;ddev exec true &amp;gt;/dev/null 2&amp;gt;&amp;amp;1&lt;/code&gt;. &lt;code&gt;ddev describe -j&lt;/code&gt; only reads project state and returns in well under a second, whereas &lt;code&gt;ddev exec&lt;/code&gt; on a stopped project starts it as a side effect of trying to execute the command, which is what produced the ~60s of silence. The grep match deliberately keeps the leading quote (&lt;code&gt;&amp;quot;status&amp;quot;:&amp;quot;running&amp;quot;&lt;/code&gt;) so it can't be tripped by sibling JSON keys like &lt;code&gt;router_status&lt;/code&gt; or &lt;code&gt;status_desc&lt;/code&gt;. A &lt;code&gt;step &amp;quot;Checking DDEV...&amp;quot;&lt;/code&gt; message was also added before the probe so the previously dead &lt;code&gt;step &amp;quot;Starting DDEV...&amp;quot;&lt;/code&gt; branch (which could never run when the probe itself started the project) now actually fires and is visible on screen.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

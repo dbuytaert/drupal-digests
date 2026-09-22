@@ -1,32 +1,32 @@
-**TL;DR:** [1085 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1090 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_146 summaries · 15 new this week_
+
+- [#3585919: Nested empty object schemas still serialize as [] because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585919.md)
+- [#3585870: Tool definition from the plugin deriver all have the same label ("Tool API")](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585870.md)
+- [#3583036: Add --format=json to tool:list and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583036.md)
+
+### Drupal Canvas
+
+_255 summaries · 8 new this week_
+
+- [#3591996: RecipeAppliedEvent listener installs a module and invalidates the container for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591996.md)
+- [#3591934: Add component label to settings form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591934.md)
+- [#3591860: Add a button to close the right tray](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591860.md)
+
 ### Drupal Core
 
-_594 summaries · 12 new this week_
+_594 summaries · 11 new this week_
 
 - [#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md)
 - [#3623089: Delete unused core icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623089.md)
 - [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
-
-### Drupal Canvas
-
-_254 summaries · 7 new this week_
-
-- [#3591934: Add component label to settings form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591934.md)
-- [#3591860: Add a button to close the right tray](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591860.md)
-- [#3591957: Improve the Brand Kit fonts UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591957.md)
-
-### Drupal AI
-
-_142 summaries · 11 new this week_
-
-- [#3585932: "mcp_prompt_config" entity type does not exist on Drupal 10 and 11.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585932.md)
-- [#3583025: Show requirement status in tool:info, tool:list, and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583025.md)
-- [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
 
 ### Drupal CMS
 
