@@ -1,16 +1,24 @@
-**TL;DR:** [1080 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1083 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_254 summaries · 7 new this week_
+
+- [#3591934: Add component label to settings form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591934.md)
+- [#3591860: Add a button to close the right tray](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591860.md)
+- [#3591957: Improve the Brand Kit fonts UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591957.md)
+
 ### Drupal AI
 
-_141 summaries · 10 new this week_
+_142 summaries · 11 new this week_
 
+- [#3585932: "mcp_prompt_config" entity type does not exist on Drupal 10 and 11.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585932.md)
 - [#3583025: Show requirement status in tool:info, tool:list, and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583025.md)
 - [#3585912: STDIO tool calls execute without an authenticated user, so permission-gated...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585912.md)
-- [#3583023: Emit the JSON Schema from tool:info and pass a Drush invoker](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583023.md)
 
 ### Drupal CMS
 
@@ -19,14 +27,6 @@ _95 summaries · 4 new this week_
 - [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
 - [#3591466: Installing in another language does not translate shipped configuration: the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591466.md)
 - [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
-
-### Drupal Canvas
-
-_252 summaries · 5 new this week_
-
-- [#3591957: Improve the Brand Kit fonts UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591957.md)
-- [#3592032: Canvas AI: Proper chat history management in the backend](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592032.md)
-- [#3592096: Headless preview of homepage drafts can serve stale published content from cache](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592096.md)
 
 ### Drupal Core
 
