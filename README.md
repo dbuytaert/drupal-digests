@@ -1,8 +1,16 @@
-**TL;DR:** [1083 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1085 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_594 summaries · 12 new this week_
+
+- [#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md)
+- [#3623089: Delete unused core icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623089.md)
+- [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
 
 ### Drupal Canvas
 
@@ -27,14 +35,6 @@ _95 summaries · 4 new this week_
 - [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
 - [#3591466: Installing in another language does not translate shipped configuration: the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591466.md)
 - [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
-
-### Drupal Core
-
-_592 summaries · 11 new this week_
-
-- [#3584639: Remove the Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3584639.md)
-- [#3576670: Deprecate Claro theme](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3576670.md)
-- [#3586217: Remove the Search module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md)
 
 
 ## Rector rules
