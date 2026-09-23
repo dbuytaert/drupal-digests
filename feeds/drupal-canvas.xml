@@ -5,6 +5,110 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592009: Have date props display in the format of the selected locale</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md</link>
+      <guid isPermaLink="false">project/canvas#3592009</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 22 Sep 2026 23:37:16 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592009"&gt;#3592009&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas stores &lt;code&gt;date&lt;/code&gt;, &lt;code&gt;date-time&lt;/code&gt;, and &lt;code&gt;time&lt;/code&gt; props as raw ISO strings and previously passed them to templates unchanged, leaving component authors to write their own locale formatting. This adds opt-in helpers, &lt;code&gt;canvasFormatDate&lt;/code&gt;, &lt;code&gt;canvasFormatDateTime&lt;/code&gt;, &lt;code&gt;canvasFormatTime&lt;/code&gt;, and &lt;code&gt;canvasFormatDateRange&lt;/code&gt;, usable both as Twig filters (in SDC templates) and as JavaScript/TypeScript functions (in code components). They render the value in the site's active Drupal interface language and always treat a value without a UTC offset as UTC, so a stored date never shifts to the previous or next day because of the visitor's local timezone.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New Twig filters &lt;code&gt;canvasFormatDate&lt;/code&gt;, &lt;code&gt;canvasFormatDateTime&lt;/code&gt;, &lt;code&gt;canvasFormatTime&lt;/code&gt;, &lt;code&gt;canvasFormatDateRange&lt;/code&gt; and matching JS/TS exports (&lt;code&gt;canvasFormatDate&lt;/code&gt;, &lt;code&gt;canvasFormatDateTime&lt;/code&gt;, &lt;code&gt;canvasFormatTime&lt;/code&gt;, &lt;code&gt;canvasFormatDateRange&lt;/code&gt;, type &lt;code&gt;CanvasDateFormatOptions&lt;/code&gt;) from &lt;code&gt;drupal-canvas&lt;/code&gt; for locale-aware formatting of Canvas date props.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;On the PHP side, a new &lt;code&gt;Drupal\canvas\Utility\DateResolver&lt;/code&gt; service backs the Twig filters registered in &lt;code&gt;CanvasTwigExtension&lt;/code&gt;. It reads the current interface language and formats with &lt;code&gt;IntlDateFormatter&lt;/code&gt; when the &lt;code&gt;intl&lt;/code&gt; extension is available, falling back to PHP &lt;code&gt;date()&lt;/code&gt; patterns in the generated, &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;DateFallbackPatterns&lt;/code&gt; class (produced by &lt;code&gt;scripts/generate-date-fallback-patterns.php&lt;/code&gt; from ICU short-format data) for environments without &lt;code&gt;ext-intl&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On the JS side, &lt;code&gt;date-utils.ts&lt;/code&gt; in the &lt;code&gt;drupal-canvas&lt;/code&gt; package implements the same four functions using &lt;code&gt;Intl.DateTimeFormat&lt;/code&gt; with &lt;code&gt;timeZone: 'UTC'&lt;/code&gt;, reading the locale from a new &lt;code&gt;drupalSettings.canvasData.v0.langcode&lt;/code&gt; value. That setting is a new addition to &lt;code&gt;DrupalSettings&lt;/code&gt; and to the allowed &lt;code&gt;dataDependencies.drupalSettings&lt;/code&gt; values (&lt;code&gt;canvas.js_component.*&lt;/code&gt; schema, &lt;code&gt;ComponentSourceHooks::ASSET_LIBRARY_METHOD_MAPPING&lt;/code&gt;, &lt;code&gt;CodeComponentDataProvider::getCanvasDataLangcodeV0&lt;/code&gt;); it's populated automatically whenever a code component imports any of the four functions from &lt;code&gt;drupal-canvas&lt;/code&gt;, similar to how other &lt;code&gt;v0.*&lt;/code&gt; settings are attached on demand.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Component authors can opt in without any migration; existing components keep receiving raw ISO strings unless they use the new helpers.&lt;/p&gt;
+&lt;p&gt;Twig (SDC) templates:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-twig"&gt;&amp;lt;p&amp;gt;{{ my_date_prop|canvasFormatDate }}&amp;lt;/p&amp;gt;
+&amp;lt;p&amp;gt;{{ my_datetime_prop|canvasFormatDateTime }}&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code components (JSX/TSX):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-tsx"&gt;import { canvasFormatDate, canvasFormatDateTime } from 'drupal-canvas';
+
+const formattedDate = canvasFormatDate(myDateProp);
+const formattedDateTime = canvasFormatDateTime(myDatetimeProp, { dateStyle: 'long' });
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Importing any of the four functions automatically adds &lt;code&gt;v0.langcode&lt;/code&gt; to the component's &lt;code&gt;dataDependencies.drupalSettings&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592019: Sync brand kit colors through canvas.brand-kit.json in the Canvas CLI</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592019.md</link>
+      <guid isPermaLink="false">project/canvas#3592019</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 22 Sep 2026 22:02:09 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592019"&gt;#3592019&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas CLI can now version brand kit colors the same way it already does fonts. Previously, a project's color palette could only be managed in the Canvas editor UI, so it wasn't tracked in git, reviewable in a merge request, or portable between environments, and offline Workbench previews couldn't render components with the site's real colors. Now &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; carries a &lt;code&gt;colors&lt;/code&gt; map alongside &lt;code&gt;fonts&lt;/code&gt;: &lt;code&gt;canvas pull&lt;/code&gt; writes the site's palette into the file, &lt;code&gt;canvas push&lt;/code&gt; creates or updates colors on the site to match, and &lt;code&gt;canvas validate&lt;/code&gt; checks the file offline (JSON syntax, schema, and semantic rules like duplicate names). Workbench previews now render the local palette from this file even without a site connection. Brand kit sync (fonts and colors) is also switched on by default for &lt;code&gt;pull&lt;/code&gt;/&lt;code&gt;push&lt;/code&gt; when the file is present, whereas previously fonts had to be opted into explicitly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; &lt;code&gt;canvas_oauth&lt;/code&gt;'s default scope now includes &lt;code&gt;canvas:brand_kit&lt;/code&gt; whenever brand kit sync is enabled, and the &lt;code&gt;canvas_oauth&lt;/code&gt; authentication provider now allowlists the &lt;code&gt;Color&lt;/code&gt; and &lt;code&gt;Folder&lt;/code&gt; config entity routes for Bearer-authenticated requests.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Brand kit sync (fonts and colors) is now on by default for &lt;code&gt;canvas pull&lt;/code&gt; and &lt;code&gt;canvas push&lt;/code&gt; when &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; exists; &lt;code&gt;--include-brand-kit&lt;/code&gt; (positive form) is deprecated in favor of &lt;code&gt;--no-include-brand-kit&lt;/code&gt; to opt out.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; gains a &lt;code&gt;colors&lt;/code&gt; map (CSS variable key to CSS color string or &lt;code&gt;{value, name, displayFormat}&lt;/code&gt; object), synced by &lt;code&gt;canvas pull&lt;/code&gt;/&lt;code&gt;canvas push&lt;/code&gt; and checked by &lt;code&gt;canvas validate&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The file format mirrors a Tailwind theme/W3C design tokens shape: each key becomes a CSS custom property (&lt;code&gt;brand-red&lt;/code&gt; maps to &lt;code&gt;--brand-red&lt;/code&gt;), map order is palette order, and the display name is derived from the key unless a &lt;code&gt;{value, name, displayFormat}&lt;/code&gt; wrapper asserts one. Serialization (&lt;code&gt;packages/cli/src/lib/colors/color-pull.ts&lt;/code&gt;) is lossless by construction: &lt;code&gt;serializeColorValue&lt;/code&gt; writes a plain CSS string only when it round-trips to the exact same color token, otherwise it falls back to the object form, so a pull immediately after a push produces no diff. &lt;code&gt;color-push.ts&lt;/code&gt; matches file entries to server &lt;code&gt;Color&lt;/code&gt; entities by CSS variable, only reassigns weights when relative order actually differs (&lt;code&gt;needsWeightReassignment&lt;/code&gt;), and only applies a derived name/display format on creation, never renaming a color set in the UI (&lt;code&gt;assertedName&lt;/code&gt;). Push is non-destructive by default: server-only colors are reported via &lt;code&gt;serverOnly&lt;/code&gt;, and the new &lt;code&gt;--prune-colors&lt;/code&gt; flag opts into deletion, with in-use colors reported and failing the command at the end rather than aborting mid-run. Offline validation (&lt;code&gt;color-validate.ts&lt;/code&gt;) mirrors the server's unique-name constraint (trimmed, case-insensitive) before any request is made.&lt;/p&gt;
+&lt;p&gt;Component color props that reference a brand kit color use a &lt;code&gt;canvas-color:&amp;lt;key&amp;gt;&lt;/code&gt; example value; pull rewrites the server's &lt;code&gt;canvas-color:&amp;lt;uuid&amp;gt;&lt;/code&gt; form to the file's &lt;code&gt;canvas-color:&amp;lt;cssVarKey&amp;gt;&lt;/code&gt; form, and push does the reverse when serializing components, matching by the &lt;code&gt;cssVariable&lt;/code&gt; the discovery layer resolves.&lt;/p&gt;
+&lt;p&gt;Server-side, &lt;code&gt;CanvasOauthAuthenticationProvider&lt;/code&gt; now allowlists &lt;code&gt;Color::ENTITY_TYPE_ID&lt;/code&gt; and &lt;code&gt;Folder::ENTITY_TYPE_ID&lt;/code&gt; routes so Bearer-authenticated CLI requests can reach the color config entity endpoints, and &lt;code&gt;openapi.yml&lt;/code&gt; documents &lt;code&gt;BrandKit.colors&lt;/code&gt; as a read-only, derived list (colors are managed through the dedicated color endpoints, not by writing &lt;code&gt;BrandKit.colors&lt;/code&gt; directly). Enabling brand kit sync now also adds &lt;code&gt;canvas:brand_kit&lt;/code&gt; to the default OAuth scope automatically (&lt;code&gt;packages/cli/src/config.ts&lt;/code&gt;).&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Brand kit sync (fonts and colors) is now on by default whenever &lt;code&gt;canvas.brand-kit.json&lt;/code&gt; exists. To keep the previous opt-in behavior, disable it explicitly:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;npx canvas pull --no-include-brand-kit
+npx canvas push --no-include-brand-kit
+# or
+CANVAS_INCLUDE_BRAND_KIT=false
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The positive &lt;code&gt;--include-brand-kit&lt;/code&gt; flag is deprecated (it still works but emits a warning); scripts that used it to opt in no longer need it. Existing OAuth tokens will pick up the new &lt;code&gt;canvas:brand_kit&lt;/code&gt; scope on their next refresh.&lt;/p&gt;
+&lt;p&gt;To add colors to a project's &lt;code&gt;canvas.brand-kit.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;colors&amp;quot;: {
+    &amp;quot;brand-red&amp;quot;: &amp;quot;#cc0000&amp;quot;,
+    &amp;quot;overlay&amp;quot;: &amp;quot;hsla(220, 60%, 50%, 0.5)&amp;quot;,
+    &amp;quot;accent&amp;quot;: { &amp;quot;value&amp;quot;: &amp;quot;#0000cc&amp;quot;, &amp;quot;name&amp;quot;: &amp;quot;Accent blue&amp;quot; }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Run &lt;code&gt;npx canvas pull&lt;/code&gt; to populate it from the site, or &lt;code&gt;npx canvas push&lt;/code&gt; to send local entries; add &lt;code&gt;--prune-colors&lt;/code&gt; to also delete site colors absent from the file (colors currently in use by a component or template are reported and left in place).&amp;lt;/upgrade&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;bnjmnm (Acquia)&lt;/li&gt;
+&lt;li&gt;utkarsh_33 (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591996: RecipeAppliedEvent listener installs a module and invalidates the container for every listener after it</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591996.md</link>
       <guid isPermaLink="false">project/canvas#3591996</guid>
@@ -669,93 +773,6 @@
 &lt;li&gt;isholgueras (Acquia)&lt;/li&gt;
 &lt;li&gt;narendrar (Acquia)&lt;/li&gt;
 &lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3569120: Canvas AI: Expose Props of Blocks to the Agent</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3569120.md</link>
-      <guid isPermaLink="false">project/canvas#3569120</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 11 Aug 2026 04:47:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 7 files, +253/−8 · php +246/−8 · js +6 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3569120"&gt;#3569120&lt;/a&gt; · 5 contributors · 46 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When Canvas AI's page builder agent places a Block component (for example the Site Branding block), it can now see and set that block's actual configuration options instead of just its id and label. Previously the agent only received a block's id, name, and description, so it either produced validation errors when trying to place blocks with required settings, or the values it tried to set (like &lt;code&gt;use_site_logo&lt;/code&gt; or &lt;code&gt;use_site_name&lt;/code&gt;) were silently dropped and the block was always placed with its default configuration. Now the &amp;quot;Get component context&amp;quot; tool includes each block's available properties (name, description, type, default value, required flag, and allowed choices where applicable), so the agent can configure blocks correctly. Internal-only settings that have no effect on the rendered block (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;) are still left out.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Sites with previously saved block descriptions in &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; have that config automatically rebuilt by &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; to include the newly exposed props, while any custom-edited descriptions are preserved.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New public &lt;code&gt;CanvasAiPageBuilderHelper::getEnabledBlockComponentsFromStorage()&lt;/code&gt; returns enabled block components with prop metadata, loaded directly from storage independent of the current user's access, for use by update hooks and other server-side code.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;CanvasAiPageBuilderHelper::getAllComponentsKeyedBySource()&lt;/code&gt; previously only branched into rich prop extraction for SDC and JS component sources (&lt;code&gt;processSdc()&lt;/code&gt;, &lt;code&gt;processCodeComponents()&lt;/code&gt;); everything else, including Block components, fell into a generic branch that emitted only &lt;code&gt;id&lt;/code&gt;/&lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt;. A new &lt;code&gt;processBlock()&lt;/code&gt; method now builds prop metadata for blocks by reading the block's config schema definition (&lt;code&gt;block.settings.&amp;lt;plugin_id&amp;gt;&lt;/code&gt;) via the newly injected &lt;code&gt;TypedConfigManagerInterface&lt;/code&gt;, mapping each schema key to a prop with &lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt; (from the schema label), &lt;code&gt;type&lt;/code&gt;, &lt;code&gt;default&lt;/code&gt; (preferring the component's saved &lt;code&gt;default_settings&lt;/code&gt; over the schema default), a &lt;code&gt;required&lt;/code&gt; flag (true unless the schema marks &lt;code&gt;requiredKey === FALSE&lt;/code&gt;), and &lt;code&gt;enum&lt;/code&gt; values pulled from any &lt;code&gt;Choice&lt;/code&gt; constraint. Keys that Canvas can't act on (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;admin_label&lt;/code&gt;, &lt;code&gt;context_mapping&lt;/code&gt;, the latter because Canvas doesn't apply context mappings at render time) are filtered out via &lt;code&gt;isBlockPropExcluded()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Because the AI update path (&lt;code&gt;drush updb&lt;/code&gt;) runs as the anonymous user, and the access-checked component listing returns nothing in that context, a new public &lt;code&gt;getEnabledBlockComponentsFromStorage()&lt;/code&gt; method loads enabled block components directly from the &lt;code&gt;Component&lt;/code&gt; storage instead. It backs a new &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; hook that rebuilds any previously saved &lt;code&gt;canvas_ai.component_description.settings&lt;/code&gt; block data with the new prop structure, re-layering each block's previously customized &lt;code&gt;description&lt;/code&gt; text on top of the rebuilt data.&lt;/p&gt;
-&lt;p&gt;Two related bugs surfaced by the missing propSources on blocks were also fixed: &lt;code&gt;AiResponseValidator::validateComponentStructure()&lt;/code&gt; dereferenced &lt;code&gt;$clientNormalized['propSources']&lt;/code&gt; unconditionally, which is unset for blocks, now guarded with &lt;code&gt;?? []&lt;/code&gt;; and the UI's &lt;code&gt;removeMediaFields()&lt;/code&gt; (used by &lt;code&gt;AiWizard.tsx&lt;/code&gt; when placing AI-suggested components) now short-circuits with &lt;code&gt;isPropSourceComponent()&lt;/code&gt; since block component definitions have no &lt;code&gt;propSources&lt;/code&gt; to filter.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code integrating with Canvas AI's page builder helper can now fetch block component prop data directly from storage, independent of the current user's permissions:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$blocks = \Drupal::service('canvas_ai.page_builder_helper')
-  -&amp;gt;getEnabledBlockComponentsFromStorage();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Sites that previously saved custom block descriptions via the component description settings form will have that config automatically migrated by the &lt;code&gt;canvas_ai_post_update_0007_add_block_props_to_component_description_settings()&lt;/code&gt; update hook; no manual action is required.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;prabha1997 (QED42)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;During review, mglaman suggested that guarding &lt;code&gt;isPropSourceComponent&lt;/code&gt; in &lt;code&gt;ui/src/components/aiExtension/AiWizard.tsx&lt;/code&gt; was a targeted fix that could avoid related bugs without needing to expose block inputs, along with some test and code-style nits. Scott Falconer followed up by making the enum-extraction helper always return an array (with the caller checking &lt;code&gt;count($enum) &amp;gt; 0&lt;/code&gt;), switching the kernel test to build the current user via &lt;code&gt;User::create(['uid' =&amp;gt; 1])&lt;/code&gt;, and confirming the &lt;code&gt;isPropSourceComponent&lt;/code&gt; guard mglaman asked for was already present in the MR.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591785: Strengthen AutoSaveManager to generate stable hashes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591785.md</link>
-      <guid isPermaLink="false">project/canvas#3591785</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 06 Aug 2026 07:23:11 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591785"&gt;#3591785&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal Canvas's AutoSaveManager hashes each entity's normalized data both to detect when a draft differs from the last saved version and to detect edit conflicts between concurrent editors. Because that normalization step did not consistently cast values to their canonical PHP types before hashing, equivalent data could produce different hashes, making conflict detection and auto-save comparisons unreliable. This issue strengthens the normalization so hashing is stable and deterministic. On update, a database update hook automatically rehashes all existing stored auto-save entries, so no manual action is required, and the previous fallback that treated entries without a stored hash as conflict-free has been removed since it is no longer needed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;canvas_post_update_0026_rehash_auto_save_items()&lt;/code&gt; update hook rewrites &lt;code&gt;data&lt;/code&gt;, &lt;code&gt;data_hash&lt;/code&gt; and &lt;code&gt;original_hash&lt;/code&gt; for every existing keyvalue-stored Canvas auto-save entry using the strengthened normalization.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was that &lt;code&gt;AutoSaveManager::toStorableArray()&lt;/code&gt; stored raw &lt;code&gt;FieldItemListInterface::getValue()&lt;/code&gt; output while &lt;code&gt;normalizeEntity()&lt;/code&gt; separately cast primitives via &lt;code&gt;PrimitiveInterface::getCastedValue()&lt;/code&gt;, and a near-duplicate casting routine existed in &lt;code&gt;ComponentSourceBase&lt;/code&gt;. These divergent, partially-raw code paths meant &lt;code&gt;data_hash&lt;/code&gt; computation could differ for logically identical data.&lt;/p&gt;
-&lt;p&gt;Both are replaced by a single new helper, &lt;code&gt;Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()&lt;/code&gt;, which recursively normalizes any &lt;code&gt;TypedDataInterface&lt;/code&gt;: primitives are cast via &lt;code&gt;getCastedValue()&lt;/code&gt;, traversable elements are walked to arrays, an absent value stays &lt;code&gt;NULL&lt;/code&gt; while a present-but-empty complex value becomes &lt;code&gt;[]&lt;/code&gt;, and &lt;code&gt;ComponentTreeItem&lt;/code&gt; instances are cloned and run through &lt;code&gt;optimizeInputs()&lt;/code&gt; first so equivalent component trees always normalize identically. A few properties are special-cased to keep &lt;code&gt;NULL&lt;/code&gt; instead of being cast to &lt;code&gt;''&lt;/code&gt; or &lt;code&gt;0&lt;/code&gt;: &lt;code&gt;ComponentTreeItem::NULLABLE_STRING_PROPERTIES&lt;/code&gt; (&lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;), &lt;code&gt;PathItem::langcode&lt;/code&gt;, &lt;code&gt;EntityReferenceItem::target_uuid&lt;/code&gt;, and &lt;code&gt;TextItemBase::format&lt;/code&gt;. &lt;code&gt;AutoSaveManager::toStorableArray()&lt;/code&gt; now also uses this helper, and for config entities carrying a component tree it optimizes inputs on a clone before calling &lt;code&gt;toArray()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;With hashing now trustworthy for every entry, the special-case fallback in &lt;code&gt;AutoSaveManager&lt;/code&gt; that treated auto-save entries lacking &lt;code&gt;original_hash&lt;/code&gt; (from before an earlier commit) as having no conflict was removed from &lt;code&gt;detectConflicts()&lt;/code&gt;, &lt;code&gt;resolveConflict()&lt;/code&gt;, and &lt;code&gt;getAllAutoSaveList()&lt;/code&gt;; the &lt;code&gt;AutoSaveEntry&lt;/code&gt; phpstan type now declares &lt;code&gt;original_hash&lt;/code&gt; and &lt;code&gt;data_hash&lt;/code&gt; as always present. &lt;code&gt;canvas.post_update.php&lt;/code&gt; adds &lt;code&gt;canvas_post_update_0026_rehash_auto_save_items()&lt;/code&gt;, which uses reflection to invoke the now-private &lt;code&gt;normalizeEntity()&lt;/code&gt;, &lt;code&gt;generateHash()&lt;/code&gt;, and &lt;code&gt;toStorableArray()&lt;/code&gt; methods against every stored auto-save keyvalue entry, rebuilding its &lt;code&gt;data&lt;/code&gt;, &lt;code&gt;data_hash&lt;/code&gt;, and stored-entity hash in place.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 8, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

@@ -1,8 +1,16 @@
-**TL;DR:** [1090 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1092 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_257 summaries · 10 new this week_
+
+- [#3592009: Have date props display in the format of the selected locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md)
+- [#3592019: Sync brand kit colors through canvas.brand-kit.json in the Canvas CLI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592019.md)
+- [#3591996: RecipeAppliedEvent listener installs a module and invalidates the container for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591996.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _146 summaries · 15 new this week_
 - [#3585919: Nested empty object schemas still serialize as [] because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585919.md)
 - [#3585870: Tool definition from the plugin deriver all have the same label ("Tool API")](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585870.md)
 - [#3583036: Add --format=json to tool:list and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583036.md)
-
-### Drupal Canvas
-
-_255 summaries · 8 new this week_
-
-- [#3591996: RecipeAppliedEvent listener installs a module and invalidates the container for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591996.md)
-- [#3591934: Add component label to settings form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591934.md)
-- [#3591860: Add a button to close the right tray](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591860.md)
 
 ### Drupal Core
 
