@@ -1,4 +1,4 @@
-**TL;DR:** [1092 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1095 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_257 summaries · 10 new this week_
+_258 summaries · 11 new this week_
 
+- [#3592030: Canvas AI: Remove obsolete region-based AI instructions and the unused page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592030.md)
 - [#3592009: Have date props display in the format of the selected locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md)
 - [#3592019: Sync brand kit colors through canvas.brand-kit.json in the Canvas CLI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592019.md)
-- [#3591996: RecipeAppliedEvent listener installs a module and invalidates the container for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591996.md)
 
 ### Drupal AI
 
-_146 summaries · 15 new this week_
+_148 summaries · 17 new this week_
 
+- [#3583017: Re-parent the definition families onto typed data behind a temporary...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583017.md)
+- [#3562612: Add the possibility to add logo/image for a tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3562612.md)
 - [#3585919: Nested empty object schemas still serialize as [] because...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585919.md)
-- [#3585870: Tool definition from the plugin deriver all have the same label ("Tool API")](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585870.md)
-- [#3583036: Add --format=json to tool:list and tool:search](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583036.md)
 
 ### Drupal Core
 

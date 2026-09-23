@@ -5,6 +5,46 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592030: Canvas AI: Remove obsolete region-based AI instructions and the unused page variant descriptions form</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592030.md</link>
+      <guid isPermaLink="false">project/canvas#3592030</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 23 Sep 2026 05:38:28 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592030"&gt;#3592030&lt;/a&gt; · 1 contributor · 56 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas moved from theme-global regions (header, footer, sidebar, etc.) to page variants, where everything besides a page's main content is built as its own component tree in the Canvas editor. The Canvas AI module still had leftover instructions and an admin settings page from the old multi-region model, describing a capability that no longer exists. This change removes them: the AI page builder and template builder agents no longer reference regions other than &lt;code&gt;content&lt;/code&gt;, and the &amp;quot;Page Variant Descriptions&amp;quot; admin settings page (where an admin could describe how AI should treat each page variant) is deleted since nothing read those descriptions anymore. Site owners who had configured page variant descriptions for AI will find that settings page and its data gone; AI-generated pages and templates will only ever place components in the content region, with header, navigation, footer or sidebar sections generated inside that same region only when explicitly requested in the prompt.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;canvas_ai.page_variant.settings&lt;/code&gt; config object and its admin form at &lt;code&gt;/admin/config/ai/canvas-ai-page-variant-settings&lt;/code&gt; (&amp;quot;Page Variant Descriptions&amp;quot;) are removed; update hooks delete any existing config and rebuild routes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;[canvas_ai:available_regions]&lt;/code&gt; token is deleted from &lt;code&gt;CanvasAiHooks::canvas_ai_token_info()&lt;/code&gt;/&lt;code&gt;canvas_ai_tokens()&lt;/code&gt;, along with &lt;code&gt;CanvasAiPageBuilderHelper::getAvailableRegions()&lt;/code&gt; and its helpers &lt;code&gt;resolveVariantForContext()&lt;/code&gt;/&lt;code&gt;getVariantDescription()&lt;/code&gt;, which used to resolve a page variant via &lt;code&gt;PageVariantResolver&lt;/code&gt; and pull a per-variant AI description out of &lt;code&gt;canvas_ai.page_variant.settings&lt;/code&gt;. Both &lt;code&gt;CanvasBuilder&lt;/code&gt; and &lt;code&gt;CanvasDevAiBuilder&lt;/code&gt; controllers drop the &lt;code&gt;available_regions&lt;/code&gt; token context accordingly.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;canvas_page_builder_agent&lt;/code&gt; and &lt;code&gt;canvas_template_builder_agent&lt;/code&gt; system prompts (&lt;code&gt;ai_agents.ai_agent.*.yml&lt;/code&gt;) are rewritten to state that &lt;code&gt;content&lt;/code&gt; is the only region components can be placed in; &lt;code&gt;canvas_template_builder_agent&lt;/code&gt;'s description and prompt no longer mention adapting to theme-specific region names, and its YAML output format uses a fixed &lt;code&gt;content&lt;/code&gt; key instead of &lt;code&gt;region_name&lt;/code&gt;. &lt;code&gt;CanvasAiPageVariantSettingsForm&lt;/code&gt;, its route &lt;code&gt;canvas_ai.page_variant_settings&lt;/code&gt;, its local task, and the &lt;code&gt;canvas_ai.page_variant.settings&lt;/code&gt; config schema are deleted outright.&lt;/p&gt;
+&lt;p&gt;Three new update functions land in &lt;code&gt;canvas_ai.post_update.php&lt;/code&gt;: &lt;code&gt;canvas_ai_post_update_0012_reimport_region_free_builder_agents()&lt;/code&gt; re-imports just the &lt;code&gt;system_prompt&lt;/code&gt; (and, for the template builder, &lt;code&gt;description&lt;/code&gt;) keys of both agents from &lt;code&gt;config/install&lt;/code&gt; without disturbing other per-site config, and &lt;code&gt;canvas_ai_post_update_0013_delete_page_variant_settings()&lt;/code&gt; deletes &lt;code&gt;canvas_ai.page_variant.settings&lt;/code&gt; from every config collection and rebuilds routes. Per the issue's stated scope, the region parameter accepted by the placement tools (&lt;code&gt;PlaceComponents&lt;/code&gt;, &lt;code&gt;PlacementOperation&lt;/code&gt;, etc.) and validated via &lt;code&gt;CanvasAiPageBuilderHelper::getRegionIndex()&lt;/code&gt;/&lt;code&gt;validateRegionExists()&lt;/code&gt; is left untouched, deferred to a follow-up issue.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Sites that had customized the &lt;code&gt;canvas_page_builder_agent&lt;/code&gt; or &lt;code&gt;canvas_template_builder_agent&lt;/code&gt; system prompts directly will have those customizations overwritten by the update hooks; use the Context Control Center or custom event subscribers to alter agent behavior instead. Any values previously entered in the &amp;quot;Page Variant Descriptions&amp;quot; admin form (&lt;code&gt;canvas_ai.page_variant.settings&lt;/code&gt;) are deleted and cannot be recovered after update.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592009: Have date props display in the format of the selected locale</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md</link>
       <guid isPermaLink="false">project/canvas#3592009</guid>
@@ -732,47 +772,6 @@ CANVAS_INCLUDE_BRAND_KIT=false
 &lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
 &lt;li&gt;danepowell&lt;/li&gt;
 &lt;li&gt;f.mazeikis&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591839: Prefix-strip redirect misses default-language prefixes and is overridden by ?destination</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591839.md</link>
-      <guid isPermaLink="false">project/canvas#3591839</guid>
-      <pubDate>Wed, 12 Aug 2026 05:58:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591839"&gt;#3591839&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas's editor could show a blank gray screen on multilingual sites when the site's default language itself has a URL prefix (e.g. &lt;code&gt;/en/&lt;/code&gt; is configured as the prefix for the default English language). The redirect that strips the language prefix from &lt;code&gt;/canvas&lt;/code&gt; paths only fired when the current language differed from the default, so a prefixed default-language path reached the React app unstripped and it couldn't route it. Separately, clicking Edit on &lt;code&gt;/admin/content/pages&lt;/code&gt; for a page under a prefixed language could bounce the user back to the content overview instead of opening the editor, because the &lt;code&gt;destination&lt;/code&gt; query parameter carried by that link survived the redirect and Drupal's core redirect handling used it to override the target. Both problems are fixed: the prefix is now stripped based on what is actually configured for the current URL-negotiated language (default or not), and the query string is preserved on the redirect while &lt;code&gt;destination&lt;/code&gt; is cleared from the request so it can no longer hijack the target.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix is in &lt;code&gt;CanvasRouteOptionsEventSubscriber&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;), whose redirect method was renamed from &lt;code&gt;redirectCanvasToDefaultLanguage()&lt;/code&gt; to &lt;code&gt;redirectCanvasToUnprefixedPath()&lt;/code&gt; to match its new behavior. Instead of comparing the current negotiated language against the site's default language, it now reads the prefix actually configured for the URL-negotiated language from &lt;code&gt;language.negotiation:url.prefixes&lt;/code&gt;; an empty prefix means there's nothing to strip, regardless of whether that language is the default. It also checks &lt;code&gt;language.negotiation:url.source&lt;/code&gt; against &lt;code&gt;LanguageNegotiationUrl::CONFIG_PATH_PREFIX&lt;/code&gt; so a leading path segment is only treated as a language prefix under path-prefix negotiation (not domain negotiation, where a matching segment is a real path component), and it bails out early if the &lt;code&gt;language&lt;/code&gt; module isn't installed, since &lt;code&gt;LanguageNegotiationUrl&lt;/code&gt; would not be autoloadable in that case.&lt;/p&gt;
-&lt;p&gt;When a prefix is stripped, the method now builds the &lt;code&gt;LocalRedirectResponse&lt;/code&gt; target from &lt;code&gt;$request-&amp;gt;getQueryString()&lt;/code&gt; so query parameters survive the redirect, and calls &lt;code&gt;$request-&amp;gt;query-&amp;gt;remove('destination')&lt;/code&gt; before building the response so &lt;code&gt;RedirectResponseSubscriber&lt;/code&gt; in core cannot later override the computed redirect target with a stale &lt;code&gt;destination&lt;/code&gt; value. New kernel tests in &lt;code&gt;CanvasLanguageRoutesTest&lt;/code&gt; cover: a default language with its own non-empty prefix, single-language sites with a configured prefix, query-string preservation including &lt;code&gt;destination&lt;/code&gt;, a non-matching leading path segment being left untouched, and domain-based negotiation not stripping a path segment that happens to match a configured prefix.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 17, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;anybody (DROWL.de)&lt;/li&gt;
-&lt;li&gt;f0ns&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
-&lt;li&gt;isholgueras (Acquia)&lt;/li&gt;
-&lt;li&gt;narendrar (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

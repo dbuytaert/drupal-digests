@@ -5,6 +5,102 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583017: Re-parent the definition families onto typed data behind a temporary ContextDefinitionInterface bridge</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583017.md</link>
+      <guid isPermaLink="false">project/tool#3583017</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 23 Sep 2026 03:34:51 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583017"&gt;#3583017&lt;/a&gt; · 1 contributor · 11 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The tool module's input and output definition classes (&lt;code&gt;InputDefinition&lt;/code&gt;, &lt;code&gt;OutputDefinition&lt;/code&gt;, and their &lt;code&gt;Map&lt;/code&gt;/&lt;code&gt;List&lt;/code&gt;/&lt;code&gt;Entity&lt;/code&gt; variants) now inherit from Drupal core's typed data system (&lt;code&gt;DataDefinition&lt;/code&gt;, &lt;code&gt;MapDataDefinition&lt;/code&gt;, &lt;code&gt;ListDataDefinition&lt;/code&gt;, &lt;code&gt;EntityDataDefinition&lt;/code&gt;) instead of from the Plugin Context system. This is an internal architectural step towards fully detaching tool definitions from Drupal's context API; it does not change constructor signatures, JSON Schema output, or any other observable behavior. &lt;code&gt;MapContextDefinition&lt;/code&gt; and &lt;code&gt;ListContextDefinition&lt;/code&gt; are now deprecated in favor of the corresponding &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; and &lt;code&gt;ListInputDefinition&lt;/code&gt;/&lt;code&gt;ListOutputDefinition&lt;/code&gt; classes, and will be removed in a future release.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Tool's input/output definition classes (&lt;code&gt;InputDefinition&lt;/code&gt;, &lt;code&gt;OutputDefinition&lt;/code&gt;, and &lt;code&gt;Map&lt;/code&gt;/&lt;code&gt;List&lt;/code&gt;/&lt;code&gt;Entity&lt;/code&gt; variants) now extend Drupal core typed data classes instead of Plugin Context classes; &lt;code&gt;instanceof ContextDefinition&lt;/code&gt;/&lt;code&gt;EntityContextDefinition&lt;/code&gt; checks against them no longer match.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\tool\TypedData\MapContextDefinition&lt;/code&gt; and &lt;code&gt;ListContextDefinition&lt;/code&gt; are deprecated in tool:1.0.0-beta10 and removed in tool:1.0.0-rc1; use &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; and &lt;code&gt;ListInputDefinition&lt;/code&gt;/&lt;code&gt;ListOutputDefinition&lt;/code&gt; instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This is step 1 of a 3-step plan (parent plan &lt;a href="https://www.drupal.org/node/3583016"&gt;#3583016&lt;/a&gt;) to detach the tool module's definition classes from core's Plugin Context system. Each definition class now extends the matching typed data class rather than a context class, for example &lt;code&gt;InputDefinition extends DataDefinition&lt;/code&gt; and &lt;code&gt;EntityInputDefinition&lt;/code&gt;/&lt;code&gt;EntityDefinitionBase extends EntityDataDefinition&lt;/code&gt;. To avoid breaking the three remaining context-coupled internals (&lt;code&gt;Context&lt;/code&gt; storage in the input/output traits, &lt;code&gt;ContextDefinitionNormalizer&lt;/code&gt; matching, and the ai module boundary), every class still &lt;code&gt;implements ContextDefinitionInterface&lt;/code&gt;, with the missing methods supplied by a new &lt;code&gt;ContextDefinitionBridgeTrait&lt;/code&gt;: &lt;code&gt;isMultiple()&lt;/code&gt;/&lt;code&gt;setMultiple()&lt;/code&gt;, &lt;code&gt;getDefaultValue()&lt;/code&gt;/&lt;code&gt;setDefaultValue()&lt;/code&gt;, a compatible &lt;code&gt;setRequired()&lt;/code&gt;, &lt;code&gt;getDataDefinition()&lt;/code&gt; (rebuilds a core definition via the typed data manager, needed because &lt;code&gt;Context::getContextData()&lt;/code&gt; validates against its constraints), and a stub &lt;code&gt;isSatisfiedBy()&lt;/code&gt; that builds a core &lt;code&gt;ContextDefinition&lt;/code&gt; on demand since nothing in the tool stack calls it directly.&lt;/p&gt;
+&lt;p&gt;A key subtlety is &lt;code&gt;getConstraints()&lt;/code&gt;: &lt;code&gt;DataDefinition::getConstraints()&lt;/code&gt; would merge in &lt;code&gt;TypedDataManager::getDefaultConstraints()&lt;/code&gt; (&lt;code&gt;PrimitiveType&lt;/code&gt;, &lt;code&gt;NotNull&lt;/code&gt; for required fields, data type constraints, &lt;code&gt;AllowedValues&lt;/code&gt;), but &lt;code&gt;ContextDefinitionNormalizer&lt;/code&gt; iterates &lt;code&gt;getConstraints()&lt;/code&gt; to build the published JSON Schema, so the bridge trait overrides it to return only author-declared constraints, preserving the old &lt;code&gt;ContextDefinition&lt;/code&gt;-style behavior. The base classes &lt;code&gt;MapDefinitionBase&lt;/code&gt; and &lt;code&gt;ListDefinitionBase&lt;/code&gt; now carry the property/item-definition handling that used to come from &lt;code&gt;MapContextDefinition&lt;/code&gt;/&lt;code&gt;ListContextDefinition&lt;/code&gt; by inheritance, and those two classes are thinned to deprecated subclasses that trigger &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; on construction.&lt;/p&gt;
+&lt;p&gt;Because &lt;code&gt;instanceof ContextDefinition&lt;/code&gt; and &lt;code&gt;instanceof EntityContextDefinition&lt;/code&gt; no longer match these classes, this is flagged as an API change, though the issue notes no known usages outside the tool module itself. The bridge trait and the &lt;code&gt;ContextDefinitionInterface&lt;/code&gt; parentage are marked &lt;code&gt;@internal&lt;/code&gt; and will be removed in &lt;a href="https://www.drupal.org/node/3583019"&gt;#3583019&lt;/a&gt; once &lt;a href="https://www.drupal.org/node/3583018"&gt;#3583018&lt;/a&gt; detaches &lt;code&gt;Context&lt;/code&gt; storage and the normalizer.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace deprecated classes with their typed-data-based replacements:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;// Before
+new \Drupal\tool\TypedData\MapContextDefinition(...)
+new \Drupal\tool\TypedData\ListContextDefinition(...)
+
+// After
+new \Drupal\tool\TypedData\MapInputDefinition(...)   // or MapOutputDefinition
+new \Drupal\tool\TypedData\ListInputDefinition(...)  // or ListOutputDefinition
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code that does &lt;code&gt;instanceof \Drupal\Core\Plugin\Context\ContextDefinition&lt;/code&gt; or &lt;code&gt;instanceof \Drupal\Core\Plugin\Context\EntityContextDefinition&lt;/code&gt; against tool's input/output definitions will no longer match; check against &lt;code&gt;\Drupal\tool\TypedData\InputDefinitionInterface&lt;/code&gt; or &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3562612: Add the possibility to add logo/image for a tool</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3562612.md</link>
+      <guid isPermaLink="false">project/tool#3562612</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 23 Sep 2026 02:44:01 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3562612"&gt;#3562612&lt;/a&gt; · 3 contributors · 13 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Tool plugins can now declare an icon, making it easier to build tool pickers, automation UIs, and agent surfaces that need a visual to scan through long lists of tools. Rather than inventing a tool-specific image system, the module hooks into Drupal core's Icon API (available in Drupal 11.1+), so any icon pack a module or theme already declares can be reused. The Tool Explorer module's listing page now shows each tool's icon, falling back to a generic icon based on the tool's operation type (read, transform, destructive, etc.) when a tool declares none.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;#[Tool]&lt;/code&gt; attribute and &lt;code&gt;ToolDefinition&lt;/code&gt; gain an optional &lt;code&gt;icon&lt;/code&gt; argument/&lt;code&gt;getIcon(): ?string&lt;/code&gt; method for referencing a core Icon API icon (&lt;code&gt;pack_id:icon_id&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;#[Tool]&lt;/code&gt; attribute gains an optional &lt;code&gt;icon&lt;/code&gt; argument: a string in the form &lt;code&gt;pack_id:icon_id&lt;/code&gt; referencing an icon declared in any module or theme's &lt;code&gt;*.icons.yml&lt;/code&gt; file. Because it's a plain string, it's a valid constant expression for use in attributes, and because it's stored as a regular definition property, a &lt;code&gt;deriver&lt;/code&gt; can set a different &lt;code&gt;icon&lt;/code&gt; per derivative, which was the original motivation for supporting MCP/derived tools with distinct icons.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolDefinition::getIcon(): ?string&lt;/code&gt; simply returns the stored reference verbatim. Nothing is resolved or validated at plugin discovery time; the module still supports core &lt;code&gt;^10.5&lt;/code&gt;, and the Icon API only exists from 11.1 onward, so validating early would break on older cores. Resolution is left entirely to consumers, who go through &lt;code&gt;Drupal\Core\Theme\Icon\IconDefinition&lt;/code&gt; (or &lt;code&gt;plugin.manager.icon_pack&lt;/code&gt;) and are expected to treat a missing pack, missing icon, or pre-11.1 core the same way: as &amp;quot;no icon&amp;quot;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolExplorerController::buildIcon()&lt;/code&gt; demonstrates this pattern: it feature-detects &lt;code&gt;IconDefinition::class&lt;/code&gt; before doing anything, and for a tool that declares no icon it falls back to &lt;code&gt;tool:operation-&amp;lt;operation value&amp;gt;&lt;/code&gt;, a small icon pack shipped in &lt;code&gt;tool.icons.yml&lt;/code&gt; with one SVG per &lt;code&gt;ToolOperation&lt;/code&gt; case. This fallback is presentation-only and never touches the definition itself, so other consumers such as the MCP bridge still see &lt;code&gt;NULL&lt;/code&gt; and can apply their own defaults.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To declare an icon for a tool plugin, add the &lt;code&gt;icon&lt;/code&gt; argument to the &lt;code&gt;#[Tool]&lt;/code&gt; attribute, referencing an icon pack declared in a &lt;code&gt;*.icons.yml&lt;/code&gt; file:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Tool(
+  id: 'my_tool',
+  label: new TranslatableMarkup('My Tool'),
+  description: new TranslatableMarkup('Does something.'),
+  operation: ToolOperation::Transform,
+  icon: 'my_module:my_icon',
+)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is additive; existing tool plugins without an &lt;code&gt;icon&lt;/code&gt; argument continue to work, and &lt;code&gt;ToolDefinition::getIcon()&lt;/code&gt; returns &lt;code&gt;NULL&lt;/code&gt; for them.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: December 11, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;svendecabooter (Sven Decabooter)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585919: Nested empty object schemas still serialize as [] because normalizeObjectSchema() only normalizes the top level</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585919.md</link>
       <guid isPermaLink="false">project/mcp_server#3585919</guid>
@@ -756,92 +852,6 @@ namespace Drupal\my_module\Plugin\mcp_server\Tool;
 &lt;ul&gt;
 &lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3390907: Protect / help avoid validation logic problems</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3390907.md</link>
-      <guid isPermaLink="false">node/3390907</guid>
-      <pubDate>Tue, 08 Sep 2026 13:02:52 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 3.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +294/−25 · php +294/−25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/field_validation/-/commit/cc9ba2e7b58b64cfb883dad4b6e94caea1e57089"&gt;cc9ba2e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3390907"&gt;#3390907&lt;/a&gt; · 6 contributors · 19 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Field Validation's Regex rule lets site builders validate a field's value against a PCRE pattern. If the pattern was malformed, most commonly missing its required delimiters (a common mistake when migrating rules from Drupal 7, where delimiters were optional), the module previously let a raw PHP warning from &lt;code&gt;preg_match()&lt;/code&gt; leak straight into the site, both while configuring the rule and later while validating real content. This is fixed: the rule's configuration form now validates the pattern up front and shows a clear, actionable error, and the pattern field's description explicitly states that the expression must include delimiters (e.g. &lt;code&gt;/^[a-z0-9]+$/&lt;/code&gt;). As a safety net, if a bad pattern still slips through and is run against actual field data, the module now traps the underlying warning, logs it, and reports a normal validation failure instead of a PHP warning.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix lands in two places. &lt;code&gt;RegexConstraintFieldValidationRule::validateConfigurationForm()&lt;/code&gt; (new) runs the submitted &lt;code&gt;pattern&lt;/code&gt; through &lt;code&gt;preg_match()&lt;/code&gt; under a temporary &lt;code&gt;set_error_handler()&lt;/code&gt; that traps the &lt;code&gt;E_WARNING&lt;/code&gt; &lt;code&gt;preg_match()&lt;/code&gt; emits on a malformed pattern (rather than relying on the &lt;code&gt;@&lt;/code&gt; operator, which is unreliable across error-handler configurations); on failure it calls &lt;code&gt;$form_state-&amp;gt;setErrorByName('pattern', ...)&lt;/code&gt; with a message including the underlying PCRE error. Because this plugin form is nested inside &lt;code&gt;FieldValidationRuleFormBase&lt;/code&gt;, which builds a separate &lt;code&gt;FormState&lt;/code&gt; object for the plugin's own &lt;code&gt;validateConfigurationForm()&lt;/code&gt; call, that base class was also changed to copy any errors recorded on the nested &lt;code&gt;FormState&lt;/code&gt; back onto the real &lt;code&gt;$form_state&lt;/code&gt; via &lt;code&gt;setErrorByName('data][' . $name, ...)&lt;/code&gt;, otherwise the plugin-level error would be silently swallowed.&lt;/p&gt;
-&lt;p&gt;At runtime, &lt;code&gt;FieldValidationConstraintValidator::validate()&lt;/code&gt; and &lt;code&gt;validatePropertyValue()&lt;/code&gt; no longer call &lt;code&gt;$validator-&amp;gt;validate()&lt;/code&gt; directly; they now go through a new &lt;code&gt;safeValidate()&lt;/code&gt; helper that installs the same kind of temporary &lt;code&gt;E_WARNING&lt;/code&gt; handler around the Symfony constraint validator call. If a warning fires (e.g. from Symfony's &lt;code&gt;RegexValidator&lt;/code&gt;) and the validator did not already record a violation, &lt;code&gt;safeValidate()&lt;/code&gt; logs the warning via the &lt;code&gt;field_validation&lt;/code&gt; logger channel and adds a fallback &lt;code&gt;&amp;quot;This value is not valid.&amp;quot;&lt;/code&gt; violation, so a bad pattern saved before this fix (or introduced via config import) no longer surfaces a raw PHP warning to content editors.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 1, 2023&lt;/li&gt;
-&lt;li&gt;Committed: September 8, 2026 (2 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;damienmckenna (Current)&lt;/li&gt;
-&lt;li&gt;pcambra (Cambrico)&lt;/li&gt;
-&lt;li&gt;marc.bau&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;damienmckenna's original report identified the root cause himself in the thread: regex strings needed leading/trailing delimiter slashes but the UI gave no hint, so he reframed the issue from &amp;quot;bug&amp;quot; to a UI/guidance improvement. abhisekmazumdar opened the fixing MR and, on closing the issue, credited ahmad-khalil-imagex for a thorough review.&amp;lt;/collaboration&amp;gt;
-&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3471408: not_blank_constraint_rule fail on fields with multiple values</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3471408.md</link>
-      <guid isPermaLink="false">node/3471408</guid>
-      <pubDate>Mon, 31 Aug 2026 09:50:22 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 3.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +267/−10 · php +267/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/field_validation/-/commit/0ea1442e945ea289b1134224f1ccf5b0241773e6"&gt;0ea1442&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3471408"&gt;#3471408&lt;/a&gt; · 4 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Field Validation module's &amp;quot;not blank&amp;quot; rule failed to catch empty values in the middle of a multi-value field. For example, a field limited to two values where only the first was filled in would save without any validation error, even though the same rule correctly flagged the case where both values were left blank. This is now fixed: leaving any value blank in a bounded multi-value field triggers the &amp;quot;this value should not be blank&amp;quot; error, matching how the required validator behaved in Drupal 7. Two things to be aware of before upgrading: the check now runs on any save, not just form submissions, so migrations or code that creates entities programmatically with fewer values than the field allows will also start failing validation; and the error is reported at the field level rather than pointing at the specific empty value, since the widget no longer has a row to attach it to once the blank value has been stripped out.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was upstream of the validator: &lt;code&gt;EntityFormDisplay::extractFormValues()&lt;/code&gt; calls &lt;code&gt;FieldItemList::filterEmptyItems()&lt;/code&gt; before validation runs, stripping blank deltas and reindexing what remains. On a two-value field with only the first value filled, the second delta simply no longer exists by the time &lt;code&gt;FieldValidationConstraintValidator&lt;/code&gt; inspects the field, so there is nothing left to flag.&lt;/p&gt;
-&lt;p&gt;The fix, in &lt;code&gt;FieldValidationConstraintValidator&lt;/code&gt;, compares the field storage's cardinality (via &lt;code&gt;FieldStorageDefinitionInterface&lt;/code&gt;) against &lt;code&gt;$items-&amp;gt;count()&lt;/code&gt;. When cardinality is bounded and greater than the number of items present, each missing delta is validated with a &lt;code&gt;NULL&lt;/code&gt; value the same way a fully empty field already was, running any &lt;code&gt;not_blank_constraint_rule&lt;/code&gt; (and other property constraints) against it. Unlimited-cardinality fields are left untouched, since there is no way to know how many widget rows were actually rendered for those, so padding them would produce false positives. The duplicated constraint-instantiation logic used for both the per-delta loop and the new missing-delta loop was extracted into a shared &lt;code&gt;validatePropertyValue()&lt;/code&gt; helper. A missing delta reports its violation at the field-level property path rather than a per-delta path, because core's &lt;code&gt;WidgetBase::flagErrors()&lt;/code&gt; looks up deltas in &lt;code&gt;$field_state['original_deltas']&lt;/code&gt;, which no longer contains a stripped delta and throws a &lt;code&gt;TypeError&lt;/code&gt; if a violation targets it directly.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 31, 2024&lt;/li&gt;
-&lt;li&gt;Committed: August 31, 2026 (1 year later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;marc.bau&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Contributor abhisekmazumdar diagnosed that the bug was not in the constraint validator's own per-delta loop but further upstream, in core's &lt;code&gt;filterEmptyItems()&lt;/code&gt; stripping blank deltas before validation ever ran, and explained in detail (comment &lt;a href="https://www.drupal.org/node/16738712"&gt;#16738712&lt;/a&gt;) why the fix has to treat missing deltas the same as a fully empty field while leaving unlimited-cardinality fields alone. After ahmad-khalil-imagex reviewed and follow-up commits extracted the shared helper and tightened test coverage, abhisekmazumdar merged the MR and flagged two behavior changes worth knowing about before upgrading: validation now applies to programmatic saves as well as form submissions, and violations on stripped deltas are reported at the field level rather than the specific delta, to avoid a &lt;code&gt;TypeError&lt;/code&gt; in core's &lt;code&gt;WidgetBase::flagErrors()&lt;/code&gt;.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
