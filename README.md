@@ -1,4 +1,4 @@
-**TL;DR:** [1095 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1096 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_258 summaries · 11 new this week_
+_259 summaries · 12 new this week_
 
+- [#3592115: Add Angular support to the Headless SDK and templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592115.md)
 - [#3592030: Canvas AI: Remove obsolete region-based AI instructions and the unused page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592030.md)
 - [#3592009: Have date props display in the format of the selected locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md)
-- [#3592019: Sync brand kit colors through canvas.brand-kit.json in the Canvas CLI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592019.md)
 
 ### Drupal AI
 
@@ -22,7 +22,7 @@ _148 summaries · 17 new this week_
 
 ### Drupal Core
 
-_594 summaries · 11 new this week_
+_594 summaries · 10 new this week_
 
 - [#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md)
 - [#3623089: Delete unused core icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623089.md)
