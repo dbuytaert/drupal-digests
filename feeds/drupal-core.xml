@@ -5,6 +5,83 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3067979: Exclude test files from release packages</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md</link>
+      <guid isPermaLink="false">node/3067979</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 23 Sep 2026 14:21:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +52/−40 · gitattributes +35/−32 · php +17/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b8367add84ec3c2eaa73b8c76efe0bf3a2b23b70"&gt;b8367ad&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3067979"&gt;#3067979&lt;/a&gt; · 50 contributors · 173 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 78&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Starting with Drupal 12 (main), the &lt;code&gt;tests&lt;/code&gt; directory under Drupal core is excluded from the packages that most sites actually download: the Composer &amp;quot;dist&amp;quot; zip and the release tarballs built by drupal.org. This shrinks the on-disk footprint of a typical Drupal installation (tests accounted for a large share of core's total file count) and removes test code, which the issue's participants noted has occasionally been a source of security concerns, from production deployments. Nothing changes for anyone working from a git checkout of core, including core contributors and the testbot. Sites and projects that need to run tests which rely on core's test base classes or core-only test modules (for example when testing custom or contributed code against core, or applying patches that touch test files) need to install &lt;code&gt;drupal/core&lt;/code&gt; from source instead of from the default dist package.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Projects that run automated tests extending core test base classes (e.g. &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;WebDriverTestBase&lt;/code&gt;) or depending on core test-only modules must install &lt;code&gt;drupal/core&lt;/code&gt; from source (e.g. &lt;code&gt;composer install --prefer-source&lt;/code&gt; for that package) since dist packages/tarballs no longer ship &lt;code&gt;core/tests&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The mechanism is a new &lt;code&gt;core/.gitattributes&lt;/code&gt; file with a &lt;code&gt;tests export-ignore&lt;/code&gt; (and &lt;code&gt;.gitattributes export-ignore&lt;/code&gt;) directive. Drupal.org's packaging pipeline builds releases with &lt;code&gt;git-archive&lt;/code&gt;, which honors &lt;code&gt;export-ignore&lt;/code&gt;, so the entire &lt;code&gt;core/tests&lt;/code&gt; directory is dropped from both the packaged tarball and the Composer dist zip without any change to the packaging scripts themselves.&lt;/p&gt;
+&lt;p&gt;This landed in three steps. The first commit (&lt;code&gt;5341dd83&lt;/code&gt;) tried a fine-grained approach, excluding most test paths but carving out exceptions such as &lt;code&gt;modules/*/tests/src/&lt;/code&gt; and &lt;code&gt;profiles/tests/testing/&lt;/code&gt; so that base test classes contrib relies on (like &lt;code&gt;WebDriverTestBase&lt;/code&gt;) would survive in dist packages. That broke contrib CI within hours because those base classes still depend on test-only helper modules (&lt;code&gt;js_testing_ajax_request_test&lt;/code&gt;, &lt;code&gt;js_testing_log_test&lt;/code&gt;, &lt;code&gt;css_disable_transitions_test&lt;/code&gt;, &lt;code&gt;entity_test&lt;/code&gt;, &lt;code&gt;performance_test&lt;/code&gt;, etc.) that lived in the excluded paths, so it was reverted (&lt;code&gt;34b130bd&lt;/code&gt;). After discussion of the maintenance burden of an ever-growing exceptions list versus the simplicity of &lt;code&gt;--prefer-source&lt;/code&gt;, the maintainers landed a much simpler final version (&lt;code&gt;b8367add&lt;/code&gt;): &lt;code&gt;core/.gitattributes&lt;/code&gt; excludes the entire &lt;code&gt;tests&lt;/code&gt; directory, with no carve-outs, on the understanding that anyone needing core's test infrastructure installs &lt;code&gt;drupal/core&lt;/code&gt; from source.&lt;/p&gt;
+&lt;p&gt;Because Package Manager's own build tests assemble a Composer project from the checked-out core codebase, its &lt;code&gt;TemplateProjectTestBase::createTestProject()&lt;/code&gt; now explicitly mirrors the &lt;code&gt;package_manager&lt;/code&gt; module's own test modules into the built test project, since those modules are no longer present when core is installed as a dist package.&lt;/p&gt;
+&lt;p&gt;Follow-up work was split out rather than handled here: a gitlab_templates change to default CI to &lt;code&gt;--prefer-source&lt;/code&gt; for &lt;code&gt;drupal/core&lt;/code&gt;, plus separate issues &lt;a href="https://www.drupal.org/node/3625050"&gt;#3625050&lt;/a&gt; (documenting composer-patches usage without patching tests) and &lt;a href="https://www.drupal.org/node/3625358"&gt;#3625358&lt;/a&gt; (deciding what to do with &lt;code&gt;run-tests.sh&lt;/code&gt; and similar dev scripts in dist builds, which currently fail without the excluded test code).&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If your project or CI pipeline runs tests that depend on Drupal core's test base classes, traits, or test-only modules (for example &lt;code&gt;Drupal\Tests\...\KernelTestBase&lt;/code&gt;, &lt;code&gt;WebDriverTestBase&lt;/code&gt;, or fixture/test modules under &lt;code&gt;core/tests&lt;/code&gt; or &lt;code&gt;core/modules/*/tests&lt;/code&gt;), install &lt;code&gt;drupal/core&lt;/code&gt; from source rather than from dist, for instance:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;composer install --prefer-source
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or, to target only core:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;composer config --global preferred-install.drupal/core source
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Patches that modify files under any &lt;code&gt;tests&lt;/code&gt; directory will also fail to apply against a dist install of core; see &lt;a href="https://www.drupal.org/node/3625050"&gt;#3625050&lt;/a&gt; for guidance on stripping test-only changes from patches.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 15, 2019&lt;/li&gt;
+&lt;li&gt;First commit: August 25, 2026 (7 years later)&lt;/li&gt;
+&lt;li&gt;Last commit: September 23, 2026 (29 days and 3 commits later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;traviscarden (Acquia)&lt;/li&gt;
+&lt;li&gt;danepowell (Acquia)&lt;/li&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;drumm (Drupal Association)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;webchick (Acquia)&lt;/li&gt;
+&lt;li&gt;Mixologic (Drupal Association)&lt;/li&gt;
+&lt;li&gt;mile23&lt;/li&gt;
+&lt;li&gt;greggles (Morris Animal Foundation)&lt;/li&gt;
+&lt;li&gt;adamps (AlbanyWeb)&lt;/li&gt;
+&lt;li&gt;mglaman (Centarro)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;mably (Bordeaux Metropole)&lt;/li&gt;
+&lt;li&gt;spiderman (Consensus Enterprises)&lt;/li&gt;
+&lt;li&gt;star-szr (Consensus Enterprises)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The initial fine-grained &lt;code&gt;.gitattributes&lt;/code&gt; (&lt;code&gt;5341dd83&lt;/code&gt;) shipped with exceptions meant to keep contrib-usable base test classes available, but marcelovani reported within hours that it broke &lt;code&gt;FunctionalJavascript&lt;/code&gt; tests across core and contrib because &lt;code&gt;WebDriverTestBase&lt;/code&gt; installs test-only helper modules that had been excluded; catch reverted it the same day. mstrelan separately pushed back on an AI-generated bug report in the thread, asking contributors to &amp;quot;understand the output and communicate with us humans with human language.&amp;quot; Following the revert, spiderman and star-szr did hands-on investigation with &lt;code&gt;gitlab-ci-local&lt;/code&gt; to reproduce the contrib CI failures and test the &lt;code&gt;--prefer-source&lt;/code&gt; workaround end to end, and cmlara pressed for the exceptions-based approach to be validated more rigorously (tracing every base class's module and file dependencies) rather than just checked visually. That investigation, combined with longwave's finding that the exceptions list would need to keep growing, led catch and longwave to abandon the fine-grained exclusions and land the simple, exception-free version instead.&amp;lt;/collaboration&amp;gt;
+&amp;lt;ai_disclosures&amp;quot;&amp;gt;[]&amp;lt;/ai_disclosures&amp;gt;
+&amp;lt;/invoke&amp;gt;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md</link>
       <guid isPermaLink="false">node/3532930</guid>
@@ -995,76 +1072,6 @@ scopes:
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;mcdruid tracked down why the deprecation only appeared now: guzzle is normally pinned to 7.12.1, which predates the &lt;code&gt;GuzzleHttp\Utils::jsonEncode()&lt;/code&gt;/&lt;code&gt;jsonDecode()&lt;/code&gt; deprecation introduced in 7.15, so it wasn't caught until the backport exercised a newer Guzzle.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2638250: The label "Member for" on user profiles is hardcoded markup that is different from other user fields</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2638250.md</link>
-      <guid isPermaLink="false">node/2638250</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 11 Sep 2026 20:23:53 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 22 files, +256/−31 · php +241/−16 · yml +15/−15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/429cf5057f1b4dba0c891478fe3c121e3905b736"&gt;429cf50&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2638250"&gt;#2638250&lt;/a&gt; · 24 contributors · 115 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 35&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 24 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;Member for&amp;quot; text on user profile pages used to be hard-coded HTML markup (a &lt;code&gt;&amp;amp;lt;h4&amp;amp;gt;&lt;/code&gt; element) baked into &lt;code&gt;user.module&lt;/code&gt;, which meant it could not be restyled, wasn't overridable via normal field templates, had accessibility issues, and had a cache-invalidation bug because its time interval wasn't captured as cache metadata. Drupal now exposes the user entity's existing &lt;code&gt;created&lt;/code&gt; field as a normal, configurable field on the &amp;quot;Manage display&amp;quot; page (hidden by default), and deprecates the old &lt;code&gt;member_for&lt;/code&gt; extra field, scheduled for removal in Drupal 13. Sites that currently show &amp;quot;Member for&amp;quot; will keep showing it after upgrading to 11.5 or 12 (nothing changes visually), but a deprecation notice will appear whenever it renders, prompting site owners to switch their display configuration to the &lt;code&gt;created&lt;/code&gt; field, which behaves like any other field and can be labeled, formatted, and themed normally. New installations have both fields hidden by default.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The user entity's &lt;code&gt;created&lt;/code&gt; field is now configurable on the user &amp;quot;Manage display&amp;quot; page (hidden by default); a post-update hook adds it as hidden to existing user displays.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;member_for&lt;/code&gt; user profile extra field is deprecated as of Drupal 11.5 and will be removed in Drupal 13; use the &lt;code&gt;created&lt;/code&gt; field instead.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;User::baseFieldDefinitions()&lt;/code&gt;, the &lt;code&gt;created&lt;/code&gt; base field gained &lt;code&gt;-&amp;gt;setDisplayOptions('view', ['region' =&amp;gt; 'hidden'])-&amp;gt;setDisplayConfigurable('view', TRUE)&lt;/code&gt;, so it now appears on the user &amp;quot;Manage display&amp;quot; screen like any other field instead of being invisible to Field UI. &lt;code&gt;UserHooks::entityExtraFieldInfo()&lt;/code&gt; relabels &lt;code&gt;member_for&lt;/code&gt; to &amp;quot;Member for (deprecated)&amp;quot; and sets &lt;code&gt;'visible' =&amp;gt; FALSE&lt;/code&gt; in its &lt;code&gt;hook_entity_extra_field_info()&lt;/code&gt; definition. &lt;code&gt;UserHooks::userView()&lt;/code&gt; still builds the same hard-coded &lt;code&gt;&amp;lt;h4 class=&amp;quot;label&amp;quot;&amp;gt;&lt;/code&gt; render array for backward compatibility, but now wraps it in a &lt;code&gt;#post_render&lt;/code&gt; callback, &lt;code&gt;triggerMemberForDeprecation()&lt;/code&gt;, which raises an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; notice referencing the change record at https://www.drupal.org/node/3611943.&lt;/p&gt;
-&lt;p&gt;A new post-update function, &lt;code&gt;user_post_update_add_created_to_display()&lt;/code&gt;, uses &lt;code&gt;ConfigEntityUpdater&lt;/code&gt; to add &lt;code&gt;created&lt;/code&gt; to the hidden section of every user entity view display that doesn't already define it, so upgrading sites gain the new field definition without any visible change. Default install profile displays (&lt;code&gt;core.entity_view_display.user.user.*&lt;/code&gt;) now list both &lt;code&gt;created&lt;/code&gt; and &lt;code&gt;member_for&lt;/code&gt; under &lt;code&gt;hidden&lt;/code&gt; and no longer include &lt;code&gt;member_for&lt;/code&gt; under &lt;code&gt;content&lt;/code&gt;. &lt;code&gt;Drupal\user\UserListBuilder&lt;/code&gt;, used by the admin &lt;code&gt;/admin/people&lt;/code&gt; listing, renamed its &amp;quot;Member for&amp;quot; table column key from &lt;code&gt;member_for&lt;/code&gt; to &lt;code&gt;created&lt;/code&gt; to match.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Sites and contrib/custom code that reference the &lt;code&gt;member_for&lt;/code&gt; extra field (for example in &lt;code&gt;EntityViewDisplay&lt;/code&gt; configuration, or custom code checking &lt;code&gt;$display-&amp;gt;getComponent('member_for')&lt;/code&gt;) should switch to the &lt;code&gt;created&lt;/code&gt; field instead, since &lt;code&gt;member_for&lt;/code&gt; is deprecated in Drupal 11.5 and will be removed in Drupal 13:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Old: relied on the always-visible, hard-coded 'member_for' extra field.
-
-// New: enable the 'created' base field on the user display, e.g. via
-// Manage Display UI, or programmatically:
-EntityViewDisplay::collectRenderDisplay($user, 'default')
-  -&amp;gt;setComponent('created', [
-    'type' =&amp;gt; 'timestamp_ago', // or 'timestamp', etc.
-  ])
-  -&amp;gt;save();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that keys off the &lt;code&gt;/admin/people&lt;/code&gt; listing's &amp;quot;Member for&amp;quot; column by machine name should use &lt;code&gt;created&lt;/code&gt; instead of &lt;code&gt;member_for&lt;/code&gt; (see &lt;code&gt;Drupal\user\UserListBuilder::buildHeader()&lt;/code&gt;/&lt;code&gt;buildRow()&lt;/code&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 20, 2015&lt;/li&gt;
-&lt;li&gt;First commit: September 4, 2026 (10 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: September 11, 2026 (6 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;vladimiraus (Technocrat)&lt;/li&gt;
-&lt;li&gt;markhalliwell (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;adamps (AlbanyWeb)&lt;/li&gt;
-&lt;li&gt;xjm (Acquia)&lt;/li&gt;
-&lt;li&gt;geerlingguy (Acquia)&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
-&lt;li&gt;medha kumari (Dotsquares Ltd.)&lt;/li&gt;
-&lt;li&gt;jayelless&lt;/li&gt;
-&lt;li&gt;kentr&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;This issue was open for nearly a decade with several competing proposals. Berdir (#comment ~14508451) pushed back on an earlier &amp;quot;convert to a computed field&amp;quot; approach as unnecessarily complex, arguing the display's only real job was showing &lt;code&gt;created&lt;/code&gt; with a different label, and suggested instead making &lt;code&gt;created&lt;/code&gt; configurable with an overridable label; larowlan agreed this was the better path. Years later godotislate picked up the implementation, initially tried rendering &lt;code&gt;created&lt;/code&gt; with the &lt;code&gt;TimestampFormatter&lt;/code&gt;'s JS-driven time-diff display, but ran into cache-invalidation test failures (&lt;code&gt;DateFormatter::formatDiff()&lt;/code&gt; cacheability has max-age 0) and needed help from berdir and catch on Slack to fix the performance tests. After that proved complex, godotislate switched to the simpler &amp;quot;hide &lt;code&gt;created&lt;/code&gt; by default&amp;quot; approach berdir and larowlan had originally proposed, which Gábor Hojtsy confirmed as acceptable on Slack before it was committed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

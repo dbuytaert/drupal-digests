@@ -5,6 +5,63 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583038: Allow output definitions to declare examples</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583038.md</link>
+      <guid isPermaLink="false">project/tool#3583038</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 23 Sep 2026 14:31:26 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583038"&gt;#3583038&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Tool API input definitions could already carry illustrative &amp;quot;examples&amp;quot; values (e.g. a status field's example values &lt;code&gt;draft&lt;/code&gt;, &lt;code&gt;completed&lt;/code&gt;), but output definitions could not. This mattered for anyone generating an OpenAPI document or an MCP &lt;code&gt;outputSchema&lt;/code&gt; from Tool API definitions: every request property could carry an example, but no response property could. This issue extends the same &lt;code&gt;examples&lt;/code&gt; capability to outputs, so a tool's output schema can now show a client what a value looks like after it is published.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Any class implementing &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; directly (without extending one of the module's four output classes) must now also implement &lt;code&gt;getExamples()&lt;/code&gt; and &lt;code&gt;setExamples()&lt;/code&gt;, e.g. by using the new &lt;code&gt;ExamplesTrait&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; gains &lt;code&gt;getExamples()&lt;/code&gt;/&lt;code&gt;setExamples()&lt;/code&gt;, and &lt;code&gt;OutputDefinition&lt;/code&gt;/&lt;code&gt;EntityOutputDefinition&lt;/code&gt; gain an &lt;code&gt;examples&lt;/code&gt; constructor argument, so tool outputs (not just inputs) can declare illustrative example values, emitted as the &lt;code&gt;examples&lt;/code&gt; keyword in generated JSON Schema/OpenAPI output.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;examples&lt;/code&gt; property and its accessors, previously hard-coded into &lt;code&gt;InputDefinitionTrait&lt;/code&gt;, were extracted into a new standalone &lt;code&gt;ExamplesTrait&lt;/code&gt;. &lt;code&gt;InputDefinitionTrait&lt;/code&gt; now composes &lt;code&gt;ExamplesTrait&lt;/code&gt; so input behavior is unchanged, and &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; declares &lt;code&gt;getExamples()&lt;/code&gt;/&lt;code&gt;setExamples()&lt;/code&gt;, implemented via the same &lt;code&gt;ExamplesTrait&lt;/code&gt; in all four output classes (&lt;code&gt;OutputDefinition&lt;/code&gt;, &lt;code&gt;EntityOutputDefinition&lt;/code&gt;, &lt;code&gt;MapOutputDefinition&lt;/code&gt;, &lt;code&gt;ListOutputDefinition&lt;/code&gt;). &lt;code&gt;OutputDefinition&lt;/code&gt; and &lt;code&gt;EntityOutputDefinition&lt;/code&gt; (the scalar/entity leaf classes) also gained an &lt;code&gt;examples&lt;/code&gt; constructor argument, mirroring &lt;code&gt;InputDefinition&lt;/code&gt; and &lt;code&gt;EntityInputDefinition&lt;/code&gt;, so a &lt;code&gt;#[Tool]&lt;/code&gt; attribute can declare output examples inline; the map and list output classes don't take the argument directly since their examples live on their child definitions.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ContextDefinitionNormalizer::getSchemaProperty()&lt;/code&gt; (or its equivalent private schema-building method) now checks for &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; alongside &lt;code&gt;InputDefinitionInterface&lt;/code&gt; when deciding whether to emit the &lt;code&gt;examples&lt;/code&gt; keyword: &lt;code&gt;if (!$object-&amp;gt;isMultiple() &amp;amp;&amp;amp; ($object instanceof InputDefinitionInterface || $object instanceof OutputDefinitionInterface) &amp;amp;&amp;amp; ($examples = $object-&amp;gt;getExamples())) { $schema['examples'] = array_values($examples); }&lt;/code&gt;. Examples are read off the post-transform definition, so an output example shows the value as it is actually published to a client, and a definition swapped out by a &lt;code&gt;ToolOutputDefinitionNormalizeEvent&lt;/code&gt; subscriber loses its examples unless the subscriber re-sets them. As with inputs, a multiple output's examples land on the &lt;code&gt;items&lt;/code&gt; sub-schema rather than the array level.&lt;/p&gt;
+&lt;p&gt;A follow-up, referenced in the issue body, is tracked to let &lt;code&gt;#[ToolProperty]&lt;/code&gt; and &lt;code&gt;#[ToolOutput]&lt;/code&gt; attributes take an &lt;code&gt;example&lt;/code&gt; argument the way &lt;code&gt;#[ToolInput]&lt;/code&gt; already does.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Any class that implements &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; directly, rather than extending &lt;code&gt;OutputDefinition&lt;/code&gt;, &lt;code&gt;EntityOutputDefinition&lt;/code&gt;, &lt;code&gt;MapOutputDefinition&lt;/code&gt;, or &lt;code&gt;ListOutputDefinition&lt;/code&gt;, must add &lt;code&gt;getExamples()&lt;/code&gt;/&lt;code&gt;setExamples()&lt;/code&gt;, most simply by adding &lt;code&gt;use ExamplesTrait;&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\tool\TypedData\ExamplesTrait;
+
+class MyOutputDefinition implements OutputDefinitionInterface {
+  use ExamplesTrait;
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To declare example values on an output:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$output = new OutputDefinition(
+  data_type: 'string',
+  label: new TranslatableMarkup('Status'),
+  description: new TranslatableMarkup('The order status.'),
+  examples: ['draft', 'completed'],
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583017: Re-parent the definition families onto typed data behind a temporary ContextDefinitionInterface bridge</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583017.md</link>
       <guid isPermaLink="false">project/tool#3583017</guid>
@@ -811,46 +868,6 @@ namespace Drupal\my_module\Plugin\mcp_server\Tool;
 &lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
 &lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
 &lt;li&gt;yautja_cetanu (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3620132: Uses ai_search_tracker instead of default</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620132.md</link>
-      <guid isPermaLink="false">node/3620132</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 10 Sep 2026 09:51:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +3/−3 · json +2/−2 · yml +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_recipe_content_search_vector/-/commit/3939b4f8bd5dcfa5c35da0efe0abd6f8cb3b08e9"&gt;3939b4f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620132"&gt;#3620132&lt;/a&gt; · 3 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This recipe sets up a chunked, AI-searchable vector index for content. Previously, applying the recipe configured the index to use Search API's generic default tracker for bookkeeping which entities need (re)indexing. Now it configures the index to use the &lt;code&gt;ai_search_tracker&lt;/code&gt; (&amp;quot;AI Search Chunked Tracker&amp;quot;) that the &lt;code&gt;ai_search&lt;/code&gt; module provides specifically for tracking per-chunk indexing state. Sites that apply this recipe going forward get the tracker built for chunked indexing rather than the generic one.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;search_api.index.content_vector&lt;/code&gt; index's &lt;code&gt;tracker_settings&lt;/code&gt; now default to &lt;code&gt;ai_search_tracker&lt;/code&gt; (the AI Search module's chunked tracker) instead of Search API's plain &lt;code&gt;default&lt;/code&gt; tracker.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The recipe's &lt;code&gt;content.recipe.yml&lt;/code&gt; (or equivalent config action) that builds the &lt;code&gt;search_api.index.content_vector&lt;/code&gt; index previously hardcoded &lt;code&gt;tracker_settings: default:&lt;/code&gt;. The fix changes this to &lt;code&gt;tracker_settings: ai_search_tracker:&lt;/code&gt;, keeping the same &lt;code&gt;indexing_order: lifo&lt;/code&gt; option under the new tracker key. The &lt;code&gt;composer.json&lt;/code&gt; requirements were also tightened: &lt;code&gt;drupal/search_api&lt;/code&gt; is bumped to &lt;code&gt;^1.40&lt;/code&gt; (from &lt;code&gt;^1.39&lt;/code&gt;) and &lt;code&gt;drupal/ai_search&lt;/code&gt; to &lt;code&gt;&amp;gt;=1.3.0-alpha3 &amp;lt;2.0.0-alpha1&lt;/code&gt; (from &lt;code&gt;^1.3@alpha&lt;/code&gt;), to ensure the required tracker plugin and Search API version are available when the recipe is applied.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 10, 2026 (9 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
