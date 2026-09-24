@@ -1,8 +1,16 @@
-**TL;DR:** [1103 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1105 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_597 summaries · 10 new this week_
+
+- [#3095257: Option for _none is removed once a field has a value and can cause accidental...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3095257.md)
+- [#3037054: Deprecate drupal_static_reset() and drupal_static()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037054.md)
+- [#3067979: Exclude test files from release packages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md)
 
 ### Drupal AI
 
@@ -12,17 +20,9 @@ _154 summaries · 23 new this week_
 - [#3583041: Issue #3583041: Keep a multiple definition's description on the array](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583041.md)
 - [#3583029: Enforce required outputs in ToolBase::execute() so a success cannot omit a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583029.md)
 
-### Drupal Core
-
-_595 summaries · 9 new this week_
-
-- [#3067979: Exclude test files from release packages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md)
-- [#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md)
-- [#3623089: Delete unused core icons](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623089.md)
-
 ### Drupal Canvas
 
-_259 summaries · 12 new this week_
+_259 summaries · 11 new this week_
 
 - [#3592115: Add Angular support to the Headless SDK and templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592115.md)
 - [#3592030: Canvas AI: Remove obsolete region-based AI instructions and the unused page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592030.md)

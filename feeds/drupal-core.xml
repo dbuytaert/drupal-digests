@@ -5,6 +5,122 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3095257: Option for _none is removed once a field has a value and can cause accidental data corruption</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3095257.md</link>
+      <guid isPermaLink="false">node/3095257</guid>
+      <pubDate>Thu, 24 Sep 2026 07:27:24 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +129/−20 · php +129/−20&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b50fd00498124bf142df4dec1a00bed67c15b611"&gt;b50fd00&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3095257"&gt;#3095257&lt;/a&gt; · 20 contributors · 124 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 27&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Required entity reference fields using the &amp;quot;Select list&amp;quot; widget (for example a required taxonomy term reference) could silently corrupt data. If the referenced entity was deleted, or became inaccessible to the current user, the widget's usual &amp;quot;- Select a value -&amp;quot; placeholder disappeared and the select box defaulted to the first available option instead. Editors who saved the form without noticing would overwrite the field with an unintended value. Now, when a required single-value select has no valid selection, the widget adds a &amp;quot;- Select a value -&amp;quot; option and forces the editor to explicitly pick a real value before the form can be saved, rather than defaulting to an arbitrary option.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in &lt;code&gt;OptionsSelectWidget::getEmptyLabel()&lt;/code&gt;, which decided whether to show a placeholder option based solely on &lt;code&gt;$this-&amp;gt;has_value&lt;/code&gt; (whether the field item list originally had a value), not on whether that value was still present among the currently available options. When a referenced entity was deleted or became inaccessible, &lt;code&gt;has_value&lt;/code&gt; remained &lt;code&gt;TRUE&lt;/code&gt; even though the resulting default value was empty, so no placeholder was added and the browser's &lt;code&gt;&amp;lt;select&amp;gt;&lt;/code&gt; fell back to auto-selecting its first &lt;code&gt;&amp;lt;option&amp;gt;&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix moves the decision into &lt;code&gt;OptionsSelectWidget::formElement()&lt;/code&gt;: it computes &lt;code&gt;$options&lt;/code&gt; and &lt;code&gt;$selected&lt;/code&gt; directly, determines whether the field will render as a &lt;code&gt;multiple&lt;/code&gt; select (accounting for the case where a multi-value field collapses to a single select because only one option remains), and if the field is &lt;code&gt;required&lt;/code&gt;, not &lt;code&gt;multiple&lt;/code&gt;, and &lt;code&gt;$selected&lt;/code&gt; is empty, prepends a synthetic &lt;code&gt;_none&lt;/code&gt; option labeled &amp;quot;- Select a value -&amp;quot; so the browser has an explicit non-answer to fall back to instead of the first real option. &lt;code&gt;getEmptyLabel()&lt;/code&gt; itself is simplified to only return &lt;code&gt;'- None -'&lt;/code&gt; for non-required fields (used elsewhere for the optional case) and no longer inspects &lt;code&gt;has_value&lt;/code&gt; at all.&lt;/p&gt;
+&lt;p&gt;The fix intentionally preserves existing auto-select behavior for multi-value (multiple-select) widgets and for the case where a required field has exactly one available option and no prior value (for example when creating a new entity), since changing that was judged out of scope; a UX warning for the &amp;quot;value became unavailable&amp;quot; case was deferred to follow-up &lt;a href="https://www.drupal.org/node/3623828"&gt;#3623828&lt;/a&gt;, and a broader entity-reference-on-delete data integrity concern was noted for a separate follow-up issue.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;The issue took years to land: an initial patch approach (&lt;code&gt;has_value&lt;/code&gt; recalculation) drew review from alexpott and catch pointing out it didn't correctly account for &lt;code&gt;hook_options_list_alter()&lt;/code&gt; and contrib widgets reusing &lt;code&gt;getEmptyLabel()&lt;/code&gt;, and was flagged as a &amp;quot;hard problem&amp;quot; by the Bug Smash Initiative. It was picked up again by mstrelan (who recorded a reproduction screencast) and smustgrave, who wrote the final MR. During final review alexpott identified that an early version of the fix regressed the existing behavior of auto-selecting the sole option on a required field with only one choice, and after discussion the MR was adjusted to run the empty-option logic based on the actual resolved &lt;code&gt;$options&lt;/code&gt; and &lt;code&gt;multiple&lt;/code&gt; state so both single- and multi-select configurations, including a multi-value field collapsing to a single select, behave consistently. acbramley's final review caught a missing return in &lt;code&gt;getEmptyLabel()&lt;/code&gt; before it was marked RTBC and committed by alexpott.&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[{&amp;quot;uid&amp;quot;: 3252890, &amp;quot;username&amp;quot;: &amp;quot;smustgrave&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;&amp;quot;, &amp;quot;cid&amp;quot;: 16766733}]&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 19, 2019&lt;/li&gt;
+&lt;li&gt;Committed: September 24, 2026 (6 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;dspachos&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;ameymudras (Salsa Digital)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;lendude (iO)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;jidrone (Agileana)&lt;/li&gt;
+&lt;li&gt;xjm (Agileana)&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;abhijith s (Zyxware Technologies)&lt;/li&gt;
+&lt;li&gt;nitin shrivastava (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3037054: Deprecate drupal_static_reset() and drupal_static()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037054.md</link>
+      <guid isPermaLink="false">node/3037054</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 24 Sep 2026 06:54:50 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +76/−10 · php +76/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/903f52ddb9799fb9dd103953cd0312ad9bb47e4b"&gt;903f52d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3037054"&gt;#3037054&lt;/a&gt; · 8 contributors · 30 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 8 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The long-standing procedural helpers &lt;code&gt;drupal_static()&lt;/code&gt; and &lt;code&gt;drupal_static_reset()&lt;/code&gt;, used to define reset-able static variables inside functions, are now formally deprecated and will be removed in Drupal 13.0.0. Sites and modules that still call these functions directly will start seeing deprecation notices and should switch to the &lt;code&gt;memory&lt;/code&gt; cache backend instead. Core's own remaining internal callers (in batch processing, CSS optimization, machine name form validation, comment search indexing, and admin theme settings overrides) have already been converted to use &lt;code&gt;\Drupal::cache('memory')&lt;/code&gt; directly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;drupal_static()&lt;/code&gt; and &lt;code&gt;drupal_static_reset()&lt;/code&gt; are deprecated in drupal:11.5.0 and removed in drupal:13.0.0; use &lt;code&gt;\Drupal::cache('memory')-&amp;gt;get()&lt;/code&gt;, &lt;code&gt;-&amp;gt;set()&lt;/code&gt;, and &lt;code&gt;-&amp;gt;delete()&lt;/code&gt; instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The deprecation notices are added directly inside &lt;code&gt;drupal_static()&lt;/code&gt; and &lt;code&gt;drupal_static_reset()&lt;/code&gt; in &lt;code&gt;core/includes/bootstrap.inc&lt;/code&gt;. Because both functions can legitimately be called many times per request (and core itself still needs to call &lt;code&gt;drupal_static_reset()&lt;/code&gt; globally to flush all statics in a few places), a naive &lt;code&gt;@trigger_error()&lt;/code&gt; on every call would spam PHPUnit's deprecation handling and logs. To avoid that, each function first checks a per-&lt;code&gt;$name&lt;/code&gt; marker in &lt;code&gt;\Drupal::cache('memory')&lt;/code&gt;; the deprecation is triggered only the first time a given &lt;code&gt;$name&lt;/code&gt; is seen in the request, then the marker cache entry suppresses further triggers for that name.&lt;/p&gt;
+&lt;p&gt;A special sentinel value, &lt;code&gt;'clear_all_skip_deprecation'&lt;/code&gt;, was introduced so that core's own &amp;quot;reset every static&amp;quot; call sites (&lt;code&gt;drupal_flush_all_caches()&lt;/code&gt;, &lt;code&gt;KernelTestBase::tearDown()&lt;/code&gt;, and &lt;code&gt;FunctionalTestSetupTrait::tearDown()&lt;/code&gt;) can still clear all statics via &lt;code&gt;drupal_static_reset()&lt;/code&gt; without triggering the deprecation on themselves; these call sites are marked with &lt;code&gt;// @phpstan-ignore function.deprecated&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Remaining core call sites that used &lt;code&gt;drupal_static()&lt;/code&gt; as a lightweight per-request cache (&lt;code&gt;_batch_needs_update()&lt;/code&gt; in &lt;code&gt;core/includes/batch.inc&lt;/code&gt;, &lt;code&gt;FormElementBase&lt;/code&gt;/&lt;code&gt;MachineName::getTransliterationLanguageOverrides()&lt;/code&gt;, &lt;code&gt;CommentHooks::nodeUpdateIndex()&lt;/code&gt;, and &lt;code&gt;Settings::userOverrideEnabled()&lt;/code&gt; in &lt;code&gt;core/themes/default_admin&lt;/code&gt;) were rewritten to read and write &lt;code&gt;\Drupal::cache('memory')&lt;/code&gt; directly, matching the pattern already used elsewhere for &lt;code&gt;drupal_static_reset()&lt;/code&gt; replacements like &lt;code&gt;options.allowed_values&lt;/code&gt;. &lt;code&gt;ResettableStaticTest&lt;/code&gt; was updated with &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; and &lt;code&gt;expectUserDeprecationMessage()&lt;/code&gt; assertions to cover the new deprecation paths.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace direct calls to &lt;code&gt;drupal_static()&lt;/code&gt; and &lt;code&gt;drupal_static_reset()&lt;/code&gt; with the memory cache backend. For example, code that previously did:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$overrides = &amp;amp;drupal_static(__CLASS__ . '_' . __METHOD__, []);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;should become:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$cid = __CLASS__ . '_' . __METHOD__;
+$cached = \Drupal::cache('memory')-&amp;gt;get($cid);
+$overrides = $cached-&amp;gt;data ?? [];
+// ... after computing/updating $overrides:
+\Drupal::cache('memory')-&amp;gt;set($cid, $overrides);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And a reset call like:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;drupal_static_reset('my_cache_id');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;becomes:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;\Drupal::cache('memory')-&amp;gt;delete('my_cache_id');
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Calling &lt;code&gt;drupal_static_reset()&lt;/code&gt; with no arguments (to reset all statics) is also deprecated; there is no direct drop-in replacement for clearing every memory cache entry at once, so only internal core bootstrap code retains this ability via the &lt;code&gt;'clear_all_skip_deprecation'&lt;/code&gt; sentinel.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 2, 2019&lt;/li&gt;
+&lt;li&gt;Committed: September 24, 2026 (7 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mile23&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;daffie (Finalist)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue sat open for over seven years. catch noted on commit that using a memory cache for the handful of remaining internal callers made it possible to finally start warning contrib about &lt;code&gt;drupal_static()&lt;/code&gt;'s eventual removal, calling it &amp;quot;good to be able to commit this one seven years (!) after it was opened.&amp;quot; nicxvan proposed the concrete approach that unblocked the issue: introducing the &lt;code&gt;clear_all&lt;/code&gt; (later &lt;code&gt;clear_all_skip_deprecation&lt;/code&gt;) sentinel so the few call sites that must reset all statics globally could keep doing so without triggering the deprecation, while all other calls would warn. feuerwagen thanked claudiu.cristea specifically for having &amp;quot;chipped away at this for (8+!) years.&amp;quot;&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3067979: Exclude test files from release packages</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md</link>
       <guid isPermaLink="false">node/3067979</guid>
@@ -948,130 +1064,6 @@ announcements_feed/drupal.announcements_feed.toolbar   toolbar/toolbar.announcem
 &lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
 &lt;li&gt;xjm (Zoocha)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3531854: Add a Design Tokens &amp; CSS variables API</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3531854.md</link>
-      <guid isPermaLink="false">node/3531854</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sun, 13 Sep 2026 20:15:51 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 56 files, +4881/−0 · php +4664 · yml +215 · txt +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4fa93d5354a0464a99e987cfe9cbc43fd905cff4"&gt;4fa93d5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3531854"&gt;#3531854&lt;/a&gt; · 15 contributors · 92 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 62&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 15 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core gains an experimental Design Tokens API, a standardized way to declare small, typed design values (dimensions, font families, font weights, numbers, typography) following the W3C Design Tokens Community Group (DTCG) format, and to override their values per CSS selector &amp;quot;scope&amp;quot; (e.g. &lt;code&gt;:root&lt;/code&gt;, &lt;code&gt;.card&lt;/code&gt;) through a new &lt;code&gt;design_token&lt;/code&gt; configuration entity. This follows the same front-end-friendly, YAML-plugin pattern already used by Single Directory Components and the Icon API, aiming to give contrib modules and Drupal themes a common vocabulary for CSS custom properties instead of everyone inventing their own. The API is explicitly marked experimental and not meant for production use yet: it defines the discovery and storage format, but does not yet include a mechanism for actually publishing the overridden values as page CSS, that is left for a follow-up. A new &amp;quot;Administer design tokens&amp;quot; permission controls who can manage the override entities, and existing sites get the new entity type automatically via a database update.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;system_update_12002()&lt;/code&gt; installs the new &lt;code&gt;design_token&lt;/code&gt; config entity type on existing sites when they run database updates.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;administer design tokens&lt;/code&gt; permission required to manage &lt;code&gt;design_token&lt;/code&gt; config entity overrides.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;design_token&lt;/code&gt; plugin type (&lt;code&gt;*.tokens.yml&lt;/code&gt; discovery, W3C DTCG format) and &lt;code&gt;design_token_value&lt;/code&gt; plugin type (&lt;code&gt;Dimension&lt;/code&gt;, &lt;code&gt;FontFamily&lt;/code&gt;, &lt;code&gt;FontWeight&lt;/code&gt;, &lt;code&gt;Number&lt;/code&gt;, &lt;code&gt;Typography&lt;/code&gt;) for declaring design tokens, plus a new &lt;code&gt;design_token&lt;/code&gt; config entity type for overriding token values by CSS selector scope.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Tokens are discovered from &lt;code&gt;{provider}.tokens.yml&lt;/code&gt; files (theme or module root) via &lt;code&gt;YamlDiscovery&lt;/code&gt; inside the new &lt;code&gt;DesignTokenPluginManager&lt;/code&gt;. Because DTCG data is a nested tree of groups and tokens (a token is any node containing a &lt;code&gt;$value&lt;/code&gt; key), &lt;code&gt;DesignTokenPluginManager::parseDtcg()&lt;/code&gt; walks the raw YAML into &lt;code&gt;Group&lt;/code&gt;/&lt;code&gt;DesignToken&lt;/code&gt; objects (both implementing &lt;code&gt;DtcgInterface&lt;/code&gt;) and then &lt;code&gt;flattenDefinitions()&lt;/code&gt; collapses that tree into flat plugin definitions keyed by dotted path (e.g. &lt;code&gt;fontSize.small&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;Each token's &lt;code&gt;$value&lt;/code&gt; is resolved through a separate &lt;code&gt;design_token_value&lt;/code&gt; plugin type (&lt;code&gt;#[DesignTokenValue]&lt;/code&gt; attribute, discovered under &lt;code&gt;Plugin/DesignTokenValue&lt;/code&gt;), which implements &lt;code&gt;DesignTokenValueInterface::toDtcg()&lt;/code&gt;/&lt;code&gt;toCss()&lt;/code&gt;. Core ships five initial value types: &lt;code&gt;Dimension&lt;/code&gt; (restricted to &lt;code&gt;px&lt;/code&gt;/&lt;code&gt;rem&lt;/code&gt; per the current DTCG spec, though downstream code can subclass it to add units), &lt;code&gt;FontFamily&lt;/code&gt;, &lt;code&gt;FontWeight&lt;/code&gt; (accepts DTCG alias strings like &lt;code&gt;bold&lt;/code&gt;/&lt;code&gt;light&lt;/code&gt; via the &lt;code&gt;FontWeightAlias&lt;/code&gt; enum), &lt;code&gt;Number&lt;/code&gt;, and the composite &lt;code&gt;Typography&lt;/code&gt;. Eight more DTCG types (color, shadow, gradient, etc.) are intentionally left for contrib and a later core proposal.&lt;/p&gt;
-&lt;p&gt;Value overrides live in the new &lt;code&gt;design_token&lt;/code&gt; config entity (&lt;code&gt;Drupal\Core\Theme\Entity\DesignToken&lt;/code&gt;), keyed by &lt;code&gt;path&lt;/code&gt;/&lt;code&gt;type&lt;/code&gt;, with a &lt;code&gt;scopes&lt;/code&gt; map from CSS selector to a &lt;code&gt;DesignTokenValuePluginCollection&lt;/code&gt; of typed values (dots in scope keys are escaped to &lt;code&gt;%&lt;/code&gt; for config storage via &lt;code&gt;getConfigScopeName()&lt;/code&gt;/&lt;code&gt;getCssScopeName()&lt;/code&gt;). &lt;code&gt;DesignToken::toCss()&lt;/code&gt; serializes a set of token entities into grouped inline CSS (&lt;code&gt;selector{--name:value;}&lt;/code&gt;). A new &lt;code&gt;CssSelector&lt;/code&gt; validation constraint blocks &lt;code&gt;{&lt;/code&gt;, &lt;code&gt;}&lt;/code&gt;, &lt;code&gt;;&lt;/code&gt; in scope keys to prevent CSS injection through stored config.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To declare theme or module design tokens, add a &lt;code&gt;{provider}.tokens.yml&lt;/code&gt; file using the DTCG format, for example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;fontSize:
-  small:
-    &amp;quot;$type&amp;quot;: dimension
-    &amp;quot;$value&amp;quot;:
-      value: 12
-      unit: px
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;To override a token's value for a given CSS selector, create a &lt;code&gt;design_token&lt;/code&gt; config entity:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;id: my_id
-path: foo.bar.baz
-type: dimension
-scopes:
-  ':root':
-    value: 12
-    unit: px
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;This API is experimental (&lt;code&gt;@internal&lt;/code&gt;, &amp;quot;not meant for production use&amp;quot;): no publishing mechanism ships yet to turn overridden config entities into page CSS, and the value type list and validation are expected to change before stabilization.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 23, 2025&lt;/li&gt;
-&lt;li&gt;First commit: September 7, 2026 (1 year later)&lt;/li&gt;
-&lt;li&gt;Last commit: September 13, 2026 (6 days and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pdureau&lt;/li&gt;
-&lt;li&gt;d34dman (Factorial.io)&lt;/li&gt;
-&lt;li&gt;grimreaper (Smile)&lt;/li&gt;
-&lt;li&gt;rikki_iki&lt;/li&gt;
-&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
-&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;e0ipso (Lullabot)&lt;/li&gt;
-&lt;li&gt;4aficiona2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Contributor kim.pepper repeatedly pushed for making the allowed dimension units (currently hardcoded to &lt;code&gt;px&lt;/code&gt;/&lt;code&gt;rem&lt;/code&gt; per the DTCG spec) extensible rather than fixed; pdureau held the line for the initial scope to stay strictly spec-compliant, but showed how downstream code can subclass &lt;code&gt;Dimension&lt;/code&gt; to add units like &lt;code&gt;%&lt;/code&gt;. larowlan prototyped a plugin-collection based approach for handling scopes on a separate branch, which grimreaper then adopted into the MR. During final review wim leers and penyaskito raised architectural concerns, incomplete config validation and the assumption that a design token always maps to exactly one CSS property, which led to descoping some features; the first follow-up, &lt;a href="https://www.drupal.org/node/3590100"&gt;#3590100&lt;/a&gt; for design token aliases, was split out to keep this initial API landing minimal ahead of the release deadline.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3620645: Guzzle FW Gadget Chain shim followup</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3620645.md</link>
-      <guid isPermaLink="false">node/3620645</guid>
-      <category>Site owners</category>
-      <pubDate>Fri, 11 Sep 2026 20:33:53 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +310/−3 · php +305 · lock +3/−2 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6379cc8e3bac8f363e6d96c3e4657bce293c381a"&gt;6379cc8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3620645"&gt;#3620645&lt;/a&gt; · 3 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is a backport of the fix from &lt;a href="https://www.drupal.org/node/3524971"&gt;#3524971&lt;/a&gt;, which hardens Guzzle's &lt;code&gt;FileCookieJar&lt;/code&gt; class against a known PHP object-injection &amp;quot;gadget chain&amp;quot; that could let an attacker who controls unserialized data force an arbitrary file write. That protection had only landed on the 11.x development branch; this issue brings the same shim to the 10.6.x, 11.3.x, and 11.4.x release branches, so sites running those core versions get the defense too. It also fixes a deprecation warning in the shim code that had already been committed to 11.x.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; The hardened &lt;code&gt;\GuzzleHttp\Cookie\FileCookieJar&lt;/code&gt; shim that defends against a PHP object-injection file-write gadget chain (see #3524971) is now also shipped on the 10.6.x, 11.3.x, and 11.4.x branches, not just 11.x.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix adds &lt;code&gt;core/includes/guzzle_file_cookie_jar_shim.php&lt;/code&gt; to the 10.6.x, 11.3.x, and 11.4.x branches, registered via each branch's &lt;code&gt;composer.json&lt;/code&gt;/&lt;code&gt;composer.lock&lt;/code&gt; autoload &lt;code&gt;files&lt;/code&gt; list alongside &lt;code&gt;includes/bootstrap.inc&lt;/code&gt;. The shim conditionally defines &lt;code&gt;\GuzzleHttp\Cookie\FileCookieJar&lt;/code&gt; (only if the real Guzzle class hasn't already loaded) as a verbatim backport of the hardened Guzzle 8.0 implementation: it adds a private &lt;code&gt;$autoSave&lt;/code&gt; flag that &lt;code&gt;__wakeup()&lt;/code&gt; sets to &lt;code&gt;false&lt;/code&gt;, so an instance reconstructed from attacker-controlled serialized data no longer triggers a file write in &lt;code&gt;__destruct()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;On all four branches (including 11.x, where the shim already existed), &lt;code&gt;save()&lt;/code&gt; and &lt;code&gt;load()&lt;/code&gt; were changed to call PHP's native &lt;code&gt;json_encode()&lt;/code&gt;/&lt;code&gt;json_decode()&lt;/code&gt; with &lt;code&gt;JSON_THROW_ON_ERROR&lt;/code&gt; instead of &lt;code&gt;GuzzleHttp\Utils::jsonEncode()&lt;/code&gt;/&lt;code&gt;jsonDecode()&lt;/code&gt;. Those &lt;code&gt;Utils&lt;/code&gt; methods are deprecated as of guzzlehttp/guzzle 7.15 and removed in 8.0; the deprecation only surfaced once Guzzle was upgraded past the version core had previously been pinned to (7.12.1). Each branch also got a corresponding &lt;code&gt;FileCookieJarShimTest&lt;/code&gt; in &lt;code&gt;core/tests/Drupal/Tests/Component/Cookie/&lt;/code&gt;, adapted to each branch's PHPUnit annotation style (&lt;code&gt;@group&lt;/code&gt; vs. the &lt;code&gt;#[Group]&lt;/code&gt; attribute).&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 3, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 11, 2026 (8 days and 4 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mcdruid (Acquia)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;mcdruid tracked down why the deprecation only appeared now: guzzle is normally pinned to 7.12.1, which predates the &lt;code&gt;GuzzleHttp\Utils::jsonEncode()&lt;/code&gt;/&lt;code&gt;jsonDecode()&lt;/code&gt; deprecation introduced in 7.15, so it wasn't caught until the backport exercised a newer Guzzle.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
