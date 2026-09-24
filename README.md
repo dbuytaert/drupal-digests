@@ -1,4 +1,4 @@
-**TL;DR:** [1098 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1099 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_149 summaries · 18 new this week_
+_150 summaries · 19 new this week_
 
+- [#3582991: Drush tool:run should surface access denial reason and pre-flight validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582991.md)
 - [#3583038: Allow output definitions to declare examples](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583038.md)
 - [#3583017: Re-parent the definition families onto typed data behind a temporary...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583017.md)
-- [#3562612: Add the possibility to add logo/image for a tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3562612.md)
 
 ### Drupal Core
 

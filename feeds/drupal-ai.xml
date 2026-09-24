@@ -5,6 +5,53 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3582991: Drush tool:run should surface access denial reason and pre-flight validation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582991.md</link>
+      <guid isPermaLink="false">project/tool#3582991</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 23 Sep 2026 21:16:11 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3582991"&gt;#3582991&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;tool:run&lt;/code&gt; Drush command now tells you why it refused to run a tool instead of a generic &amp;quot;Access denied&amp;quot; message. It validates the tool's inputs first, so a bad or missing argument is reported as an input problem rather than a permission problem, and when access truly is denied, it surfaces the actual reason the tool gave (for example, which permission is missing). With &lt;code&gt;--json&lt;/code&gt;, every pre-execution failure now also includes a machine-readable &lt;code&gt;error_type&lt;/code&gt; field, useful for scripts, CI pipelines, or AI agents driving Drush programmatically.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;tool:run&lt;/code&gt; Drush command's &lt;code&gt;--json&lt;/code&gt; error output gains a new &lt;code&gt;error_type&lt;/code&gt; field (backed by the &lt;code&gt;RunErrorType&lt;/code&gt; enum), and now validates tool inputs before checking access rather than after.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ToolRunCommand::run()&lt;/code&gt; in the &lt;code&gt;tool&lt;/code&gt; module now calls &lt;code&gt;$tool-&amp;gt;validateInputs()&lt;/code&gt; before checking access, since &lt;code&gt;access()&lt;/code&gt; fails closed with a generic reason on invalid input; checking access first would misreport a bad argument as a permission problem. If violations exist, the command reports them and exits before ever calling &lt;code&gt;access()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The access check itself now calls &lt;code&gt;$tool-&amp;gt;access(return_as_object: TRUE)&lt;/code&gt; and, when the result implements &lt;code&gt;AccessResultReasonInterface&lt;/code&gt;, appends &lt;code&gt;getReason()&lt;/code&gt; to the error message instead of dropping it.&lt;/p&gt;
+&lt;p&gt;Every failure path in the command now passes a new &lt;code&gt;RunErrorType&lt;/code&gt; backed enum (&lt;code&gt;src/Drush/RunErrorType.php&lt;/code&gt;) to &lt;code&gt;writeError()&lt;/code&gt;, which serializes it as &lt;code&gt;error_type&lt;/code&gt; in the &lt;code&gt;--json&lt;/code&gt; output: &lt;code&gt;tool_not_found&lt;/code&gt;, &lt;code&gt;invalid_option&lt;/code&gt;, &lt;code&gt;user_not_found&lt;/code&gt;, &lt;code&gt;user_blocked&lt;/code&gt;, &lt;code&gt;invalid_input&lt;/code&gt;, &lt;code&gt;access_denied&lt;/code&gt;, and &lt;code&gt;execution_failed&lt;/code&gt;. A tool that runs and reports its own failure (a failed &lt;code&gt;ExecutableResult&lt;/code&gt;) is not one of these: it has no &lt;code&gt;error_type&lt;/code&gt;, since that's a result, not a command error. The docs at &lt;code&gt;docs/usage/drush.md&lt;/code&gt; document the ordering, the JSON shape, and each error type. A new test fixture, &lt;code&gt;InvalidOutputTool&lt;/code&gt;, exercises the one execution failure &lt;code&gt;ToolBase&lt;/code&gt; doesn't absorb: a result whose output value doesn't fit its output definition, which makes &lt;code&gt;execute()&lt;/code&gt; itself throw after &lt;code&gt;doExecute()&lt;/code&gt; already succeeded.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Scripts or CI pipelines invoking &lt;code&gt;drush tool:run --json&lt;/code&gt; and inspecting failures should switch from string-matching the &lt;code&gt;error&lt;/code&gt; message to reading the new &lt;code&gt;error_type&lt;/code&gt; field:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;success&amp;quot;: false,
+  &amp;quot;error&amp;quot;: &amp;quot;Access denied for tool 'send_email': The 'send emails' permission is required.&amp;quot;,
+  &amp;quot;error_type&amp;quot;: &amp;quot;access_denied&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Possible &lt;code&gt;error_type&lt;/code&gt; values: &lt;code&gt;tool_not_found&lt;/code&gt;, &lt;code&gt;invalid_option&lt;/code&gt;, &lt;code&gt;user_not_found&lt;/code&gt;, &lt;code&gt;user_blocked&lt;/code&gt;, &lt;code&gt;invalid_input&lt;/code&gt;, &lt;code&gt;access_denied&lt;/code&gt;, &lt;code&gt;execution_failed&lt;/code&gt;. Note that a tool which runs and reports its own failure has no &lt;code&gt;error_type&lt;/code&gt; at all, that document is a result (&lt;code&gt;success: false&lt;/code&gt; plus the tool's own &lt;code&gt;message&lt;/code&gt;), not a command error.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 11, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583038: Allow output definitions to declare examples</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583038.md</link>
       <guid isPermaLink="false">project/tool#3583038</guid>
@@ -834,40 +881,6 @@ namespace Drupal\my_module\Plugin\mcp_server\Tool;
 &lt;ul&gt;
 &lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3601383: Curated npx skills (agent-browser, drupal-module-finder, superpowers, find-skills) missing after install — lost between .claude/skills and the .agents/skills symlink</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601383.md</link>
-      <guid isPermaLink="false">project/one_line_installer#3601383</guid>
-      <pubDate>Mon, 14 Sep 2026 08:27:56 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601383"&gt;#3601383&lt;/a&gt; · 1 contributor · 16 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;one_line_installer scaffolds DDEV-based Drupal projects wired up for AI coding agents (Claude Code, Codex, OpenCode), including a curated set of default &amp;quot;skills&amp;quot; (agent-browser, drupal-module-finder, superpowers, find-skills) installed via the &lt;code&gt;npx skills add&lt;/code&gt; CLI. A bug meant these curated skills could vanish after install: they were placed into each chosen agent's own directory (e.g. &lt;code&gt;.claude/skills&lt;/code&gt;), but a later step then replaced &lt;code&gt;.claude/skills&lt;/code&gt; with a whole-directory symlink pointing at &lt;code&gt;.agents/skills&lt;/code&gt;, a directory the curated skills were never actually copied into, so they became invisible to the agent. The fix makes the installer always install curated skills into the shared &lt;code&gt;.agents/skills&lt;/code&gt; directory (the &lt;code&gt;skills&lt;/code&gt; CLI's &lt;code&gt;universal&lt;/code&gt; target) regardless of which agent(s) were chosen, so Codex and OpenCode (which read &lt;code&gt;.agents/skills&lt;/code&gt; natively) and Claude Code (which reaches it through the existing symlink step) all reliably see the curated skills after install.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Previously &lt;code&gt;_skill_agent_targets&lt;/code&gt; mapped each chosen agent to its own &lt;code&gt;npx skills add -a &amp;lt;target&amp;gt;&lt;/code&gt; value: &lt;code&gt;claude&lt;/code&gt;→&lt;code&gt;claude-code&lt;/code&gt; (which installs into &lt;code&gt;.claude/skills&lt;/code&gt;), &lt;code&gt;codex&lt;/code&gt;→&lt;code&gt;codex&lt;/code&gt;, &lt;code&gt;opencode&lt;/code&gt;→&lt;code&gt;opencode&lt;/code&gt;, with bring-your-own (no agent chosen) installing to all three. Separately, &lt;code&gt;link_claude_skills&lt;/code&gt; replaces &lt;code&gt;.claude/skills&lt;/code&gt; with a whole-directory symlink to &lt;code&gt;.agents/skills&lt;/code&gt; whenever &lt;code&gt;.claude/skills&lt;/code&gt; is empty, absent, or a stale symlink. Since &lt;code&gt;-a claude-code&lt;/code&gt; had just made &lt;code&gt;.claude/skills&lt;/code&gt; a real, populated directory, that directory usually didn't qualify for the symlink replacement in a way that preserved the just-installed skills, and the two mechanisms fell out of sync, orphaning the curated skills between the two directories.&lt;/p&gt;
-&lt;p&gt;The fix in &lt;code&gt;src/lib/steps/install_skills.sh&lt;/code&gt; changes &lt;code&gt;_skill_agent_targets&lt;/code&gt; to always return the single value &lt;code&gt;universal&lt;/code&gt;, which the &lt;code&gt;skills&lt;/code&gt; CLI resolves to the shared &lt;code&gt;.agents/skills&lt;/code&gt; directory, the same directory ai_best_practices' &lt;code&gt;drupal-ai skills-sync&lt;/code&gt; aggregates into and that Codex/OpenCode already read natively. &lt;code&gt;link_claude_skills&lt;/code&gt; is unchanged in logic but now runs against a &lt;code&gt;.claude/skills&lt;/code&gt; that is normally absent, so its whole-dir symlink to &lt;code&gt;.agents/skills&lt;/code&gt; is the common path; it still falls back to symlinking skills in individually when a user has their own real, non-empty &lt;code&gt;.claude/skills&lt;/code&gt;. A new &lt;code&gt;SKILLS_CLI=&amp;quot;skills@1.5.23&amp;quot;&lt;/code&gt; pin fixes the &lt;code&gt;npx&lt;/code&gt; invocation to a known version so the &lt;code&gt;universal&lt;/code&gt; → &lt;code&gt;.agents/skills&lt;/code&gt; mapping cannot silently change upstream, and &lt;code&gt;--copy&lt;/code&gt; is now passed explicitly instead of relying on the CLI's &lt;code&gt;-y&lt;/code&gt; auto-detected placement mode. The same target logic is reused by &lt;code&gt;src/lib/extras/extra_agent_ready_drupal_build_kit.sh&lt;/code&gt; and &lt;code&gt;src/lib/shared/manage/manage_skills.sh&lt;/code&gt; (the &amp;quot;add/remove skills&amp;quot; management menu), which is updated to look for skills under &lt;code&gt;.agents/skills&lt;/code&gt; (plus a user's own real &lt;code&gt;.claude/skills&lt;/code&gt;) rather than under each agent's own directory.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
-&lt;li&gt;yautja_cetanu (FreelyGive)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
