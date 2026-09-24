@@ -1,4 +1,4 @@
-**TL;DR:** [1099 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1103 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_150 summaries · 19 new this week_
+_154 summaries · 23 new this week_
 
-- [#3582991: Drush tool:run should surface access denial reason and pre-flight validation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582991.md)
-- [#3583038: Allow output definitions to declare examples](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583038.md)
-- [#3583017: Re-parent the definition families onto typed data behind a temporary...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583017.md)
+- [#3583021: Remove the ai_tools_property_alter hook implementation superseded by the schema...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583021.md)
+- [#3583041: Issue #3583041: Keep a multiple definition's description on the array](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583041.md)
+- [#3583029: Enforce required outputs in ToolBase::execute() so a success cannot omit a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583029.md)
 
 ### Drupal Core
 
-_595 summaries · 10 new this week_
+_595 summaries · 9 new this week_
 
 - [#3067979: Exclude test files from release packages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md)
 - [#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md)
