@@ -1,4 +1,4 @@
-**TL;DR:** [1105 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1110 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,27 +6,27 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_597 summaries · 10 new this week_
+_599 summaries · 11 new this week_
 
+- [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
+- [#3621277: Update JavaScript dependencies for 12.0.0-beta1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621277.md)
 - [#3095257: Option for _none is removed once a field has a value and can cause accidental...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3095257.md)
-- [#3037054: Deprecate drupal_static_reset() and drupal_static()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3037054.md)
-- [#3067979: Exclude test files from release packages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md)
 
 ### Drupal AI
 
-_154 summaries · 23 new this week_
+_156 summaries · 25 new this week_
 
+- [#3585934: Resource access denials return -32603 because the SDK's ReadResourceHandler...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585934.md)
+- [#3583034: tool:run --json prints raw output values instead of the published ones](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583034.md)
 - [#3583021: Remove the ai_tools_property_alter hook implementation superseded by the schema...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583021.md)
-- [#3583041: Issue #3583041: Keep a multiple definition's description on the array](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583041.md)
-- [#3583029: Enforce required outputs in ToolBase::execute() so a success cannot omit a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583029.md)
 
 ### Drupal Canvas
 
-_259 summaries · 11 new this week_
+_260 summaries · 12 new this week_
 
+- [#3592097: Include language alternates in Headless content API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592097.md)
 - [#3592115: Add Angular support to the Headless SDK and templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592115.md)
 - [#3592030: Canvas AI: Remove obsolete region-based AI instructions and the unused page...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592030.md)
-- [#3592009: Have date props display in the format of the selected locale](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592009.md)
 
 ### Drupal CMS
 

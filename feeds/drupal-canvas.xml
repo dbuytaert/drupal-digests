@@ -5,6 +5,57 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592097: Include language alternates in Headless content API</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592097.md</link>
+      <guid isPermaLink="false">project/canvas#3592097</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 24 Sep 2026 14:36:02 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592097"&gt;#3592097&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Headless frontends built on Canvas can now get everything needed for a language switcher directly from the content API response, instead of having to derive it themselves. Each &lt;code&gt;fetchPage()&lt;/code&gt; response's &lt;code&gt;route&lt;/code&gt; object now lists every enabled language with its localized name, native name, a URL, whether that translation actually exists and is viewable, and whether it is the one currently being served. This mirrors the translation data already exposed to Code Components via &lt;code&gt;getPageData()&lt;/code&gt;, so both APIs behave consistently.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;route&lt;/code&gt; in the Headless content API response now includes &lt;code&gt;negotiatedLanguage&lt;/code&gt; and a &lt;code&gt;translations&lt;/code&gt; list (&lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;name&lt;/code&gt;, &lt;code&gt;nativeName&lt;/code&gt;, &lt;code&gt;url&lt;/code&gt;, &lt;code&gt;translationAvailable&lt;/code&gt;, &lt;code&gt;current&lt;/code&gt;, &lt;code&gt;external&lt;/code&gt;) for every enabled language.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\canvas_headless\CanvasContentTranslationLinks&lt;/code&gt; service builds this data in &lt;code&gt;CanvasContentController&lt;/code&gt;, and delegates the actual per-language enumeration to a new shared helper, &lt;code&gt;Drupal\canvas\EntityTranslationMetadata::build()&lt;/code&gt;. That helper was extracted from the existing logic in &lt;code&gt;CodeComponentDataProvider&lt;/code&gt; (which now calls it too), so Code Components and the headless API share one source of truth for &lt;code&gt;langcode&lt;/code&gt;, &lt;code&gt;name&lt;/code&gt;, &lt;code&gt;nativeName&lt;/code&gt;, &lt;code&gt;translationAvailable&lt;/code&gt;, and &lt;code&gt;current&lt;/code&gt;. &lt;code&gt;translationAvailable&lt;/code&gt; reflects both existence and view access; a denied or missing translation reports &lt;code&gt;false&lt;/code&gt; and falls back to the entity's own URL in that language.&lt;/p&gt;
+&lt;p&gt;For the headless case, URL generation is more involved than the Code Component fallback: &lt;code&gt;CanvasContentTranslationLinks::switchLinks()&lt;/code&gt; walks enabled language negotiation methods in configured order (following &lt;code&gt;LanguageNegotiationUI&lt;/code&gt; delegation to the interface-language session negotiator), builds each link via the module's &lt;code&gt;LanguageSwitcherInterface&lt;/code&gt; plugins, and strips out Canvas's editor-preview query parameters while forcing the session query parameter when session negotiation is active, so a translation link is unambiguous regardless of prior session state. Generated absolute URLs are then normalized by the new &lt;code&gt;Drupal\canvas_headless\CanvasContentUrl::normalize()&lt;/code&gt;, which strips the scheme, host, and Drupal base path from same-site URLs (an external one is left absolute and flagged with &lt;code&gt;external: true&lt;/code&gt;) so frontends can safely feed the result back into &lt;code&gt;fetchPage()&lt;/code&gt;. The near-identical logic previously duplicated in &lt;code&gt;CanvasContentResponseSubscriber&lt;/code&gt; for redirect targets was consolidated into this same helper.&lt;/p&gt;
+&lt;p&gt;The OpenAPI schema (&lt;code&gt;RouteTranslation&lt;/code&gt;) and the SDK's TypeScript types (&lt;code&gt;DrupalRouteTranslation&lt;/code&gt;, &lt;code&gt;DrupalRoute&lt;/code&gt; in &lt;code&gt;packages/headless/src/page.ts&lt;/code&gt;) were updated to document the new required &lt;code&gt;negotiatedLanguage&lt;/code&gt; and &lt;code&gt;translations&lt;/code&gt; fields, and &lt;code&gt;docs/multilingual-sites-with-canvas-headless.md&lt;/code&gt; explains the filtering and public-URL-mapping pattern for consumers building a switcher.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;No breaking changes to existing fields. Frontends consuming &lt;code&gt;fetchPage()&lt;/code&gt; and using the SDK's TypeScript types should update to a version that includes &lt;code&gt;negotiatedLanguage&lt;/code&gt; and &lt;code&gt;translations&lt;/code&gt; on &lt;code&gt;DrupalRoute&lt;/code&gt;, since these are now required properties of the response schema. To build a switcher of only viewable translations:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-ts"&gt;const page = await fetchPage(&amp;quot;/fr/page/1&amp;quot;);
+if (page &amp;amp;&amp;amp; !(&amp;quot;redirect&amp;quot; in page)) {
+  const languageLinks = page.route.translations
+    .filter((translation) =&amp;gt; translation.translationAvailable)
+    .map((translation) =&amp;gt; ({
+      label: translation.nativeName,
+      active: translation.current,
+      href: toPublicUrl(translation.langcode, translation.url),
+    }));
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Entries with &lt;code&gt;external: true&lt;/code&gt; are absolute URLs (e.g. from domain-based language negotiation) and are not valid &lt;code&gt;fetchPage()&lt;/code&gt; input; map them to a public URL instead of passing them back in.&amp;lt;/parameter&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 18, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592115: Add Angular support to the Headless SDK and templates</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592115.md</link>
       <guid isPermaLink="false">project/canvas#3592115</guid>
@@ -736,46 +787,6 @@ CANVAS_INCLUDE_BRAND_KIT=false
 &lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
 &lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591885: Add `document` object $ref for linking locally hosted documents</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591885.md</link>
-      <guid isPermaLink="false">project/canvas#3591885</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 20 Aug 2026 15:08:55 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591885"&gt;#3591885&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal Canvas code components and Single Directory Components (SDCs) can now declare a &amp;quot;document&amp;quot; prop, the same way they already can for image and video. A component that accepts a &lt;code&gt;document&lt;/code&gt; (or an array of them) gets a file upload widget for content authors, or the Media Library picker when Media Library is enabled and a compatible media type exists, and receives the document's URL, title, filename, size, and MIME type. This was split off from the broader video/embed proposal in &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; because linking a local document has no dependency on the postponed core oEmbed work, unlike remote video.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;document&lt;/code&gt; object shape (&lt;code&gt;json-schema-definitions://canvas.module/document&lt;/code&gt;) that code components and SDCs can &lt;code&gt;$ref&lt;/code&gt; to declare a document/file-download prop with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;title&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new shape is defined in &lt;code&gt;schema.json&lt;/code&gt; as &lt;code&gt;document&lt;/code&gt;, requiring only &lt;code&gt;src&lt;/code&gt; (a &lt;code&gt;uri-reference&lt;/code&gt; restricted to &lt;code&gt;http&lt;/code&gt;/&lt;code&gt;https&lt;/code&gt; via &lt;code&gt;x-allowed-schemes&lt;/code&gt;) and adding an &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; annotation listing common office and document formats. It is registered as &lt;code&gt;JsonSchemaObjectRef::Document&lt;/code&gt; and added to the &lt;code&gt;Choice&lt;/code&gt; constraint in &lt;code&gt;config/schema/canvas.json_schema.yml&lt;/code&gt; alongside &lt;code&gt;image&lt;/code&gt; and &lt;code&gt;video&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Storage matching is handled in &lt;code&gt;JsonSchemaType::computeStorablePropShape()&lt;/code&gt;, which maps &lt;code&gt;Document&lt;/code&gt; to a &lt;code&gt;file&lt;/code&gt; field (&lt;code&gt;fieldWidget: file_generic&lt;/code&gt;) with &lt;code&gt;src&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;mimetype&lt;/code&gt; resolved from the referenced File entity's &lt;code&gt;uri&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt;, &lt;code&gt;filesize&lt;/code&gt;, and &lt;code&gt;filemime&lt;/code&gt;; the field's &lt;code&gt;file_extensions&lt;/code&gt; instance setting is derived from the shape's &lt;code&gt;x-allowed-file-extensions&lt;/code&gt; list via the new &lt;code&gt;JsonSchemaObjectRef::allowedFileExtensions()&lt;/code&gt;. &lt;code&gt;title&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; are left unmapped because a plain file field exposes neither.&lt;/p&gt;
-&lt;p&gt;To support Media Library, the media-source-to-schema mapping (previously a private array and method inside &lt;code&gt;ShapeMatchingHooks&lt;/code&gt;) was extracted into a new internal &lt;code&gt;MediaSourceObjectShapes&lt;/code&gt; class shared by both the media library integration and &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt;. It maps &lt;code&gt;Document&lt;/code&gt; to &lt;code&gt;\Drupal\media\Plugin\media\Source\File&lt;/code&gt;, matching any media type whose source is &lt;code&gt;File&lt;/code&gt; (but not a more specific subclass like &lt;code&gt;VideoFile&lt;/code&gt;) and whose source field's allowed extensions intersect the shape's list; this intersection logic is carried by a new no-op &lt;code&gt;UriTargetFileExtensionsConstraint&lt;/code&gt;/validator pair, mirroring how &lt;code&gt;UriTargetMediaTypeConstraint&lt;/code&gt; narrows matches by MIME type. &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt; gained &lt;code&gt;matchDocumentShapeToMediaTypes()&lt;/code&gt; to also suggest existing single-value media reference fields pointing at compatible media types, one reference level deep. Embedding or previewing the document, and remote-video support, remain out of scope, per the split from &lt;a href="https://www.drupal.org/node/3524130"&gt;#3524130&lt;/a&gt; and the still-postponed &lt;a href="https://www.drupal.org/node/3567249"&gt;#3567249&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;f.mazeikis&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

@@ -5,6 +5,82 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585934: Resource access denials return -32603 because the SDK's ReadResourceHandler swallows the exception</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585934.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585934</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 24 Sep 2026 17:07:06 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585934"&gt;#3585934&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Before this fix, when an MCP client called &lt;code&gt;resources/read&lt;/code&gt; for a resource it wasn't allowed to access, the site answered with HTTP 200 and a generic JSON-RPC &lt;code&gt;-32603&lt;/code&gt; internal error saying &amp;quot;Error while reading resource,&amp;quot; giving the client no indication that access was actually denied, and logging a spurious error for what is really a routine permission check. Now a denied read answers the same way a request for a nonexistent resource does: a &lt;code&gt;-32002&lt;/code&gt; (or &lt;code&gt;-32602&lt;/code&gt; on newer protocol versions) &amp;quot;resource not found&amp;quot; error. This intentionally doesn't reveal that the resource exists at all, matching how the rest of MCP handles resources a client can't see.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; now throws &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; instead of &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; for a denied resource access check, and for the same exception (previously a plain &lt;code&gt;\RuntimeException&lt;/code&gt;) when the content callback returns &lt;code&gt;NULL&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is that the php-sdk's &lt;code&gt;ReadResourceHandler&lt;/code&gt; catches any &lt;code&gt;\Throwable&lt;/code&gt; it doesn't specifically recognize and converts it into a generic &lt;code&gt;-32603&lt;/code&gt; internal error, logging it at error level. &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt;, which both &lt;code&gt;ResourceProviderHandler&lt;/code&gt; and &lt;code&gt;ResourceTemplateProviderHandler&lt;/code&gt; delegate to for the access check plus cache lookup, was throwing &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; on a denied &lt;code&gt;checkAccess()&lt;/code&gt;, which the SDK doesn't know how to map, so it fell into that generic path.&lt;/p&gt;
+&lt;p&gt;The fix changes &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; to throw &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; in that case instead, which the SDK does recognize and maps to a proper resource-not-found JSON-RPC error. The same exception is now also thrown when the content callback returns &lt;code&gt;NULL&lt;/code&gt; (previously a plain &lt;code&gt;\RuntimeException&lt;/code&gt;), so a denied read and a missing resource are indistinguishable to the client by design, avoiding disclosure that a forbidden resource exists. &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; itself is untouched and still used for OAuth-scope related failures elsewhere (&lt;code&gt;McpServerController&lt;/code&gt;, &lt;code&gt;McpExceptionSubscriber&lt;/code&gt;, Drush commands); only the resource-read path stopped using it. A new kernel test, &lt;code&gt;ResourceReadErrorTest&lt;/code&gt;, exercises this through the actual &lt;code&gt;/mcp&lt;/code&gt; endpoint and asserts a denied read and a missing read produce identical error payloads. &lt;code&gt;ResourceProviderRegistrationTest&lt;/code&gt; was updated to expect &lt;code&gt;ResourceNotFoundException&lt;/code&gt; for both the forbidden and missing cases. The SDK still logs both cases at error level; a quieter log level needs an upstream fix, tracked at https://github.com/modelcontextprotocol/php-sdk/issues/513.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If custom code catches the exception thrown by &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; for a denied resource read, update it:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+catch (\Drupal\mcp_server\Exception\McpAuthorizationDeniedException $e) {
+  // ...
+}
+
+// After
+catch (\Mcp\Exception\ResourceNotFoundException $e) {
+  // $e-&amp;gt;uri holds the requested URI.
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;A &lt;code&gt;NULL&lt;/code&gt; return from a resource plugin's content callback now also throws &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; instead of a plain &lt;code&gt;\RuntimeException&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583034: tool:run --json prints raw output values instead of the published ones</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583034.md</link>
+      <guid isPermaLink="false">project/tool#3583034</guid>
+      <pubDate>Thu, 24 Sep 2026 15:37:41 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583034"&gt;#3583034&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Running &lt;code&gt;drush tool:run --json&lt;/code&gt; printed a different, unpublished view of a tool's output than the one MCP clients and &lt;code&gt;tool:info&lt;/code&gt;'s schema describe. For example a date-time output came out as a raw Unix timestamp integer instead of the RFC 3339 string the schema promises, and an entity output came out as its PHP class name (like &lt;code&gt;Drupal\node\Entity\Node&lt;/code&gt;) instead of the handle string MCP actually receives. This made the &lt;code&gt;--json&lt;/code&gt; output untrustworthy for anyone scripting against it or comparing it to the advertised schema. The fix makes &lt;code&gt;tool:run --json&lt;/code&gt; print the same, published values every other consumer sees.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ToolRunCommand::runCommand()&lt;/code&gt; read &lt;code&gt;$tool-&amp;gt;getOutputValues()&lt;/code&gt;, the raw PHP-side view of a tool's outputs, and passed it through a hand-rolled &lt;code&gt;serializeOutputs()&lt;/code&gt; helper that mapped objects via &lt;code&gt;toArray()&lt;/code&gt;, &lt;code&gt;__toString()&lt;/code&gt;, or &lt;code&gt;get_class()&lt;/code&gt; as a fallback. That path never ran the output transform events that &lt;code&gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt; runs, so entities never became handles and, once related timestamp/decimal/datetime formatting work landed, dated and decimal values wouldn't match their declared JSON Schema either. The fix reads &lt;code&gt;$tool-&amp;gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt; instead and drops &lt;code&gt;serializeOutputs()&lt;/code&gt; entirely, since those values are already the ones destined for &lt;code&gt;Json::encode()&lt;/code&gt;. The text-mode output path keeps using &lt;code&gt;formatOutputValue()&lt;/code&gt; on the same, now-formatted values.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583021: Remove the ai_tools_property_alter hook implementation superseded by the schema property converter</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583021.md</link>
       <guid isPermaLink="false">project/tool#3583021</guid>
@@ -805,100 +881,6 @@ final class MyTool extends ToolPluginBase {
 }
 &lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;Note that &lt;code&gt;mcp/sdk&lt;/code&gt;'s &lt;code&gt;ClientGateway::sample()&lt;/code&gt; itself is deprecated (earliest removal 2027-07-28 per SEP-2577), so PHPStan will now report that deprecation directly at the call site instead of it being hidden by the trait.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3436728: Check the status of a consumer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3436728.md</link>
-      <guid isPermaLink="false">node/3436728</guid>
-      <category>Site owners</category>
-      <pubDate>Fri, 18 Sep 2026 11:37:02 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 6.1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +176/−7 · php +175/−6 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/simple_oauth/-/commit/14da1800ba4beff5ddb8c6ab339c9b81c614062c"&gt;14da180&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3436728"&gt;#3436728&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Simple OAuth now checks whether an OAuth client (a &amp;quot;consumer&amp;quot; entity) is published before granting it access. Previously, unpublishing a consumer did not actually stop it from working: it could still request new access tokens via the client credentials or refresh token grants, and tokens it had already obtained kept working against protected resources. Now an unpublished consumer is treated as if it doesn't exist: attempts to obtain a token fail with an &lt;code&gt;invalid_client&lt;/code&gt; error, and requests bearing a token issued by a now-disabled client are rejected with &amp;quot;The client is disabled.&amp;quot; The client selection dropdown in the client credentials token creation form also stops listing unpublished consumers.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Unpublished (disabled) consumers can no longer obtain new OAuth tokens or use previously issued bearer tokens; this closes an access control gap.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Minimum &lt;code&gt;drupal/consumers&lt;/code&gt; dependency raised to &lt;code&gt;^1.24&lt;/code&gt; for the consumer entity &lt;code&gt;status&lt;/code&gt; field.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix relies on the &lt;code&gt;status&lt;/code&gt; field added to the &lt;code&gt;consumer&lt;/code&gt; entity by the consumers module (see &lt;a href="https://www.drupal.org/node/3436723"&gt;#3436723&lt;/a&gt;), and bumps the &lt;code&gt;drupal/consumers&lt;/code&gt; dependency to &lt;code&gt;^1.24&lt;/code&gt; to guarantee its availability.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ClientRepository::getClientEntity()&lt;/code&gt; now adds &lt;code&gt;'status' =&amp;gt; 1&lt;/code&gt; to the &lt;code&gt;loadByProperties()&lt;/code&gt; lookup used to find a consumer by &lt;code&gt;client_id&lt;/code&gt;, so an unpublished consumer resolves to no client entity at all, which makes &lt;code&gt;validateClient()&lt;/code&gt; return &lt;code&gt;FALSE&lt;/code&gt; for both the client credentials and refresh token grant types. &lt;code&gt;Oauth2ClientCredentialsTokenCreateForm&lt;/code&gt; applies the same &lt;code&gt;status&lt;/code&gt; condition to the client entity query and the storage lookup used during validation, so unpublished consumers disappear from the form's client list.&lt;/p&gt;
-&lt;p&gt;For tokens issued before a consumer was unpublished, &lt;code&gt;SimpleOauthAuthenticationProvider::authenticate()&lt;/code&gt; now calls &lt;code&gt;$account-&amp;gt;getConsumer()-&amp;gt;isPublished()&lt;/code&gt; and throws an &lt;code&gt;OAuthUnauthorizedHttpException&lt;/code&gt; (&amp;quot;The client is disabled.&amp;quot;) when it returns &lt;code&gt;FALSE&lt;/code&gt;, so previously granted bearer tokens stop working as soon as their consumer is disabled. Kernel tests cover all three paths: rejecting an unpublished client at the client credentials grant, at the refresh token grant, and at resource access with an already-issued bearer token.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Update the &lt;code&gt;drupal/consumers&lt;/code&gt; dependency to at least 1.24, which is where the consumer &lt;code&gt;status&lt;/code&gt; field this feature relies on was introduced:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;drupal/consumers&amp;quot;: &amp;quot;^1.24&amp;quot;,
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Any code relying on a disabled/unpublished consumer still being able to authenticate or use previously issued tokens will now be blocked; disable a consumer only when access should actually be revoked.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 28, 2024&lt;/li&gt;
-&lt;li&gt;Committed: September 18, 2026 (2 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gorkagr (Erasmus Student Network)&lt;/li&gt;
-&lt;li&gt;bojan_dev&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The issue was postponed for a long time waiting on the consumers module to gain a status field (&lt;a href="https://www.drupal.org/node/3436723"&gt;#3436723&lt;/a&gt;). Once that landed, bojan_dev pointed out that &lt;code&gt;getClientEntity()&lt;/code&gt; could simply be restricted to loading published consumers, and later released consumers 1.23/pushed for 1.24 to make the status field available. attilatilman then implemented the fix in MR !234, adding kernel test coverage for the client credentials grant, refresh token grant, and already-issued bearer tokens, plus a few unrelated pre-existing issues found while working on the branch (missing type hints, a mismatched deprecation message, and a Drupal 11.4 compatibility fix). scott falconer tested the change and confirmed it caught the case correctly, and mglaman gave RTBC.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585924: Drop mcp/sdk ^0.6 and require 0.7.1</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585924.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585924</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 17 Sep 2026 21:39:00 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585924"&gt;#3585924&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The mcp_server module's dependency on the &lt;code&gt;mcp/sdk&lt;/code&gt; package is tightened to require version 0.7.1 or newer. The previous constraint still allowed &lt;code&gt;^0.6&lt;/code&gt; and &lt;code&gt;0.7.0&lt;/code&gt;, both of which are covered by security advisory CVE-2026-53965. Sites that run &lt;code&gt;composer update&lt;/code&gt; will now be prevented from installing (or keeping) a vulnerable &lt;code&gt;mcp/sdk&lt;/code&gt; release, and sites that had disabled Composer's advisory check were previously left exposed. There is no code change in the module itself.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; The &lt;code&gt;mcp/sdk&lt;/code&gt; composer constraint now requires &lt;code&gt;^0.7.1 || ^0.8&lt;/code&gt;, excluding the &lt;code&gt;^0.6&lt;/code&gt; line and the &lt;code&gt;0.7.0&lt;/code&gt; release, both covered by CVE-2026-53965.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;A prior fix (&lt;a href="https://www.drupal.org/node/3585916"&gt;#3585916&lt;/a&gt;) had temporarily widened the constraint to &lt;code&gt;^0.6 || ^0.7&lt;/code&gt; to unblock fresh installs from Composer's advisory blocking, but &lt;code&gt;0.6.0&lt;/code&gt; (the only 0.6 release) and &lt;code&gt;0.7.0&lt;/code&gt; are both within the Packagist advisory range &lt;code&gt;&amp;gt;=0.5.0,&amp;lt;0.7.1&lt;/code&gt;. This issue removes &lt;code&gt;^0.6&lt;/code&gt; entirely and raises the 0.7 floor to &lt;code&gt;0.7.1&lt;/code&gt;, the first release outside the advisory range. The change is a one-line edit to the &lt;code&gt;require.mcp/sdk&lt;/code&gt; constraint in &lt;code&gt;composer.json&lt;/code&gt;; the module has no 0.6-specific code paths, so no PHP code was touched.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run &lt;code&gt;composer update drupal/mcp_server mcp/sdk&lt;/code&gt; to pick up the new constraint. Confirm the installed &lt;code&gt;mcp/sdk&lt;/code&gt; version satisfies:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;&amp;quot;mcp/sdk&amp;quot;: &amp;quot;^0.7.1 || ^0.8&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If your project's lock file still resolves to &lt;code&gt;0.6.0&lt;/code&gt; or &lt;code&gt;0.7.0&lt;/code&gt;, update it to clear CVE-2026-53965.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
