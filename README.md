@@ -1,24 +1,24 @@
-**TL;DR:** [1116 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1120 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_261 summaries · 13 new this week_
-
-- [#3592128: Remove experimental Canvas Headless properties and CLI flag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md)
-- [#3592097: Include language alternates in Headless content API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592097.md)
-- [#3592115: Add Angular support to the Headless SDK and templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592115.md)
-
 ### Drupal AI
 
-_161 summaries · 29 new this week_
+_164 summaries · 32 new this week_
 
-- [#3583028: Accept integer map keys and any entity as an entity input](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583028.md)
-- [#3583012: Ship a use-drupal-tools agent skill so agents discover, inspect, and run Tool...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583012.md)
-- [#3583048: Constraints declared on a ListInputDefinition are never validated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583048.md)
+- [#3583040: A required list rejects the empty array its JSON Schema allows](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583040.md)
+- [#3585917: Tool call responses are silently dropped when the handler renders anything...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585917.md)
+- [#3583058: Set Restrict Access on Administer Tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583058.md)
+
+### Drupal Canvas
+
+_262 summaries · 13 new this week_
+
+- [#3592101: Make React Code Components portable across Drupal and headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md)
+- [#3592128: Remove experimental Canvas Headless properties and CLI flag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md)
+- [#3592097: Include language alternates in Headless content API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592097.md)
 
 ### Drupal Core
 

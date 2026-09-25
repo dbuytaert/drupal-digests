@@ -5,6 +5,76 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592101: Make React Code Components portable across Drupal and headless frontends</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md</link>
+      <guid isPermaLink="false">project/canvas#3592101</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 25 Sep 2026 15:30:05 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592101"&gt;#3592101&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;React Code Components (the small React components authors write for Canvas) previously had to use Drupal-specific APIs to read page metadata, site branding, and content, which meant they could not be reused as-is in a headless frontend. This change makes the same component code work unmodified in both Drupal-rendered pages and React-based headless applications (Next.js, TanStack Start, Astro). Existing components keep working in Drupal and in Canvas Workbench previews without any changes; the &lt;code&gt;canvas pull&lt;/code&gt; CLI command can also automatically rewrite eligible components to the new APIs when the connected site and installed package support it. Headless applications also gain a same-origin JSON:API proxy so browser-side requests (including draft/preview reads) can reach Drupal safely without exposing credentials.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;getPageData()&lt;/code&gt;, &lt;code&gt;getSiteData()&lt;/code&gt;, &lt;code&gt;new JsonApiClient()&lt;/code&gt;, &lt;code&gt;Region&lt;/code&gt;, and &lt;code&gt;RegionsProvider&lt;/code&gt; are deprecated; they keep working in Drupal-rendered Code Components and Workbench but throw actionable migration errors in headless React apps.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drupal-canvas/react&lt;/code&gt; exports &lt;code&gt;usePageContext()&lt;/code&gt;, &lt;code&gt;useSiteContext()&lt;/code&gt;, &lt;code&gt;CanvasContextProvider&lt;/code&gt;, &lt;code&gt;useJsonApiClient()&lt;/code&gt;, and &lt;code&gt;JsonApiClientProvider&lt;/code&gt; give React Code Components a single, framework-portable way to read page/site data and make JSON:API requests.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The core addition is a shared &lt;code&gt;CanvasContext&lt;/code&gt; (&lt;code&gt;{ page, site }&lt;/code&gt;) carried by a new &lt;code&gt;CanvasContextProvider&lt;/code&gt; (&lt;code&gt;packages/drupal-canvas/src/context.tsx&lt;/code&gt;) and read with &lt;code&gt;usePageContext()&lt;/code&gt;/&lt;code&gt;useSiteContext()&lt;/code&gt;. Rendering integrations, the Drupal island renderer, the headless &lt;code&gt;CanvasComponentTree&lt;/code&gt;, and both Workbench preview paths, mount the provider automatically; a missing provider or missing &lt;code&gt;page&lt;/code&gt;/&lt;code&gt;site&lt;/code&gt; value makes the hooks return &lt;code&gt;null&lt;/code&gt; and emit a deduplicated &lt;code&gt;warnOnce()&lt;/code&gt; warning rather than fetching data or defaulting. Headless SDK's &lt;code&gt;fetchPage()&lt;/code&gt; now returns this context alongside the component tree as &lt;code&gt;page.context&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;JSON:API access is consolidated the same way: &lt;code&gt;useJsonApiClient()&lt;/code&gt;/&lt;code&gt;JsonApiClientProvider&lt;/code&gt; (&lt;code&gt;packages/drupal-canvas/src/jsonapi-client-context.tsx&lt;/code&gt;) expose a shared &lt;code&gt;JsonApiClient&lt;/code&gt; built on &lt;code&gt;@drupal-api-client/json-api-client&lt;/code&gt; (&lt;code&gt;createJsonApiClient()&lt;/code&gt; in &lt;code&gt;jsonapi-client.ts&lt;/code&gt;), replacing separate client implementations previously used by the &lt;code&gt;drupal-canvas&lt;/code&gt; package and the headless SDK's draft client. Browser requests in headless apps go through a new same-origin proxy (&lt;code&gt;packages/headless/src/server/jsonapi-proxy.ts&lt;/code&gt;, and &lt;code&gt;jsonapi-proxy.ts&lt;/code&gt;/&lt;code&gt;jsonapi-proxy.test.ts&lt;/code&gt; in &lt;code&gt;drupal-canvas&lt;/code&gt;) that authenticates from the draft-preview session cookie, restricts requests to the configured backend and endpoint set, and keeps authenticated responses out of shared caches.&lt;/p&gt;
+&lt;p&gt;Legacy API compatibility is enforced with an explicit runtime marker rather than environment sniffing: &lt;code&gt;declareCanvasRuntime()&lt;/code&gt;/&lt;code&gt;getCanvasRuntime()&lt;/code&gt; (&lt;code&gt;packages/drupal-canvas/src/runtime.ts&lt;/code&gt;) is set by Drupal and Workbench integrations, and &lt;code&gt;assertLegacyRuntime()&lt;/code&gt; (&lt;code&gt;migration.ts&lt;/code&gt;) throws an actionable error, including an AI-agent migration prompt, when &lt;code&gt;getPageData()&lt;/code&gt;, &lt;code&gt;getSiteData()&lt;/code&gt;, or &lt;code&gt;new JsonApiClient()&lt;/code&gt; is invoked outside those two environments. On the PHP side, &lt;code&gt;CanvasContentContextBuilder&lt;/code&gt; and changes to &lt;code&gt;CodeComponentDataProvider&lt;/code&gt; and &lt;code&gt;SiteDataController&lt;/code&gt; supply this context data and advertise &lt;code&gt;capabilities.contextHooks&lt;/code&gt; from &lt;code&gt;/canvas/api/v0/site-data&lt;/code&gt;, which the CLI's pull codemod (&lt;code&gt;packages/cli/src/utils/getter-codemod.ts&lt;/code&gt;, &lt;code&gt;context-hook-support.ts&lt;/code&gt;) checks before rewriting a component's safe, unconditional &lt;code&gt;getPageData()&lt;/code&gt;/&lt;code&gt;getSiteData()&lt;/code&gt; calls to the new hooks. &lt;code&gt;Region&lt;/code&gt; and &lt;code&gt;RegionsProvider&lt;/code&gt; are deprecated in favor of the page-variants model from ADR 19.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No action is required to keep existing Code Components working in Drupal or Workbench. To make a component portable to headless frontends, migrate off the deprecated APIs:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-tsx"&gt;// Before
+import { getPageData, getSiteData } from 'drupal-canvas';
+
+// After
+import { usePageContext, useSiteContext } from 'drupal-canvas/react';
+
+export default function PageHeader() {
+  const page = usePageContext();
+  const site = useSiteContext();
+  if (!page || !site) return null;
+  return (
+    &amp;lt;header&amp;gt;
+      &amp;lt;a href={site.branding.homeUrl}&amp;gt;{site.branding.siteName}&amp;lt;/a&amp;gt;
+      &amp;lt;h1&amp;gt;{page.pageTitle}&amp;lt;/h1&amp;gt;
+    &amp;lt;/header&amp;gt;
+  );
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Replace direct client construction the same way:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-tsx"&gt;// Before
+const client = new JsonApiClient({ baseUrl });
+
+// After
+import { useJsonApiClient } from 'drupal-canvas/react';
+const client = useJsonApiClient();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Running &lt;code&gt;canvas pull&lt;/code&gt; against a site that advertises &lt;code&gt;capabilities.contextHooks&lt;/code&gt; (and with &lt;code&gt;drupal-canvas/react&lt;/code&gt; installed) converts eligible files automatically and reports any calls it could not safely convert.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 19, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;ankithashetty (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592128: Remove experimental Canvas Headless properties and CLI flag</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md</link>
       <guid isPermaLink="false">project/canvas#3592128</guid>
@@ -761,42 +831,6 @@ CANVAS_INCLUDE_BRAND_KIT=false
 &lt;li&gt;tim.plunkett (Acquia)&lt;/li&gt;
 &lt;li&gt;f.mazeikis&lt;/li&gt;
 &lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591970: Components library UI is broken if a single component preview rendering fails: treat them as "errored" instead so they cannot be placed but the listing is still functional</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591970.md</link>
-      <guid isPermaLink="false">project/canvas#3591970</guid>
-      <pubDate>Mon, 24 Aug 2026 10:56:28 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591970"&gt;#3591970&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In Canvas, if a single component's preview render failed (for example, a Views block whose display requires URL arguments that Canvas cannot supply), the entire Components library UI broke and became unusable, blocking editors from placing any component at all. Now such a component is simply marked as &amp;quot;broken&amp;quot; and excluded from placement, while every other component in the library keeps working normally.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The crash happened in &lt;code&gt;Component::normalizeForClientSide()&lt;/code&gt;. Previously, only components already known to be broken via &lt;code&gt;ComponentSourceInterface::isBroken()&lt;/code&gt; were wrapped in a try/catch; components that passed that check but then threw during &lt;code&gt;getClientSideInfo()&lt;/code&gt; or during &lt;code&gt;RendererInterface::renderInIsolation()&lt;/code&gt; were not caught, so an uncaught &lt;code&gt;\Throwable&lt;/code&gt; bubbled up and turned the whole &lt;code&gt;ApiConfigControllers::list()&lt;/code&gt; response into a 500, taking down the entire library listing.&lt;/p&gt;
-&lt;p&gt;The fix unifies both code paths (the &amp;quot;known broken&amp;quot; branch and the &amp;quot;renders preview&amp;quot; branch) under a single &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch (\Throwable $e)&lt;/code&gt; block, so any crash during preview building or rendering is now caught and converted into a per-component &amp;quot;broken&amp;quot; state via &lt;code&gt;RenderSafeComponentContainer::handleComponentException()&lt;/code&gt;, rather than propagating. &lt;code&gt;EnforcedResponseException&lt;/code&gt; and &lt;code&gt;FormAjaxException&lt;/code&gt; are explicitly re-thrown rather than swallowed, since those are Drupal Form API flow-control exceptions that must keep bubbling (noted as a workaround pending &lt;a href="https://www.drupal.org/node/2367555"&gt;#2367555&lt;/a&gt;). A related &lt;code&gt;@todo&lt;/code&gt; references &lt;a href="https://www.drupal.org/node/3521041"&gt;#3521041&lt;/a&gt; for eventually simplifying the &lt;code&gt;RenderSafeComponentContainer&lt;/code&gt; wrapping logic itself.&lt;/p&gt;
-&lt;p&gt;Test coverage was added: &lt;code&gt;CanvasTestBlockInputValidatableCrash&lt;/code&gt; gained a static &lt;code&gt;$forceCrash&lt;/code&gt; flag so a block can be made to crash unconditionally (mirroring a Views-backed block crashing while building its preview), and &lt;code&gt;BlockComponentTest::testCrashingPreviewDoesNotBreakComponentList()&lt;/code&gt; asserts that the crashing component is reported with &lt;code&gt;broken =&amp;gt; TRUE&lt;/code&gt; and a &amp;quot;Component failed to render&amp;quot; message, while unrelated components in the same listing remain present and &lt;code&gt;broken =&amp;gt; FALSE&lt;/code&gt;.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 20, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;fjgarlin (Drupal Association)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

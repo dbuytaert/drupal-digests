@@ -5,6 +5,112 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583040: A required list rejects the empty array its JSON Schema allows</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583040.md</link>
+      <guid isPermaLink="false">project/tool#3583040</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 25 Sep 2026 15:40:49 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583040"&gt;#3583040&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Tool API's validation for required list inputs and outputs previously disagreed with the JSON Schema it publishes. A required list (for example, search results, validation problems, or changed IDs) is advertised in the schema as accepting an empty array, but validation rejected &lt;code&gt;[]&lt;/code&gt; with &amp;quot;This value should not be null.&amp;quot; This meant a tool could return a valid empty result and still fail its own output validation, or a client following the published schema could send a value the tool would reject anyway. Validation now matches the schema: a required list accepts &lt;code&gt;[]&lt;/code&gt;, and only &lt;code&gt;NULL&lt;/code&gt; (a genuinely missing value) is rejected. Required maps are unaffected: an empty object still fails validation as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; A required list input or output (&lt;code&gt;OutputDefinition&lt;/code&gt;/&lt;code&gt;InputDefinition&lt;/code&gt; with &lt;code&gt;multiple: TRUE&lt;/code&gt;, or &lt;code&gt;ListInputDefinition&lt;/code&gt;/&lt;code&gt;ListOutputDefinition&lt;/code&gt;) now validates successfully when set to an empty array &lt;code&gt;[]&lt;/code&gt;; only &lt;code&gt;NULL&lt;/code&gt; is rejected. Required maps are unchanged and still reject an empty value.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause is core's &lt;code&gt;NotNullConstraintValidator&lt;/code&gt;, which Tool API inherits as a default constraint whenever a definition is marked required. That validator treats any empty &lt;code&gt;ListInterface&lt;/code&gt; or &lt;code&gt;ComplexDataInterface&lt;/code&gt; as &lt;code&gt;NULL&lt;/code&gt; before checking for nullness, so an empty list tripped the same rejection as a genuinely missing value, even though typed data's &amp;quot;not empty&amp;quot; reading of required diverges from JSON Schema's &amp;quot;key is present&amp;quot; reading.&lt;/p&gt;
+&lt;p&gt;The fix is in &lt;code&gt;EffectiveDataDefinition&lt;/code&gt;: when building the effective typed data definition for validation, a list definition (anything implementing &lt;code&gt;ListDataDefinitionInterface&lt;/code&gt;) is no longer marked required, which keeps core's &lt;code&gt;NotNull&lt;/code&gt; off of it entirely. &lt;code&gt;TypedInputsTrait::validateInputValue()&lt;/code&gt; and &lt;code&gt;TypedOutputsTrait::validateOutputValue()&lt;/code&gt; each detect the case that &lt;code&gt;NotNull&lt;/code&gt; would otherwise have caught (a &lt;code&gt;NULL&lt;/code&gt; value against a required list definition) and explicitly run a &lt;code&gt;NotNull&lt;/code&gt; check via the new &lt;code&gt;ValueViolationsTrait::validateListNotNull()&lt;/code&gt;, so a &lt;code&gt;NULL&lt;/code&gt; list is still rejected with the same message as before. Maps keep their required flag unchanged: they're objects with named properties rather than sequences, and core already skips validating the properties of an empty map (drupal/drupal&lt;a href="https://www.drupal.org/node/3256536"&gt;#3256536&lt;/a&gt;), so an empty required map still fails.&lt;/p&gt;
+&lt;p&gt;A tool that needs at least one item still declares that explicitly with a &lt;code&gt;Count&lt;/code&gt; constraint, which the normalizer publishes as &lt;code&gt;minItems&lt;/code&gt; in the JSON Schema, for example &lt;code&gt;constraints: ['Count' =&amp;gt; ['min' =&amp;gt; 1]]&lt;/code&gt;.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If a tool relies on a required list rejecting an empty value, add an explicit &lt;code&gt;Count&lt;/code&gt; constraint rather than depending on the removed implicit behavior:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new InputDefinition('entity:node', 'Nodes', 'The nodes to export.', required: TRUE, multiple: TRUE, constraints: ['Count' =&amp;gt; ['min' =&amp;gt; 1]]);
+// {&amp;quot;type&amp;quot;: &amp;quot;array&amp;quot;, &amp;quot;minItems&amp;quot;: 1, ...}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;No changes are needed for tools that already treat an empty required list as valid, or for required maps, whose validation is unchanged.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585917: Tool call responses are silently dropped when the handler renders anything (fiber suspension misread as scheduling protocol)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585917.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585917</guid>
+      <pubDate>Fri, 25 Sep 2026 14:44:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585917"&gt;#3585917&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the MCP Server module, a &lt;code&gt;tools/call&lt;/code&gt; (and &lt;code&gt;prompts/get&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;completion/complete&lt;/code&gt;) request whose handler rendered markup or loaded an entity could complete its work successfully but never send a response back to the client. The client would see nothing, and could wrongly retry the call (creating a duplicate) or assume the operation had failed when it had actually succeeded. This is now fixed: any handler that triggers Drupal's own internal suspension mechanics (rendering, entity loading, theme registry lookups) returns its result normally instead of silently dropping it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The MCP PHP SDK dispatches each request inside a PHP &lt;code&gt;Fiber&lt;/code&gt; and interprets any &lt;code&gt;Fiber::suspend()&lt;/code&gt; call from within the handler as a &lt;code&gt;ClientGateway&lt;/code&gt; operation addressed back to the client (for example, a sampling request). Drupal 10.3+'s own internals use the same mechanism for unrelated purposes: the renderer and &lt;code&gt;EntityStorageBase::loadMultiple()&lt;/code&gt; suspend with &lt;code&gt;FiberResumeType::Immediate&lt;/code&gt; while resolving placeholders, and the theme registry suspends with no payload on a cold cache. When a tool handler triggered one of these, the SDK misread it as its own scheduling protocol, logged &lt;code&gt;Fiber yielded unexpected payload&lt;/code&gt;, and answered the request as &lt;code&gt;text/event-stream&lt;/code&gt; instead of &lt;code&gt;application/json&lt;/code&gt;, so a JSON-only client never saw the result.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;Drupal\mcp_server\Capability\FiberShield&lt;/code&gt;, which runs the handler in its own inner fiber. It inspects each suspended payload: if it's an array with a &lt;code&gt;type&lt;/code&gt; key (a genuine &lt;code&gt;ClientGateway&lt;/code&gt; operation), it's re-yielded up to the SDK and the reply is passed back down; anything else (Drupal's internal suspends) is resumed immediately in place, exactly as Drupal's synchronous render path already does. &lt;code&gt;ShieldedReferenceHandler&lt;/code&gt; wraps the SDK's &lt;code&gt;ReferenceHandler&lt;/code&gt; to cover &lt;code&gt;tools/call&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt;, and &lt;code&gt;resources/read&lt;/code&gt;, which all flow through it, and &lt;code&gt;ShieldedCompletionProvider&lt;/code&gt; wraps each argument-completion provider individually because &lt;code&gt;completion/complete&lt;/code&gt; is dispatched directly by the SDK rather than through the reference handler. &lt;code&gt;McpServerFactory&lt;/code&gt; wires both decorators in. The issue notes upstream declined to fix this in the SDK itself (&lt;code&gt;php-sdk#505&lt;/code&gt;), so the module shields its own dispatch paths instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 18, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;fago (drunomics)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;chadmandoo&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583058: Set Restrict Access on Administer Tool</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583058.md</link>
+      <guid isPermaLink="false">project/tool#3583058</guid>
+      <category>Site owners</category>
+      <pubDate>Fri, 25 Sep 2026 14:06:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583058"&gt;#3583058&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;administer tool&lt;/code&gt; permission, which grants access to the Tool Explorer UI and the ability to execute any tool registered on the site, is now marked as a restricted permission. A security review found that this permission was not flagged despite the module's own documentation already warning that it should only be granted to trusted roles, since executing a tool can read or write data or trigger processes. Site owners will now see this permission called out with Drupal's standard &amp;quot;restrict access&amp;quot; warning on the permissions page, making it clearer that it should be treated as administrative and not handed out broadly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; The &lt;code&gt;administer tool&lt;/code&gt; permission is now marked &lt;code&gt;restrict access: true&lt;/code&gt;, so Drupal flags it as a security risk on the permissions administration page.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is a one-line addition of &lt;code&gt;restrict access: true&lt;/code&gt; to the &lt;code&gt;administer tool&lt;/code&gt; entry in &lt;code&gt;tool.permissions.yml&lt;/code&gt;. This is Drupal's standard mechanism (&lt;code&gt;hook_permission()&lt;/code&gt;/&lt;code&gt;*.permissions.yml&lt;/code&gt; &lt;code&gt;restrict access&lt;/code&gt; key) for surfacing a warning icon and description on &lt;code&gt;admin/people/permissions&lt;/code&gt; when a role is granted a permission that can affect site security. It does not change any access-checking logic: routes in &lt;code&gt;tool_explorer.routing.yml&lt;/code&gt; still gate on &lt;code&gt;_permission: 'administer tool'&lt;/code&gt; exactly as before. The issue author noted the permission is currently only consumed by the &lt;code&gt;tool_explorer&lt;/code&gt; submodule.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583028: Accept integer map keys and any entity as an entity input</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583028.md</link>
       <guid isPermaLink="false">project/tool#3583028</guid>
@@ -768,111 +874,6 @@ new \Drupal\tool\TypedData\ListInputDefinition(...)  // or ListOutputDefinition
 &lt;li&gt;mglaman (Acquia)&lt;/li&gt;
 &lt;li&gt;jaydub (Principal Financial Group)&lt;/li&gt;
 &lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583036: Add --format=json to tool:list and tool:search</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583036.md</link>
-      <guid isPermaLink="false">project/tool#3583036</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 22 Sep 2026 14:54:33 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583036"&gt;#3583036&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module's &lt;code&gt;drush tool:list&lt;/code&gt; and &lt;code&gt;drush tool:search&lt;/code&gt; commands now support &lt;code&gt;--format=json&lt;/code&gt;, in addition to the existing &lt;code&gt;table&lt;/code&gt; and &lt;code&gt;markdown&lt;/code&gt; formats. Previously these commands only produced a table (which truncates descriptions at 60 characters) or interleaved markdown, neither of which round-trips cleanly through &lt;code&gt;jq&lt;/code&gt; or a JSON decoder. This matters for automated agents that discover tools via &lt;code&gt;tool:list&lt;/code&gt;/&lt;code&gt;tool:search&lt;/code&gt; and then inspect one with &lt;code&gt;tool:info --format=json&lt;/code&gt;: they can now stay in JSON the whole way through instead of scraping rendered text.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;tool:list&lt;/code&gt; and &lt;code&gt;tool:search&lt;/code&gt; Drush commands accept &lt;code&gt;--format=json&lt;/code&gt;, emitting a JSON array of tool summaries (or &lt;code&gt;[]&lt;/code&gt; when empty).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change introduces &lt;code&gt;ToolOutputTrait::buildToolSummary()&lt;/code&gt;, a single private method that builds the per-tool fields (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;operation&lt;/code&gt;, &lt;code&gt;destructive&lt;/code&gt;, &lt;code&gt;provider&lt;/code&gt;, &lt;code&gt;requirements&lt;/code&gt;) shared by &lt;code&gt;tool:info&lt;/code&gt;, &lt;code&gt;tool:list&lt;/code&gt;, and &lt;code&gt;tool:search&lt;/code&gt;. &lt;code&gt;ToolInfoCommand::outputInfoAsJson()&lt;/code&gt; now calls this shared builder and appends its &lt;code&gt;inputs&lt;/code&gt;/&lt;code&gt;outputs&lt;/code&gt;/schema fields on top, while a new &lt;code&gt;ToolOutputTrait::outputToolsAsJson()&lt;/code&gt; maps the builder over the filtered definitions for &lt;code&gt;tool:list&lt;/code&gt; and &lt;code&gt;tool:search&lt;/code&gt; and writes the array with &lt;code&gt;Json::encode()&lt;/code&gt;. This keeps the three commands' JSON field names from drifting apart since only one place declares them.&lt;/p&gt;
-&lt;p&gt;Both commands special-case &lt;code&gt;--format=json&lt;/code&gt; before their existing &amp;quot;no tools found&amp;quot; checks, so an empty result set still prints the JSON document &lt;code&gt;[]&lt;/code&gt; and exits 0, rather than the prose message used by the table and markdown formats. Neither command prints its usual trailing summary line (&lt;code&gt;Total tools: N&lt;/code&gt; or &lt;code&gt;Found N tool(s) matching: ...&lt;/code&gt;) in JSON mode, keeping the output a single parseable document; consumers get the count from the array length. The &lt;code&gt;requirements&lt;/code&gt; field mirrors the &lt;code&gt;RequirementStatus::forTool()&lt;/code&gt; work from &lt;a href="https://www.drupal.org/node/3583025"&gt;#3583025&lt;/a&gt;, and &lt;code&gt;--operation&lt;/code&gt;/&lt;code&gt;--unmet&lt;/code&gt; filtering apply to the JSON output exactly as they do to the table.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585930: Default settings omit langcode required for translatable server_instructions</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585930.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585930</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 22 Sep 2026 14:23:59 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585930"&gt;#3585930&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Installing the mcp_server module on a site that enables strict configuration constraint validation, such as via recipes, &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; with constraints enabled, or Drupal's test-site installer, previously failed with a schema error because the shipped default configuration for &lt;code&gt;mcp_server.settings&lt;/code&gt; did not declare a language code even though it contains a translatable value (&lt;code&gt;server_instructions&lt;/code&gt;). The default configuration now ships with &lt;code&gt;langcode: en&lt;/code&gt;, so installation succeeds. Existing installed sites are unaffected since this only changes the shipped install default, not active configuration, and no update hook was added.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Shipped default configuration &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt; now includes &lt;code&gt;langcode: en&lt;/code&gt;, since the schema for &lt;code&gt;mcp_server.settings&lt;/code&gt; marks &lt;code&gt;server_instructions&lt;/code&gt; as translatable and Drupal 10.3+ requires a langcode on any simple config object with translatable values.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;server_instructions&lt;/code&gt; key in &lt;code&gt;mcp_server.settings&lt;/code&gt; config schema is typed as &lt;code&gt;text&lt;/code&gt;, which is translatable, and Drupal 10.3+'s &lt;code&gt;LangcodeRequiredIfTranslatableValues&lt;/code&gt; constraint requires any simple config object containing translatable values to declare a &lt;code&gt;langcode&lt;/code&gt;. The shipped &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt; omitted it, so &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; raised &amp;quot;The mcp_server.settings config object must specify a language code, because it contains translatable values&amp;quot; whenever constraint validation ran during install.&lt;/p&gt;
-&lt;p&gt;The fix adds a single &lt;code&gt;langcode: en&lt;/code&gt; line to the top of &lt;code&gt;config/install/mcp_server.settings.yml&lt;/code&gt;. A new kernel test, &lt;code&gt;McpDefaultSettingsSchemaTest&lt;/code&gt;, installs the module's config and runs the same &lt;code&gt;ConfigSchemaChecker&lt;/code&gt; (instantiated with constraints enabled, mirroring the test-site installer path) against it, then asserts the &lt;code&gt;langcode&lt;/code&gt; is &lt;code&gt;en&lt;/code&gt; and that &lt;code&gt;server_instructions&lt;/code&gt; is still marked translatable in the typed config schema, guarding against regressions on either front.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 20, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;jmcerda (Wilkes &amp;amp; Liberty)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585932: "mcp_prompt_config" entity type does not exist on Drupal 10 and 11.0</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585932.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585932</guid>
-      <pubDate>Tue, 22 Sep 2026 02:39:34 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585932"&gt;#3585932&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Sites running the MCP Server module on Drupal 10.x or 11.0 had the &amp;quot;MCP Prompts&amp;quot; feature completely broken: the module's logs filled with &amp;quot;Failed to load prompt configs&amp;quot; errors and the Prompts admin tab crashed with a &lt;code&gt;PluginNotFoundException&lt;/code&gt;. This is now fixed, so prompts load and the Prompts tab works again on Drupal 10 and 11.0, not just 11.1 and later.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;mcp_prompt_config&lt;/code&gt; config entity was declared only via the PHP &lt;code&gt;#[ConfigEntityType]&lt;/code&gt; attribute. Drupal core only reads entity type attributes starting in 11.1; on 10.x and 11.0 the entity type manager relies on annotation-only discovery, so the entity type never registered and both &lt;code&gt;McpServerFactory::loadEnabledPromptConfigs()&lt;/code&gt; and the &lt;code&gt;mcp_server_ui&lt;/code&gt; Prompts listing route (which uses &lt;code&gt;_entity_list: mcp_prompt_config&lt;/code&gt;) failed.&lt;/p&gt;
-&lt;p&gt;The fix adds a &lt;code&gt;@ConfigEntityType&lt;/code&gt; docblock annotation to &lt;code&gt;Drupal\mcp_server\Entity\McpPromptConfig&lt;/code&gt; that mirrors the existing attribute (same &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;config_prefix&lt;/code&gt;, &lt;code&gt;entity_keys&lt;/code&gt;, &lt;code&gt;handlers&lt;/code&gt;, and &lt;code&gt;config_export&lt;/code&gt;), so 10.x and 11.0 discover the entity via the annotation while 11.1+ continues to use the attribute. This is the same approach already applied in the &lt;code&gt;mcp_server_tool_bridge&lt;/code&gt; module.&lt;/p&gt;
-&lt;p&gt;To actually catch this class of regression, &lt;code&gt;.gitlab-ci.yml&lt;/code&gt; now opts into running the previous core major on every pipeline (&lt;code&gt;OPT_IN_TEST_PREVIOUS_MAJOR&lt;/code&gt;, &lt;code&gt;_AUTORUN_PREVIOUS_MAJOR: all&lt;/code&gt;, &lt;code&gt;CORE_PREVIOUS_PHP_MIN: 8.3&lt;/code&gt;) and &lt;code&gt;composer.json&lt;/code&gt; widens the &lt;code&gt;phpstan&lt;/code&gt;/&lt;code&gt;mglaman/phpstan-drupal&lt;/code&gt; constraints so those tools install under Drupal 10's PHP baseline. Running against Drupal 10 also exposed that its bundled PHPUnit 9.6 ignores the &lt;code&gt;#[Group]&lt;/code&gt;, &lt;code&gt;#[CoversClass]&lt;/code&gt;, and &lt;code&gt;#[DataProvider]&lt;/code&gt; PHP attributes several tests rely on, so those tests gained matching docblock tags (&lt;code&gt;@group&lt;/code&gt;, &lt;code&gt;@coversDefaultClass&lt;/code&gt;, &lt;code&gt;@dataProvider&lt;/code&gt;) alongside the attributes.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 22, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
