@@ -30,7 +30,7 @@ _260 summaries · 12 new this week_
 
 ### Drupal CMS
 
-_95 summaries · 3 new this week_
+_95 summaries · 2 new this week_
 
 - [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
 - [#3591466: Installing in another language does not translate shipped configuration: the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591466.md)
