@@ -5,6 +5,51 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4 ($autoescape) must be of type bool, null given</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md</link>
+      <guid isPermaLink="false">node/3625969</guid>
+      <pubDate>Sat, 26 Sep 2026 07:34:43 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 10.6.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +72/−14 · php +72/−14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b4659e2c479671dcaab28152ed535feba75dacb4"&gt;b4659e2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3625969"&gt;#3625969&lt;/a&gt; · 21 contributors · 53 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 55&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Twig 3.30 changed how its &lt;code&gt;escape&lt;/code&gt;/&lt;code&gt;e&lt;/code&gt; filter compiles, and Drupal's mechanism for swapping in its own &lt;code&gt;MarkupInterface&lt;/code&gt;-aware escaping broke as a result: every templated page threw a &lt;code&gt;TypeError&lt;/code&gt; and produced a white screen of death. This fix restores compatibility so sites can run Drupal with Twig 3.30 (or Twig 3.28/3.29) without the crash. Anyone who had pinned &lt;code&gt;twig/twig&lt;/code&gt; to an older version as a workaround can lift that pin once they update to a core release containing this fix.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Twig 3.30 introduced a dedicated &lt;code&gt;EscapeFilter&lt;/code&gt; node that compiles directly to &lt;code&gt;$this-&amp;gt;escaper-&amp;gt;escape(...)&lt;/code&gt;. Drupal's &lt;code&gt;TwigNodeVisitor::leaveNode()&lt;/code&gt; previously handled &lt;code&gt;escape&lt;/code&gt;/&lt;code&gt;e&lt;/code&gt; filters by swapping the compiled node's callable to Drupal's own &lt;code&gt;drupal_escape&lt;/code&gt; filter, but leaving Twig's own &lt;code&gt;EscapeFilter&lt;/code&gt; node in place to build the call. Twig 3.30 still emitted the direct &lt;code&gt;escaper-&amp;gt;escape()&lt;/code&gt; call, but built its arguments for &lt;code&gt;drupal_escape&lt;/code&gt; (which needs the environment as its first parameter), so &lt;code&gt;$this-&amp;gt;env&lt;/code&gt; was inserted as an extra leading argument, every other argument shifted over, and &lt;code&gt;null&lt;/code&gt; (the charset) ended up in the &lt;code&gt;$autoescape&lt;/code&gt; boolean slot.&lt;/p&gt;
+&lt;p&gt;Rather than swapping the callable on Twig's own escape node at parse time, &lt;code&gt;TwigExtension::getFilters()&lt;/code&gt; now registers Drupal's &lt;code&gt;escapeFilter&lt;/code&gt; method directly under the names &lt;code&gt;escape&lt;/code&gt; and &lt;code&gt;e&lt;/code&gt; (in addition to &lt;code&gt;drupal_escape&lt;/code&gt;), reusing a shared &lt;code&gt;$escape_options&lt;/code&gt; array. Because Twig loads Drupal's extension after its own &lt;code&gt;EscaperExtension&lt;/code&gt;, and later-registered filters of the same name win, Twig's built-in escape node/filter is overridden outright and never compiled, so the argument-shifting bug can't occur regardless of Twig version. A new &lt;code&gt;TwigExtension::escapeFilterIsSafe()&lt;/code&gt; static method replaces the previous reliance on Twig's internal &lt;code&gt;twig_escape_filter_is_safe&lt;/code&gt; helper as the &lt;code&gt;is_safe_callback&lt;/code&gt;. &lt;code&gt;TwigNodeVisitor::leaveNode()&lt;/code&gt; was simplified accordingly: it no longer swaps the node's callable, it just checks whether the filter name is &lt;code&gt;escape&lt;/code&gt;, &lt;code&gt;e&lt;/code&gt;, or &lt;code&gt;drupal_escape&lt;/code&gt; to set &lt;code&gt;$this-&amp;gt;skipRenderVarFunction&lt;/code&gt;. A new &lt;code&gt;testEscapeFilterOverride()&lt;/code&gt; test in &lt;code&gt;TwigExtensionTest&lt;/code&gt; asserts that both explicit (&lt;code&gt;|escape&lt;/code&gt;, &lt;code&gt;|e&lt;/code&gt;) and automatic escaping compile to Drupal's own &lt;code&gt;escapeFilter&lt;/code&gt; method.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: September 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;li&gt;ykhalid&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The fix converged quickly through parallel experimentation: gáborhojtsy opened an initial MR (!17242) that kept the parse-time callable-swap approach but built a fresh &lt;code&gt;FilterExpression&lt;/code&gt; node, based on a suggestion from the upstream Twig issue thread. longwave then proposed an alternative in MR !17244, overriding the &lt;code&gt;escape&lt;/code&gt;/&lt;code&gt;e&lt;/code&gt; filter definitions themselves instead of touching the node visitor's callable-swap logic, noting it &amp;quot;should be more performant&amp;quot;. catch committed longwave's MR (!17244) to &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;12.0.x&lt;/code&gt;, commenting &amp;quot;Agreed with taking this out of runtime.&amp;quot; godotislate and f0ns independently verified both MRs against real Twig 3.28/3.30 behavior (f0ns compared escaping output across several template constructs on a live 11.4.7 site) before the backports to 11.x, 11.4.x and 10.6.x followed.&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[{&amp;quot;uid&amp;quot;: 4166, &amp;quot;username&amp;quot;: &amp;quot;gábor hojtsy&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Opus&amp;quot;, &amp;quot;cid&amp;quot;: 16784606}, {&amp;quot;uid&amp;quot;: 205645, &amp;quot;username&amp;quot;: &amp;quot;phenaproxima&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Opus&amp;quot;, &amp;quot;cid&amp;quot;: 16784631}, {&amp;quot;uid&amp;quot;: 246492, &amp;quot;username&amp;quot;: &amp;quot;longwave&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Claude Opus 5.5&amp;quot;, &amp;quot;cid&amp;quot;: 16784698}]&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3581349: Remove Syndicate block config</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md</link>
       <guid isPermaLink="false">node/3581349</guid>
@@ -1007,57 +1052,6 @@ lifecycle_link: https://www.drupal.org/node/3223395#s-toolbar
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3575461: Cleanup any remaining deprecations </title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575461.md</link>
-      <guid isPermaLink="false">node/3575461</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 14 Sep 2026 17:16:01 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 46 files, +84/−1654 · php +84/−1562 · css +0/−71 · yml +0/−21&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4371e3ce571b9040abce4cb48ae87ddf1195d285"&gt;4371e3c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3575461"&gt;#3575461&lt;/a&gt; · 8 contributors · 31 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 8 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is a housekeeping task ahead of Drupal 12: it deletes a large batch of already-deprecated core functions, classes, and constructor arguments that carried a &amp;quot;removed from drupal:12.0.0&amp;quot; notice. Nothing here changes behavior for sites using only supported, non-deprecated APIs. But any custom code, theme, or contributed module still calling one of the removed items (deprecated procedural hook implementations, the old &lt;code&gt;theme-settings.php&lt;/code&gt; discovery mechanism, the &lt;code&gt;node_search&lt;/code&gt;/&lt;code&gt;help_search&lt;/code&gt; plugin classes, the legacy &lt;code&gt;'rest'&lt;/code&gt; CSRF token key, or several constructor arguments that carried BC shims) will now hit a fatal error instead of a deprecation notice, so this code must be updated before running on current Drupal 12.x-dev.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Numerous deprecated functions, classes, and constructor arguments that were marked for removal in Drupal 12.0.0 have been deleted, including &lt;code&gt;_filter_tips()&lt;/code&gt;, &lt;code&gt;_field_create_entity_from_ids()&lt;/code&gt;, &lt;code&gt;field_form_field_config_edit_form_entity_builder()&lt;/code&gt;, &lt;code&gt;_content_translation_install_field_storage_definitions()&lt;/code&gt;, &lt;code&gt;language_process_language_select()&lt;/code&gt;, &lt;code&gt;locale_system_file_system_settings_submit()&lt;/code&gt;, &lt;code&gt;_media_get_add_url()&lt;/code&gt;, &lt;code&gt;media_filter_format_edit_form_validate()&lt;/code&gt;, &lt;code&gt;_menu_ui_node_save()&lt;/code&gt; and several other &lt;code&gt;menu_ui&lt;/code&gt; form callbacks, the &lt;code&gt;Drupal\help\Plugin\Search\HelpSearch&lt;/code&gt; and &lt;code&gt;Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; plugin classes, &lt;code&gt;Drupal\Core\Installer\InstallerRouteBuilder&lt;/code&gt;, &lt;code&gt;Drupal\Core\Runtime\DeprecatedAutoloadAccess&lt;/code&gt;, and the &lt;code&gt;Drupal\Composer\Generator\Builder\DrupalPinnedDevDependenciesBuilder&lt;/code&gt; metapackage builder.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Deprecated fallback code paths were removed from &lt;code&gt;RouteBuilder::__construct()&lt;/code&gt;, &lt;code&gt;ThemeAccessCheck::__construct()&lt;/code&gt;, &lt;code&gt;CommentAdminOverview::__construct()&lt;/code&gt;, &lt;code&gt;UserCancelForm::__construct()&lt;/code&gt; (its &lt;code&gt;$accountCancellation&lt;/code&gt; argument is now required), theme discovery via &lt;code&gt;theme-settings.php&lt;/code&gt;, the legacy &lt;code&gt;'rest'&lt;/code&gt; CSRF token key in &lt;code&gt;CsrfRequestHeaderAccessCheck&lt;/code&gt;, and the &lt;code&gt;package_manager.settings:executables&lt;/code&gt; config fallback in &lt;code&gt;ExecutableFinder&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The diff spans dozens of files and simply strips out the &lt;code&gt;@trigger_error(... E_USER_DEPRECATED)&lt;/code&gt; shims and the deprecated symbols they guarded, matching each item's original &amp;quot;removed from drupal:12.0.0&amp;quot; notice. Notable removals: the &lt;code&gt;Drupal\help\Plugin\Search\HelpSearch&lt;/code&gt; and &lt;code&gt;Drupal\node\Plugin\Search\NodeSearch&lt;/code&gt; plugin classes (superseded by the &lt;code&gt;search_help&lt;/code&gt;/&lt;code&gt;search_node&lt;/code&gt; modules), &lt;code&gt;Drupal\Core\Installer\InstallerRouteBuilder&lt;/code&gt;, &lt;code&gt;Drupal\Core\Runtime\DeprecatedAutoloadAccess&lt;/code&gt; (and the &lt;code&gt;$GLOBALS['autoloader']&lt;/code&gt; assignment in &lt;code&gt;DrupalKernel&lt;/code&gt;/runtime bootstrap that used it), and &lt;code&gt;DrupalPinnedDevDependenciesBuilder&lt;/code&gt; (&lt;code&gt;drupal/core-dev-pinned&lt;/code&gt; metapackage generation).&lt;/p&gt;
-&lt;p&gt;Several constructors lost their deprecated BC branches and now have stricter typed signatures: &lt;code&gt;RouteBuilder::__construct()&lt;/code&gt; only accepts &lt;code&gt;CheckProviderInterface&lt;/code&gt; (no more &lt;code&gt;ModuleHandlerInterface&lt;/code&gt; fallback or deprecated &lt;code&gt;moduleHandler&lt;/code&gt;/&lt;code&gt;controllerResolver&lt;/code&gt; service properties), &lt;code&gt;ThemeAccessCheck::__construct()&lt;/code&gt; requires &lt;code&gt;array $themes&lt;/code&gt;, &lt;code&gt;CommentAdminOverview::__construct()&lt;/code&gt; only accepts &lt;code&gt;PrivateTempStoreFactory&lt;/code&gt;, and &lt;code&gt;UserCancelForm::__construct()&lt;/code&gt; now requires &lt;code&gt;AccountCancellation $accountCancellation&lt;/code&gt; instead of treating it as optional. &lt;code&gt;CsrfRequestHeaderAccessCheck&lt;/code&gt; no longer accepts the legacy &lt;code&gt;'rest'&lt;/code&gt; CSRF token key. Theme hook discovery via a theme's &lt;code&gt;theme-settings.php&lt;/code&gt; file was removed from &lt;code&gt;collectThemeHookImplementations()&lt;/code&gt;, and &lt;code&gt;package_manager&lt;/code&gt;'s &lt;code&gt;ExecutableFinder::find()&lt;/code&gt; no longer falls back to &lt;code&gt;package_manager.settings:executables&lt;/code&gt; config for locating &lt;code&gt;rsync&lt;/code&gt;/&lt;code&gt;composer&lt;/code&gt;. A handful of standalone procedural functions (&lt;code&gt;_filter_tips()&lt;/code&gt;, &lt;code&gt;_field_create_entity_from_ids()&lt;/code&gt;, &lt;code&gt;field_form_field_config_edit_form_entity_builder()&lt;/code&gt;, &lt;code&gt;_content_translation_install_field_storage_definitions()&lt;/code&gt;, &lt;code&gt;language_process_language_select()&lt;/code&gt;, &lt;code&gt;locale_system_file_system_settings_submit()&lt;/code&gt;, &lt;code&gt;_media_get_add_url()&lt;/code&gt;, &lt;code&gt;media_filter_format_edit_form_validate()&lt;/code&gt;, &lt;code&gt;_menu_ui_node_save()&lt;/code&gt;, and three other &lt;code&gt;menu_ui&lt;/code&gt; form callbacks) were deleted outright, most of which already had non-deprecated hook-object replacements (e.g. &lt;code&gt;ContentTranslationHooks&lt;/code&gt;, &lt;code&gt;LanguageHooks&lt;/code&gt;, &lt;code&gt;MediaHooks&lt;/code&gt;, &lt;code&gt;MenuUiHooks&lt;/code&gt;). The deprecated &lt;code&gt;form&lt;/code&gt; asset library in &lt;code&gt;node.libraries.yml&lt;/code&gt; (and its &lt;code&gt;node.module.css&lt;/code&gt;) was also removed.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;SYMFONY_DEPRECATION_HELPER&lt;/code&gt; BC layer and the &lt;code&gt;ajax.js&lt;/code&gt; deprecation notices (still marked &amp;quot;removed from drupal:12.0.0&amp;quot;) were deliberately left in place, being handled separately in the postponed &lt;a href="https://www.drupal.org/node/3574681"&gt;#3574681&lt;/a&gt; and a still-open follow-up respectively. A further follow-up, &lt;a href="https://www.drupal.org/node/3623051"&gt;#3623051&lt;/a&gt;, was filed to clean up remaining references to the now-relocated Search plugins.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 14, 2026 (6 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Review by dcam caught two gaps in the original patch: the deprecation notices in &lt;code&gt;core/misc/ajax.js&lt;/code&gt; were left referencing version 12 without being removed, and the &lt;code&gt;SYMFONY_DEPRECATION_HELPER&lt;/code&gt; BC layer was overlooked, prompting a &amp;quot;Needs work&amp;quot; status. smustgrave acknowledged the missed &lt;code&gt;SYMFONY_DEPRECATION_HELPER&lt;/code&gt; item but deferred the &lt;code&gt;ajax.js&lt;/code&gt; deprecations pending a decision on whether they can be skipped given HTMX is the long-term goal. mondrake then argued the &lt;code&gt;SYMFONY_DEPRECATION_HELPER&lt;/code&gt; removal should happen instead in &lt;a href="https://www.drupal.org/node/3574681"&gt;#3574681&lt;/a&gt;, where the PHPUnit 13.5 migration MR was already handling it, out of concern that contrib test suites checking against Drupal 12 could hit a barrier if the constant disappeared before they update their own testing code; smustgrave and nicxvan agreed to leave it out of this issue. catch reviewed and committed the final version.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
