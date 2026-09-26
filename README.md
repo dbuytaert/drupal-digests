@@ -1,4 +1,4 @@
-**TL;DR:** [1120 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1125 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,23 +6,23 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_164 summaries · 32 new this week_
+_168 summaries · 36 new this week_
 
-- [#3583040: A required list rejects the empty array its JSON Schema allows](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583040.md)
-- [#3585917: Tool call responses are silently dropped when the handler renders anything...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585917.md)
-- [#3583058: Set Restrict Access on Administer Tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583058.md)
+- [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
+- [#3583060: Structure-reading constraints on a map input throw instead of validating](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583060.md)
+- [#3583035: tool:run sends the PHP output values, not the formatted result](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583035.md)
 
 ### Drupal Canvas
 
-_262 summaries · 13 new this week_
+_263 summaries · 14 new this week_
 
+- [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
 - [#3592101: Make React Code Components portable across Drupal and headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md)
 - [#3592128: Remove experimental Canvas Headless properties and CLI flag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md)
-- [#3592097: Include language alternates in Headless content API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592097.md)
 
 ### Drupal Core
 
-_599 summaries · 11 new this week_
+_599 summaries · 10 new this week_
 
 - [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
 - [#3621277: Update JavaScript dependencies for 12.0.0-beta1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621277.md)
