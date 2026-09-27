@@ -14,7 +14,7 @@ _169 summaries · 37 new this week_
 
 ### Drupal Core
 
-_600 summaries · 11 new this week_
+_600 summaries · 10 new this week_
 
 - [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
 - [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
