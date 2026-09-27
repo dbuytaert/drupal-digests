@@ -14,7 +14,7 @@ _97 summaries · 3 new this week_
 
 ### Drupal AI
 
-_169 summaries · 34 new this week_
+_169 summaries · 29 new this week_
 
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
 - [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
