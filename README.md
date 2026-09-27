@@ -1,12 +1,20 @@
-**TL;DR:** [1127 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1129 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal CMS
+
+_97 summaries · 3 new this week_
+
+- [#3591474: canvas_translate dependency in Drupal CMS 1.2 prevents auto updates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591474.md)
+- [#3591472: Fresh 2.2.0 projects cannot composer require anything: recipe unpacking drops...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591472.md)
+- [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
+
 ### Drupal AI
 
-_169 summaries · 37 new this week_
+_169 summaries · 34 new this week_
 
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
 - [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
@@ -14,7 +22,7 @@ _169 summaries · 37 new this week_
 
 ### Drupal Core
 
-_600 summaries · 10 new this week_
+_600 summaries · 9 new this week_
 
 - [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
 - [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
@@ -27,14 +35,6 @@ _263 summaries · 14 new this week_
 - [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
 - [#3592101: Make React Code Components portable across Drupal and headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md)
 - [#3592128: Remove experimental Canvas Headless properties and CLI flag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md)
-
-### Drupal CMS
-
-_95 summaries · 1 new this week_
-
-- [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
-- [#3591466: Installing in another language does not translate shipped configuration: the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591466.md)
-- [#3591463: Fix contrast in "Add a page" button on /admin/dashboard](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591463.md)
 
 
 ## Rector rules
