@@ -5,6 +5,86 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592111: Unify headless frame-ancestors policies across frameworks</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592111.md</link>
+      <guid isPermaLink="false">project/canvas#3592111</guid>
+      <category>Site owners</category>
+      <pubDate>Mon, 28 Sep 2026 17:47:26 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592111"&gt;#3592111&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas headless frontends embed inside the Canvas editor's iframe during draft preview, which requires the frontend's Content-Security-Policy to allow that specific embedding via &lt;code&gt;frame-ancestors&lt;/code&gt;. Each framework adapter (Next.js, Nuxt, Astro, TanStack Start) previously computed this policy on its own, and at least one combination, Vercel-hosted Next.js apps, ended up refusing the embed entirely, blocking preview and editing of the headless site from within Canvas. All adapters now share one resolver for this policy, so the behavior is consistent and documented across frameworks, and site owners get an explicit &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; setting to override the defaults when needed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; environment variable (a whitespace- or comma-separated list of origins) that explicitly sets which origins may embed a headless frontend for draft preview. When unset, the policy defaults to &lt;code&gt;'self'&lt;/code&gt; plus the &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; origin and the current draft session's editor origin; setting &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; (even to an empty or fully invalid value) replaces both defaults rather than adding to them.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The policy logic now lives in one place, &lt;code&gt;resolveFrameAncestors()&lt;/code&gt; and &lt;code&gt;mergeFrameAncestors()&lt;/code&gt; in &lt;code&gt;packages/headless/src/server/csp.ts&lt;/code&gt;, exported from &lt;code&gt;@drupal-canvas/headless/server&lt;/code&gt;, and every adapter's middleware/plugin (&lt;code&gt;headless-next&lt;/code&gt;'s &lt;code&gt;applyCanvasHeaders()&lt;/code&gt;, &lt;code&gt;headless-nuxt&lt;/code&gt;'s &lt;code&gt;beforeResponse&lt;/code&gt; server plugin, &lt;code&gt;headless-astro&lt;/code&gt;'s &lt;code&gt;onRequest&lt;/code&gt; middleware, &lt;code&gt;headless-tanstack-start&lt;/code&gt;'s &lt;code&gt;cspMiddleware&lt;/code&gt;) calls the same two functions instead of building the header itself.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;resolveFrameAncestors()&lt;/code&gt; reads &lt;code&gt;process.env.CANVAS_EDITOR_ORIGINS&lt;/code&gt; on every call. When set, it replaces both defaults with the parsed list (split on whitespace or commas); when unset, it falls back to &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; plus the current draft session's &lt;code&gt;renewUrl&lt;/code&gt; origin. Every candidate goes through &lt;code&gt;toEditorOrigin()&lt;/code&gt;, which normalizes to scheme, host, and port and rejects anything that is not a plain &lt;code&gt;http(s)&lt;/code&gt; URL: credentialed URLs, wildcard or CSP-delimiter-bearing hosts, and literal IPv6 addresses are all dropped (DNS hostnames that resolve to IPv6 still work). &lt;code&gt;'self'&lt;/code&gt; is always included, and origins are deduplicated.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;mergeFrameAncestors()&lt;/code&gt; folds the resolved directive into whatever &lt;code&gt;Content-Security-Policy&lt;/code&gt; value(s) the app already set, handling repeated header fields, array values, and comma-separated policy lists uniformly, and leaves an application-owned &lt;code&gt;frame-ancestors&lt;/code&gt; directive untouched rather than overriding it. This is embedding policy only; it does not affect draft authentication or postMessage trust between the editor and the frontend. The Astro and TanStack Start Vite integrations also now load &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; from framework &lt;code&gt;.env&lt;/code&gt; files into &lt;code&gt;process.env&lt;/code&gt;, matching how they already load &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Optional. To explicitly control which origins may embed the frontend for draft preview, set the new variable in the frontend's environment, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;CANVAS_EDITOR_ORIGINS=https://cms.example, https://staging.example:8443
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Leave it unset to keep the default behavior (&lt;code&gt;'self'&lt;/code&gt; plus &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; and the draft session's editor origin). Setting it to an empty string suppresses both defaults and admits only &lt;code&gt;'self'&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592125: Preserve local package.json when pulling code components</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592125.md</link>
+      <guid isPermaLink="false">project/canvas#3592125</guid>
+      <pubDate>Mon, 28 Sep 2026 17:47:09 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592125"&gt;#3592125&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Canvas CLI's &lt;code&gt;canvas pull&lt;/code&gt; command used to overwrite a project's local &lt;code&gt;package.json&lt;/code&gt; entirely with the version stored in Drupal, discarding any custom scripts, dependencies, or metadata the developer had added locally. Now, when a local &lt;code&gt;package.json&lt;/code&gt; already exists, &lt;code&gt;pull&lt;/code&gt; preserves it and only adds dependencies from the pulled manifest that are missing locally, leaving existing versions, scripts, and other fields untouched. If no local file exists, the pulled manifest is still written as before, and &lt;code&gt;--skip-overwrite&lt;/code&gt; continues to leave an existing file alone entirely.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix replaces the previous overwrite-or-skip logic in &lt;code&gt;createAssetsPullTask&lt;/code&gt; (&lt;code&gt;packages/cli/src/commands/pull.ts&lt;/code&gt;) with a merge step implemented in the new &lt;code&gt;mergePackageJsonDependencies&lt;/code&gt; utility (&lt;code&gt;packages/cli/src/utils/merge-package-json.ts&lt;/code&gt;). It compares the pulled &lt;code&gt;dependencies&lt;/code&gt; against the local file's &lt;code&gt;dependencies&lt;/code&gt;, &lt;code&gt;devDependencies&lt;/code&gt;, and &lt;code&gt;peerDependencies&lt;/code&gt;: any pulled dependency whose name already appears in any of those three sections is left alone (add-only, no version bumps), and anything missing is inserted into local &lt;code&gt;dependencies&lt;/code&gt; using the pulled version spec. All other local fields (name, version, scripts, custom sections like &lt;code&gt;overrides&lt;/code&gt;) are copied through unchanged, and the file is rewritten with 2-space indentation only when at least one dependency was actually added; otherwise the on-disk file is left byte-identical.&lt;/p&gt;
+&lt;p&gt;Each added dependency is now reported as its own &lt;code&gt;Dependency&lt;/code&gt; result item (&lt;code&gt;itemType: 'Dependency'&lt;/code&gt;, detail &lt;code&gt;'Added'&lt;/code&gt;), and the &amp;quot;run npm install&amp;quot; reminder note only fires when something changed, either a fresh file write or an added dependency. If the local &lt;code&gt;package.json&lt;/code&gt; is invalid JSON, the merge throws and the command reports &lt;code&gt;Could not merge dependencies: ...&lt;/code&gt; for that item while leaving the local file untouched and letting the rest of the pull continue.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
+&lt;li&gt;shivam.chandan&lt;/li&gt;
+&lt;li&gt;mayur-sose&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592099: Add headless previews for entities</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md</link>
       <guid isPermaLink="false">project/canvas#3592099</guid>
@@ -756,78 +836,6 @@ CANVAS_INCLUDE_BRAND_KIT=false
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592000: Translating a component tree config entity (such as PageVariant) that has an auto-save draft breaks Canvas layout validation</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592000.md</link>
-      <guid isPermaLink="false">project/canvas#3592000</guid>
-      <pubDate>Wed, 02 Sep 2026 10:29:10 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592000"&gt;#3592000&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;If a &lt;code&gt;PageVariant&lt;/code&gt; or &lt;code&gt;ContentTemplate&lt;/code&gt; had unpublished changes sitting in Canvas's auto-save draft when it was translated via config translation, the next time anyone opened the Canvas editor it would crash with a 500 error on every layout request, and stay crashed since the error masked the whole screen (there was no way to publish or discard the draft to recover). This affected plain, single-language-default sites, not just multilingual ones with langcode drift. The fix stops this crash: translating an entity that has a pending auto-save draft no longer breaks the editor.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The crash came from &lt;code&gt;CanvasConfigEntityTranslationsAreValidConstraintValidator::validate()&lt;/code&gt;, which simulates &lt;code&gt;Config::setOverriddenData()&lt;/code&gt; by running &lt;code&gt;NestedArray::mergeDeepArray()&lt;/code&gt; on the entity's base &lt;code&gt;component_tree&lt;/code&gt; and the &lt;code&gt;LanguageConfigOverride&lt;/code&gt;'s translated data, then validates the merged array against config schema. A saved &lt;code&gt;component_tree&lt;/code&gt; is re-keyed by instance UUID in &lt;code&gt;ComponentTreeConfigEntityBase::preSave()&lt;/code&gt;, but an auto-save draft never runs &lt;code&gt;preSave()&lt;/code&gt;, so a draft created before the translation existed keeps the client's delta keys (&lt;code&gt;0, 1, 2, …&lt;/code&gt;). A &lt;code&gt;LanguageConfigOverride&lt;/code&gt;, however, always targets instances by UUID. Merging a delta-keyed base with a UUID-keyed override made the merge treat them as disjoint sets, appending the override's sparse translated inputs as a phantom component instance with no &lt;code&gt;component_id&lt;/code&gt;, &lt;code&gt;component_version&lt;/code&gt;, or &lt;code&gt;uuid&lt;/code&gt;. Validating that merged data tripped the &lt;code&gt;assert(\array_key_exists('component_id', $component_instance))&lt;/code&gt; in &lt;code&gt;ComponentInputsMapping::__construct()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix re-keys the base &lt;code&gt;component_tree&lt;/code&gt; by UUID before the merge, calling &lt;code&gt;ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence()&lt;/code&gt;, mirroring what &lt;code&gt;getTranslatedComponentTree()&lt;/code&gt; already did for a different code path (as noted in that method's own docblock). Test coverage was added in &lt;code&gt;PageVariantValidationTest::testValidationWithTranslationOverrideAndDeltaKeyedTree&lt;/code&gt;, which reconstructs the delta-keyed draft shape, adds a UUID-targeted &lt;code&gt;hu&lt;/code&gt; override, and asserts no validation errors. This fix was split out of the broader langcode-drift work in &lt;a href="https://www.drupal.org/node/3591850"&gt;#3591850&lt;/a&gt; (MR !1400) because it reproduces under plain, single-language-default conditions.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;No action needed for typical Canvas usage; this is an internal bug fix. For context: &lt;code&gt;ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence()&lt;/code&gt; was changed from &lt;code&gt;private&lt;/code&gt; to &lt;code&gt;public&lt;/code&gt; (and marked &lt;code&gt;@internal&lt;/code&gt;) so the validator could reuse the same re-keying logic. It remains an internal method not intended for use outside Canvas core.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;tedbow (Acquia)&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591981: Provide consistent Code Component metadata validation across CLI and Drupal</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591981.md</link>
-      <guid isPermaLink="false">project/canvas#3591981</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 28 Aug 2026 16:17:54 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3591981"&gt;#3591981&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas Code Components are described by an authored &lt;code&gt;component.yml&lt;/code&gt; file, but until now the rules for what counts as valid metadata were scattered across the CLI, JSON Schema prop definitions, Drupal config schema, and PHP entity constraints. That made local feedback incomplete and meant errors could surface only partway through a &lt;code&gt;canvas push&lt;/code&gt;, after other components had already been updated. This change publishes a single, hand-authored JSON Schema for the authored &lt;code&gt;component.yml&lt;/code&gt; envelope and adds a Drupal endpoint that authoritatively validates a component's metadata against the target site without saving it. The Canvas CLI now runs local structural and ESLint checks first, then calls the target site to confirm acceptance, and &lt;code&gt;canvas push&lt;/code&gt; preflights every component's metadata before making any changes so a rejected component no longer leaves a push partially applied. Sites without the new endpoint fall back to the previous per-component, save-time validation.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New authenticated, non-mutating &lt;code&gt;POST /canvas/api/v0/code-components/validate&lt;/code&gt; endpoint runs the same entity and metadata constraint chain as create/update and returns &lt;code&gt;204&lt;/code&gt; or structured constraint violations without saving anything.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The envelope contract lives in the repository-root &lt;code&gt;component-metadata.schema.json&lt;/code&gt; (draft-07, published at the &lt;code&gt;1.x&lt;/code&gt; rolling raw URL), requiring only &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;machineName&lt;/code&gt; and rejecting unknown keys and projected &lt;code&gt;x-allowed-*&lt;/code&gt; keys; it is statically bundled into the CLI rather than fetched at runtime, and prop definitions under &lt;code&gt;props.properties&lt;/code&gt; are validated directly as JSON Schema (including their first example) rather than generated from Drupal's config schema. A new private &lt;code&gt;packages/json-schema-validation&lt;/code&gt; workspace package (&lt;code&gt;createCanvasAjv&lt;/code&gt;) centralizes a strict draft-07 Ajv instance with &lt;code&gt;ajv-formats&lt;/code&gt; and &lt;code&gt;ajv-formats-draft2019&lt;/code&gt;, shared by the UI and CLI, replacing the UI's local &lt;code&gt;ui/src/utils/ajv.ts&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;On the Drupal side, &lt;code&gt;ApiCodeComponentMetadataController::validatePayload&lt;/code&gt; (route &lt;code&gt;canvas.api.code_component.validate&lt;/code&gt;, permission &lt;code&gt;administer code components&lt;/code&gt;) builds an in-memory &lt;code&gt;JavaScriptComponent&lt;/code&gt; create or update candidate from the posted payload and runs &lt;code&gt;getTypedData()-&amp;gt;validate()&lt;/code&gt;, returning &lt;code&gt;204&lt;/code&gt; on success or throwing a &lt;code&gt;ConstraintViolationException&lt;/code&gt; with the structured violations otherwise; unresolvable &lt;code&gt;json-schema-definitions://&lt;/code&gt; references are converted into a violation instead of a fatal error. In &lt;code&gt;packages/cli&lt;/code&gt;, &lt;code&gt;validate.ts&lt;/code&gt; and &lt;code&gt;push.ts&lt;/code&gt; (via new &lt;code&gt;utils/target-component-metadata.ts&lt;/code&gt; and &lt;code&gt;services/api.ts&lt;/code&gt; additions) submit each component's normalized payload to this endpoint when an authenticated API service is available, and &lt;code&gt;canvas push&lt;/code&gt; now calls &lt;code&gt;preflightCodeComponentPayloads()&lt;/code&gt; before any create, update, or delete, aborting the push with &amp;quot;Nothing was pushed&amp;quot; if any component fails. When the target endpoint or authentication is unavailable, the CLI emits a warning that only local checks ran and continues, and older sites without the route retain the previous partial, per-save validation. The old duplicate validators &lt;code&gt;validate-content-entity-reference.ts&lt;/code&gt; and ESLint rules &lt;code&gt;component-content-entity-reference-props&lt;/code&gt; and &lt;code&gt;component-prop-example-value-image-url&lt;/code&gt; were removed in favor of the Drupal-side authoritative checks plus a new, more general &lt;code&gt;component-required-props&lt;/code&gt; ESLint rule.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

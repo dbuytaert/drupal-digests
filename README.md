@@ -1,16 +1,24 @@
-**TL;DR:** [1135 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1138 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_265 summaries · 13 new this week_
+
+- [#3592111: Unify headless frame-ancestors policies across frameworks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592111.md)
+- [#3592125: Preserve local package.json when pulling code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592125.md)
+- [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
+
 ### Drupal CMS
 
-_102 summaries · 8 new this week_
+_103 summaries · 8 new this week_
 
+- [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
 - [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
 - [#3591475: Add the Horizon Aid site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591475.md)
-- [#3591476: Add the Educare site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591476.md)
 
 ### Drupal Core
 
@@ -27,14 +35,6 @@ _169 summaries · 29 new this week_
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
 - [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
 - [#3583060: Structure-reading constraints on a map input throw instead of validating](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583060.md)
-
-### Drupal Canvas
-
-_263 summaries · 13 new this week_
-
-- [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
-- [#3592101: Make React Code Components portable across Drupal and headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md)
-- [#3592128: Remove experimental Canvas Headless properties and CLI flag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md)
 
 
 ## Rector rules
