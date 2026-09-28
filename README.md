@@ -1,8 +1,16 @@
-**TL;DR:** [1130 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1135 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_102 summaries · 8 new this week_
+
+- [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
+- [#3591475: Add the Horizon Aid site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591475.md)
+- [#3591476: Add the Educare site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591476.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _601 summaries · 9 new this week_
 - [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
 - [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
 - [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
-
-### Drupal CMS
-
-_97 summaries · 3 new this week_
-
-- [#3591474: canvas_translate dependency in Drupal CMS 1.2 prevents auto updates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591474.md)
-- [#3591472: Fresh 2.2.0 projects cannot composer require anything: recipe unpacking drops...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591472.md)
-- [#3591433: Add a drupal_cms_multilingual recipe with content translation features](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591433.md)
 
 ### Drupal AI
 
@@ -30,7 +30,7 @@ _169 summaries · 29 new this week_
 
 ### Drupal Canvas
 
-_263 summaries · 14 new this week_
+_263 summaries · 13 new this week_
 
 - [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
 - [#3592101: Make React Code Components portable across Drupal and headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592101.md)
