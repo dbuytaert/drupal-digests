@@ -1,8 +1,16 @@
-**TL;DR:** [1129 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1130 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_601 summaries · 9 new this week_
+
+- [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
+- [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
+- [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
 
 ### Drupal CMS
 
@@ -19,14 +27,6 @@ _169 summaries · 29 new this week_
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
 - [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
 - [#3583060: Structure-reading constraints on a map input throw instead of validating](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583060.md)
-
-### Drupal Core
-
-_600 summaries · 9 new this week_
-
-- [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
-- [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
-- [#3621277: Update JavaScript dependencies for 12.0.0-beta1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621277.md)
 
 ### Drupal Canvas
 

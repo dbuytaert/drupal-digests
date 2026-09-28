@@ -5,6 +5,82 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md</link>
+      <guid isPermaLink="false">node/3557481</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 27 Sep 2026 23:02:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 16 files, +925/−553 · php +924/−553 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c321043bb82dc1c0789bcdef046799fc89121a6a"&gt;c321043&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3557481"&gt;#3557481&lt;/a&gt; · 6 contributors · 53 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Continuing the work started in &lt;a href="https://www.drupal.org/node/3411490"&gt;#3411490&lt;/a&gt;, the &lt;code&gt;hook_schema()&lt;/code&gt; implementations of core's regular (non-test) modules, comment, dblog, file, layout_builder, node, user, and workspaces, have been converted from the traditional nested associative array format to the newer object-oriented &lt;code&gt;SchemaDefinition&lt;/code&gt; API. Modules that still return the legacy array format keep working, but now trigger a deprecation notice, since Drupal 13 will require the object-based format. While doing this conversion, the team discovered that dblog's &lt;code&gt;watchdog.wid&lt;/code&gt; column was not actually unsigned as its own documentation claimed; an update function now corrects existing sites' schema to match.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;dblog_update_12100()&lt;/code&gt; deletes any rows with a negative &lt;code&gt;wid&lt;/code&gt; and converts the &lt;code&gt;watchdog.wid&lt;/code&gt; primary key column to an unsigned big integer, matching the schema as actually declared.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Returning a legacy array from &lt;code&gt;hook_schema()&lt;/code&gt; (rather than a &lt;code&gt;Drupal\Core\Database\SchemaDefinition\Schema&lt;/code&gt; object) to &lt;code&gt;ModuleInstaller::installSchema()&lt;/code&gt;/&lt;code&gt;uninstallSchema()&lt;/code&gt; or to &lt;code&gt;SchemaInspector::getTablesSpecification()&lt;/code&gt; is deprecated in &lt;code&gt;drupal:12.1.0&lt;/code&gt; and will be removed in &lt;code&gt;drupal:13.0.0&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The converted &lt;code&gt;hook_schema()&lt;/code&gt; implementations now build a &lt;code&gt;Schema&lt;/code&gt; object out of &lt;code&gt;Table&lt;/code&gt;, &lt;code&gt;Column&lt;/code&gt;, &lt;code&gt;Index&lt;/code&gt;, &lt;code&gt;PrimaryKey&lt;/code&gt;, and &lt;code&gt;ForeignKey&lt;/code&gt; value objects (e.g. &lt;code&gt;Column::varcharAscii(name: 'entity_type', length: EntityTypeInterface::ID_MAX_LENGTH, ...)&lt;/code&gt;) instead of returning nested PHP arrays. &lt;code&gt;ModuleInstaller::installSchema()&lt;/code&gt; and &lt;code&gt;uninstallSchema()&lt;/code&gt; now call &lt;code&gt;@trigger_error(..., E_USER_DEPRECATED)&lt;/code&gt; whenever a module's &lt;code&gt;_schema()&lt;/code&gt; hook returns anything other than a &lt;code&gt;Schema&lt;/code&gt; instance (and the array is non-empty), pointing to https://www.drupal.org/node/3557405.&lt;/p&gt;
+&lt;p&gt;Validation was tightened on the &lt;code&gt;SchemaDefinition&lt;/code&gt; value objects themselves: &lt;code&gt;Column::validate()&lt;/code&gt; now throws a &lt;code&gt;SchemaDefinitionException&lt;/code&gt; if &lt;code&gt;length&lt;/code&gt; is missing for &lt;code&gt;Varchar&lt;/code&gt;/&lt;code&gt;VarcharAscii&lt;/code&gt; columns, &lt;code&gt;Schema::validate()&lt;/code&gt; rejects duplicate table names, and &lt;code&gt;Table::validate()&lt;/code&gt; (via a new &lt;code&gt;columnNames()&lt;/code&gt; method) rejects duplicate column names within a table.&lt;/p&gt;
+&lt;p&gt;The conversion surfaced a real discrepancy: &lt;code&gt;dblog_schema()&lt;/code&gt;'s &lt;code&gt;watchdog.wid&lt;/code&gt; was declared &lt;code&gt;unsigned: TRUE&lt;/code&gt; under the new definition, but the live database column was not actually enforced as unsigned. &lt;code&gt;dblog_update_12100()&lt;/code&gt; removes any rows with negative &lt;code&gt;wid&lt;/code&gt; values and runs &lt;code&gt;changeField()&lt;/code&gt; to make the column unsigned, with a new &lt;code&gt;UpdatePathTest&lt;/code&gt; exercising the negative-id-then-update scenario. Conversion of schemata defined by test modules was explicitly postponed to a follow-up issue, per review feedback from amateescu, to keep this change reviewable.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Module maintainers should convert their &lt;code&gt;hook_schema()&lt;/code&gt; implementations from arrays to &lt;code&gt;SchemaDefinition&lt;/code&gt; objects to avoid deprecation notices, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function mymodule_schema(): Schema {
+  $tables[] = new Table(
+    name: 'mymodule_table',
+    description: '...',
+    columns: [
+      Column::int(
+        name: 'id',
+        description: '...',
+        unsigned: TRUE,
+        notNull: TRUE,
+        default: new IntValue(0),
+      ),
+    ],
+    primaryKey: new PrimaryKey(['id']),
+  );
+
+  return new Schema(
+    type: SchemaDefinitionType::Module,
+    name: 'mymodule',
+    tables: $tables,
+  );
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Sites with existing dblog data will have their &lt;code&gt;watchdog.wid&lt;/code&gt; column corrected to unsigned via &lt;code&gt;dblog_update_12100()&lt;/code&gt; when running database updates.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 12, 2025&lt;/li&gt;
+&lt;li&gt;Committed: September 27, 2026 (10 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;daffie&lt;/li&gt;
+&lt;li&gt;meeni_dhobale&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;amateescu's review flagged that the original merge request converting all schemata (including test modules) was too large to review meaningfully and suggested splitting it into regular-module and test-module conversions; mondrake agreed and reduced the MR's scope accordingly. In a later review pass, amateescu caught that the conversion was missing an update hook for the &lt;code&gt;wid&lt;/code&gt; column, which led mondrake to add &lt;code&gt;dblog_update_12100()&lt;/code&gt; and its accompanying update path test.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4 ($autoescape) must be of type bool, null given</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md</link>
       <guid isPermaLink="false">node/3625969</guid>
@@ -1002,56 +1078,6 @@ class MenuLinkDefaultFormTest extends BrowserTestBase {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The main open question was whether this would break contrib CI. &lt;code&gt;alexpott&lt;/code&gt; flagged that &lt;a href="https://www.drupal.org/node/3559584"&gt;#3559584&lt;/a&gt;, the companion issue in the &lt;code&gt;gitlab_templates&lt;/code&gt; project to move these linting scaffold files to the assets folder, was still unresolved when the MR was ready. &lt;code&gt;fjgarlin&lt;/code&gt; had already opened that issue ahead of time to handle the contrib-CI side. &lt;code&gt;neclimdul&lt;/code&gt; pushed on the practical question of how custom themes/sites are meant to keep following core's lint rules once the scaffolded copies disappear, given years of the scaffolded ESLint config being broken while waiting on &lt;a href="https://www.drupal.org/node/3440225"&gt;#3440225&lt;/a&gt;; &lt;code&gt;longwave&lt;/code&gt; clarified that core's own &lt;code&gt;.eslintrc.json&lt;/code&gt;/&lt;code&gt;.stylelintrc.json&lt;/code&gt; inside &lt;code&gt;core/&lt;/code&gt; are unaffected and can still be referenced directly, though making that reuse convenient is left to a separate issue.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3560123: Deprecate the Toolbar module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3560123.md</link>
-      <guid isPermaLink="false">node/3560123</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 14 Sep 2026 17:26:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 19 files, +38/−0 · php +36 · yml +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b11f868b5727d1154a3888a6f244078523a48965"&gt;b11f868&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3560123"&gt;#3560123&lt;/a&gt; · 5 contributors · 21 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The core Toolbar module (the admin toolbar shown at the top of the page for authenticated users with access) is now officially deprecated. This follows the policy decision in &lt;a href="https://www.drupal.org/node/3476882"&gt;#3476882&lt;/a&gt; to move Toolbar out of core and into a contributed project. Sites that currently use Toolbar will start seeing deprecation notices, and should begin planning to switch to a contributed replacement before Toolbar is eventually removed from Drupal core. The module still works as before; only its lifecycle status has changed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;toolbar&lt;/code&gt; module is now marked &lt;code&gt;lifecycle: deprecated&lt;/code&gt; in its &lt;code&gt;.info.yml&lt;/code&gt;, per the approved plan to move it to a contributed project; sites using it will see deprecation notices and should plan to migrate before it is removed from core.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change adds &lt;code&gt;lifecycle: deprecated&lt;/code&gt; and &lt;code&gt;lifecycle_link: https://www.drupal.org/node/3223395#s-toolbar&lt;/code&gt; to &lt;code&gt;core/modules/toolbar/toolbar.info.yml&lt;/code&gt;, which is how Drupal core's extension lifecycle system flags a module as deprecated (surfacing warnings on the modules page and via &lt;code&gt;hook_deprecation_message&lt;/code&gt;-style runtime notices per the extension deprecation policy). Every functional, unit, and JavaScript test under &lt;code&gt;core/modules/toolbar/tests&lt;/code&gt; also received the &lt;code&gt;#[IgnoreDeprecations]&lt;/code&gt; PHPUnit attribute, so the tests keep passing despite the module now being flagged as deprecated, without needing to fix or suppress each individual deprecation notice.&lt;/p&gt;
-&lt;p&gt;This is one step in the broader deprecation effort tracked in the meta issue for the Toolbar removal; the remaining cleanup of Toolbar-only code still embedded in other core modules (Announcement, User, Contextual, Workspaces) is handled separately in &lt;a href="https://www.drupal.org/node/3618746"&gt;#3618746&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites and contributed/custom modules that depend on the core &lt;code&gt;toolbar&lt;/code&gt; module should start planning a migration to a contributed replacement. No code changes are required yet: the module's functionality is unchanged, but it now reports as deprecated:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;# core/modules/toolbar/toolbar.info.yml
-lifecycle: deprecated
-lifecycle_link: https://www.drupal.org/node/3223395#s-toolbar
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 26, 2025&lt;/li&gt;
-&lt;li&gt;Committed: September 14, 2026 (9 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
