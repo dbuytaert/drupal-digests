@@ -1,4 +1,4 @@
-**TL;DR:** [1138 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1139 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_265 summaries · 13 new this week_
+_266 summaries · 12 new this week_
 
+- [#3592060: Canvas AI: Update orchestrator for content-only / page-variant chrome](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592060.md)
 - [#3592111: Unify headless frame-ancestors policies across frameworks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592111.md)
 - [#3592125: Preserve local package.json when pulling code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592125.md)
-- [#3592099: Add headless previews for entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592099.md)
 
 ### Drupal CMS
 
@@ -30,7 +30,7 @@ _601 summaries · 9 new this week_
 
 ### Drupal AI
 
-_169 summaries · 28 new this week_
+_169 summaries · 27 new this week_
 
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
 - [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
