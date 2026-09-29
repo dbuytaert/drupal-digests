@@ -1,4 +1,4 @@
-**TL;DR:** [1139 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1140 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_266 summaries · 12 new this week_
+_267 summaries · 13 new this week_
 
+- [#3592057: Support mapping multi-valued list fields to array-type component props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592057.md)
 - [#3592060: Canvas AI: Update orchestrator for content-only / page-variant chrome](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592060.md)
 - [#3592111: Unify headless frame-ancestors policies across frameworks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592111.md)
-- [#3592125: Preserve local package.json when pulling code components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592125.md)
 
 ### Drupal CMS
 
@@ -22,7 +22,7 @@ _103 summaries · 8 new this week_
 
 ### Drupal Core
 
-_601 summaries · 9 new this week_
+_601 summaries · 7 new this week_
 
 - [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
 - [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
