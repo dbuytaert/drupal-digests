@@ -1,12 +1,28 @@
-**TL;DR:** [1140 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1143 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_170 summaries · 25 new this week_
+
+- [#3588984: Not Drupal 12 compatible](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588984.md)
+- [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
+- [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
+
+### Drupal Core
+
+_603 summaries · 9 new this week_
+
+- [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
+- [#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md)
+- [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
+
 ### Drupal Canvas
 
-_267 summaries · 13 new this week_
+_267 summaries · 12 new this week_
 
 - [#3592057: Support mapping multi-valued list fields to array-type component props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592057.md)
 - [#3592060: Canvas AI: Update orchestrator for content-only / page-variant chrome](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592060.md)
@@ -19,22 +35,6 @@ _103 summaries · 8 new this week_
 - [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
 - [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
 - [#3591475: Add the Horizon Aid site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591475.md)
-
-### Drupal Core
-
-_601 summaries · 7 new this week_
-
-- [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
-- [#3625969: Twig's 3.30 TypeError: Twig\Runtime\EscaperRuntime::escape(): Argument #4...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625969.md)
-- [#3581349: Remove Syndicate block config](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md)
-
-### Drupal AI
-
-_169 summaries · 27 new this week_
-
-- [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
-- [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
-- [#3583060: Structure-reading constraints on a map input throw instead of validating](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583060.md)
 
 
 ## Rector rules

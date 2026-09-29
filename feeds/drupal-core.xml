@@ -5,6 +5,127 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3507570: Allow recipe to add multiple buttons to CKEditor toolbar</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md</link>
+      <guid isPermaLink="false">node/3507570</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 29 Sep 2026 13:41:57 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.4.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +146/−25 · php +146/−25&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c1ccef96a65db7dcb49d7e92117333072d9f06df"&gt;c1ccef9&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3507570"&gt;#3507570&lt;/a&gt; · 9 contributors · 51 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Recipes that configure a CKEditor 5 toolbar can now add several buttons in a single step. Previously the &lt;code&gt;addItemToToolbar&lt;/code&gt; config action only accepted one toolbar item at a time, so a recipe that needed to add several buttons had to repeat the action once per button. The new &lt;code&gt;addItemsToToolbar&lt;/code&gt; action accepts a list of items, each either a button name or an options array (for example to set &lt;code&gt;position&lt;/code&gt; or &lt;code&gt;allow_duplicate&lt;/code&gt;), and applies them all in one pass.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;hook_config_action_alter()&lt;/code&gt; lets modules alter or alias config action plugin definitions, and a new &lt;code&gt;editor:addItemsToToolbar&lt;/code&gt; config action adds multiple CKEditor 5 toolbar items in a single recipe action.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;Drupal\ckeditor5\Plugin\ConfigAction\AddItemToToolbar::apply()&lt;/code&gt; now normalizes its &lt;code&gt;$value&lt;/code&gt; argument: a plain string or an associative array is treated as a single item and wrapped in a list, while an indexed array is treated as multiple items. Each item is delegated to a new private &lt;code&gt;applySingle()&lt;/code&gt; method, which contains the original per-item logic (position, replace, allow_duplicate, plugin default configuration), and the editor entity is saved only once at the end if anything actually changed. Invalid input, an empty list, a non-string/array item, or an item missing &lt;code&gt;item_name&lt;/code&gt;, now throws a &lt;code&gt;ConfigActionException&lt;/code&gt; with a descriptive message instead of failing a silent &lt;code&gt;assert()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because the &lt;code&gt;#[ConfigAction]&lt;/code&gt; attribute isn't repeatable, the plural &lt;code&gt;addItemsToToolbar&lt;/code&gt; isn't a second plugin class: it's registered as an alias of &lt;code&gt;editor:addItemToToolbar&lt;/code&gt; inside &lt;code&gt;Ckeditor5Hooks::configActionAlter()&lt;/code&gt;, which implements the new &lt;code&gt;hook_config_action_alter()&lt;/code&gt; documented in &lt;code&gt;core.api.php&lt;/code&gt;. That hook receives the config action plugin definitions array by reference and lets any module copy or alter entries, here it copies the &lt;code&gt;editor:addItemToToolbar&lt;/code&gt; definition to a new &lt;code&gt;editor:addItemsToToolbar&lt;/code&gt; key and gives it its own &lt;code&gt;admin_label&lt;/code&gt;. Maintainers noted in review that using an alter hook for aliasing is a stopgap that decouples the plural action from its singular definition, and that dedicated alias support on the &lt;code&gt;ConfigAction&lt;/code&gt; attribute would be a cleaner long term solution, left as a followup.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To add multiple CKEditor 5 toolbar buttons in a recipe, replace repeated &lt;code&gt;addItemToToolbar&lt;/code&gt; calls with a single &lt;code&gt;addItemsToToolbar&lt;/code&gt; call taking a list:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;config:
+  actions:
+    editor.editor.content_format:
+      addItemsToToolbar:
+        - specialCharacters
+        - codeBlock
+        -
+          item_name: italic
+          position: 0
+          allow_duplicate: true
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Modules can also implement &lt;code&gt;hook_config_action_alter(array &amp;amp;$definitions)&lt;/code&gt; to alias or otherwise alter any config action plugin definition, not just this one.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: February 18, 2025&lt;/li&gt;
+&lt;li&gt;Committed: September 29, 2026 (1 year later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mpotter (Phase2)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;thejimbirch (Kanopi Studios)&lt;/li&gt;
+&lt;li&gt;nicxvan&lt;/li&gt;
+&lt;li&gt;svendecabooter (Sven Decabooter)&lt;/li&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;li&gt;dmundra (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The patch stalled for months after the initial 2025 MR. robloach revived it, and dmundra reviewed by manually running a test recipe with &lt;code&gt;drush recipe&lt;/code&gt; against the MR and requested test coverage for the newly added exception paths (invalid item type, missing &lt;code&gt;item_name&lt;/code&gt;); robloach then added &lt;code&gt;testInvalidItemTypeIsRejected&lt;/code&gt; and &lt;code&gt;testMissingItemNameIsRejected&lt;/code&gt; to cover them. Committer longwave flagged that aliasing the action via &lt;code&gt;hook_config_action_alter()&lt;/code&gt; &amp;quot;decouples the plural action from the singular definition&amp;quot; and is a bit ugly, but accepted it as a pragmatic fix given that the &lt;code&gt;ConfigAction&lt;/code&gt; attribute doesn't support repeatable/alias definitions yet, leaving a cleaner alias mechanism for a followup.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop names and slots</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md</link>
+      <guid isPermaLink="false">node/3465228</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 29 Sep 2026 12:50:52 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +92/−4 · php +59 · json +33/−4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7dd6a4c9d48b1939b1e2bf018c6997a5638cda40"&gt;7dd6a4c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3465228"&gt;#3465228&lt;/a&gt; · 14 contributors · 35 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 19&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 14 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Single Directory Components (SDC) prop and slot names are now validated to ensure they are usable as Twig variables. Because Twig compiles a dash in a variable name as a subtraction operator, a prop or slot named something like &lt;code&gt;test-required-string&lt;/code&gt; silently broke templates instead of producing a clear error, costing developers debugging time. Component definitions with prop or slot names that don't start with a letter or underscore and continue with letters, digits, or underscores now fail validation immediately with a clear error message, rather than failing confusingly at render time. Variant names are unaffected, since they are used as string values (e.g. CSS modifiers) and never become Twig variable or block names.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Single Directory Component (SDC) prop and slot names must now match &lt;code&gt;^[a-zA-Z_][a-zA-Z0-9_]*$&lt;/code&gt; (valid Twig/PHP identifiers); previously dashes and other characters were tolerated even though they never worked correctly in Twig templates.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lives in two places. &lt;code&gt;core/assets/schemas/v1/metadata.schema.json&lt;/code&gt; tightens &lt;code&gt;slotDefinition&lt;/code&gt;'s &lt;code&gt;patternProperties&lt;/code&gt; from &lt;code&gt;^[a-zA-Z0-9_-]+$&lt;/code&gt; to &lt;code&gt;^[a-zA-Z_][a-zA-Z0-9_]*$&lt;/code&gt;, and wraps &lt;code&gt;propDefinition&lt;/code&gt; in an &lt;code&gt;allOf&lt;/code&gt; alongside the existing draft-04 schema &lt;code&gt;$ref&lt;/code&gt; to add the same &lt;code&gt;patternProperties&lt;/code&gt;/&lt;code&gt;additionalProperties: false&lt;/code&gt; constraint for props (this was needed because &lt;code&gt;propDefinition&lt;/code&gt; delegates its base schema to &lt;code&gt;http://json-schema.org/draft-04/schema#&lt;/code&gt;, which can't be edited directly). &lt;code&gt;$comment&lt;/code&gt; annotations document why props/slots differ from variants.&lt;/p&gt;
+&lt;p&gt;Because prop names are validated against a JSON Schema draft version (draft-04, via &lt;code&gt;justinrainbow&lt;/code&gt;) that lacks &lt;code&gt;propertyNames&lt;/code&gt; support, &lt;code&gt;ComponentValidator::validateDefinition()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Theme/Component/ComponentValidator.php&lt;/code&gt; also gained an explicit PHP-side check: it filters &lt;code&gt;$prop_names&lt;/code&gt; against &lt;code&gt;/^[a-zA-Z_][a-zA-Z0-9_]*$/&lt;/code&gt; and throws &lt;code&gt;InvalidComponentException&lt;/code&gt; up front, before falling through to the JSON Schema validator, when it finds a name that doesn't match. This gives an explicit &amp;quot;Prop names must match the pattern...&amp;quot; error instead of a validator error that's harder to trace back to the actual cause.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Rename any SDC prop or slot names that contain dashes, spaces, or a leading digit to use only letters, digits, and underscores, starting with a letter or underscore:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;props:
+  type: object
+  properties:
+    my-prop:   # invalid, will now throw InvalidComponentException
+      type: string
+    my_prop:   # valid
+      type: string
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The same pattern applies to &lt;code&gt;slots&lt;/code&gt;. &lt;code&gt;variants&lt;/code&gt; names are unaffected and may still contain dashes.&amp;lt;/upgrade&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 1, 2024&lt;/li&gt;
+&lt;li&gt;Committed: September 29, 2026 (2 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pdureau&lt;/li&gt;
+&lt;li&gt;vensires (E-Sepia Web Innovation)&lt;/li&gt;
+&lt;li&gt;lirak&lt;/li&gt;
+&lt;li&gt;kwiseman (net2Community, Inc.)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md</link>
       <guid isPermaLink="false">node/3557481</guid>
@@ -975,109 +1096,6 @@ class MenuLinkDefaultFormTest extends BrowserTestBase {
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The initial commit landed the wrong merge request (MR 16839, which fully bumped &lt;code&gt;composer.lock&lt;/code&gt; to Guzzle 8) instead of the intended MR 17094, which kept &lt;code&gt;composer.lock&lt;/code&gt; on Guzzle 7 while allowing Guzzle 8. godotislate flagged the mistake in comment &lt;a href="https://www.drupal.org/node/16772202"&gt;#16772202&lt;/a&gt;, and catch confirmed and corrected it: &amp;quot;Yes... got my tabs mixed up. Reverted the wrong MR, and committed the right one this time.&amp;quot; godotislate also did the work of resolving merge conflicts and fixing test failures on the correct MR, tracing one remaining failure to an unrelated upstream issue (&lt;a href="https://www.drupal.org/node/3182064"&gt;#3182064&lt;/a&gt;).&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586211: Remove the Toolbar module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586211.md</link>
-      <guid isPermaLink="false">node/3586211</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 15 Sep 2026 14:13:36 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 127 files, +1/−11775 · php +1/−4209 · txt +0/−3 · css +0/−4825 · svg +0/−43 · md +0/−9 · js +0/−2419 · twig +0/−103 · yml +0/−164&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/fa86f491c55391095ddf2ef7afba6b6e5c662bb5"&gt;fa86f49&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586211"&gt;#3586211&lt;/a&gt; · 4 contributors · 11 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Toolbar module, the classic black admin bar shown across the top of the page for users with access, has been removed from Drupal core entirely. It had already been deprecated (&lt;a href="https://www.drupal.org/node/3560123"&gt;#3560123&lt;/a&gt;) since the Navigation module became the default admin toolbar. Sites that still rely on Toolbar (for example those that opted out of Navigation) need to install the Toolbar contrib module before updating, or migrate to Navigation.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Sites with the &lt;code&gt;toolbar&lt;/code&gt; module enabled will get an update-path error naming it as a removed core module (&lt;code&gt;SystemRequirements::DRUPAL_CORE_REMOVED_MODULE_LIST&lt;/code&gt;) until it is uninstalled or replaced by the contrib version.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit deletes &lt;code&gt;core/modules/toolbar&lt;/code&gt; in its entirety: the module's PHP (&lt;code&gt;ToolbarHooks&lt;/code&gt;, &lt;code&gt;ToolbarController&lt;/code&gt;, &lt;code&gt;Element/Toolbar&lt;/code&gt;, &lt;code&gt;Element/ToolbarItem&lt;/code&gt;, link builders for user/announcements/workspaces, etc.), its Twig templates, libraries, permissions, routing, breakpoints, all CSS/PCSS/SVG assets, the &lt;code&gt;toolbar_test&lt;/code&gt; and &lt;code&gt;toolbar_disable_user_toolbar&lt;/code&gt; test support modules, and the full functional/unit/Nightwatch test suites, 127 files and roughly 11,800 lines in total.&lt;/p&gt;
-&lt;p&gt;Outside the module directory, the change is minimal since Toolbar's responsibilities had already been migrated to the Navigation module in prior issues (including &lt;a href="https://www.drupal.org/node/3618746"&gt;#3618746&lt;/a&gt;, which moved Toolbar-only integration code out of the User, Contextual, and Announcements Feed modules). The only functional addition is in &lt;code&gt;SystemRequirements::DRUPAL_CORE_REMOVED_MODULE_LIST&lt;/code&gt;, where &lt;code&gt;'toolbar' =&amp;gt; 'Toolbar'&lt;/code&gt; is added so &lt;code&gt;update.php&lt;/code&gt; flags any site that still has the module enabled. &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; and &lt;code&gt;core/MAINTAINERS.txt&lt;/code&gt; are trimmed of now-dead references.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If a site still has the &lt;code&gt;toolbar&lt;/code&gt; module enabled, running database updates will fail with a removed-module error until the module is uninstalled or replaced. To keep the classic admin bar, install the contrib Toolbar module before updating:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;composer require drupal/toolbar
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Otherwise, use the core Navigation module, which is enabled by default and replaces Toolbar's functionality.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 15, 2026 (4 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#2876298: Remove scaffolded csslint and eslint config</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2876298.md</link>
-      <guid isPermaLink="false">node/2876298</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 15 Sep 2026 08:13:40 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 18 files, +0/−88 · md +0/−6 · json +0/−24 · txt +0/−1 · php +0/−12 · csslintrc +0/−37 · eslintignore +0/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2876298"&gt;#2876298&lt;/a&gt; · 16 contributors · 47 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 28&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 16 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal no longer scaffolds a &lt;code&gt;.csslintrc&lt;/code&gt;, &lt;code&gt;.eslintignore&lt;/code&gt;, or &lt;code&gt;.eslintrc.json&lt;/code&gt; file into the root of every site built from &lt;code&gt;drupal/core-composer-scaffold&lt;/code&gt;. CSSLint was replaced by stylelint back in 2017 (&lt;a href="https://www.drupal.org/node/2865971"&gt;#2865971&lt;/a&gt;) and is considered dead, and the scaffolded ESLint config stopped working once core moved to ESLint v9 with a new config format (&lt;a href="https://www.drupal.org/node/3440225"&gt;#3440225&lt;/a&gt;). Since using these tools requires manually installing ESLint/CSSLint plus the matching plugins anyway, and most real sites already keep their own lint configuration at the theme or repository root, core stops shipping these unused defaults into every install. This is a disruptive change targeted at Drupal 12.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Composer scaffold no longer copies &lt;code&gt;.csslintrc&lt;/code&gt;, &lt;code&gt;.eslintignore&lt;/code&gt;, or &lt;code&gt;.eslintrc.json&lt;/code&gt; into the web root of new or updated Drupal sites.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix removes the &lt;code&gt;[web-root]/.csslintrc&lt;/code&gt;, &lt;code&gt;[web-root]/.eslintignore&lt;/code&gt;, and &lt;code&gt;[web-root]/.eslintrc.json&lt;/code&gt; entries from the &lt;code&gt;drupal-scaffold&lt;/code&gt; &lt;code&gt;file-mapping&lt;/code&gt; in &lt;code&gt;core/composer.json&lt;/code&gt; (and the corresponding fixture &lt;code&gt;composer.json&lt;/code&gt; files used by &lt;code&gt;drupal-composer-scaffold&lt;/code&gt; tests), and deletes the source files themselves from &lt;code&gt;assets/scaffold/files/&lt;/code&gt; (&lt;code&gt;csslintrc&lt;/code&gt;, &lt;code&gt;eslintignore&lt;/code&gt;, &lt;code&gt;eslintrc.json&lt;/code&gt;). Test fixtures and expectations across the scaffold plugin's test suite (e.g. &lt;code&gt;ManageGitIgnoreTest&lt;/code&gt;, drush-style scaffold listing output) were updated to no longer expect these files to be copied or linked.&lt;/p&gt;
-&lt;p&gt;Core's own internal &lt;code&gt;.eslintrc.json&lt;/code&gt; and &lt;code&gt;.stylelintrc.json&lt;/code&gt; inside &lt;code&gt;core/&lt;/code&gt; are untouched. Only the copies that composer-scaffold writes out to the site's web root are removed, so core's own lint tooling and CI keep working; it is only external sites and themes that lose the auto-provisioned copy.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites that want to keep linting against core's rules must now do so manually, since the scaffolded copy is gone. Before this change, the scaffolded &lt;code&gt;.eslintrc.json&lt;/code&gt; simply contained:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;extends&amp;quot;: &amp;quot;./core/.eslintrc.json&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Sites relying on this can recreate that file themselves (adjusting the relative path to &lt;code&gt;core/.eslintrc.json&lt;/code&gt; if their web root differs), or point their own lint configuration directly at core's &lt;code&gt;core/.eslintrc.json&lt;/code&gt; / &lt;code&gt;core/.stylelintrc.json&lt;/code&gt;. There is no scaffolded &lt;code&gt;.csslintrc&lt;/code&gt; replacement, since CSSLint itself is obsolete; use stylelint instead.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 6, 2017&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;alexpott (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
-&lt;li&gt;xjm (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;nod_ (Très Bien Tech)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The main open question was whether this would break contrib CI. &lt;code&gt;alexpott&lt;/code&gt; flagged that &lt;a href="https://www.drupal.org/node/3559584"&gt;#3559584&lt;/a&gt;, the companion issue in the &lt;code&gt;gitlab_templates&lt;/code&gt; project to move these linting scaffold files to the assets folder, was still unresolved when the MR was ready. &lt;code&gt;fjgarlin&lt;/code&gt; had already opened that issue ahead of time to handle the contrib-CI side. &lt;code&gt;neclimdul&lt;/code&gt; pushed on the practical question of how custom themes/sites are meant to keep following core's lint rules once the scaffolded copies disappear, given years of the scaffolded ESLint config being broken while waiting on &lt;a href="https://www.drupal.org/node/3440225"&gt;#3440225&lt;/a&gt;; &lt;code&gt;longwave&lt;/code&gt; clarified that core's own &lt;code&gt;.eslintrc.json&lt;/code&gt;/&lt;code&gt;.stylelintrc.json&lt;/code&gt; inside &lt;code&gt;core/&lt;/code&gt; are unaffected and can still be referenced directly, though making that reuse convenient is left to a separate issue.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
