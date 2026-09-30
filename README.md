@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_170 summaries · 25 new this week_
+_170 summaries · 24 new this week_
 
 - [#3588984: Not Drupal 12 compatible](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588984.md)
 - [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
@@ -22,7 +22,7 @@ _603 summaries · 9 new this week_
 
 ### Drupal Canvas
 
-_267 summaries · 12 new this week_
+_267 summaries · 10 new this week_
 
 - [#3592057: Support mapping multi-valued list fields to array-type component props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592057.md)
 - [#3592060: Canvas AI: Update orchestrator for content-only / page-variant chrome](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592060.md)
