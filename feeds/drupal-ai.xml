@@ -5,6 +5,190 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583069: Align map validation with JSON Schema: a required map may be empty</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583069.md</link>
+      <guid isPermaLink="false">project/tool#3583069</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 30 Sep 2026 17:43:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583069"&gt;#3583069&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Tool API publishes a JSON Schema for every tool input and output, but until now its own validation disagreed with that schema for maps: a required map was documented as accepting &lt;code&gt;{}&lt;/code&gt; but validation rejected it as if it were NULL. This broke real tools, for example &lt;code&gt;canvas_get_component_schema&lt;/code&gt; in canvas_tools failed for every component without slots or props because that output is a legitimately empty map. This issue aligns map validation with the schema, the same way a companion issue (&lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt;) previously did for lists: a required map may now be empty, and only an explicit &lt;code&gt;NULL&lt;/code&gt; is rejected. Tools that had to declare such maps as optional as a workaround can go back to declaring them required.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; A required map input or output now accepts an empty value (&lt;code&gt;{}&lt;/code&gt;/&lt;code&gt;[]&lt;/code&gt;); only &lt;code&gt;NULL&lt;/code&gt; is rejected. Declare &lt;code&gt;NotBlank&lt;/code&gt; or &lt;code&gt;Count&lt;/code&gt; on the map to require at least one property, which now publishes as &lt;code&gt;minProperties&lt;/code&gt; in the JSON Schema (mirroring &lt;code&gt;minItems&lt;/code&gt; for lists).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix mirrors the list treatment from &lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt;: &lt;code&gt;EffectiveDataDefinition::createFrom()&lt;/code&gt; no longer marks a &lt;code&gt;MapDataDefinition&lt;/code&gt; as required (alongside lists), so core typed data adds no &lt;code&gt;NotNull&lt;/code&gt; constraint to it and an empty map passes. Required is still enforced for &lt;code&gt;NULL&lt;/code&gt;: &lt;code&gt;TypedInputsTrait&lt;/code&gt; and &lt;code&gt;TypedOutputsTrait&lt;/code&gt; explicitly reject a &lt;code&gt;NULL&lt;/code&gt; value for a required list or map via &lt;code&gt;ValueViolationsTrait::validateListNotNull()&lt;/code&gt;. Required properties of a map stay protected on a different path: &lt;code&gt;TypedInputsTrait::validateInputValue()&lt;/code&gt; and &lt;code&gt;TypedOutputsTrait::validateOutputValue()&lt;/code&gt; walk a map's declared properties directly and report a missing required property before typed-data validation runs, which is what keeps core's known gap (an empty map's properties are never validated, drupal.org &lt;a href="https://www.drupal.org/node/3256536"&gt;#3256536&lt;/a&gt;) from reopening.&lt;/p&gt;
+&lt;p&gt;A related bug in the &amp;quot;multiple&amp;quot; to list conversion was fixed alongside this: &lt;code&gt;ListDefinitionBase::splitMultipleConstraints()&lt;/code&gt; previously promoted a &lt;code&gt;NotNull&lt;/code&gt; or non-nullable &lt;code&gt;NotBlank&lt;/code&gt; found among a multiple's item-level constraints up to the converted list itself, implicitly making the list not empty. Since a multiple's constraints only ever bind its items, that promotion was wrong and is removed; only &lt;code&gt;Count&lt;/code&gt; still moves to the list.&lt;/p&gt;
+&lt;p&gt;To let an author still require a genuinely non-empty list or map, &lt;code&gt;NotBlank&lt;/code&gt; (or &lt;code&gt;Count&lt;/code&gt;) declared directly on the list or map now normalizes through &lt;code&gt;ContextDefinitionNormalizer::applyListConstraintSchema()&lt;/code&gt; and &lt;code&gt;applyMapConstraintSchema()&lt;/code&gt; into &lt;code&gt;minItems: 1&lt;/code&gt; or &lt;code&gt;minProperties: 1&lt;/code&gt; in the published schema, and is enforced the same way at validation time.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If a tool declared a map input or output as optional purely to work around the old empty-map rejection, it can be declared required again:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;'settings' =&amp;gt; new MapOutputDefinition(
+  label: new TranslatableMarkup('Settings'),
+  description: new TranslatableMarkup('The settings.'),
+  required: TRUE,
+),
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If a map or list must never be empty, declare that explicitly instead of relying on &lt;code&gt;required&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;'nodes' =&amp;gt; new ListInputDefinition(
+  label: new TranslatableMarkup('Nodes'),
+  description: new TranslatableMarkup('The nodes to export.'),
+  constraints: ['NotBlank' =&amp;gt; []],
+  item_definition: new EntityInputDefinition('entity:node', ...),
+),
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;NotBlank&lt;/code&gt; publishes as &lt;code&gt;minItems: 1&lt;/code&gt; for a list or &lt;code&gt;minProperties: 1&lt;/code&gt; for a map; &lt;code&gt;Count&lt;/code&gt; can set an explicit minimum/maximum instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583064: Declare permissions on a tool definition for static access checks</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583064.md</link>
+      <guid isPermaLink="false">project/tool#3583064</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 30 Sep 2026 15:10:11 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583064"&gt;#3583064&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module (an API for defining executable &amp;quot;tools&amp;quot;, used for things like AI agent/MCP integrations) lets a tool plugin declare the permission an account needs to run it, directly on the &lt;code&gt;#[Tool]&lt;/code&gt; attribute, instead of writing that check by hand inside &lt;code&gt;checkAccess()&lt;/code&gt;. A new static check on the tool manager can test that declared permission against an account straight from the tool's definition, without creating an instance of the tool. This means a picker or a listing that advertises many tools to a user can filter out the ones they cannot run cheaply and with a cacheable result, rather than having to instantiate every tool and supply input values just to find out. Tools that declare no permission behave exactly as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ToolBase::checkAccess()&lt;/code&gt; is no longer abstract: it now has a default implementation that allows access when the tool declares a permission, and &lt;code&gt;ToolBase::access()&lt;/code&gt; composes the new permission check with &lt;code&gt;checkAccess()&lt;/code&gt; via &lt;code&gt;andIf()&lt;/code&gt; instead of calling &lt;code&gt;checkAccess()&lt;/code&gt; alone.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;#[Tool(permission: ...)]&lt;/code&gt; attribute parameter and &lt;code&gt;ToolManager::checkPermission(ToolDefinition $definition, AccountInterface $account)&lt;/code&gt; let code check a tool's required permission from its definition alone, without instantiating the plugin.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The attribute gains a &lt;code&gt;permission&lt;/code&gt; string parameter, exposed on &lt;code&gt;ToolDefinition::getPermission()&lt;/code&gt;/&lt;code&gt;setPermission()&lt;/code&gt; (derivers can set it per derivative). It follows the syntax of a route's &lt;code&gt;_permission&lt;/code&gt; requirement: names joined with &lt;code&gt;,&lt;/code&gt; are all required, names joined with &lt;code&gt;+&lt;/code&gt; are OR'd, and mixing both operators in one string is rejected. The actual implementation differs from the issue's original proposal of a &lt;code&gt;permissions&lt;/code&gt; array plus a &lt;code&gt;checkPermissionAccess()&lt;/code&gt; method: what landed is a single route-style string and a static &lt;code&gt;ToolManager::checkPermission(ToolDefinition $definition, AccountInterface $account): AccessResultInterface&lt;/code&gt;, which parses the string and delegates to &lt;code&gt;AccessResult::allowedIfHasPermissions()&lt;/code&gt;, carrying &lt;code&gt;user.permissions&lt;/code&gt; cacheability.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolBase::access()&lt;/code&gt; now runs this permission check first, short-circuiting before input resolution/validation, then &lt;code&gt;andIf&lt;/code&gt;s it with the result of &lt;code&gt;checkAccess()&lt;/code&gt;. &lt;code&gt;checkAccess()&lt;/code&gt; is no longer &lt;code&gt;abstract&lt;/code&gt;: its default implementation just allows when the definition declares a permission, so a purely permission-gated tool needs no override at all; an override still runs and its result is combined with the permission check, so it can only add restrictions, not bypass the declared permission. A bare &lt;code&gt;bool&lt;/code&gt; returned from &lt;code&gt;checkAccess()&lt;/code&gt; is wrapped with &lt;code&gt;setCacheMaxAge(0)&lt;/code&gt; before being combined, since a bool carries no cacheability metadata of its own.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolManager::processDefinition()&lt;/code&gt; adds two discovery-time guards, thrown as &lt;code&gt;InvalidPluginDefinitionException&lt;/code&gt; when the plugin cache rebuilds: a permission string mixing &lt;code&gt;,&lt;/code&gt; and &lt;code&gt;+&lt;/code&gt; fails immediately, and a tool that declares no permission and overrides neither &lt;code&gt;checkAccess()&lt;/code&gt; nor &lt;code&gt;access()&lt;/code&gt; (i.e. has no access rule at all) is rejected, replacing what used to be a hard PHP fatal from the removed abstract method. &lt;code&gt;drush tool:info&lt;/code&gt; and the Tool Explorer UI both print the declared permission and flag names that match no defined permission.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;A tool whose access rule is only a permission check can drop its &lt;code&gt;checkAccess()&lt;/code&gt; override and declare it on the attribute instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Tool(
+  id: 'my_tool',
+  // ...
+  permission: 'administer users',
+)]
+final class MyTool extends ToolBase {
+  // No checkAccess() override needed.
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Multiple required permissions: &lt;code&gt;permission: 'administer users,access administration pages'&lt;/code&gt;. Any-of: &lt;code&gt;permission: 'operate test tools+audit test tools'&lt;/code&gt;. An override of &lt;code&gt;checkAccess()&lt;/code&gt; no longer needs to re-check the declared permission itself: &lt;code&gt;access()&lt;/code&gt; already requires it before &lt;code&gt;checkAccess()&lt;/code&gt; runs, and the override's result is combined with &lt;code&gt;andIf()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;dries&lt;/li&gt;
+&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
+&lt;li&gt;d34dman (Factorial.io)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583062: Required means present for lists and maps; an explicit NotBlank carries non-empty</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583062.md</link>
+      <guid isPermaLink="false">project/tool#3583062</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 30 Sep 2026 14:54:17 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583062"&gt;#3583062&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's rule for whether an empty list (&lt;code&gt;[]&lt;/code&gt;) or map (&lt;code&gt;{}&lt;/code&gt;) satisfies a &lt;code&gt;required&lt;/code&gt; input or output has been made consistent. Before this, behavior disagreed depending on how the definition was declared: a required list converted from the older &amp;quot;multiple&amp;quot; style rejected an empty array while a hand-declared required list accepted it, and different schema consumers (the tool-native schema, the MCP bridge, and the ai module's context bridge) disagreed about whether an empty array was even allowed. The rule now applied everywhere, for both lists and maps, and for both inputs and outputs, is that &lt;code&gt;required&lt;/code&gt; means the value must be present and not &lt;code&gt;NULL&lt;/code&gt;; an empty array or object still counts as present. A tool author who needs to guarantee a non-empty list or map has to say so explicitly, with a &lt;code&gt;NotBlank&lt;/code&gt; or &lt;code&gt;Count&lt;/code&gt; constraint.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; A required list or map input or output no longer rejects, or advertises as non-empty, an empty array or object by itself; add &lt;code&gt;NotBlank&lt;/code&gt; or &lt;code&gt;Count&lt;/code&gt; to require a non-empty value, which is what is now advertised as &lt;code&gt;minItems&lt;/code&gt;/&lt;code&gt;minProperties&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ListDefinitionBase::splitMultipleConstraints()&lt;/code&gt; (&lt;code&gt;src/TypedData/ListDefinitionBase.php&lt;/code&gt;) no longer infers a list-level &lt;code&gt;NotNull&lt;/code&gt; from a converted multiple's &lt;code&gt;NotNull&lt;/code&gt; or &lt;code&gt;NotBlank&lt;/code&gt;; it moves only &lt;code&gt;Count&lt;/code&gt; to the list, leaving every other constraint, &lt;code&gt;NotBlank&lt;/code&gt; included, bound to the item. &lt;code&gt;EffectiveDataDefinition::createFrom()&lt;/code&gt;, which builds the typed-data definition &lt;code&gt;TypedInputsTrait&lt;/code&gt;/&lt;code&gt;TypedOutputsTrait&lt;/code&gt; actually validate against, now withholds the &lt;code&gt;required&lt;/code&gt; flag from maps the same way it already did for lists, so typed data's automatic &lt;code&gt;NotNull&lt;/code&gt; default constraint never reaches a list or map's effective definition. &lt;code&gt;TypedInputsTrait::validateInputValue()&lt;/code&gt; rejects an explicit &lt;code&gt;NULL&lt;/code&gt; for a required list or map itself (via &lt;code&gt;validateListNotNull()&lt;/code&gt;) while letting an empty array or object through.&lt;/p&gt;
+&lt;p&gt;On the schema side, &lt;code&gt;ContextDefinitionNormalizer::applyListConstraintSchema()&lt;/code&gt; and the new &lt;code&gt;applyMapConstraintSchema()&lt;/code&gt; (&lt;code&gt;src/Normalizer/ContextDefinitionNormalizer.php&lt;/code&gt;) only emit &lt;code&gt;minItems&lt;/code&gt;/&lt;code&gt;minProperties: 1&lt;/code&gt; when the definition carries an explicit &lt;code&gt;NotBlank&lt;/code&gt;, not merely because it is &lt;code&gt;required&lt;/code&gt;, removing the tool-side inference that a required multiple implies a non-empty array. &lt;code&gt;tool_ai_connector&lt;/code&gt;'s &lt;code&gt;ToolContextDefinitionTrait::toListDefinition()&lt;/code&gt; was updated the same way: a list-level &lt;code&gt;NotBlank&lt;/code&gt; is treated as author-declared only, never something the ai-context adapter infers.&lt;/p&gt;
+&lt;p&gt;This settles the &amp;quot;open question&amp;quot; the issue raised about maps by extending the existing list/output rule (&lt;code&gt;required&lt;/code&gt; means present, not empty, per the earlier &lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt;) uniformly to maps and to the input direction, rather than adopting the input-specific &amp;quot;reject empty&amp;quot; rule this issue's body had proposed.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To require a non-empty list or map input (or output), declare &lt;code&gt;NotBlank&lt;/code&gt; (or &lt;code&gt;Count&lt;/code&gt; for bounds) explicitly; &lt;code&gt;required&lt;/code&gt; by itself no longer implies it:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;'nodes' =&amp;gt; new ListInputDefinition(
+  label: new TranslatableMarkup('Nodes'),
+  description: new TranslatableMarkup('The nodes to export.'),
+  constraints: ['NotBlank' =&amp;gt; []],
+  item_definition: new EntityInputDefinition('entity:node', ...),
+),
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is advertised in the generated JSON Schema as &lt;code&gt;minItems: 1&lt;/code&gt; (or &lt;code&gt;minProperties: 1&lt;/code&gt; for a map), rather than being inferred from &lt;code&gt;required&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583047: tool:run --json prints an entity output as its full field array, including the password hash</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583047.md</link>
+      <guid isPermaLink="false">project/tool#3583047</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 30 Sep 2026 13:59:59 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583047"&gt;#3583047&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;tool:run&lt;/code&gt; Drush command could print an entity output's entire field array, in both JSON and plain text mode. For a user entity this included &lt;code&gt;pass&lt;/code&gt;, the hashed password, which could end up visible in a terminal, a log, or an AI agent's transcript. The command now prints entities only as a small reference (entity type, ID, UUID, and label) instead of dumping their fields, so no field data, secret or otherwise, leaks through &lt;code&gt;tool:run&lt;/code&gt; output.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Fixed exposure of entity field values, including a user's password hash, in &lt;code&gt;drush tool:run&lt;/code&gt; output (both &lt;code&gt;--json&lt;/code&gt; and text modes).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix adds a &lt;code&gt;referenceEntities()&lt;/code&gt; helper to &lt;code&gt;ToolOutputTrait&lt;/code&gt;, used from both &lt;code&gt;ToolRunCommand::serializeOutputs()&lt;/code&gt; (the &lt;code&gt;--json&lt;/code&gt; path) and &lt;code&gt;ToolOutputTrait::formatOutputValue()&lt;/code&gt; (the plain-text path). Any value that is an &lt;code&gt;EntityInterface&lt;/code&gt; is replaced with an array of &lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;uuid&lt;/code&gt;, and &lt;code&gt;label&lt;/code&gt; (taken from the entity's own &lt;code&gt;label()&lt;/code&gt;, so no direct field access happens); arrays are walked recursively so a &lt;code&gt;multiple&lt;/code&gt; entity output has each item replaced too. This closes a gap left by &lt;a href="https://www.drupal.org/node/3583035"&gt;#3583035&lt;/a&gt;, which switched &lt;code&gt;ToolRunCommand&lt;/code&gt; to &lt;code&gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt; but only replaces entities with handles for invokers that declare &lt;code&gt;InvokerCapability::EntitiesAsHandles&lt;/code&gt;; &lt;code&gt;DrushInvoker&lt;/code&gt; declares none, so the formatted result still held the raw entity object, and the previous &lt;code&gt;toArray()&lt;/code&gt;/&lt;code&gt;get_class()&lt;/code&gt; fallbacks either dumped every field or leaked nothing useful.&lt;/p&gt;
+&lt;p&gt;The change is deliberately scoped to the reference shape described in the issue rather than waiting for real CLI entity handles (tracked separately in &lt;a href="https://www.drupal.org/node/3582977"&gt;#3582977&lt;/a&gt;), which will eventually replace this reference representation. Test coverage is a new &lt;code&gt;account_output_tool&lt;/code&gt; test plugin returning a user both as a single output and as a &lt;code&gt;multiple&lt;/code&gt; output, with a kernel test asserting the password hash and the &lt;code&gt;pass&lt;/code&gt; key never appear in either output mode.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588984: Not Drupal 12 compatible</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588984.md</link>
       <guid isPermaLink="false">project/ai_best_practices#3588984</guid>
@@ -625,194 +809,6 @@ catch (\Mcp\Exception\ResourceNotFoundException $e) {
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583021: Remove the ai_tools_property_alter hook implementation superseded by the schema property converter</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583021.md</link>
-      <guid isPermaLink="false">project/tool#3583021</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 04:51:28 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583021"&gt;#3583021&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;tool_ai_connector&lt;/code&gt; module's &lt;code&gt;hook_ai_tools_property_alter()&lt;/code&gt; implementation has been removed, along with its service registration. This hook used to expand one level of map properties onto a tool's advertised schema, but it only ever fired on a code path that the tool module's bridge no longer uses: the bridge builds its schema properties directly from the tool's JSON Schema output, which already covers nested maps, list inputs, and constraint-derived keywords that the old hook never handled. For sites and modules using the supported bridge (&lt;code&gt;ToolPluginBase::normalize()&lt;/code&gt;), nothing changes; schemas are generated the same way they already were.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Removed &lt;code&gt;Drupal\tool_ai_connector\Hook\AiToolsPropertyHooks&lt;/code&gt; (the &lt;code&gt;hook_ai_tools_property_alter()&lt;/code&gt; implementation) and its service registration; no replacement is needed on the supported bridge path.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The hook (&lt;code&gt;AiToolsPropertyHooks::aiToolsPropertyAlter()&lt;/code&gt;), its &lt;code&gt;#[Hook('ai_tools_property_alter')]&lt;/code&gt; attribute, the legacy procedural bridge function in &lt;code&gt;tool_ai_connector.module&lt;/code&gt;, and the service registration in &lt;code&gt;tool_ai_connector.services.yml&lt;/code&gt; were all deleted. The hook only fired when a &lt;code&gt;MapDataDefinition&lt;/code&gt;-backed property was normalized via the &lt;code&gt;ai&lt;/code&gt; module's default &lt;code&gt;FunctionCallBase::normalize()&lt;/code&gt;, which routes through &lt;code&gt;Utility\ContextDefinitionNormalizer&lt;/code&gt;. The tool bridge's own &lt;code&gt;ToolPluginBase::normalize()&lt;/code&gt; overrides that method and instead builds properties from the tool's emitted JSON Schema via &lt;code&gt;SchemaToolsPropertyConverter&lt;/code&gt;, so for every tool-bridged function call, the hook's &lt;code&gt;instanceof MapContextDefinition&lt;/code&gt; branch was dead code. Removing it also clears a straggler reference to &lt;code&gt;MapContextDefinition&lt;/code&gt;, a class slated for deprecation and removal in the context-system detach plan tracked in &lt;a href="https://www.drupal.org/node/3583016"&gt;#3583016&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;Coverage for the removal landed as a new kernel test, &lt;code&gt;MapListAdvertisementTest&lt;/code&gt;, which asserts the bridge advertises complete schemas without the hook: a map input with nested maps produces &lt;code&gt;object&lt;/code&gt; schemas with properties at every depth, a multiple-value input advertises an &lt;code&gt;array&lt;/code&gt; with an &lt;code&gt;items&lt;/code&gt; schema, and a free-form map (no declared properties) advertises a plain &lt;code&gt;object&lt;/code&gt; rather than an empty or untyped schema.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;A third-party function-call plugin that routed tool definition objects through &lt;code&gt;ai.context_definition_normalizer&lt;/code&gt; directly (rather than through the tool bridge's &lt;code&gt;normalize()&lt;/code&gt;) loses the one-level map expansion the removed hook provided. Switch to the supported path, the bridge's &lt;code&gt;ToolPluginBase::normalize()&lt;/code&gt;, which builds properties from the tool's JSON Schema via &lt;code&gt;SchemaToolsPropertyConverter&lt;/code&gt; and covers nested maps, lists, and constraint-derived keywords that the old hook did not.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 15, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583041: Issue #3583041: Keep a multiple definition's description on the array</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583041.md</link>
-      <guid isPermaLink="false">project/tool#3583041</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 04:31:00 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583041"&gt;#3583041&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module builds JSON Schema descriptions of each tool's inputs, which are consumed by AI agents and MCP clients to know what a tool accepts. For inputs that accept multiple values (&lt;code&gt;multiple: TRUE&lt;/code&gt;), the schema generator previously threw away the field's own description and title, replacing them with a generic &lt;code&gt;Array of &amp;lt;label&amp;gt;&lt;/code&gt; string, while duplicating the real label and description onto the nested &lt;code&gt;items&lt;/code&gt; schema instead. This meant the actual, useful description written by the tool's author was hidden one level down instead of appearing where a caller would look for it. The fix keeps the field's real title and description on the array schema itself, where they belong, and leaves &lt;code&gt;items&lt;/code&gt; to describe only the type of each element.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; For context definitions with &lt;code&gt;multiple: TRUE&lt;/code&gt;, &lt;code&gt;ContextDefinitionNormalizer&lt;/code&gt; no longer duplicates the label/description onto &lt;code&gt;items&lt;/code&gt; or rewrites the array's own description as &lt;code&gt;Array of &amp;lt;label&amp;gt;&lt;/code&gt;; the definition's real description and title now stay directly on the array schema, and &lt;code&gt;items&lt;/code&gt; carries only its type (and constraints like &lt;code&gt;format&lt;/code&gt;).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was in &lt;code&gt;ContextDefinitionNormalizer::normalize()&lt;/code&gt; in the &lt;code&gt;tool&lt;/code&gt; module: when handling a &lt;code&gt;multiple&lt;/code&gt; context definition, the code cloned the item definition, normalized it to build &lt;code&gt;items&lt;/code&gt;, then copied that clone's description onto &lt;code&gt;items['description']&lt;/code&gt; and synthesized &lt;code&gt;$schema['description'] = 'Array of ' . $object-&amp;gt;getLabel()&lt;/code&gt;, overwriting whatever description the array schema already had.&lt;/p&gt;
-&lt;p&gt;The fix clears the label and description on the cloned single-item definition before normalizing it (&lt;code&gt;$item_definition-&amp;gt;setLabel(''); $item_definition-&amp;gt;setDescription('');&lt;/code&gt;), so &lt;code&gt;items&lt;/code&gt; no longer picks up a redundant title/description, and removes the block that rewrote &lt;code&gt;$schema['description']&lt;/code&gt; to the generic &lt;code&gt;Array of ...&lt;/code&gt; string. The array's own title and description, already set earlier in the method from the definition, are left untouched. Kernel tests in &lt;code&gt;InputSchemaMatrixTest&lt;/code&gt; and &lt;code&gt;RicherSchemaEmissionTest&lt;/code&gt; were updated to assert the corrected shape, e.g. a &lt;code&gt;multi_string&lt;/code&gt; field now emits &lt;code&gt;{&amp;quot;items&amp;quot;: {&amp;quot;type&amp;quot;: &amp;quot;string&amp;quot;}, &amp;quot;description&amp;quot;: &amp;quot;Multi string: A multiple string input.&amp;quot;, &amp;quot;title&amp;quot;: &amp;quot;Multi string&amp;quot;}&lt;/code&gt; instead of nesting the description inside &lt;code&gt;items&lt;/code&gt; and replacing the top-level description with &lt;code&gt;&amp;quot;Array of Multi string&amp;quot;&lt;/code&gt;.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code or tests that assert on the exact JSON Schema produced for &lt;code&gt;multiple&lt;/code&gt; tool inputs must be updated. For example, a &lt;code&gt;multi_string&lt;/code&gt; field's schema changes from:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;type&amp;quot;: [&amp;quot;array&amp;quot;, &amp;quot;null&amp;quot;],
-  &amp;quot;items&amp;quot;: {
-    &amp;quot;type&amp;quot;: &amp;quot;string&amp;quot;,
-    &amp;quot;description&amp;quot;: &amp;quot;Multi string: A multiple string input.&amp;quot;,
-    &amp;quot;title&amp;quot;: &amp;quot;Multi string&amp;quot;
-  },
-  &amp;quot;description&amp;quot;: &amp;quot;Array of Multi string&amp;quot;,
-  &amp;quot;title&amp;quot;: &amp;quot;Multi string&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;to:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;type&amp;quot;: [&amp;quot;array&amp;quot;, &amp;quot;null&amp;quot;],
-  &amp;quot;items&amp;quot;: { &amp;quot;type&amp;quot;: &amp;quot;string&amp;quot; },
-  &amp;quot;description&amp;quot;: &amp;quot;Multi string: A multiple string input.&amp;quot;,
-  &amp;quot;title&amp;quot;: &amp;quot;Multi string&amp;quot;
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dries&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583029: Enforce required outputs in ToolBase::execute() so a success cannot omit a declared output</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583029.md</link>
-      <guid isPermaLink="false">project/tool#3583029</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 04:20:48 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583029"&gt;#3583029&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool API's &lt;code&gt;OutputDefinition&lt;/code&gt; has always defaulted &lt;code&gt;required&lt;/code&gt; to &lt;code&gt;TRUE&lt;/code&gt;, but nothing enforced it: a tool could return &lt;code&gt;ExecutableResult::success()&lt;/code&gt; without setting one of its own required outputs and &lt;code&gt;execute()&lt;/code&gt; would report success anyway. A caller would only discover the problem later, either from an exception when reading the missing value or, worse, not at all if it just read the raw context values off the formatted result. Now &lt;code&gt;execute()&lt;/code&gt; validates the outputs right after a successful &lt;code&gt;doExecute()&lt;/code&gt; and, if a required output is missing or a set value doesn't match its declared shape, replaces the result with a failure categorized as &lt;code&gt;Runtime&lt;/code&gt; and logs the violation against the tool. This closes the gap that had forced the MCP Server Tool Bridge module to omit &lt;code&gt;required&lt;/code&gt; from the JSON Schema it advertises for tool outputs, since it could not promise something the Tool API itself did not guarantee.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ToolBase::execute()&lt;/code&gt; now fails a tool (with &lt;code&gt;FailureCategory::Runtime&lt;/code&gt;) instead of silently succeeding when a &lt;code&gt;doExecute()&lt;/code&gt; implementation omits a declared required output, sets it to &lt;code&gt;NULL&lt;/code&gt;, or sets a value that violates its output definition.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The check lives in a new private &lt;code&gt;ToolBase::failOnOutputViolations()&lt;/code&gt;, called from &lt;code&gt;execute()&lt;/code&gt; immediately after the loop that copies matching context values into &lt;code&gt;$this-&amp;gt;outputs&lt;/code&gt;. It calls the existing &lt;code&gt;validateOutputs()&lt;/code&gt; and, if the returned &lt;code&gt;ConstraintViolationList&lt;/code&gt; is non-empty, logs the violation against the tool's plugin ID and overwrites &lt;code&gt;$this-&amp;gt;result&lt;/code&gt; with &lt;code&gt;ExecutableResult::failure(..., FailureCategory::Runtime)&lt;/code&gt;, since a missing or malformed output is a bug in the tool, not something the caller can fix by changing its arguments.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;TypedOutputsTrait::validateOutputs()&lt;/code&gt; was rewritten to check shape as well as presence: an output whose &lt;code&gt;Context::hasContextValue()&lt;/code&gt; is false now counts as unset (previously only a wholly-absent key did, so a required output explicitly set to &lt;code&gt;NULL&lt;/code&gt; slipped through), and each set value is run through a new private &lt;code&gt;validateOutputValue()&lt;/code&gt; that mirrors &lt;code&gt;TypedInputsTrait::validateInputValue()&lt;/code&gt;. Multiple-value and &lt;code&gt;ListOutputDefinition&lt;/code&gt; outputs are checked item by item with the failing index named in the message; &lt;code&gt;MapOutputDefinition&lt;/code&gt; properties are checked individually, with missing required properties reported by name; and entity-typed outputs (data type &lt;code&gt;entity&lt;/code&gt; or &lt;code&gt;entity:*&lt;/code&gt;) are only checked for being an &lt;code&gt;EntityInterface&lt;/code&gt; instance, not run through full entity field validation, so a tool that merely returns an entity it loaded is not failed for that entity's own data problems. The item/property-naming helper and the core &lt;code&gt;TypedDataManager&lt;/code&gt; prototype-cache workaround (for the upstream bug in drupal/drupal&lt;a href="https://www.drupal.org/node/3616328"&gt;#3616328&lt;/a&gt;) were extracted from &lt;code&gt;TypedInputsTrait&lt;/code&gt; into a new shared &lt;code&gt;ValueViolationsTrait&lt;/code&gt;, used by both input and output validation.&lt;/p&gt;
-&lt;p&gt;Test coverage was added via two new fixture plugins, &lt;code&gt;RequiredOutputTool&lt;/code&gt; and &lt;code&gt;EntityOutputTool&lt;/code&gt;, plus &lt;code&gt;tests/src/Kernel/Tool/OutputValidationTest.php&lt;/code&gt; and additions to &lt;code&gt;ToolBaseTest&lt;/code&gt;, covering a missing or &lt;code&gt;NULL&lt;/code&gt; required output failing with the output named, an omitted optional output still succeeding, an invalid output value failing the same way, and entity outputs being validated by shape rather than by full field validation.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Any tool plugin whose &lt;code&gt;doExecute()&lt;/code&gt; can return a success without setting a value for one of its declared &lt;code&gt;output_definitions&lt;/code&gt; will now fail instead. For each such output, either always set it:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;protected function doExecute(array $values): ExecutableResult {
-  // Make sure every required output is set on every success path.
-  return ExecutableResult::success($message, ['answer' =&amp;gt; $computed_value]);
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;or mark it optional in the plugin's &lt;code&gt;output_definitions&lt;/code&gt; if it legitimately may not always have a value:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;output_definitions: [
-  'link' =&amp;gt; new OutputDefinition(
-    data_type: 'uri',
-    label: new TranslatableMarkup('Link'),
-    description: new TranslatableMarkup('An optional uri output.'),
-    required: FALSE,
-  ),
-],
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 19, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583033: Add ToolDefinitionSerializer::normalizeOutputSchema() as the twin of normalizeInputSchema()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583033.md</link>
-      <guid isPermaLink="false">project/tool#3583033</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 03:48:14 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583033"&gt;#3583033&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool API module's &lt;code&gt;ToolDefinitionSerializer&lt;/code&gt; already had &lt;code&gt;normalizeInputSchema()&lt;/code&gt; to build a full JSON Schema object for a tool's inputs, but no equivalent for outputs, just a bare properties list. Consumers that needed a full output schema, such as the MCP server tool bridge and a hand-built OpenAPI generator, ended up reimplementing the wrapper themselves and getting details wrong, like omitting required outputs or mishandling the empty-properties case. This issue adds &lt;code&gt;normalizeOutputSchema()&lt;/code&gt; as the output-side twin, so any module building on Tool API can get a correct, consistent output schema without re-solving the same problems.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ToolDefinitionSerializer::normalizeOutputSchema()&lt;/code&gt; method returns a complete JSON Schema object (&lt;code&gt;type&lt;/code&gt;, &lt;code&gt;properties&lt;/code&gt;, &lt;code&gt;required&lt;/code&gt;) for a tool's declared outputs.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;normalizeOutputSchema(ToolInterface $tool, string $format = 'json_schema'): array&lt;/code&gt; wraps &lt;code&gt;normalizeOutputDefinitions()&lt;/code&gt; in &lt;code&gt;{type: object, properties: ...}&lt;/code&gt; and adds a &lt;code&gt;required&lt;/code&gt; array populated from each &lt;code&gt;OutputDefinition::isRequired()&lt;/code&gt;, guarding the empty case with &lt;code&gt;new \ArrayObject()&lt;/code&gt; so it serializes to &lt;code&gt;{}&lt;/code&gt; rather than &lt;code&gt;[]&lt;/code&gt;, mirroring &lt;code&gt;normalizeInputSchema()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The one deliberate asymmetry: &lt;code&gt;normalizeInputSchema()&lt;/code&gt; sets &lt;code&gt;additionalProperties: FALSE&lt;/code&gt; because a tool rejects unknown arguments, but &lt;code&gt;normalizeOutputSchema()&lt;/code&gt; leaves it unset. The docblock explains why: &lt;code&gt;ToolBase::execute()&lt;/code&gt; only copies declared outputs into the outputs bag, but &lt;code&gt;getFormattedResult()&lt;/code&gt; deliberately passes undeclared result values through, so a serialized result can legitimately carry members beyond the declared properties, and closing the schema would make it lie. A kernel test (&lt;code&gt;OutputSchemaTest&lt;/code&gt;) covers both the normal case, asserting &lt;code&gt;required&lt;/code&gt; only lists outputs marked required, and the no-output case, asserting the empty properties bag encodes as &lt;code&gt;{}&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;required&lt;/code&gt; list is currently advisory: nothing in &lt;code&gt;ToolBase::execute()&lt;/code&gt; yet enforces that a tool actually returns its required outputs. That enforcement landed separately as commit &lt;code&gt;1ab3f3e&lt;/code&gt; for the follow-up issue referenced in this one (&lt;a href="https://www.drupal.org/node/3583029"&gt;#3583029&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

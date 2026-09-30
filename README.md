@@ -1,8 +1,24 @@
-**TL;DR:** [1145 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1150 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_174 summaries · 25 new this week_
+
+- [#3583069: Align map validation with JSON Schema: a required map may be empty](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583069.md)
+- [#3583064: Declare permissions on a tool definition for static access checks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583064.md)
+- [#3583062: Required means present for lists and maps; an explicit NotBlank carries...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583062.md)
+
+### Drupal Core
+
+_604 summaries · 9 new this week_
+
+- [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
+- [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
+- [#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md)
 
 ### Drupal Canvas
 
@@ -11,22 +27,6 @@ _269 summaries · 10 new this week_
 - [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
 - [#3592002: Normalize agent-written prop values against their schema and report values the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592002.md)
 - [#3592057: Support mapping multi-valued list fields to array-type component props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592057.md)
-
-### Drupal AI
-
-_170 summaries · 22 new this week_
-
-- [#3588984: Not Drupal 12 compatible](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588984.md)
-- [#3583045: tool:info --format=json prints [] instead of {} for a tool with no inputs or...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583045.md)
-- [#3582967: Harden the 'administer tool' permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582967.md)
-
-### Drupal Core
-
-_603 summaries · 9 new this week_
-
-- [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
-- [#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md)
-- [#3557481: Convert hook_schema() implementations to SchemaDefinition - regular modules](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3557481.md)
 
 ### Drupal CMS
 
