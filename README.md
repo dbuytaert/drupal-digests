@@ -1,32 +1,32 @@
-**TL;DR:** [1157 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1162 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_184 summaries · 28 new this week_
+
+- [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
+- [#3568162: Tool UI migration from MCP module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3568162.md)
+- [#3585884: Version requirements in submodule .info files causes issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585884.md)
+
+### Drupal Canvas
+
+_270 summaries · 10 new this week_
+
+- [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
+- [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
+- [#3592002: Normalize agent-written prop values against their schema and report values the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592002.md)
+
 ### Drupal Core
 
-_605 summaries · 8 new this week_
+_605 summaries · 6 new this week_
 
 - [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
 - [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
 - [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
-
-### Drupal AI
-
-_180 summaries · 26 new this week_
-
-- [#3583079: A denied Explorer execute submission reports an internal exception message and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583079.md)
-- [#3583077: Invokers must check the declared permission before processing caller input](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583077.md)
-- [#3583071: Inputs and outputs declared with data type "map" are advertised as strings on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583071.md)
-
-### Drupal Canvas
-
-_269 summaries · 10 new this week_
-
-- [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
-- [#3592002: Normalize agent-written prop values against their schema and report values the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592002.md)
-- [#3592057: Support mapping multi-valued list fields to array-type component props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592057.md)
 
 ### Drupal CMS
 
