@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_174 summaries · 25 new this week_
+_174 summaries · 24 new this week_
 
 - [#3583069: Align map validation with JSON Schema: a required map may be empty](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583069.md)
 - [#3583064: Declare permissions on a tool definition for static access checks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583064.md)
