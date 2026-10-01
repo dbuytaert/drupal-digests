@@ -1,24 +1,24 @@
-**TL;DR:** [1150 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1157 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_174 summaries · 24 new this week_
-
-- [#3583069: Align map validation with JSON Schema: a required map may be empty](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583069.md)
-- [#3583064: Declare permissions on a tool definition for static access checks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583064.md)
-- [#3583062: Required means present for lists and maps; an explicit NotBlank carries...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583062.md)
-
 ### Drupal Core
 
-_604 summaries · 9 new this week_
+_605 summaries · 8 new this week_
 
+- [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
 - [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
 - [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
-- [#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md)
+
+### Drupal AI
+
+_180 summaries · 26 new this week_
+
+- [#3583079: A denied Explorer execute submission reports an internal exception message and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583079.md)
+- [#3583077: Invokers must check the declared permission before processing caller input](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583077.md)
+- [#3583071: Inputs and outputs declared with data type "map" are advertised as strings on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583071.md)
 
 ### Drupal Canvas
 

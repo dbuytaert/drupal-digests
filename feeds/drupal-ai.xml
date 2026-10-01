@@ -5,6 +5,219 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583079: A denied Explorer execute submission reports an internal exception message and still offers the Execute button</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583079.md</link>
+      <guid isPermaLink="false">project/tool#3583079</guid>
+      <pubDate>Thu, 01 Oct 2026 04:38:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583079"&gt;#3583079&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a user without the right permission tried to execute a tool from the Tool Explorer, the denial page still showed an Execute button, and pressing it produced a second, confusing error exposing an internal developer-facing exception message rather than just the plain access-denied notice. This fix ensures that a denied execution page no longer offers an Execute button, and that submitting a denied (or otherwise un-run) tool reports only the original denial message instead of layering a cryptic internal error on top of it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was that &lt;code&gt;ToolExecuteForm::buildForm()&lt;/code&gt; unconditionally appended the Execute submit button after the plugin form ran, even when the plugin form's &lt;code&gt;access()&lt;/code&gt; check had denied execution and returned only denial markup (&lt;code&gt;access_denied&lt;/code&gt;). Separately, &lt;code&gt;ToolExecuteForm::submitForm()&lt;/code&gt; unconditionally called &lt;code&gt;$tool-&amp;gt;getResult()&lt;/code&gt; after submission, but &lt;code&gt;ToolBase::getResult()&lt;/code&gt; throws a &lt;code&gt;BadMethodCallException&lt;/code&gt; if the tool's &lt;code&gt;execute()&lt;/code&gt; method never ran, which is exactly the case on a denied submission.&lt;/p&gt;
+&lt;p&gt;The fix adds two guards in &lt;code&gt;modules/tool_explorer/src/Form/ToolExecuteForm.php&lt;/code&gt;: &lt;code&gt;buildForm()&lt;/code&gt; now only adds the &lt;code&gt;actions.submit&lt;/code&gt; Execute button when &lt;code&gt;$form['access_denied']&lt;/code&gt; is not set, and &lt;code&gt;submitForm()&lt;/code&gt; now checks &lt;code&gt;$tool-&amp;gt;hasResult()&lt;/code&gt; before calling &lt;code&gt;getResult()&lt;/code&gt;, returning early (leaving the plugin form's own denial message as the only reported error) when there is no result to retrieve. Kernel test coverage was added in &lt;code&gt;ExecuteToolPluginFormTest&lt;/code&gt; (&lt;code&gt;testDeniedPageOffersNoExecuteButton&lt;/code&gt; and &lt;code&gt;testDeniedSubmitReportsOnce&lt;/code&gt;) to assert the denial page has no &lt;code&gt;submit&lt;/code&gt; action and that a denied submission produces exactly one error message with no &lt;code&gt;::execute()&lt;/code&gt; exception text. The issue notes this flaw predates &lt;a href="https://www.drupal.org/node/3583077"&gt;#3583077&lt;/a&gt; (declared-permission pre-checks) but that change made the denial path routine to reach rather than a rare edge case.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 30, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583077: Invokers must check the declared permission before processing caller input</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583077.md</link>
+      <guid isPermaLink="false">project/tool#3583077</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 01 Oct 2026 03:59:40 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583077"&gt;#3583077&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's built-in ways of running a tool (the &lt;code&gt;tool:run&lt;/code&gt; Drush command, the Explorer's execute form, and the AI connector used by &lt;code&gt;tool_ai_connector&lt;/code&gt;) previously processed the caller's input, resolving entity handles, running coercions and refiners, before checking whether the caller was even allowed to run the tool. For a tool that declares a &lt;code&gt;permission&lt;/code&gt; (added in &lt;a href="https://www.drupal.org/node/3583064"&gt;#3583064&lt;/a&gt;), that meant an unauthorized caller's attacker-controlled values were still touched before being denied. These invokers now check the declared permission first and deny immediately, before touching any input, falling back to the existing &lt;code&gt;access()&lt;/code&gt; check afterward as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; &lt;code&gt;tool:run&lt;/code&gt;, the Explorer's execute form, and the AI connector now call &lt;code&gt;ToolManager::checkPermission()&lt;/code&gt; to deny a caller lacking the tool's declared &lt;code&gt;permission&lt;/code&gt; before any of the caller's input is parsed, transformed, or validated, instead of only after resolving handles and running refiners on it.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Each in-tree invoker now calls the static &lt;code&gt;ToolManager::checkPermission($definition, $account)&lt;/code&gt; before setting any caller-supplied value. &lt;code&gt;ToolRunCommand::executeTool()&lt;/code&gt; checks it right after fetching the plugin definition, before &lt;code&gt;createInstance()&lt;/code&gt; or &lt;code&gt;setInputValue()&lt;/code&gt; runs; &lt;code&gt;ExecuteToolPluginForm::buildConfigurationForm()&lt;/code&gt; checks it before building any widgets from refined definitions, and &lt;code&gt;submitConfigurationForm()&lt;/code&gt; checks it again before extracting submitted values; &lt;code&gt;tool_ai_connector&lt;/code&gt;'s &lt;code&gt;ToolPluginBase::execute()&lt;/code&gt; checks it before forwarding any LLM-provided context value. All three still call &lt;code&gt;access()&lt;/code&gt; afterward as the real execution gate, since &lt;code&gt;checkPermission()&lt;/code&gt; is definition-only and cheap, while &lt;code&gt;access()&lt;/code&gt; also runs the tool's own values-dependent &lt;code&gt;checkAccess()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Denial reporting was consolidated so a caller cannot tell which stage denied: &lt;code&gt;ToolRunCommand&lt;/code&gt; gained a private &lt;code&gt;accessDeniedMessage()&lt;/code&gt; helper and &lt;code&gt;ToolPluginBase&lt;/code&gt; gained &lt;code&gt;recordAccessDenial()&lt;/code&gt;, both now shared between the permission pre-check and the &lt;code&gt;access()&lt;/code&gt; check.&lt;/p&gt;
+&lt;p&gt;The invoker contract is now documented in &lt;code&gt;docs/developers/index.md&lt;/code&gt; under &amp;quot;Invoking a tool&amp;quot;: check the declared permission, set inputs, validate, call &lt;code&gt;access()&lt;/code&gt;, then &lt;code&gt;execute()&lt;/code&gt;. It also specifies what each stage may reveal: nothing before the permission check passes (no transform events, no violation text, no schema echo), and only shape feedback (schema-based violations, correctable-failure schema echo) after it, since the schema is already advertised at that gate. &lt;code&gt;docs/developers/creating-a-tool.md&lt;/code&gt; now explains that a value-independent access rule belongs in &lt;code&gt;permission&lt;/code&gt;, not &lt;code&gt;checkAccess()&lt;/code&gt;, precisely because only the former denies before input processing. Kernel tests (&lt;code&gt;DeclaredPermissionDenialTest&lt;/code&gt;, additions to &lt;code&gt;ToolRunCommandTest&lt;/code&gt; and &lt;code&gt;ExecuteToolPluginFormTest&lt;/code&gt;) assert the denial happens before any input transform event fires.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Custom invokers (the MCP bridge, other external callers) should follow the documented ordering to get the same early-denial behavior:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$definition = $tool_manager-&amp;gt;getDefinition($tool_id);
+$permission_access = ToolManager::checkPermission($definition, $account);
+if (!$permission_access-&amp;gt;isAllowed()) {
+  // Report the denial the same way an access() denial is reported.
+  return;
+}
+
+// Now safe to process caller input:
+$tool = $tool_manager-&amp;gt;createInstance($tool_id, [], $invoker);
+$tool-&amp;gt;setInputValue($name, $value);
+// ... validate, then:
+$access = $tool-&amp;gt;access(NULL, TRUE);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Keep a value-independent access rule in a tool's &lt;code&gt;permission&lt;/code&gt; rather than its &lt;code&gt;checkAccess()&lt;/code&gt; override, since only &lt;code&gt;permission&lt;/code&gt; is checked before input processing.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 29, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583071: Inputs and outputs declared with data type "map" are advertised as strings on Drupal 10 and 11.0</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583071.md</link>
+      <guid isPermaLink="false">project/tool#3583071</guid>
+      <pubDate>Thu, 01 Oct 2026 03:08:15 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583071"&gt;#3583071&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On Drupal 10 and 11.0, Tool API's JSON Schema generator incorrectly advertised any tool input or output declared with the plain &lt;code&gt;map&lt;/code&gt; data type (as opposed to the dedicated map classes) as a string instead of an object. This mismatch broke tools in practice: a server or client that validates arguments or results against the advertised schema, such as mcp_server, would reject the object the tool actually needs or returns. The &lt;code&gt;tool_belt&lt;/code&gt; module alone declares 28 such plain map inputs and outputs, so this affected a substantial share of real tools. The fix makes plain map definitions advertise as objects consistently on every supported core version, matching the behavior already present on Drupal 11.1+.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The root cause was in &lt;code&gt;ContextDefinitionNormalizer::getNormalizationSchema()&lt;/code&gt;. A &lt;code&gt;data_type: 'map'&lt;/code&gt; declared on the dedicated &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; classes (subclasses of &lt;code&gt;MapDataDefinition&lt;/code&gt;) was already handled correctly, taking the map branch that builds &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;object&amp;quot;, ...}&lt;/code&gt;. But the same &lt;code&gt;map&lt;/code&gt; data type declared on a plain &lt;code&gt;InputDefinition&lt;/code&gt; or &lt;code&gt;OutputDefinition&lt;/code&gt; is just a &lt;code&gt;DataDefinition&lt;/code&gt;, so it fell through to the typed-data branch, which asks the serializer for the &lt;code&gt;json_schema&lt;/code&gt; of a &lt;code&gt;Map&lt;/code&gt; typed-data object. On cores before 11.1, that request is handled by &lt;code&gt;LegacyTypedDataNormalizer&lt;/code&gt; (registered at a higher priority than &lt;code&gt;MapDefinitionNormalizer&lt;/code&gt; in &lt;code&gt;tool.services.yml&lt;/code&gt;), which has no arm for &lt;code&gt;Map&lt;/code&gt; and returns an empty array, which then falls back to advertising &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;string&amp;quot;}&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The fix extends the existing map branch's condition from &lt;code&gt;$object instanceof MapDataDefinition&lt;/code&gt; to also match &lt;code&gt;$object-&amp;gt;getDataType() === 'map'&lt;/code&gt;, mirroring how the &lt;code&gt;list&lt;/code&gt; data type is already special-cased a few lines above it. When the object isn't a &lt;code&gt;MapDataDefinition&lt;/code&gt;, there are no property definitions to iterate, so &lt;code&gt;applyMapConstraintSchema()&lt;/code&gt; and the empty-properties object logic now apply uniformly to plain maps too. A new test, &lt;code&gt;PlainMapSchemaTest&lt;/code&gt;, asserts that a plain map definition and its &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; equivalent normalize to identical schemas, including under a &lt;code&gt;Count&lt;/code&gt; constraint that bounds &lt;code&gt;minProperties&lt;/code&gt;/&lt;code&gt;maxProperties&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The issue notes other data types (&lt;code&gt;binary&lt;/code&gt;, &lt;code&gt;language_reference&lt;/code&gt;) may hit the same legacy-path string fallback on Drupal 10.6 but leaves deciding whether they need their own arm as a remaining task, not addressed by this change.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583073: A map output whose keys are 0, 1, 2… is sent as a JSON array, so it fails its object schema</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583073.md</link>
+      <guid isPermaLink="false">project/tool#3583073</guid>
+      <pubDate>Thu, 01 Oct 2026 02:55:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583073"&gt;#3583073&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module lets a plugin declare an output as a free-form &amp;quot;map&amp;quot;, advertised in its schema as a JSON object. If the PHP array a tool returned for that output happened to have sequential integer keys starting at 0 (&lt;code&gt;['a', 'b']&lt;/code&gt;, or &lt;code&gt;[0 =&amp;gt; 'x']&lt;/code&gt;), PHP's &lt;code&gt;json_encode()&lt;/code&gt; wrote it as a JSON array instead of an object, because PHP cannot distinguish a list from a map by its contents alone. The result then failed validation against the tool's own advertised output schema. This affected MCP clients and other code that validates a tool's &lt;code&gt;structuredContent&lt;/code&gt;, as well as Drush's &lt;code&gt;tool:run --json&lt;/code&gt; output. The fix makes every non-multiple map serialize as a JSON object regardless of its keys, matching what the schema promises.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The conversion happens in &lt;code&gt;OutputTypeCoercionSubscriber::onOutputTransform()&lt;/code&gt;. Previously it only wrapped a map value in &lt;code&gt;\ArrayObject&lt;/code&gt; when the value was exactly &lt;code&gt;[]&lt;/code&gt;, relying on the fact that &lt;code&gt;json_encode(new \ArrayObject())&lt;/code&gt; writes &lt;code&gt;{}&lt;/code&gt;. The fix widens the check to &lt;code&gt;\is_array($value) &amp;amp;&amp;amp; \array_is_list($value) &amp;amp;&amp;amp; $definition-&amp;gt;getDataType() === 'map' &amp;amp;&amp;amp; !$definition-&amp;gt;isMultiple()&lt;/code&gt;, wrapping any list-keyed array (empty or not) in &lt;code&gt;new \ArrayObject($value)&lt;/code&gt;. Since &lt;code&gt;json_encode()&lt;/code&gt; always writes an &lt;code&gt;\ArrayObject&lt;/code&gt; as an object, the wrapped value now matches the &lt;code&gt;object&lt;/code&gt; schema type whatever its keys. A map with declared properties has string keys and is therefore never a list, so it still gets walked by &lt;code&gt;RecursiveToolValueTransformSubscriber&lt;/code&gt; as before; only free-form, list-keyed maps take the new path.&lt;/p&gt;
+&lt;p&gt;Because the formatted value can now arrive as an &lt;code&gt;\ArrayObject&lt;/code&gt; instead of a plain array even when non-empty, two call sites needed updating: &lt;code&gt;ToolOutputTrait::referenceEntities()&lt;/code&gt; now unwraps an &lt;code&gt;\ArrayObject&lt;/code&gt; via &lt;code&gt;getArrayCopy()&lt;/code&gt;, replaces entities inside it, and re-wraps it, and &lt;code&gt;ToolRunCommand::serializeOutputs()&lt;/code&gt; comments and handling were updated accordingly (it already passed &lt;code&gt;\ArrayObject&lt;/code&gt; values through). Test coverage was added via a new &lt;code&gt;ListKeyedMapOutputTool&lt;/code&gt; fixture exercising a top-level map, a map declared via the plain &lt;code&gt;OutputDefinition&lt;/code&gt;, a map nested as a declared property of another map, and a list of maps, plus assertions in &lt;code&gt;AdvertisedOutputSchemaConformanceTest&lt;/code&gt; and &lt;code&gt;ToolRunCommandTest&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583072: The schema of an optional enum input allows null in its type but not in its enum, so null is rejected</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583072.md</link>
+      <guid isPermaLink="false">project/tool#3583072</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 01 Oct 2026 02:45:35 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583072"&gt;#3583072&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Optional tool inputs that are restricted to a fixed set of values (via Symfony's &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt; constraints, a derived &lt;code&gt;PluginExists&lt;/code&gt; enum, or an &lt;code&gt;IdenticalTo&lt;/code&gt; constant) advertised a JSON Schema that contradicted itself: the schema's type allowed &lt;code&gt;null&lt;/code&gt;, but its &lt;code&gt;enum&lt;/code&gt; or &lt;code&gt;const&lt;/code&gt; keyword did not, so any JSON Schema validator rejected a &lt;code&gt;null&lt;/code&gt; value even though Tool API itself accepted it for an optional input. In practice, MCP clients validate &lt;code&gt;tools/call&lt;/code&gt; arguments against the published schema before the call ever reaches the tool, so a model sending &lt;code&gt;null&lt;/code&gt; for an optional enum input it didn't want to set (ordinary, expected behavior) got its call rejected with a JSON-RPC error. This is now fixed: an optional input's schema lists &lt;code&gt;null&lt;/code&gt; as an allowed enum value (or widens a &lt;code&gt;const&lt;/code&gt; to an enum of the constant and &lt;code&gt;null&lt;/code&gt;), so the published schema matches what the tool actually accepts.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Optional inputs with a &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt;/&lt;code&gt;PluginExists&lt;/code&gt; constraint now advertise &lt;code&gt;null&lt;/code&gt; as a listed &lt;code&gt;enum&lt;/code&gt; value, and an optional &lt;code&gt;IdenticalTo&lt;/code&gt;-constrained input's &lt;code&gt;const&lt;/code&gt; is widened to &lt;code&gt;enum: [&amp;lt;const&amp;gt;, null]&lt;/code&gt;, so the published JSON Schema matches what Tool API already accepted for those inputs.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lives in &lt;code&gt;ContextDefinitionNormalizer::allowNullValue()&lt;/code&gt;, called from the optional-input branch that already appends the null type (or &lt;code&gt;oneOf&lt;/code&gt; null branch on Drupal 11.1+). When the input is optional and not excluded by &lt;code&gt;NotNull&lt;/code&gt;/non-nullable &lt;code&gt;NotBlank&lt;/code&gt;, the new method widens the value keywords to agree with the type: if &lt;code&gt;const&lt;/code&gt; is set it becomes &lt;code&gt;enum: [&amp;lt;const&amp;gt;, null]&lt;/code&gt;; if &lt;code&gt;enum&lt;/code&gt; is set and lacks &lt;code&gt;null&lt;/code&gt;, &lt;code&gt;null&lt;/code&gt; is appended. This covers both the legacy &lt;code&gt;type: [string, null]&lt;/code&gt; array and the newer &lt;code&gt;oneOf&lt;/code&gt; composition without per-core branching, and applies uniformly to &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt;-derived enums, &lt;code&gt;PluginExists&lt;/code&gt;-derived enums, and &lt;code&gt;IdenticalTo&lt;/code&gt;-derived &lt;code&gt;const&lt;/code&gt; values.&lt;/p&gt;
+&lt;p&gt;A separate but related gap was closed in &lt;code&gt;SchemaToolsPropertyConverter::prepareAiPropertySchema()&lt;/code&gt;, used when rendering schemas for AI providers that require a flattened (non-union) &lt;code&gt;type&lt;/code&gt;: since that flattening drops the &lt;code&gt;null&lt;/code&gt; type member, any &lt;code&gt;null&lt;/code&gt; left in &lt;code&gt;enum&lt;/code&gt; would then mismatch the flattened type and be rejected by strict providers, so it now strips &lt;code&gt;null&lt;/code&gt; from &lt;code&gt;enum&lt;/code&gt; (and drops &lt;code&gt;enum&lt;/code&gt; entirely if that empties it) after flattening.&lt;/p&gt;
+&lt;p&gt;Test coverage was updated accordingly: &lt;code&gt;InputSchemaMatrixTest&lt;/code&gt;'s &lt;code&gt;enum_string&lt;/code&gt;/&lt;code&gt;enum_integer&lt;/code&gt; expectations now include &lt;code&gt;null&lt;/code&gt;, &lt;code&gt;RicherSchemaEmissionTest&lt;/code&gt; checks that an optional &lt;code&gt;IdenticalTo&lt;/code&gt; widens &lt;code&gt;const&lt;/code&gt; to an &lt;code&gt;enum&lt;/code&gt; with &lt;code&gt;null&lt;/code&gt; (while a required one keeps a plain &lt;code&gt;const&lt;/code&gt;), and a new &lt;code&gt;AdvertisedSchemaAcceptanceTest::testNullIsAcceptedWhereTheSchemaOffersIt()&lt;/code&gt; iterates every discovered tool's optional inputs whose schema allows the null type and asserts both that a JSON Schema validator accepts a &lt;code&gt;null&lt;/code&gt; value and that Tool API's own &lt;code&gt;validateInputValue()&lt;/code&gt; raises no violation for it, closing the gap that the prior sampled round-trip test never exercised the null branch.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583067: Decimal and string coercion of JSON numbers adds float noise to values with an integer part</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583067.md</link>
+      <guid isPermaLink="false">project/tool#3583067</guid>
+      <pubDate>Thu, 01 Oct 2026 01:55:07 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583067"&gt;#3583067&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module's coercion layer, which converts JSON numbers coming from AI tool calls into Drupal field values (and back), was adding binary floating-point noise to any number with an integer part. For example, sending &lt;code&gt;1234.567&lt;/code&gt; to a decimal or plain text field came back as &lt;code&gt;1234.56700000000001&lt;/code&gt;, and &lt;code&gt;99999.99&lt;/code&gt; came back as &lt;code&gt;99999.99000000000524&lt;/code&gt;. Decimal fields usually hid this on save because core rounds to the field's configured scale, but plain string fields had nothing to round the noise away, so the corrupted value could be stored as-is. This fix makes the formatter emit the number exactly as given (up to the precision a double can represent), so values round-trip cleanly through tools that set, read, or preview field values before saving.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The bug was in &lt;code&gt;DecimalStringTrait::formatDecimalString()&lt;/code&gt;, used by both &lt;code&gt;InputTypeCoercionSubscriber&lt;/code&gt; (for &lt;code&gt;string&lt;/code&gt; and &lt;code&gt;decimal&lt;/code&gt; inputs) and &lt;code&gt;OutputTypeCoercionSubscriber&lt;/code&gt; (for &lt;code&gt;decimal&lt;/code&gt; outputs holding a float). It formatted every float with a fixed 14 &lt;em&gt;decimal places&lt;/em&gt; via &lt;code&gt;\number_format($value, 14, '.', '')&lt;/code&gt;, under the mistaken assumption that this matched PHP's precision setting. PHP's precision counts &lt;em&gt;significant digits&lt;/em&gt;, not decimal places, and a double only reliably holds about 15 to 17 significant digits, so once a value had an integer part, 14 decimal places reached past what the double actually stores and printed the binary rounding error.&lt;/p&gt;
+&lt;p&gt;The fix computes the decimal places needed to land on 15 significant digits: &lt;code&gt;$decimals = \max(0, 14 - (int) \floor(\log10(\abs($value))))&lt;/code&gt;, then formats and trims trailing zeros as before. Zero is special-cased to return &lt;code&gt;'0'&lt;/code&gt; directly. Below &lt;code&gt;1e15&lt;/code&gt; this reproduces the value as written (&lt;code&gt;1234.567&lt;/code&gt;, &lt;code&gt;99999.99&lt;/code&gt;, &lt;code&gt;12345678.123&lt;/code&gt;) while still collapsing genuine binary artifacts like &lt;code&gt;0.1 + 0.2&lt;/code&gt; down to &lt;code&gt;0.3&lt;/code&gt;. At &lt;code&gt;1e15&lt;/code&gt; and above, every integer digit of the double is still spelled out without exponent notation, so artifacts past that point can still appear, consistent with the corrected docblock.&lt;/p&gt;
+&lt;p&gt;Matrix test cases were added to &lt;code&gt;InputCoercionMatrixTest&lt;/code&gt; for &lt;code&gt;plain_decimal&lt;/code&gt; and &lt;code&gt;plain_string&lt;/code&gt; inputs, and a new &lt;code&gt;OutputCoercionMatrixTest&lt;/code&gt; was added covering the equivalent &lt;code&gt;decimal&lt;/code&gt; output cases, all asserting the exact strings callers should see. This bug was introduced alongside the decimal/string input coercion work in &lt;a href="https://www.drupal.org/node/3582983"&gt;#3582983&lt;/a&gt; and the decimal output coercion work in &lt;a href="https://www.drupal.org/node/3583030"&gt;#3583030&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583069: Align map validation with JSON Schema: a required map may be empty</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583069.md</link>
       <guid isPermaLink="false">project/tool#3583069</guid>
@@ -549,266 +762,6 @@ final class MyTool extends ToolBase {
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 18, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583012: Ship a use-drupal-tools agent skill so agents discover, inspect, and run Tool operations</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583012.md</link>
-      <guid isPermaLink="false">project/tool#3583012</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 19:11:13 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583012"&gt;#3583012&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Tool now ships a ready-made Agent Skill file that teaches AI coding agents how to find, inspect, and run its operations. Previously, every module that consumes Tool and ships its own Agent Skill (like &lt;code&gt;canvas_tools&lt;/code&gt;) had to restate the same mechanics: how to search for an operation, read its input contract, and call it via &lt;code&gt;drush tool:run&lt;/code&gt;. Those hand-written explanations drift whenever an input is renamed. With this skill in place, agents load a single, maintained procedure straight from the module, and downstream modules can shrink their own skills to their domain-specific steps while pointing back at this one for the underlying Tool mechanics.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Module now ships &lt;code&gt;.agents/skills/use-drupal-tools/SKILL.md&lt;/code&gt;, a procedural Agent Skill (per the Agent Skills specification) documenting the &lt;code&gt;tool:search&lt;/code&gt;, &lt;code&gt;tool:list&lt;/code&gt;, &lt;code&gt;tool:info&lt;/code&gt;, and &lt;code&gt;tool:run&lt;/code&gt; Drush commands for AI coding agents.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change adds &lt;code&gt;.agents/skills/use-drupal-tools/SKILL.md&lt;/code&gt;, following the Agent Skills specification (a &lt;code&gt;SKILL.md&lt;/code&gt; with frontmatter &lt;code&gt;name&lt;/code&gt;/&lt;code&gt;description&lt;/code&gt; that an agent loads on demand). It documents the four-step workflow: search or list operations with &lt;code&gt;tool:search&lt;/code&gt;/&lt;code&gt;tool:list --format=json&lt;/code&gt; and filter by &lt;code&gt;operation&lt;/code&gt; kind (&lt;code&gt;read&lt;/code&gt;/&lt;code&gt;explain&lt;/code&gt;/&lt;code&gt;transform&lt;/code&gt; are non-mutating, &lt;code&gt;write&lt;/code&gt;/&lt;code&gt;trigger&lt;/code&gt; are); inspect an operation's &lt;code&gt;input_schema&lt;/code&gt;/&lt;code&gt;inputs&lt;/code&gt;/&lt;code&gt;output_schema&lt;/code&gt; with &lt;code&gt;tool:info --format=json&lt;/code&gt; rather than copying inputs from an example; run it with &lt;code&gt;tool:run --input=... --json&lt;/code&gt; and branch on the &lt;code&gt;{success, message, outputs}&lt;/code&gt;/&lt;code&gt;{success, error, error_type}&lt;/code&gt; shape; and always pass &lt;code&gt;--uid&lt;/code&gt; so &lt;code&gt;checkAccess()&lt;/code&gt; runs as the real caller instead of anonymous or uid 1. It also documents that the same plugin id is exposed as an MCP tool name via &lt;code&gt;mcp_server_tool_bridge&lt;/code&gt; (&lt;code&gt;mcp_tool_config&lt;/code&gt; entities) and as a function name in &lt;code&gt;tool_ai_connector&lt;/code&gt;, and lists several open bugs agents need to work around (e.g. silent dropping of malformed &lt;code&gt;--input&lt;/code&gt;, exit code 0 on not-found lookups, and access denials that don't surface a reason).&lt;/p&gt;
-&lt;p&gt;Alongside the skill file, &lt;code&gt;docs/usage/agent-skills.md&lt;/code&gt; and a &lt;code&gt;README.md&lt;/code&gt; section explain how the skill reaches a project: &lt;code&gt;drupal/ai_best_practices&lt;/code&gt; syncs &lt;code&gt;.agents/skills/&lt;/code&gt; from installed modules into the project root on &lt;code&gt;composer install&lt;/code&gt;, or it can be copied/symlinked manually. The commit also formalizes an existing &lt;code&gt;create-tool-plugins&lt;/code&gt; skill (scaffolding a &lt;code&gt;#[Tool]&lt;/code&gt; plugin) alongside the new one and adds both to the &lt;code&gt;mkdocs.yml&lt;/code&gt; navigation.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 26, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583048: Constraints declared on a ListInputDefinition are never validated</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583048.md</link>
-      <guid isPermaLink="false">project/tool#3583048</guid>
-      <pubDate>Thu, 24 Sep 2026 19:08:34 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583048"&gt;#3583048&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the Tool module, constraints declared directly on a &lt;code&gt;ListInputDefinition&lt;/code&gt; (such as a minimum or maximum item count via &lt;code&gt;Count&lt;/code&gt;) were silently ignored during validation. Only constraints on the list's item definition were checked, so a list required to have at least two elements would happily accept one, or even zero. This was a regression introduced by an earlier refactor (&lt;a href="https://www.drupal.org/node/3583004"&gt;#3583004&lt;/a&gt;) that moved the call validating a value's own constraints into an &lt;code&gt;else&lt;/code&gt; branch meant for maps, which accidentally excluded lists from ever reaching it. The fix restores enforcement of list-level constraints so validation matches what the module's generated JSON Schema already advertised (&lt;code&gt;minItems&lt;/code&gt;, &lt;code&gt;maxItems&lt;/code&gt;, etc.).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The regression lived in &lt;code&gt;TypedInputsTrait::validateInputValue()&lt;/code&gt;: the list branch iterated items and validated each one, but never validated the list value itself against its own declared constraints, because the fall-through to typed-data validation had been moved into the map-only &lt;code&gt;else&lt;/code&gt; branch.&lt;/p&gt;
-&lt;p&gt;Simply restoring the fall-through was rejected because it would also run typed-data's implicit &lt;code&gt;NotNull&lt;/code&gt; default constraint, which treats an empty list as &amp;quot;missing&amp;quot; and rejects it with &amp;quot;This value should not be null&amp;quot;, a false positive not implied by the advertised schema (see &lt;a href="https://www.drupal.org/node/3583040"&gt;#3583040&lt;/a&gt;). Instead, the fix adds a new &lt;code&gt;validateListConstraints()&lt;/code&gt; method that reads only the constraints the author explicitly declared via &lt;code&gt;getConstraints()&lt;/code&gt;, builds them through the validation constraint manager, and validates the list's typed-data representation against just that constraint set, bypassing the implicit typed-data defaults entirely. It also calls the existing &lt;code&gt;resetTypedDataPrototypes()&lt;/code&gt; helper before building the list, to avoid an unrelated prototype-poisoning issue with lists of &lt;code&gt;any&lt;/code&gt;-typed items (&lt;a href="https://www.drupal.org/node/3616328"&gt;#3616328&lt;/a&gt;). Item-level violations continue to be collected separately via &lt;code&gt;addItemViolations()&lt;/code&gt;, so failures are not double-reported. Output validation (&lt;code&gt;validateOutputs()&lt;/code&gt;) was already unaffected since it uses full typed-data validation directly.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583019: Remove ContextDefinitionInterface from the definition interfaces</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583019.md</link>
-      <guid isPermaLink="false">project/tool#3583019</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 18:46:12 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583019"&gt;#3583019&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The tool module's &lt;code&gt;InputDefinitionInterface&lt;/code&gt; and &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; no longer extend Drupal core's &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;. This completes a three-step plan (after &lt;a href="https://www.drupal.org/node/3583016"&gt;#3583016&lt;/a&gt; and &lt;a href="https://www.drupal.org/node/3583017"&gt;#3583017&lt;/a&gt;) to detach the module's input and output definitions from core's Plugin Context system now that they are built on typed data instead. Code that relied on tool definitions also behaving like core context definitions (type hints, &lt;code&gt;instanceof&lt;/code&gt; checks against &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;, or event subscribers written against it) will stop matching. The module also removes the deprecated &lt;code&gt;getInput()&lt;/code&gt;/&lt;code&gt;getOutput()&lt;/code&gt; (and &lt;code&gt;getInputs()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt;) accessors that minted &lt;code&gt;Context&lt;/code&gt; objects on demand, and the deprecated &lt;code&gt;MapContextDefinition&lt;/code&gt;/&lt;code&gt;ListContextDefinition&lt;/code&gt; classes. None of this affects how tools are declared, the value APIs, or the JSON Schema the module publishes; the &lt;code&gt;ai&lt;/code&gt; module integration is unaffected because &lt;code&gt;tool_ai_connector&lt;/code&gt; already converts between tool definitions and core context definitions at that boundary.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;InputDefinitionInterface&lt;/code&gt; and &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; no longer extend &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;; &lt;code&gt;getDataDefinition()&lt;/code&gt; and &lt;code&gt;isSatisfiedBy()&lt;/code&gt; are removed from those definitions, &lt;code&gt;TypedInputsInterface::getInput()&lt;/code&gt;/&lt;code&gt;getInputs()&lt;/code&gt; and &lt;code&gt;TypedOutputsInterface::getOutput()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt; are removed, and &lt;code&gt;MapContextDefinition&lt;/code&gt;/&lt;code&gt;ListContextDefinition&lt;/code&gt; are deleted.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bridge trait that let tool definitions answer as &lt;code&gt;ContextDefinitionInterface&lt;/code&gt; (&lt;code&gt;ContextDefinitionBridgeTrait&lt;/code&gt;, added in &lt;a href="https://www.drupal.org/node/3583017"&gt;#3583017&lt;/a&gt;) is deleted and replaced by a smaller &lt;code&gt;ToolDataDefinitionTrait&lt;/code&gt; that only carries the value semantics the definitions still need: &lt;code&gt;isMultiple()&lt;/code&gt;/&lt;code&gt;setMultiple()&lt;/code&gt; and &lt;code&gt;getDefaultValue()&lt;/code&gt;/&lt;code&gt;setDefaultValue()&lt;/code&gt;, now declared directly on &lt;code&gt;InputDefinitionInterface&lt;/code&gt; and &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; rather than inherited from core's context interface. The bridge methods that existed purely to satisfy &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;, &lt;code&gt;getDataDefinition()&lt;/code&gt; and &lt;code&gt;isSatisfiedBy()&lt;/code&gt;, are gone; callers that previously called &lt;code&gt;$definition-&amp;gt;getDataDefinition()&lt;/code&gt; to get a typed data definition (for example &lt;code&gt;ConfigureToolPluginForm&lt;/code&gt; and &lt;code&gt;ExecuteToolPluginForm&lt;/code&gt;) now call &lt;code&gt;EffectiveDataDefinition::createFrom($definition)&lt;/code&gt; instead.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;TypedInputsInterface::getInput()&lt;/code&gt;/&lt;code&gt;getInputs()&lt;/code&gt; and &lt;code&gt;TypedOutputsInterface::getOutput()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt;, deprecated since &lt;code&gt;tool:1.0.0-beta10&lt;/code&gt;, are removed along with their on-demand &lt;code&gt;Context&lt;/code&gt; minting; &lt;code&gt;TypedInputsTrait&lt;/code&gt; and &lt;code&gt;TypedOutputsTrait&lt;/code&gt; are deleted entirely. The deprecated &lt;code&gt;MapContextDefinition&lt;/code&gt; and &lt;code&gt;ListContextDefinition&lt;/code&gt; classes, thin wrappers around &lt;code&gt;MapDefinitionBase&lt;/code&gt;/&lt;code&gt;ListDefinitionBase&lt;/code&gt; for constructing core-style context definitions, are also deleted. The acceptance shim that still lets a plugin &lt;em&gt;declare&lt;/em&gt; an output using a core &lt;code&gt;ContextDefinition&lt;/code&gt;/&lt;code&gt;EntityContextDefinition&lt;/code&gt; remains for now; its removal is tracked separately in &lt;a href="https://www.drupal.org/node/3583050"&gt;#3583050&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace any use of the removed context accessors with the typed-data equivalents:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$context = $plugin-&amp;gt;getInput('name');
-$plugin-&amp;gt;setInput('name', $context);
-$output_context = $plugin-&amp;gt;getOutput('name');
-
-// After:
-$value = $plugin-&amp;gt;getInputValue('name');
-// or, for the typed data object:
-$data = $plugin-&amp;gt;getInputData('name');
-$plugin-&amp;gt;setInputValue('name', $value);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Replace calls to the removed &lt;code&gt;getDataDefinition()&lt;/code&gt; bridge method on input/output definitions with &lt;code&gt;EffectiveDataDefinition::createFrom()&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$typed_data = $this-&amp;gt;getTypedDataManager()-&amp;gt;create($definition-&amp;gt;getDataDefinition(), $value, $name);
-
-// After:
-$typed_data = $this-&amp;gt;getTypedDataManager()-&amp;gt;create(\Drupal\tool\TypedData\EffectiveDataDefinition::createFrom($definition), $value, $name);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Remove any type hints, &lt;code&gt;instanceof&lt;/code&gt; checks, or &lt;code&gt;use&lt;/code&gt; statements against &lt;code&gt;\Drupal\Core\Plugin\Context\ContextDefinitionInterface&lt;/code&gt; for tool input/output definitions; they no longer implement it. Replace &lt;code&gt;MapContextDefinition&lt;/code&gt;/&lt;code&gt;ListContextDefinition&lt;/code&gt; with &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; or &lt;code&gt;ListInputDefinition&lt;/code&gt;/&lt;code&gt;ListOutputDefinition&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583018: Store input and output values as typed data instead of Context objects</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583018.md</link>
-      <guid isPermaLink="false">project/tool#3583018</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 18:46:11 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583018"&gt;#3583018&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool API module (part of the AI tooling ecosystem) changes how it stores the values passed into and out of a tool. Previously every input and output value was wrapped in a core &lt;code&gt;Context&lt;/code&gt; object; now values are stored as typed data directly. For developers this mostly matters through new accessor methods: &lt;code&gt;getInputData()&lt;/code&gt; and &lt;code&gt;getOutputData()&lt;/code&gt; return the value as typed data, while the existing &lt;code&gt;getInput()&lt;/code&gt;, &lt;code&gt;getOutput()&lt;/code&gt;, &lt;code&gt;getInputs()&lt;/code&gt;, &lt;code&gt;getOutputs()&lt;/code&gt; and &lt;code&gt;setInput()&lt;/code&gt; methods are deprecated (they still work, minting a &lt;code&gt;Context&lt;/code&gt; object on demand) and will be removed in &lt;code&gt;tool:1.0.0-rc1&lt;/code&gt;. Sites and modules using only &lt;code&gt;getInputValue()&lt;/code&gt;/&lt;code&gt;setInputValue()&lt;/code&gt;/&lt;code&gt;getOutputValue()&lt;/code&gt;/&lt;code&gt;setOutputValue()&lt;/code&gt; are unaffected. The module's integration with the &lt;code&gt;ai&lt;/code&gt; module's function-call contract, which still requires core context definitions, keeps working through a new adaptation layer in &lt;code&gt;tool_ai_connector&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;InputDefinitionInterface&lt;/code&gt; and &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; now also extend &lt;code&gt;DataDefinitionInterface&lt;/code&gt; (not just &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;), and both formally declare &lt;code&gt;isMultiple()&lt;/code&gt;, &lt;code&gt;setMultiple()&lt;/code&gt;, &lt;code&gt;setRequired()&lt;/code&gt;, &lt;code&gt;getDefaultValue()&lt;/code&gt; and &lt;code&gt;setDefaultValue()&lt;/code&gt;; classes implementing these interfaces directly (rather than extending the provided base classes) must supply the typed-data contract too.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;TypedInputsInterface::getInput()&lt;/code&gt;/&lt;code&gt;getInputs()&lt;/code&gt;/&lt;code&gt;setInput()&lt;/code&gt; and &lt;code&gt;TypedOutputsInterface::getOutput()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt; are deprecated in tool:1.0.0-beta10 and removed in tool:1.0.0-rc1 (#3583019); use &lt;code&gt;getInputValue()&lt;/code&gt;/&lt;code&gt;setInputValue()&lt;/code&gt;/&lt;code&gt;getInputData()&lt;/code&gt; and the output equivalents instead.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;getInputData()&lt;/code&gt;/&lt;code&gt;getOutputData(): TypedDataInterface&lt;/code&gt; methods on &lt;code&gt;TypedInputsInterface&lt;/code&gt;/&lt;code&gt;TypedOutputsInterface&lt;/code&gt; return typed data wrapping an input's or output's resolved value.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;TypedInputsTrait&lt;/code&gt; and &lt;code&gt;TypedOutputsTrait&lt;/code&gt; used to store every value inside a core &lt;code&gt;Context&lt;/code&gt; object purely as a value holder, calling only &lt;code&gt;getContextValue()&lt;/code&gt;, &lt;code&gt;getContextData()&lt;/code&gt; and &lt;code&gt;validate()&lt;/code&gt; on it. That wrapper is now gone from storage: values are held as typed data (&lt;code&gt;TypedDataManager::create()&lt;/code&gt;) or, for an explicit &lt;code&gt;NULL&lt;/code&gt;, a bare marker that resolves through the definition's default the way a value-less &lt;code&gt;Context&lt;/code&gt; used to. A new internal helper, &lt;code&gt;Drupal\tool\TypedData\EffectiveDataDefinition::createFrom()&lt;/code&gt;, rebuilds a fresh core data definition of the declared data type (merging the author's constraints with the type's own defaults) whenever a value needs to be created, validated, or turned into a JSON Schema; it replaces the ad hoc &lt;code&gt;new Context($definition, $value)&lt;/code&gt; calls previously scattered through validation and normalization.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;getInput()&lt;/code&gt;/&lt;code&gt;getOutput()&lt;/code&gt;/&lt;code&gt;getInputs()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt;/&lt;code&gt;setInput()&lt;/code&gt; remain on the interfaces but are deprecated; internally they now mint a &lt;code&gt;Context&lt;/code&gt; on demand via &lt;code&gt;mintInputContext()&lt;/code&gt;/&lt;code&gt;mintOutputContext()&lt;/code&gt; rather than reading it from storage. &lt;code&gt;ContextDefinitionNormalizer&lt;/code&gt; (used to build the advertised JSON Schema) was retargeted to work directly against &lt;code&gt;InputDefinitionInterface&lt;/code&gt;/&lt;code&gt;OutputDefinitionInterface&lt;/code&gt; (through &lt;code&gt;getDataDefinition()&lt;/code&gt;, backed by &lt;code&gt;EffectiveDataDefinition&lt;/code&gt;) while still accepting plain core &lt;code&gt;ContextDefinitionInterface&lt;/code&gt; objects, since the &lt;code&gt;ai&lt;/code&gt; module's &lt;code&gt;setContextDefinitionOverride()&lt;/code&gt; path and the &lt;a href="https://www.drupal.org/node/3583015"&gt;#3583015&lt;/a&gt; acceptance shim still deliver those.&lt;/p&gt;
-&lt;p&gt;Because the &lt;code&gt;ai&lt;/code&gt; module's function-call contract is still typed on core &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;, &lt;code&gt;tool_ai_connector&lt;/code&gt; gained an adaptation layer at that boundary: &lt;code&gt;ToolContextDefinition&lt;/code&gt;/&lt;code&gt;ToolEntityContextDefinition&lt;/code&gt; (implementing a new &lt;code&gt;ToolContextDefinitionInterface&lt;/code&gt;) wrap a Tool API definition inside a core context definition, and &lt;code&gt;ToolPluginBase::getContextDefinitions()&lt;/code&gt;/&lt;code&gt;applyContextDefinitionOverridesToInputSchema()&lt;/code&gt; convert back and forth so overrides made by the &lt;code&gt;ai&lt;/code&gt; module (&lt;code&gt;setContextDefinitionOverride()&lt;/code&gt;) still take effect. Output validation for entity values was also narrowed to only run the effective definition's &lt;code&gt;EntityType&lt;/code&gt;/&lt;code&gt;Bundle&lt;/code&gt; constraints (the declared-type checks), rather than the wrapped entity's own full constraint set (e.g. &lt;code&gt;EntityChanged&lt;/code&gt;), matching the shape checking the rest of output validation already did. The core &lt;code&gt;TypedDataManager&lt;/code&gt; prototype-cache workaround (&lt;code&gt;resetTypedDataPrototypes()&lt;/code&gt;, worked around pending core &lt;a href="https://www.drupal.org/node/3616328"&gt;#3616328&lt;/a&gt;) is retained rather than removed, and its kernel coverage was extended to cover output validation as well as inputs. Related work: &lt;a href="https://www.drupal.org/node/3583016"&gt;#3583016&lt;/a&gt; is the parent plan issue, &lt;a href="https://www.drupal.org/node/3583017"&gt;#3583017&lt;/a&gt; re-parented the definition families onto typed data, and &lt;a href="https://www.drupal.org/node/3583019"&gt;#3583019&lt;/a&gt; will remove the deprecated context accessors and the remaining &lt;code&gt;ContextDefinitionInterface&lt;/code&gt; parentage.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace calls to the deprecated context accessors with the value or typed-data accessors:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-$value = $tool-&amp;gt;getInput('name')-&amp;gt;getContextValue();
-$tool-&amp;gt;setInput('name', new Context($definition, $value));
-
-// After
-$value = $tool-&amp;gt;getInputValue('name');
-// or, for typed data:
-$data = $tool-&amp;gt;getInputData('name');
-$tool-&amp;gt;setInputValue('name', $value);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same applies to outputs: replace &lt;code&gt;getOutput()&lt;/code&gt;/&lt;code&gt;setOutput()&lt;/code&gt;-style usage with &lt;code&gt;getOutputValue()&lt;/code&gt;/&lt;code&gt;setOutputValue()&lt;/code&gt;/&lt;code&gt;getOutputData()&lt;/code&gt;. &lt;code&gt;getInputs()&lt;/code&gt;/&lt;code&gt;getOutputs()&lt;/code&gt; (which returned all values as &lt;code&gt;Context&lt;/code&gt; objects) should be replaced with &lt;code&gt;getInputValues()&lt;/code&gt;/&lt;code&gt;getOutputValues()&lt;/code&gt;, or &lt;code&gt;getInputData()&lt;/code&gt;/&lt;code&gt;getOutputData()&lt;/code&gt; per name if a typed-data wrapper is needed. All deprecated methods will be removed in &lt;code&gt;tool:1.0.0-rc1&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3583019"&gt;#3583019&lt;/a&gt;).&lt;/p&gt;
-&lt;p&gt;If you implement &lt;code&gt;InputDefinitionInterface&lt;/code&gt; or &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; directly rather than extending the provided base classes (&lt;code&gt;InputDefinition&lt;/code&gt;, &lt;code&gt;MapInputDefinition&lt;/code&gt;, etc.), add implementations for &lt;code&gt;isMultiple()&lt;/code&gt;, &lt;code&gt;setMultiple()&lt;/code&gt;, &lt;code&gt;setRequired()&lt;/code&gt;, &lt;code&gt;getDefaultValue()&lt;/code&gt; and &lt;code&gt;setDefaultValue()&lt;/code&gt;, since the interfaces now extend &lt;code&gt;DataDefinitionInterface&lt;/code&gt; as well as &lt;code&gt;ContextDefinitionInterface&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585934: Resource access denials return -32603 because the SDK's ReadResourceHandler swallows the exception</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585934.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585934</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 24 Sep 2026 17:07:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585934"&gt;#3585934&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Before this fix, when an MCP client called &lt;code&gt;resources/read&lt;/code&gt; for a resource it wasn't allowed to access, the site answered with HTTP 200 and a generic JSON-RPC &lt;code&gt;-32603&lt;/code&gt; internal error saying &amp;quot;Error while reading resource,&amp;quot; giving the client no indication that access was actually denied, and logging a spurious error for what is really a routine permission check. Now a denied read answers the same way a request for a nonexistent resource does: a &lt;code&gt;-32002&lt;/code&gt; (or &lt;code&gt;-32602&lt;/code&gt; on newer protocol versions) &amp;quot;resource not found&amp;quot; error. This intentionally doesn't reveal that the resource exists at all, matching how the rest of MCP handles resources a client can't see.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; now throws &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; instead of &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; for a denied resource access check, and for the same exception (previously a plain &lt;code&gt;\RuntimeException&lt;/code&gt;) when the content callback returns &lt;code&gt;NULL&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause is that the php-sdk's &lt;code&gt;ReadResourceHandler&lt;/code&gt; catches any &lt;code&gt;\Throwable&lt;/code&gt; it doesn't specifically recognize and converts it into a generic &lt;code&gt;-32603&lt;/code&gt; internal error, logging it at error level. &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt;, which both &lt;code&gt;ResourceProviderHandler&lt;/code&gt; and &lt;code&gt;ResourceTemplateProviderHandler&lt;/code&gt; delegate to for the access check plus cache lookup, was throwing &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; on a denied &lt;code&gt;checkAccess()&lt;/code&gt;, which the SDK doesn't know how to map, so it fell into that generic path.&lt;/p&gt;
-&lt;p&gt;The fix changes &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; to throw &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; in that case instead, which the SDK does recognize and maps to a proper resource-not-found JSON-RPC error. The same exception is now also thrown when the content callback returns &lt;code&gt;NULL&lt;/code&gt; (previously a plain &lt;code&gt;\RuntimeException&lt;/code&gt;), so a denied read and a missing resource are indistinguishable to the client by design, avoiding disclosure that a forbidden resource exists. &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; itself is untouched and still used for OAuth-scope related failures elsewhere (&lt;code&gt;McpServerController&lt;/code&gt;, &lt;code&gt;McpExceptionSubscriber&lt;/code&gt;, Drush commands); only the resource-read path stopped using it. A new kernel test, &lt;code&gt;ResourceReadErrorTest&lt;/code&gt;, exercises this through the actual &lt;code&gt;/mcp&lt;/code&gt; endpoint and asserts a denied read and a missing read produce identical error payloads. &lt;code&gt;ResourceProviderRegistrationTest&lt;/code&gt; was updated to expect &lt;code&gt;ResourceNotFoundException&lt;/code&gt; for both the forbidden and missing cases. The SDK still logs both cases at error level; a quieter log level needs an upstream fix, tracked at https://github.com/modelcontextprotocol/php-sdk/issues/513.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If custom code catches the exception thrown by &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; for a denied resource read, update it:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before
-catch (\Drupal\mcp_server\Exception\McpAuthorizationDeniedException $e) {
-  // ...
-}
-
-// After
-catch (\Mcp\Exception\ResourceNotFoundException $e) {
-  // $e-&amp;gt;uri holds the requested URI.
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;A &lt;code&gt;NULL&lt;/code&gt; return from a resource plugin's content callback now also throws &lt;code&gt;Mcp\Exception\ResourceNotFoundException&lt;/code&gt; instead of a plain &lt;code&gt;\RuntimeException&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583034: tool:run --json prints raw output values instead of the published ones</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583034.md</link>
-      <guid isPermaLink="false">project/tool#3583034</guid>
-      <pubDate>Thu, 24 Sep 2026 15:37:41 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583034"&gt;#3583034&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Running &lt;code&gt;drush tool:run --json&lt;/code&gt; printed a different, unpublished view of a tool's output than the one MCP clients and &lt;code&gt;tool:info&lt;/code&gt;'s schema describe. For example a date-time output came out as a raw Unix timestamp integer instead of the RFC 3339 string the schema promises, and an entity output came out as its PHP class name (like &lt;code&gt;Drupal\node\Entity\Node&lt;/code&gt;) instead of the handle string MCP actually receives. This made the &lt;code&gt;--json&lt;/code&gt; output untrustworthy for anyone scripting against it or comparing it to the advertised schema. The fix makes &lt;code&gt;tool:run --json&lt;/code&gt; print the same, published values every other consumer sees.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ToolRunCommand::runCommand()&lt;/code&gt; read &lt;code&gt;$tool-&amp;gt;getOutputValues()&lt;/code&gt;, the raw PHP-side view of a tool's outputs, and passed it through a hand-rolled &lt;code&gt;serializeOutputs()&lt;/code&gt; helper that mapped objects via &lt;code&gt;toArray()&lt;/code&gt;, &lt;code&gt;__toString()&lt;/code&gt;, or &lt;code&gt;get_class()&lt;/code&gt; as a fallback. That path never ran the output transform events that &lt;code&gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt; runs, so entities never became handles and, once related timestamp/decimal/datetime formatting work landed, dated and decimal values wouldn't match their declared JSON Schema either. The fix reads &lt;code&gt;$tool-&amp;gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt; instead and drops &lt;code&gt;serializeOutputs()&lt;/code&gt; entirely, since those values are already the ones destined for &lt;code&gt;Json::encode()&lt;/code&gt;. The text-mode output path keeps using &lt;code&gt;formatOutputValue()&lt;/code&gt; on the same, now-formatted values.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

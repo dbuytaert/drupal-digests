@@ -5,6 +5,67 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#2265487: ConfigEntity based lists with items containing non-ascii characters are not sorted correctly</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md</link>
+      <guid isPermaLink="false">node/2265487</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 01 Oct 2026 10:44:37 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +165/−9 · php +158/−8 · lock +4/−1 · json +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/8cd44d484e3cf0c5e67c505b944ab23790d05a95"&gt;8cd44d4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/2265487"&gt;#2265487&lt;/a&gt; · 16 contributors · 171 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 19&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Lists built from configuration entities, such as content type lists, vocabularies, view modes, blocks, and date formats, are now sorted correctly when their labels contain accented or non-ASCII characters (like é, ñ). Previously these items were pushed to the end of alphabetically sorted lists regardless of their actual letter, because the sort relied on a plain byte comparison. As a side effect, embedded numbers now sort numerically too (for example &amp;quot;Format 10x10&amp;quot; before &amp;quot;Format 100x100&amp;quot;), and block labels, which were previously sorted case-sensitively, are now sorted case-insensitively like other config entities.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\Core\Utility\NaturalSort::strnatcasecmp()&lt;/code&gt; static method, a locale-aware, collation-based drop-in replacement for PHP's &lt;code&gt;strnatcasecmp()&lt;/code&gt;, used internally by config entity sort methods.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The various &lt;code&gt;::sort()&lt;/code&gt; implementations across config entity classes (&lt;code&gt;ConfigEntityBase&lt;/code&gt;, &lt;code&gt;DateFormat&lt;/code&gt;, &lt;code&gt;EntityDisplayModeBase&lt;/code&gt;, &lt;code&gt;Language&lt;/code&gt;, &lt;code&gt;Block&lt;/code&gt;, &lt;code&gt;Action&lt;/code&gt;) called PHP's byte-wise &lt;code&gt;strnatcasecmp()&lt;/code&gt; (or, in &lt;code&gt;Block&lt;/code&gt;'s case, &lt;code&gt;strcmp()&lt;/code&gt;) to order labels, which is locale-unaware and sorts accented characters after all plain ASCII letters. The fix adds a new final class &lt;code&gt;Drupal\Core\Utility\NaturalSort&lt;/code&gt; with a static &lt;code&gt;strnatcasecmp(string $string1, string $string2, ?string $langcode = NULL)&lt;/code&gt; method that, when the &lt;code&gt;intl&lt;/code&gt; extension is loaded, builds (and caches per langcode in a static array) a &lt;code&gt;\Collator&lt;/code&gt; for the given or current language and enables &lt;code&gt;Collator::NUMERIC_COLLATION&lt;/code&gt; so embedded numbers compare numerically. It falls back to plain &lt;code&gt;strnatcasecmp()&lt;/code&gt; when &lt;code&gt;intl&lt;/code&gt; isn't available or no langcode can be resolved. All the affected &lt;code&gt;::sort()&lt;/code&gt; methods were updated to call this helper instead of the raw PHP functions.&lt;/p&gt;
+&lt;p&gt;Getting there took several redesigns. An earlier iteration deprecated &lt;code&gt;ConfigEntityBase::sort()&lt;/code&gt; in favor of new &lt;code&gt;sortEntities()&lt;/code&gt;/&lt;code&gt;compare()&lt;/code&gt; methods and added a &lt;code&gt;symfony/polyfill-intl-icu&lt;/code&gt; dependency as a fallback when &lt;code&gt;intl&lt;/code&gt; is missing; that version was committed to 11.x, then reverted within hours because &lt;code&gt;Symfony\Polyfill\Intl\Icu\Collator::compare()&lt;/code&gt; wasn't actually implemented, which crashed &lt;code&gt;drush cr&lt;/code&gt; and any other code path on sites without the &lt;code&gt;intl&lt;/code&gt; extension (duplicate issue &lt;a href="https://www.drupal.org/node/3516545"&gt;#3516545&lt;/a&gt;). The version that eventually landed drops the polyfill dependency entirely and keeps the original &lt;code&gt;sort()&lt;/code&gt; method signatures unchanged, so there is no deprecation and no new required dependency: &lt;code&gt;composer.json&lt;/code&gt; only gained a &lt;code&gt;suggest&lt;/code&gt; entry for &lt;code&gt;ext-intl&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A follow-up issue, &lt;a href="https://www.drupal.org/node/3624817"&gt;#3624817&lt;/a&gt;, tracks adding a &lt;code&gt;NaturalSort::natcasesort()&lt;/code&gt; helper and converting other locale-sensitive &lt;code&gt;strnatcasecmp()&lt;/code&gt;/&lt;code&gt;strcmp()&lt;/code&gt; call sites across core (e.g. &lt;code&gt;SortArray&lt;/code&gt;, plugin collection sort helpers) to use this new utility.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Code that needs locale-aware label sorting can use the new helper instead of PHP's native function:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Utility\NaturalSort;
+
+usort($items, fn($a, $b) =&amp;gt; NaturalSort::strnatcasecmp($a-&amp;gt;label(), $b-&amp;gt;label()));
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Install the PHP &lt;code&gt;intl&lt;/code&gt; extension (now suggested in &lt;code&gt;composer.json&lt;/code&gt;) to get locale-aware collation; without it the method transparently falls back to &lt;code&gt;strnatcasecmp()&lt;/code&gt;.&amp;lt;/upgrade&amp;gt;
+&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;This bug report sat open for nearly a decade and went through several design iterations before landing. longwave raised a performance concern about invoking services inside the sort callback and questioned whether transliteration was the right approach, which led sleitner to switch the implementation to PHP's &lt;code&gt;Collator&lt;/code&gt; (comments around #31). After catch committed an iteration that deprecated &lt;code&gt;sort()&lt;/code&gt; and added a Symfony polyfill dependency, acbramley discovered it caused a fatal error (&amp;quot;Class Collator not found&amp;quot;) on sites without the &lt;code&gt;intl&lt;/code&gt; extension because the polyfill's &lt;code&gt;Collator::compare()&lt;/code&gt; wasn't implemented; catch reverted the commit the same day and reopened the issue to fix it properly (duplicate &lt;a href="https://www.drupal.org/node/3516545"&gt;#3516545&lt;/a&gt;). alexpott then did an extensive review, identified that &lt;code&gt;Collator&lt;/code&gt; needed &lt;code&gt;NUMERIC_COLLATION&lt;/code&gt; enabled to beat plain &lt;code&gt;strnatcasecmp()&lt;/code&gt; even for English sites, and proposed abandoning the &lt;code&gt;sort()&lt;/code&gt;/&lt;code&gt;sortEntities()&lt;/code&gt; API split in favor of the simpler, purely additive &lt;code&gt;NaturalSort&lt;/code&gt; utility class that ultimately shipped, crediting sleitner for &amp;quot;an amazing job of keeping up with all my reviews&amp;quot; across the many reroll and rebase cycles (smustgrave similarly thanked sleitner for &amp;quot;keeping up with all the rebases&amp;quot;).&amp;lt;/collaboration&amp;gt;
+&amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[]&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 12, 2014&lt;/li&gt;
+&lt;li&gt;Committed: October 1, 2026 (12 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nlambert&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;sleitner&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
+&lt;li&gt;sonam.chaturvedi (Salsa Digital)&lt;/li&gt;
+&lt;li&gt;tanuj. (Material)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md</link>
       <guid isPermaLink="false">node/3626470</guid>
@@ -1043,53 +1104,6 @@ class MenuLinkDefaultFormTest extends BrowserTestBase {
 &lt;li&gt;daffie (Finalist)&lt;/li&gt;
 &lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3582101: Make Admin the default theme in profiles and recipes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3582101.md</link>
-      <guid isPermaLink="false">node/3582101</guid>
-      <category>Site owners</category>
-      <pubDate>Wed, 16 Sep 2026 09:40:31 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +135/−79 · php +37/−39 · yml +36/−35 · twig +33/−3 · css +27 · js +1/−1 · sql +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/91a722eb6c77ef6d8230d8330e167be063db6d28"&gt;91a722e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3582101"&gt;#3582101&lt;/a&gt; · 7 contributors · 25 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 7 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;As part of Claro's deprecation, Drupal core now ships new sites with the (experimental) Default Admin theme instead of Claro. The Standard installation profile and the Umami demo profile now install &lt;code&gt;default_admin&lt;/code&gt; as their administration theme, and Standard also uses it as its default front-end theme. The &lt;code&gt;core_recommended_admin_theme&lt;/code&gt; recipe and the &lt;code&gt;standard&lt;/code&gt; recipe were updated the same way, so applying either to a site now sets up Default Admin rather than Claro. This only affects new installs or sites that explicitly apply these profiles/recipes; existing sites keep whatever admin theme they already have configured.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Standard and Umami install profiles, and the &lt;code&gt;core_recommended_admin_theme&lt;/code&gt;/&lt;code&gt;standard&lt;/code&gt; recipes, now set &lt;code&gt;default_admin&lt;/code&gt; as the admin theme (and, for Standard, also as the default theme) instead of &lt;code&gt;claro&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change swaps &lt;code&gt;claro&lt;/code&gt; for &lt;code&gt;default_admin&lt;/code&gt; throughout the profile and recipe config: &lt;code&gt;system.theme.yml&lt;/code&gt; for &lt;code&gt;standard&lt;/code&gt;, &lt;code&gt;demo_umami&lt;/code&gt;, and &lt;code&gt;nightwatch_a11y_testing&lt;/code&gt;, the &lt;code&gt;themes:&lt;/code&gt; list in their &lt;code&gt;.info.yml&lt;/code&gt; files, and the block config shipped for the admin theme (&lt;code&gt;claro_login&lt;/code&gt; became &lt;code&gt;default_admin_login&lt;/code&gt;, &lt;code&gt;claro_help&lt;/code&gt;/&lt;code&gt;claro_breadcrumbs&lt;/code&gt;/etc. became &lt;code&gt;default_admin_*&lt;/code&gt;). The &lt;code&gt;core_recommended_admin_theme&lt;/code&gt; recipe now installs &lt;code&gt;default_admin&lt;/code&gt; and imports its blocks instead of Claro's, and &lt;code&gt;standard&lt;/code&gt; recipe's &lt;code&gt;system.theme&lt;/code&gt; action sets &lt;code&gt;default: default_admin&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Because Default Admin doesn't render field wrapper classes the way Claro does (no &lt;code&gt;.field--name-*&lt;/code&gt; markup), several functional tests that asserted on those classes (media library embed tests, standard profile tests, &lt;code&gt;ImplementationNameTest&lt;/code&gt;) were rewritten to scope assertions to &lt;code&gt;#block-default-admin-content&lt;/code&gt; and element selectors instead. A few Default Admin theme templates and styles were also adjusted to support being used this way: &lt;code&gt;block--user-login-block.html.twig&lt;/code&gt; and a new &lt;code&gt;user-login-block.css&lt;/code&gt; were added to render the login form without list markup, &lt;code&gt;admin-toolbar-top-bar.html.twig&lt;/code&gt; gained &lt;code&gt;role=&amp;quot;region&amp;quot;&lt;/code&gt;/&lt;code&gt;aria-label&lt;/code&gt; attributes, and the primary/secondary local-tasks templates now put the visually-hidden heading inside the &lt;code&gt;&amp;lt;nav&amp;gt;&lt;/code&gt; element rather than before it.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 29, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 15, 2026 (5 months and 2 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Gábor Hojtsy's review pushed back on the initial test rewrite, noting that many of the new assertions weren't actually testing what they claimed once field classes were removed; he suggested scoping selectors to &lt;code&gt;#block-default-admin-content&lt;/code&gt; (e.g. &lt;code&gt;img&lt;/code&gt;, &lt;code&gt;a img&lt;/code&gt;, &lt;code&gt;.visually-hidden&lt;/code&gt;) instead of reintroducing field-specific classes, and smustgrave reworked the tests accordingly. godotislate's review also caught that the default admin login block config was missing from the &lt;code&gt;standard&lt;/code&gt; recipe, which was then added.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
