@@ -1,8 +1,24 @@
-**TL;DR:** [1162 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1164 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_104 summaries · 9 new this week_
+
+- [#3591482: Language-neutral content ("und") counts as a template language – Summit is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591482.md)
+- [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
+- [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
+
+### Drupal Core
+
+_606 summaries · 7 new this week_
+
+- [#3466088: [meta] Deprecate dependencies, libraries, modules, and themes that will be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3466088.md)
+- [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
+- [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
 
 ### Drupal AI
 
@@ -19,22 +35,6 @@ _270 summaries · 10 new this week_
 - [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
 - [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
 - [#3592002: Normalize agent-written prop values against their schema and report values the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592002.md)
-
-### Drupal Core
-
-_605 summaries · 6 new this week_
-
-- [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
-- [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
-- [#3507570: Allow recipe to add multiple buttons to CKEditor toolbar](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3507570.md)
-
-### Drupal CMS
-
-_103 summaries · 8 new this week_
-
-- [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
-- [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
-- [#3591475: Add the Horizon Aid site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591475.md)
 
 
 ## Rector rules
