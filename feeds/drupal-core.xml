@@ -5,6 +5,54 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3516706: Disallow dangerous filenames e.g. command injection characters</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516706.md</link>
+      <guid isPermaLink="false">node/3516706</guid>
+      <pubDate>Fri, 02 Oct 2026 13:34:55 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +76/−3 · php +76/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c30d609d24c3e493090a353b15c02a2b24058cd4"&gt;c30d609&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3516706"&gt;#3516706&lt;/a&gt; · 13 contributors · 96 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 24&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 13 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal now automatically strips a fixed set of dangerous characters, including shell metacharacters like &lt;code&gt;` $ ; | &amp;amp; `&lt;/code&gt;, quotes, angle brackets, control characters, and path separators, from the names of newly uploaded files, replacing them with underscores. This closes off a potential command-injection or XSS vector that could arise if a filename containing such characters was later passed unsafely to a shell command or rendered without escaping. The change applies to every site automatically and cannot be turned off; only newly uploaded files are affected, existing filenames are left untouched. Filenames that would otherwise collapse to nothing (e.g. &lt;code&gt;...&lt;/code&gt; or files with only unsafe characters before the extension) now fall back to &lt;code&gt;unnamed&lt;/code&gt; instead of becoming empty, and a leading dash or dot left after sanitization is also handled so the result can't be mistaken for a command-line option or a hidden dotfile. Whitespace in filenames is unaffected, that remains governed by the existing optional &lt;code&gt;filename_sanitization&lt;/code&gt; setting.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The logic lives in &lt;code&gt;\Drupal\file\EventSubscriber\SecurityFileUploadEventSubscriber::sanitizeName()&lt;/code&gt;, which already ran last in the &lt;code&gt;FileUploadSanitizeNameEvent&lt;/code&gt; chain and already stripped null bytes unconditionally, so the new mandatory stripping was added there rather than in the configurable &lt;code&gt;FileEventSubscriber&lt;/code&gt;. A new &lt;code&gt;INSECURE_CHARACTERS&lt;/code&gt; PCRE constant (built with Unicode property classes &lt;code&gt;\p{Cc}&lt;/code&gt; for control characters and &lt;code&gt;\p{Cf}&lt;/code&gt; for invisible format/bidi-override characters, plus a literal set of shell metacharacters, quotes, path separators, &lt;code&gt;#&lt;/code&gt; and &lt;code&gt;%&lt;/code&gt;) is matched and replaced with &lt;code&gt;_&lt;/code&gt; via &lt;code&gt;preg_replace()&lt;/code&gt;. After that substitution, a leading &lt;code&gt;-&lt;/code&gt; is trimmed (since many CLI tools parse a leading dash as an option), and if the result is empty or starts with &lt;code&gt;.&lt;/code&gt; it is prefixed with the &lt;code&gt;FALLBACK_FILENAME&lt;/code&gt; constant &lt;code&gt;unnamed&lt;/code&gt;, relying on the existing suffixing in &lt;code&gt;FileSystem::createFilename()&lt;/code&gt; to disambiguate collisions (&lt;code&gt;unnamed_0&lt;/code&gt;, &lt;code&gt;unnamed_1&lt;/code&gt;, etc).&lt;/p&gt;
+&lt;p&gt;The issue went through several design iterations, an earlier approach tried to also default-enable whitespace replacement and made the character list configurable via &lt;code&gt;file.settings&lt;/code&gt;, but both were dropped: whitespace substitution was judged too disruptive to ship as a default and was left as the existing opt-in setting, and making the blocked-character list configurable was rejected because a misconfigured list could reintroduce the vulnerability. Characters are now replaced rather than deleted outright, a change from an earlier iteration, so that e.g. &lt;code&gt;Love&amp;amp;War.pdf&lt;/code&gt; becomes &lt;code&gt;Love_War.pdf&lt;/code&gt; rather than &lt;code&gt;LoveWar.pdf&lt;/code&gt;, preserving more of the original separation between words. A related follow-up, &lt;a href="https://www.drupal.org/node/3562543"&gt;#3562543&lt;/a&gt;, fixed a crash in the whitespace-replacement regex when fed invalid UTF-8 and landed first as a prerequisite.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 1, 2025&lt;/li&gt;
+&lt;li&gt;Committed: September 19, 2026 (1 year later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mcdruid (Acquia)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;benjifisher (Harvard Web Publishing)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;mohit_aghera (PreviousNext)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;xjm (xjm)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue spent over a year iterating on scope. mcdruid (the reporter) and kim.pepper went back and forth on whether to strip a fixed list of &amp;quot;dangerous&amp;quot; characters versus making the list configurable, and whether to default-enable whitespace replacement; a usability team review (summarized by mcdruid in comment #26 and confirmed by benjifisher in #30) concluded that stripping punctuation should be non-negotiable but replacing whitespace should remain an opt-in default. Attempting to flip the whitespace default uncovered an unrelated bug (a &lt;code&gt;preg_replace()&lt;/code&gt; call returning &lt;code&gt;null&lt;/code&gt; on malformed UTF-8 input), which kim.pepper and mcdruid debugged together and split off into the prerequisite issue &lt;a href="https://www.drupal.org/node/3562543"&gt;#3562543&lt;/a&gt;. After that landed, mcdruid disclosed using Claude to help work out the final implementation pushed to the MR, abandoning the configurable, whitespace-replacing approach in favor of a simpler, non-configurable, replace-not-remove scheme. cmlara then pushed back strongly on making the protection non-configurable and on stripping characters that appear in legitimate filenames, arguing it could create a false sense of safety in downstream code and cause reputational issues if parts of filenames like &lt;code&gt;Love&amp;amp;War.pdf&lt;/code&gt; were silently dropped. That critique led alexpott and mcdruid to change the implementation from removing characters to replacing them with &lt;code&gt;_&lt;/code&gt;, and longwave and xjm weighed in to support keeping the list non-configurable, reasoning that configurability of a security control increases risk of misconfiguration for comparatively little benefit. larowlan, reviewing the final regex character by character with regex101, committed the change and it was backported to 11.5.x by xjm shortly before the beta1 tag.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3466088: [meta] Deprecate dependencies, libraries, modules, and themes that will be removed from Drupal 12 core</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3466088.md</link>
       <guid isPermaLink="false">node/3466088</guid>
@@ -1052,54 +1100,6 @@ class MenuLinkDefaultFormTest extends BrowserTestBase {
 &lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
 &lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
 &lt;li&gt;mherchel (Dripyard)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3623843: Remove Backbone.js and Underscore.js, not used in core anymore</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623843.md</link>
-      <guid isPermaLink="false">node/3623843</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 17 Sep 2026 06:41:03 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +0/−2243 · txt +0/−5 · js +0/−2176 · map +0/−2 · yml +0/−33 · json +0/−2 · lock +0/−25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/5b6a18270f29fd4d8f6a92bf4664237375a2b2fe"&gt;5b6a182&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3623843"&gt;#3623843&lt;/a&gt; · 4 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal core has removed the Backbone.js and Underscore.js third-party JavaScript libraries entirely. These were already marked internal-only and deprecated as of Drupal 10 (toolbar was the last core consumer of Backbone, and Underscore was only present as Backbone's dependency). Since Drupal 10 they carried no supported public API, but any contributed module or theme that still attached the &lt;code&gt;core/internal.backbone&lt;/code&gt; or &lt;code&gt;core/internal.underscore&lt;/code&gt; libraries, or otherwise relied on the global &lt;code&gt;Backbone&lt;/code&gt;/&lt;code&gt;_&lt;/code&gt; objects being present, will now find them missing and must bundle their own copies.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The &lt;code&gt;internal.backbone&lt;/code&gt; and &lt;code&gt;internal.underscore&lt;/code&gt; libraries, deprecated for external use since Drupal 10, are fully removed from &lt;code&gt;core.libraries.yml&lt;/code&gt; and the &lt;code&gt;core/assets/vendor&lt;/code&gt; directory; nothing in core ships or depends on Backbone.js or Underscore.js anymore.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change removes the &lt;code&gt;internal.backbone&lt;/code&gt; and &lt;code&gt;internal.underscore&lt;/code&gt; library definitions from &lt;code&gt;core/core.libraries.yml&lt;/code&gt;, deletes the vendored &lt;code&gt;core/assets/vendor/backbone&lt;/code&gt; and &lt;code&gt;core/assets/vendor/underscore&lt;/code&gt; directories, and drops the corresponding &lt;code&gt;COPYRIGHT.txt&lt;/code&gt; entries. It also removes &lt;code&gt;backbone&lt;/code&gt; and &lt;code&gt;underscore&lt;/code&gt; from &lt;code&gt;core/package.json&lt;/code&gt; and &lt;code&gt;core/yarn.lock&lt;/code&gt;, removes their asset-fetch entries from &lt;code&gt;core/scripts/js/vendor-update.js&lt;/code&gt; (the script that downloads vendor JS during core releases), and drops the now-unused &lt;code&gt;Backbone: 'readonly'&lt;/code&gt; global from &lt;code&gt;core/eslint.config.mjs&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;No core JavaScript referenced these libraries anymore at the time of removal (grepping the codebase before the patch turned up references only in the vendor files and library/config plumbing listed above), confirming the libraries were dead weight left over from the Drupal 10 deprecation.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites, modules, or themes that still declare a library dependency such as:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;dependencies:
-  - core/internal.backbone
-  - core/internal.underscore
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;or otherwise expect the global &lt;code&gt;Backbone&lt;/code&gt; or &lt;code&gt;_&lt;/code&gt; (Underscore) objects to be available because core loaded them, must now provide their own copies of Backbone.js and/or Underscore.js as third-party dependencies. Core no longer ships or loads these libraries.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 17, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

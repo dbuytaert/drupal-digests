@@ -1,8 +1,24 @@
-**TL;DR:** [1164 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1166 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_271 summaries · 9 new this week_
+
+- [#3591874: Upgrade the Canvas UI to React Router 7](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591874.md)
+- [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
+- [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
+
+### Drupal Core
+
+_607 summaries · 8 new this week_
+
+- [#3516706: Disallow dangerous filenames e.g. command injection characters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516706.md)
+- [#3466088: [meta] Deprecate dependencies, libraries, modules, and themes that will be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3466088.md)
+- [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
 
 ### Drupal CMS
 
@@ -12,29 +28,13 @@ _104 summaries · 9 new this week_
 - [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
 - [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
 
-### Drupal Core
-
-_606 summaries · 7 new this week_
-
-- [#3466088: [meta] Deprecate dependencies, libraries, modules, and themes that will be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3466088.md)
-- [#2265487: ConfigEntity based lists with items containing non-ascii characters are not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2265487.md)
-- [#3626470: Review Drupal 12 and 11.x composer dependencies for allowed versions with CVEs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626470.md)
-
 ### Drupal AI
 
-_184 summaries · 23 new this week_
+_184 summaries · 20 new this week_
 
 - [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
 - [#3568162: Tool UI migration from MCP module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3568162.md)
 - [#3585884: Version requirements in submodule .info files causes issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585884.md)
-
-### Drupal Canvas
-
-_270 summaries · 10 new this week_
-
-- [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
-- [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
-- [#3592002: Normalize agent-written prop values against their schema and report values the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592002.md)
 
 
 ## Rector rules
