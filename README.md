@@ -1,12 +1,20 @@
-**TL;DR:** [1166 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1167 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_185 summaries · 17 new this week_
+
+- [#3585940: The answer to an elicitation waits 30 seconds for the session lock over HTTP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585940.md)
+- [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
+- [#3568162: Tool UI migration from MCP module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3568162.md)
+
 ### Drupal Canvas
 
-_271 summaries · 9 new this week_
+_271 summaries · 8 new this week_
 
 - [#3591874: Upgrade the Canvas UI to React Router 7](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591874.md)
 - [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
@@ -27,14 +35,6 @@ _104 summaries · 9 new this week_
 - [#3591482: Language-neutral content ("und") counts as a template language – Summit is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591482.md)
 - [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
 - [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
-
-### Drupal AI
-
-_184 summaries · 20 new this week_
-
-- [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
-- [#3568162: Tool UI migration from MCP module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3568162.md)
-- [#3585884: Version requirements in submodule .info files causes issues](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585884.md)
 
 
 ## Rector rules

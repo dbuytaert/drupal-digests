@@ -5,6 +5,33 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585940: The answer to an elicitation waits 30 seconds for the session lock over HTTP</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585940.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585940</guid>
+      <pubDate>Sat, 03 Oct 2026 00:58:32 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585940"&gt;#3585940&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Sites running the MCP Server module's HTTP transport could see a tool that asks the connecting AI client a question (via elicitation) take 30 seconds longer than necessary to resume, even when the client answered within a couple of seconds. The delay came from an internal session lock, not from the client or network, so nothing a site owner configured could work around it. The fix removes this artificial wait so elicitation answers are picked up as soon as they arrive.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;McpServerController::handle()&lt;/code&gt; takes a &lt;code&gt;mcp_session:&lt;/code&gt;-prefixed lock for the duration of the request and, for streamed (SSE) responses, only releases it once the stream ends, as established by the earlier fix for &lt;a href="https://www.drupal.org/node/3585923"&gt;#3585923&lt;/a&gt;. When a tool calls &lt;code&gt;ClientGateway::elicit()&lt;/code&gt;, the SDK suspends the handler's fiber and keeps that first request's SSE connection open while it polls the session store for the client's reply, which arrives as a second POST on the same &lt;code&gt;Mcp-Session-Id&lt;/code&gt;. That second request calls into &lt;code&gt;LockBackendInterface::wait()&lt;/code&gt; and blocks until the first request's lock lease expires, 30 seconds by default, so an answer submitted in two seconds is not read until the 30 second mark, and once the lease does expire both requests can end up writing the session at the same time.&lt;/p&gt;
+&lt;p&gt;The issue lays out two candidate fixes: skip acquiring the lock at all for a POST whose body contains only JSON-RPC responses (as opposed to a request that can itself trigger new elicitation), or release the lock while the handling fiber is suspended waiting on an elicitation answer and reacquire it when the handler resumes. No merge request or commit was available to confirm which approach was ultimately implemented, so the end-state mechanics above reflect the proposed resolution from the issue rather than a verified diff.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects clients on protocol 2026-07-28</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md</link>
       <guid isPermaLink="false">project/mcp_server#3585936</guid>
@@ -742,42 +769,6 @@ final class MyTool extends ToolBase {
 &lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
 &lt;li&gt;mglaman (Acquia)&lt;/li&gt;
 &lt;li&gt;dries&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583030: outputSchema describes a timestamp member as date-time, structuredContent sends integer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583030.md</link>
-      <guid isPermaLink="false">project/tool#3583030</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 25 Sep 2026 20:29:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583030"&gt;#3583030&lt;/a&gt; · 1 contributor · 15 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module builds an MCP &lt;code&gt;outputSchema&lt;/code&gt; for each tool's declared output types, but the actual &lt;code&gt;structuredContent&lt;/code&gt; payload it sent for a tool's result didn't always match that schema. A &lt;code&gt;timestamp&lt;/code&gt; output, for example, was advertised as an RFC 3339 date-time string but sent as a raw Unix integer. Since the MCP spec requires servers to send structured results that conform to the schema, and expects clients to validate against it, this mismatch could make an otherwise-correct tool result get rejected by a compliant client. The fix converts affected values to the format the schema promises before they go out over the wire.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;getFormattedResult()&lt;/code&gt; now converts &lt;code&gt;timestamp&lt;/code&gt;, &lt;code&gt;decimal&lt;/code&gt;, and DateTime-constrained &lt;code&gt;datetime_iso8601&lt;/code&gt; output values, plus empty &lt;code&gt;map&lt;/code&gt; outputs, to match the wire format their advertised &lt;code&gt;outputSchema&lt;/code&gt; describes (e.g. a Unix timestamp becomes an RFC 3339 string, an empty map becomes &lt;code&gt;{}&lt;/code&gt; instead of &lt;code&gt;[]&lt;/code&gt;); &lt;code&gt;getResult()&lt;/code&gt;/&lt;code&gt;getOutputValue()&lt;/code&gt; keep returning the original PHP values.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The conversion lives in a new &lt;code&gt;OutputTypeCoercionSubscriber&lt;/code&gt;, an event subscriber on &lt;code&gt;ToolOutputTransformEvent&lt;/code&gt; that runs after invoker-specific subscribers but before the recursive subscriber that walks list/map items, so nested members get the same treatment. It handles four mismatches: a &lt;code&gt;timestamp&lt;/code&gt; value is reformatted from a Unix integer to &lt;code&gt;DateTimeInterface::RFC3339&lt;/code&gt; when the active core is 11.1+ (core's schema-aware &lt;code&gt;TimestampNormalizer&lt;/code&gt; describes it as a date-time string there; older cores use the module's &lt;code&gt;LegacyTypedDataNormalizer&lt;/code&gt;, which describes it as an integer, so it's left alone); a &lt;code&gt;decimal&lt;/code&gt; int or float is formatted as a fixed-point string via a new shared &lt;code&gt;DecimalStringTrait&lt;/code&gt; (extracted from &lt;code&gt;InputTypeCoercionSubscriber&lt;/code&gt;, which already needed the same logic for input coercion); a &lt;code&gt;datetime_iso8601&lt;/code&gt; value carrying the &lt;code&gt;DateTime&lt;/code&gt; constraint is reformatted from the offset-less storage spelling (&lt;code&gt;Y-m-d\TH:i:s&lt;/code&gt;) to RFC 3339, but only when it matches that exact storage format, anything with an offset or otherwise non-conforming is left untouched; and an empty PHP array for a non-multiple &lt;code&gt;map&lt;/code&gt; output is replaced with &lt;code&gt;new \ArrayObject()&lt;/code&gt; so it JSON-encodes as &lt;code&gt;{}&lt;/code&gt; instead of &lt;code&gt;[]&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The new &lt;code&gt;AdvertisedOutputSchemaConformanceTest&lt;/code&gt; exercises every discovered tool with schema-conforming sample inputs and validates each formatted output against its normalized schema, plus pins the exact converted spellings so a value that happens to validate but changes meaning (a shifted timezone, a rounded decimal) is still caught.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 19, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dries&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
