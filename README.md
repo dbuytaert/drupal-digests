@@ -1,4 +1,4 @@
-**TL;DR:** [1168 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1171 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [208 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_608 summaries · 8 new this week_
+_609 summaries · 9 new this week_
 
+- [#3585957: Prevent the navigation sidebar being rendered via big pipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585957.md)
 - [#3627057: Remove the navigation_top_bar module from core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627057.md)
 - [#3516706: Disallow dangerous filenames e.g. command injection characters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516706.md)
-- [#3466088: [meta] Deprecate dependencies, libraries, modules, and themes that will be...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3466088.md)
+
+### Drupal CMS
+
+_106 summaries · 11 new this week_
+
+- [#3591447: Add telemetry to Drupal CMS](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591447.md)
+- [#3591382: Implement and document changing the web root during 'composer create-project'...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591382.md)
+- [#3591482: Language-neutral content ("und") counts as a template language – Summit is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591482.md)
 
 ### Drupal AI
 
@@ -27,14 +35,6 @@ _271 summaries · 8 new this week_
 - [#3591874: Upgrade the Canvas UI to React Router 7](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591874.md)
 - [#3592142: ColorFormPopover resets edits in progress when the color list refetches](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592142.md)
 - [#3592129: CanvasOauthAuthenticationProvider does not allow OAuth authentication on the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592129.md)
-
-### Drupal CMS
-
-_104 summaries · 9 new this week_
-
-- [#3591482: Language-neutral content ("und") counts as a template language – Summit is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591482.md)
-- [#3591479: Add the Varbase Starter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591479.md)
-- [#3591471: Add the Hourglass Corporate and Goodwell site templates to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591471.md)
 
 
 ## Rector rules

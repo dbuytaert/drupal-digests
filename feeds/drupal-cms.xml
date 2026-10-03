@@ -5,6 +5,80 @@
     <description>Stay informed about developments in Drupal CMS.</description>
     <link>https://www.drupal.org/project/drupal_cms</link>
     <item>
+      <title>#3591447: Add telemetry to Drupal CMS</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591447.md</link>
+      <guid isPermaLink="false">project/drupal_cms#3591447</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 03 Oct 2026 18:54:36 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3591447"&gt;#3591447&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal CMS now ships with an opt-in telemetry system that reports anonymous usage data to the Drupal CMS team via Amplitude (hosted in the EU). Admins with the &amp;quot;administer site configuration&amp;quot; permission see a small, non-intrusive corner dialog asking them to consent the first time they visit an admin page after the setting is introduced. If enabled, the site periodically reports things like: which site template or recipe was applied, which modules were installed or uninstalled after setup, a 30-day &amp;quot;still alive&amp;quot; ping, visits to a handful of specific admin pages (module updates, SEO/language checklists, webform list, recommended add-ons), creation of Canvas code components, and a one-way-hashed ID whenever a user logs in (to count unique users without identifying them). No site content, user data, or visitor data is collected. The choice can be changed at any time from Configuration &amp;gt; System &amp;gt; Site information, and documentation of exactly what is collected is published alongside the module.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New 'Send anonymous usage data' checkbox on the 'Basic site settings' form (/admin/config/system/site-information), plus a one-time opt-in dialog shown to admins, controls whether Drupal CMS sends anonymous telemetry to Amplitude. The on/off choice is stored in State, not exported configuration.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The feature lives entirely in the &lt;code&gt;drupal_cms_helper&lt;/code&gt; module. &lt;code&gt;TelemetryManager&lt;/code&gt; is the central service: &lt;code&gt;log()&lt;/code&gt; queues an event (keyed by the &lt;code&gt;Telemetry&lt;/code&gt; enum, e.g. &lt;code&gt;ModuleInstall&lt;/code&gt;, &lt;code&gt;RecipeApplied&lt;/code&gt;, &lt;code&gt;AdminPage&lt;/code&gt;, &lt;code&gt;Login&lt;/code&gt;) into a &lt;code&gt;drupal_cms_telemetry&lt;/code&gt; queue when telemetry is enabled, and &lt;code&gt;sendAll()&lt;/code&gt;, invoked from &lt;code&gt;TelemetryHooks::cron()&lt;/code&gt;, drains up to 500 queued items and POSTs them to &lt;code&gt;https://api.eu.amplitude.com/2/httpapi&lt;/code&gt; via Guzzle. Each batch is tagged with a device ID computed as &lt;code&gt;Crypt::hmacBase64()&lt;/code&gt; of the site's UUID and hash salt, so events are correlated per-site without being personally identifiable. The opt-in/out flag is stored in &lt;code&gt;State&lt;/code&gt; under the key &lt;code&gt;drupal_cms_telemetry&lt;/code&gt; (not exported config); disabling it also deletes the pending queue.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;TelemetryHooks&lt;/code&gt; wires up the event sources: &lt;code&gt;hook_modules_installed()&lt;/code&gt;/&lt;code&gt;hook_modules_uninstalled()&lt;/code&gt; (suppressed during config sync, site installation, or while a recipe is running), &lt;code&gt;hook_cron()&lt;/code&gt; (the 30-day ping, which is skipped under test, preview, or CI environments as detected by the new &lt;code&gt;davereid/drupal-environment&lt;/code&gt; dependency), &lt;code&gt;hook_component_presave()&lt;/code&gt; for Canvas components, and &lt;code&gt;hook_user_login()&lt;/code&gt; (logs an HMACed user ID using the site's private key). &lt;code&gt;RecipeSubscriber::onApply()&lt;/code&gt; was extended to log &lt;code&gt;SiteTemplateInstall&lt;/code&gt; versus &lt;code&gt;RecipeApplied&lt;/code&gt; depending on whether a monolithic site template or an ordinary recipe was applied. The new &lt;code&gt;TelemetrySubscriber&lt;/code&gt; listens on &lt;code&gt;KernelEvents::CONTROLLER&lt;/code&gt; to detect visits to specific admin routes (module updates form, SEO/language checklists, webform collection, and Project Browser's &amp;quot;recommended&amp;quot; source).&lt;/p&gt;
+&lt;p&gt;The consent UI is a non-modal &lt;code&gt;&amp;lt;dialog&amp;gt;&lt;/code&gt; injected via &lt;code&gt;hook_page_bottom()&lt;/code&gt; using &lt;code&gt;TelemetryOptInForm&lt;/code&gt;, shown only on admin routes to users with the &lt;code&gt;administer site configuration&lt;/code&gt; permission who have not yet made a choice; it's styled by &lt;code&gt;telemetry.css&lt;/code&gt; and opened by &lt;code&gt;telemetry.js&lt;/code&gt;. The same checkbox is also exposed directly on the &amp;quot;Basic site settings&amp;quot; form via &lt;code&gt;hook_form_system_site_information_settings_alter()&lt;/code&gt;. All new classes are marked &lt;code&gt;@internal&lt;/code&gt;, so there is no new public API.&amp;lt;/technical&amp;gt;
+&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 4, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3591382: Implement and document changing the web root during 'composer create-project' installation</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591382.md</link>
+      <guid isPermaLink="false">project/drupal_cms#3591382</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 03 Oct 2026 17:34:52 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3591382"&gt;#3591382&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal CMS's DDEV-based local development setup now supports changing the web root (document root) cleanly at install time. Previously, users on shared hosting who wanted a web root other than the default &lt;code&gt;web&lt;/code&gt; (e.g. &lt;code&gt;public_html&lt;/code&gt;) had to manually edit &lt;code&gt;composer.json&lt;/code&gt;, &lt;code&gt;.gitignore&lt;/code&gt; and &lt;code&gt;AGENTS.md&lt;/code&gt;, and doing so via &lt;code&gt;ddev config --docroot=...&lt;/code&gt; would overwrite the project's DDEV configuration and skip Composer's automatic recipe-unpacking step, leaving packages like &lt;code&gt;drupal/mercury&lt;/code&gt; listed as raw direct dependencies and breaking later &lt;code&gt;composer remove&lt;/code&gt; commands. Now, running &lt;code&gt;ddev config --docroot=new_web_root&lt;/code&gt; before &lt;code&gt;ddev launch&lt;/code&gt; is all that's needed: DDEV will rewrite the relevant files and correctly install and unpack recipes.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The DDEV project template now ships a &lt;code&gt;post-start&lt;/code&gt; hook in &lt;code&gt;.ddev/config.yaml&lt;/code&gt; that, when no &lt;code&gt;composer.lock&lt;/code&gt; exists yet, rewrites &lt;code&gt;web/&lt;/code&gt; references in &lt;code&gt;composer.json&lt;/code&gt;, &lt;code&gt;AGENTS.md&lt;/code&gt; and &lt;code&gt;.gitignore&lt;/code&gt; to match DDEV's configured docroot before running &lt;code&gt;composer install&lt;/code&gt; and &lt;code&gt;composer drupal:recipe-unpack&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix lives in the DDEV project template shipped by &lt;code&gt;composer create-project drupal/cms&lt;/code&gt;. Previously &lt;code&gt;project_template/assets/.ddev/config.yaml&lt;/code&gt; was a separate file moved into &lt;code&gt;.ddev/&lt;/code&gt; as a post-install step, with no awareness of a custom docroot; it only ran &lt;code&gt;composer install&lt;/code&gt; and &lt;code&gt;composer drupal:recipe-unpack&lt;/code&gt; on post-start. That file is removed and its config is merged directly into a new &lt;code&gt;project_template/.ddev/config.yaml&lt;/code&gt;, which still defaults &lt;code&gt;docroot: web&lt;/code&gt; but adds logic to its &lt;code&gt;post-start&lt;/code&gt; hook: if no &lt;code&gt;composer.lock&lt;/code&gt; is present yet (i.e. dependencies haven't been installed), it uses &lt;code&gt;sed&lt;/code&gt; to rewrite &lt;code&gt;web/&lt;/code&gt; occurrences in &lt;code&gt;AGENTS.md&lt;/code&gt; and &lt;code&gt;composer.json&lt;/code&gt; to &lt;code&gt;$DDEV_DOCROOT/&lt;/code&gt;, and adjusts the leading &lt;code&gt;/web/&lt;/code&gt; entry in &lt;code&gt;.gitignore&lt;/code&gt; to match (or strips it entirely when the docroot is &lt;code&gt;.&lt;/code&gt;). Only after that rewrite does it run &lt;code&gt;composer install&lt;/code&gt; followed by &lt;code&gt;composer drupal:recipe-unpack&lt;/code&gt;, so recipe unpacking now happens regardless of which docroot was chosen.&lt;/p&gt;
+&lt;p&gt;The related &lt;code&gt;.ddev/commands/web/tag&lt;/code&gt; script (used to build the cPanel-flavored &lt;code&gt;cpanel_template&lt;/code&gt;, which uses docroot &lt;code&gt;.&lt;/code&gt;) is simplified to rely on the same &lt;code&gt;yq&lt;/code&gt;-driven docroot update rather than duplicating the &lt;code&gt;sed&lt;/code&gt; rewrites by hand. &lt;code&gt;project_template/README.md&lt;/code&gt; now documents the supported workflow: run &lt;code&gt;ddev config --docroot=new_web_root&lt;/code&gt; before &lt;code&gt;ddev launch&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;chike (Skillmatic Ace)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591482: Language-neutral content ("und") counts as a template language – Summit is installed in "und" and every page fails</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591482.md</link>
       <guid isPermaLink="false">project/drupal_cms#3591482</guid>
@@ -578,77 +652,6 @@
 &lt;ul&gt;
 &lt;li&gt;Opened: August 21, 2025&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3526844: [meta] Implement the first real-world site template</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3526844.md</link>
-      <guid isPermaLink="false">project/drupal_cms#3526844</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 21 Jul 2026 04:46:19 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +23/−0 · yml +14 · json +9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3526844"&gt;#3526844&lt;/a&gt; · 6 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 17&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal CMS is shipping its first real-world site template, aimed at SaaS and B2B product marketing websites. The template bundles an opinionated set of recipes, content types, layout components, and demo content so a site owner can spin up a product site with a blog, feature highlights, pricing section, FAQ, testimonials, and a contact form. The implementation ultimately landed as the separate &lt;code&gt;byte&lt;/code&gt; project (drupal.org/project/byte) rather than inside the main Drupal CMS repository.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drupal_cms_b2b_template&lt;/code&gt; site recipe (now the &lt;code&gt;byte&lt;/code&gt; project at drupal.org/project/byte) for bootstrapping SaaS and B2B product marketing sites on Drupal CMS.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The MR scaffolded a &lt;code&gt;drupal/drupal_cms_b2b_template&lt;/code&gt; recipe (type: &lt;code&gt;Site&lt;/code&gt;) requiring &lt;code&gt;drupal/core ^11.2&lt;/code&gt; and &lt;code&gt;drupal/drupal_cms_blog ^2&lt;/code&gt;. The &lt;code&gt;recipe.yml&lt;/code&gt; applied &lt;code&gt;administrator_role&lt;/code&gt;, &lt;code&gt;content_editor_role&lt;/code&gt;, and &lt;code&gt;drupal_cms_blog&lt;/code&gt; as recipe dependencies, and imported &lt;code&gt;system.menu.footer&lt;/code&gt; and &lt;code&gt;system.menu.main&lt;/code&gt; config. The MR was closed without merging; the full implementation moved to the &lt;code&gt;byte&lt;/code&gt; project.&lt;/p&gt;
-&lt;p&gt;The issue body defines the intended content model: Blog Post (delegated to &lt;code&gt;drupal_cms_blog&lt;/code&gt; as a dependency rather than copied), Feature and FAQ content types as nodes (so editors find all content at &lt;code&gt;/admin/content&lt;/code&gt;), and a Changelog page built on &lt;code&gt;drupal_cms_page&lt;/code&gt;. Layout components (Hero, Features, Pricing, Logo grid, Testimonial list, CTA banner) are planned as SDCs, pending the new Drupal CMS design system. Contact form support comes from the existing &lt;code&gt;drupal_cms_forms&lt;/code&gt; recipe. A &lt;code&gt;Marketing&lt;/code&gt; role is added alongside the standard &lt;code&gt;administrator&lt;/code&gt; and &lt;code&gt;editor&lt;/code&gt; roles from core recipes.&lt;/p&gt;
-&lt;p&gt;Microcontent reusability (testimonials, FAQs as shared entities) was debated and explicitly excluded from MVP: pameeela noted the reuse case does not meet the 80% threshold. Behavior tracking, CRM integration, and carousels are deferred to future issues. The dependency on the &lt;code&gt;entity_display_route&lt;/code&gt; contrib module was raised (by thejimbirch) since it lacks a stable release and security coverage; the canonical fix is tracked in Drupal core issue &lt;a href="https://www.drupal.org/node/3483304"&gt;#3483304&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 27, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;pameeela removed the microcontent heading from the issue summary after deciding that making testimonials and FAQs globally reusable entities adds complexity without meeting the 80%-use-case threshold for MVP. That single judgment call settled the content model: everything stays as plain nodes. catch pushed back early on whether &lt;code&gt;drupal_cms_blog&lt;/code&gt; would be copied or reused as a dependency; phenaproxima confirmed it is a declared recipe dependency, establishing the pattern for the whole template.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3501978: Direct links to flush caches, run cron, and such</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3501978.md</link>
-      <guid isPermaLink="false">project/drupal_cms#3501978</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 21 Jul 2026 04:42:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3501978"&gt;#3501978&lt;/a&gt; · 3 contributors · 4 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal CMS now includes the &lt;code&gt;navigation_extra_tools&lt;/code&gt; contributed module by default. This gives all Drupal CMS sites one-click links in the navigation toolbar to flush all caches, run cron, run database updates, and other common administrative operations. Previously, site builders had to navigate to Configuration &amp;gt; Development &amp;gt; Performance to clear caches, or install Admin Toolbar Extra Tools separately to get these shortcuts.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;navigation_extra_tools&lt;/code&gt; module bundled in the base Drupal CMS recipe, providing toolbar shortcuts to flush caches, run cron, and run updates on all Drupal CMS sites&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;navigation_extra_tools&lt;/code&gt; module (version &lt;code&gt;^1.3&lt;/code&gt;) was added to the &lt;code&gt;install&lt;/code&gt; list in &lt;code&gt;recipes/drupal_cms_site_template_base/recipe.yml&lt;/code&gt; and declared as a Composer dependency in &lt;code&gt;recipes/drupal_cms_site_template_base/composer.json&lt;/code&gt;. Because &lt;code&gt;drupal_cms_site_template_base&lt;/code&gt; is the foundational recipe applied to every Drupal CMS installation, these toolbar shortcuts are available on all Drupal CMS sites without any additional setup. The module integrates with core's Navigation module, which Drupal CMS already installs. The feature request was prompted by the observation that Drupal CMS does not assume Admin Toolbar is installed, leaving users without the quick-access admin links they were accustomed to from Admin Toolbar Extra Tools.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 24, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The reporter, chike, noted that after switching to Drupal CMS they repeatedly had to navigate to Configuration &amp;gt; Development &amp;gt; Performance to flush caches because the familiar Admin Toolbar shortcuts were absent. A follow-up comment from thejimbirch pointed to the &lt;code&gt;navigation_extra_tools&lt;/code&gt; module as the right solution. chike then specifically called for it to be bundled, describing it as &amp;quot;absolutely essential,&amp;quot; which is the direct path to the fix recorded here.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
