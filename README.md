@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_608 summaries · 9 new this week_
+_608 summaries · 8 new this week_
 
 - [#3627057: Remove the navigation_top_bar module from core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627057.md)
 - [#3516706: Disallow dangerous filenames e.g. command injection characters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3516706.md)
@@ -14,7 +14,7 @@ _608 summaries · 9 new this week_
 
 ### Drupal AI
 
-_185 summaries · 17 new this week_
+_185 summaries · 16 new this week_
 
 - [#3585940: The answer to an elicitation waits 30 seconds for the session lock over HTTP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585940.md)
 - [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
