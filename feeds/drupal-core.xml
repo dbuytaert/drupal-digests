@@ -5,6 +5,65 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3081025: Remove technical debt and complication from when doTrustedCallback() could either trigger errors or throw exceptions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3081025.md</link>
+      <guid isPermaLink="false">node/3081025</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 04 Oct 2026 06:44:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +57/−44 · php +57/−44&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/de58972a5021ea3a93aaaf62da45721ac94773a9"&gt;de58972&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3081025"&gt;#3081025&lt;/a&gt; · 9 contributors · 39 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When Drupal detects an &amp;quot;untrusted&amp;quot; callback (for example in a render array), it now always throws an exception rather than offering an option to only log a silenced deprecation warning instead. This closes a long-standing loophole left over from the original security hardening work in &lt;a href="https://www.drupal.org/node/2966327"&gt;#2966327&lt;/a&gt;: Drupal core itself has thrown the exception unconditionally since Drupal 9, but the old &lt;code&gt;$error_type&lt;/code&gt; escape hatch was still present in the API for anyone who wanted to opt into the softer, warning-only behavior. That option is now deprecated and will disappear in Drupal 13.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;TrustedCallbackInterface::THROW_EXCEPTION&lt;/code&gt; and &lt;code&gt;TrustedCallbackInterface::TRIGGER_SILENCED_DEPRECATION&lt;/code&gt; are deprecated, and the &lt;code&gt;$error_type&lt;/code&gt; parameter of &lt;code&gt;DoTrustedCallbackTrait::doTrustedCallback()&lt;/code&gt; / &lt;code&gt;StaticTrustedCallbackHelper::callback()&lt;/code&gt; is removed from the method signature; passing a 5th argument now triggers a deprecation notice and is removed in Drupal 13.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;DoTrustedCallbackTrait::doTrustedCallback()&lt;/code&gt; and &lt;code&gt;StaticTrustedCallbackHelper::callback()&lt;/code&gt; dropped the &lt;code&gt;$error_type&lt;/code&gt; parameter from their signatures; the method body no longer branches on &lt;code&gt;TRIGGER_SILENCED_DEPRECATION&lt;/code&gt; and simply throws &lt;code&gt;Drupal\Core\Security\UntrustedCallbackException&lt;/code&gt; whenever a callback fails the trusted-callback check. &lt;code&gt;Renderer::doCallback()&lt;/code&gt; was updated accordingly to call &lt;code&gt;doTrustedCallback()&lt;/code&gt; without an error-type argument.&lt;/p&gt;
+&lt;p&gt;Because &lt;code&gt;$extra_trusted_interface&lt;/code&gt; was the 5th parameter and &lt;code&gt;$error_type&lt;/code&gt; the 4th, removing &lt;code&gt;$error_type&lt;/code&gt; from the signature would silently break any caller still passing both. To preserve backward compatibility, both methods now use &lt;code&gt;func_num_args()&lt;/code&gt;/&lt;code&gt;func_get_arg(4)&lt;/code&gt;: if a 5th argument is still supplied, it is treated as the (now 4th-position) &lt;code&gt;$extra_trusted_interface&lt;/code&gt; value and a deprecation notice is triggered rather than a hard fatal. The two now-unused &lt;code&gt;TrustedCallbackInterface&lt;/code&gt; constants (&lt;code&gt;THROW_EXCEPTION&lt;/code&gt;, &lt;code&gt;TRIGGER_SILENCED_DEPRECATION&lt;/code&gt;) are marked &lt;code&gt;@deprecated&lt;/code&gt; in their docblocks rather than removed outright, consistent with the Drupal core deprecation policy.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Remove any explicit &lt;code&gt;$error_type&lt;/code&gt; argument (&lt;code&gt;TrustedCallbackInterface::THROW_EXCEPTION&lt;/code&gt; or &lt;code&gt;TrustedCallbackInterface::TRIGGER_SILENCED_DEPRECATION&lt;/code&gt;) from calls to &lt;code&gt;doTrustedCallback()&lt;/code&gt; or &lt;code&gt;StaticTrustedCallbackHelper::callback()&lt;/code&gt;. If you need to pass &lt;code&gt;$extra_trusted_interface&lt;/code&gt;, it is now the 4th argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
+$this-&amp;gt;doTrustedCallback($callback, $args, $message, TrustedCallbackInterface::THROW_EXCEPTION, RenderCallbackInterface::class);
+
+// After:
+$this-&amp;gt;doTrustedCallback($callback, $args, $message, RenderCallbackInterface::class);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Untrusted callbacks always throw &lt;code&gt;Drupal\Core\Security\UntrustedCallbackException&lt;/code&gt; now; there is no replacement for the silenced-deprecation behavior.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 12, 2019&lt;/li&gt;
+&lt;li&gt;Committed: October 1, 2026 (7 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;xjm&lt;/li&gt;
+&lt;li&gt;dww&lt;/li&gt;
+&lt;li&gt;berdir&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;samuel.mortenson&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;This issue sat postponed for years: in 2020 &lt;code&gt;alexpott&lt;/code&gt; argued it shouldn't proceed until &lt;a href="https://www.drupal.org/node/2966711"&gt;#2966711&lt;/a&gt; (trusted callbacks for form arrays) was settled, &amp;quot;possibly never&amp;quot;, since contrib might still want the deprecation path for its own callback types. &lt;code&gt;dww&lt;/code&gt; and &lt;code&gt;berdir&lt;/code&gt; independently reached the same conclusion after digging into &lt;code&gt;core/lib/Drupal/Core/Security/DoTrustedCallbackTrait.php&lt;/code&gt; and discovering that Drupal 9's &lt;code&gt;Renderer.php&lt;/code&gt; was already unconditionally throwing exceptions, so the issue was really about removing now-dead plumbing rather than closing a live security gap. When &lt;code&gt;larowlan&lt;/code&gt; revived the issue in 2025 ahead of Drupal 12, &lt;code&gt;alexpott&lt;/code&gt; used a code search across contrib (turning up a real caller in &lt;code&gt;twig_field_value&lt;/code&gt;) to confirm that simply deleting the &lt;code&gt;$error_type&lt;/code&gt; parameter would break existing code, and added the &lt;code&gt;func_num_args()&lt;/code&gt;-based deprecation shim so those callers get a warning instead of a fatal error.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585957: Prevent the navigation sidebar being rendered via big pipe</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585957.md</link>
       <guid isPermaLink="false">node/3585957</guid>
@@ -1022,59 +1081,6 @@ class MenuLinkDefaultFormTest extends BrowserTestBase {
 &lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586217: Remove the Search module</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3586217.md</link>
-      <guid isPermaLink="false">node/3586217</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 19 Sep 2026 20:42:42 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 165 files, +7/−17141 · txt +6/−343 · php +1/−15826 · json +0/−1 · yml +0/−798 · twig +0/−173&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/64a266aae44e615bc389ef1a3b03780c6be1b9d1"&gt;64a266a&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3586217"&gt;#3586217&lt;/a&gt; · 5 contributors · 15 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Search module has been removed from Drupal core. This includes the &lt;code&gt;/search&lt;/code&gt; routes and controller, the &amp;quot;Search form&amp;quot; block, the search page entity type and its admin UI, the node/user/help search plugins, the search index tables, and the Views integration (search argument, filter, sort, and row plugins) that shipped with the module. Site owners who use core's built-in keyword search need to install the contrib Search module before upgrading to keep this functionality; running &lt;code&gt;update.php&lt;/code&gt; with &lt;code&gt;search&lt;/code&gt; still enabled will show a warning that the module was removed from core. This follows Drupal's policy of moving lightly maintained core modules to contrib, the same path taken by HAL, RDF, and others (see the deprecated/removed modules list at drupal.org/node/3223395#s-search).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Sites with the &lt;code&gt;search&lt;/code&gt; module still enabled will see an update.php requirements warning telling them the module was removed from core.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; The core Search module (including its &lt;code&gt;search_node&lt;/code&gt;, &lt;code&gt;search_user&lt;/code&gt;, &lt;code&gt;search_help&lt;/code&gt;, and &lt;code&gt;search_embedded_form&lt;/code&gt;/other test submodules) is removed entirely; a contrib Search module should be installed as a replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit deletes &lt;code&gt;core/modules/search&lt;/code&gt; in its entirety, roughly 17,000 lines: the &lt;code&gt;SearchPage&lt;/code&gt; config entity, &lt;code&gt;SearchPageRepository&lt;/code&gt;, &lt;code&gt;SearchIndex&lt;/code&gt;/&lt;code&gt;SearchQuery&lt;/code&gt;/&lt;code&gt;ViewsSearchQuery&lt;/code&gt;, the &lt;code&gt;SearchPluginBase&lt;/code&gt;/&lt;code&gt;SearchPluginManager&lt;/code&gt; plugin system (&lt;code&gt;#[Search]&lt;/code&gt; attribute), &lt;code&gt;SearchController&lt;/code&gt;, the admin forms, the &lt;code&gt;search_form_block&lt;/code&gt; block plugin, the &lt;code&gt;search.page.*&lt;/code&gt; and &lt;code&gt;search.settings&lt;/code&gt; config schemas, and the bundled &lt;code&gt;search_node&lt;/code&gt;, &lt;code&gt;search_user&lt;/code&gt;, &lt;code&gt;search_help&lt;/code&gt;, and &lt;code&gt;search_embedded_form&lt;/code&gt; submodules along with all their tests.&lt;/p&gt;
-&lt;p&gt;Outside the module directory the change is intentionally narrow: &lt;code&gt;search&lt;/code&gt; is added to &lt;code&gt;SystemRequirements::DRUPAL_CORE_REMOVED_MODULE_LIST&lt;/code&gt; in &lt;code&gt;core/modules/system/src/Install/Requirements/SystemRequirements.php&lt;/code&gt; so &lt;code&gt;SystemRequirementsHooks&lt;/code&gt; can surface an update-time warning on sites that still have it enabled, &lt;code&gt;SchemaCheckTrait&lt;/code&gt; drops its now-unneeded &lt;code&gt;search.page.*&lt;/code&gt;/&lt;code&gt;search.settings&lt;/code&gt; ignored-property-path entries, and the &lt;code&gt;core_fake&lt;/code&gt;/&lt;code&gt;CoreFakeWithAllCustomClasses&lt;/code&gt; test database drivers drop their &lt;code&gt;SearchQuery&lt;/code&gt;/&lt;code&gt;ViewsSearchQuery&lt;/code&gt; subclasses. &lt;code&gt;core/.phpstan-baseline.php&lt;/code&gt; and &lt;code&gt;.deprecation-ignore.txt&lt;/code&gt; are pruned of search-specific entries. The removal was postponed until after &lt;a href="https://www.drupal.org/node/3595089"&gt;#3595089&lt;/a&gt; (Olivero theme removal) since Olivero contained search-specific markup and test coverage that would otherwise have failed.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Before upgrading a site that uses core search:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Install the contrib &lt;a href="https://www.drupal.org/project/search"&gt;Search&lt;/a&gt; module (or another search solution) to replace the functionality.&lt;/li&gt;
-&lt;li&gt;Any custom code implementing &lt;code&gt;\Drupal\search\Plugin\SearchInterface&lt;/code&gt; / extending &lt;code&gt;SearchPluginBase&lt;/code&gt;, or referencing &lt;code&gt;\Drupal\search\SearchPageRepositoryInterface&lt;/code&gt;, &lt;code&gt;SearchIndex&lt;/code&gt;, &lt;code&gt;SearchQuery&lt;/code&gt;, or the &lt;code&gt;search.page.*&lt;/code&gt;/&lt;code&gt;search.settings&lt;/code&gt; config, needs to be ported to the contrib module's equivalents.&lt;/li&gt;
-&lt;li&gt;Views using the core &lt;code&gt;views.argument.search&lt;/code&gt;, &lt;code&gt;views.filter.search&lt;/code&gt;, &lt;code&gt;views.field.search_score&lt;/code&gt;, &lt;code&gt;views.sort.search_score&lt;/code&gt;, or &lt;code&gt;views.row.search_view&lt;/code&gt; plugins will need to be rebuilt against contrib alternatives.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 19, 2026 (5 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
 &lt;li&gt;godotislate&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
