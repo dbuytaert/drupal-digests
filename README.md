@@ -1,4 +1,4 @@
-**TL;DR:** [1172 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1173 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_610 summaries · 10 new this week_
+_611 summaries · 11 new this week_
 
+- [#3568767: Deprecate Media::getRequestTime()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568767.md)
 - [#3081025: Remove technical debt and complication from when doTrustedCallback() could...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3081025.md)
 - [#3585957: Prevent the navigation sidebar being rendered via big pipe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3585957.md)
-- [#3627057: Remove the navigation_top_bar module from core](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627057.md)
 
 ### Drupal CMS
 
-_106 summaries · 11 new this week_
+_106 summaries · 9 new this week_
 
 - [#3591447: Add telemetry to Drupal CMS](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591447.md)
 - [#3591382: Implement and document changing the web root during 'composer create-project'...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591382.md)
