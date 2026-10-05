@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_611 summaries · 11 new this week_
+_611 summaries · 10 new this week_
 
 - [#3568767: Deprecate Media::getRequestTime()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568767.md)
 - [#3081025: Remove technical debt and complication from when doTrustedCallback() could...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3081025.md)
