@@ -1,8 +1,24 @@
-**TL;DR:** [1180 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1182 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_186 summaries · 17 new this week_
+
+- [#3585937: Tool call arguments and results end up in the Drupal log](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585937.md)
+- [#3585940: The answer to an elicitation waits 30 seconds for the session lock over HTTP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585940.md)
+- [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
+
+### Drupal Canvas
+
+_274 summaries · 7 new this week_
+
+- [#3591930: Apply brand kit colour changes optimistically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591930.md)
+- [#3592052: Site template installation fails with Canvas 1.11](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592052.md)
+- [#3592145: canvas-page-variant.html.twig removes #main-content](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592145.md)
 
 ### Drupal Core
 
@@ -19,22 +35,6 @@ _109 summaries · 6 new this week_
 - [#3591481: Web installer fails on Apache with mod_php: Composer needs HOME or COMPOSER_HOME](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591481.md)
 - [#3591485: Support downloading necessary binaries into vendor/bin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591485.md)
 - [#3591486: Allow Tagify 2.0.x in drupal_cms_site_template_base](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591486.md)
-
-### Drupal Canvas
-
-_273 summaries · 8 new this week_
-
-- [#3592052: Site template installation fails with Canvas 1.11](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592052.md)
-- [#3592145: canvas-page-variant.html.twig removes #main-content](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592145.md)
-- [#3591874: Upgrade the Canvas UI to React Router 7](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591874.md)
-
-### Drupal AI
-
-_185 summaries · 16 new this week_
-
-- [#3585940: The answer to an elicitation waits 30 seconds for the session lock over HTTP](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585940.md)
-- [#3585936: ProtocolVersionMiddleware registered as a custom transport middleware rejects...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585936.md)
-- [#3568162: Tool UI migration from MCP module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3568162.md)
 
 
 ## Rector rules
