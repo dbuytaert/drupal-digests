@@ -1,8 +1,16 @@
-**TL;DR:** [1188 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1190 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal CMS
+
+_112 summaries · 9 new this week_
+
+- [#3591490: Add an initial 'ping' when opting into telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591490.md)
+- [#3591489: Use the Tagify User List widget by default for user reference fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591489.md)
+- [#3591488: Add telemetry events for Project Browser](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591488.md)
 
 ### Drupal AI
 
@@ -12,17 +20,9 @@ _190 summaries · 20 new this week_
 - [#3583063: Reject the generic entity data type in the entity definition family](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583063.md)
 - [#3583076: Let a string definition say what it contains with contentMediaType](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583076.md)
 
-### Drupal CMS
-
-_110 summaries · 7 new this week_
-
-- [#3591488: Add telemetry events for Project Browser](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591488.md)
-- [#3591481: Web installer fails on Apache with mod_php: Composer needs HOME or COMPOSER_HOME](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591481.md)
-- [#3591485: Support downloading necessary binaries into vendor/bin](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591485.md)
-
 ### Drupal Canvas
 
-_275 summaries · 8 new this week_
+_275 summaries · 6 new this week_
 
 - [#3592084: Canvas entity edit/delete/translation routes render in the front-end theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592084.md)
 - [#3591930: Apply brand kit colour changes optimistically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591930.md)
