@@ -1,8 +1,24 @@
-**TL;DR:** [1190 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1195 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_277 summaries · 8 new this week_
+
+- [#3591894: Error message for empty value is displayed for select props even when they're...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591894.md)
+- [#3591848: ∅ is added for empty fields, forcing translation and rendering on the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591848.md)
+- [#3592084: Canvas entity edit/delete/translation routes render in the front-end theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592084.md)
+
+### Drupal AI
+
+_193 summaries · 19 new this week_
+
+- [#3583094: A required input explicitly set to NULL throws ContextException from execute()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583094.md)
+- [#3585928: Session lock delays elicitation and sampling replies until the lease expires](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585928.md)
+- [#3585939: mcp/sdk 0.8 logs an empty middleware list warning on every HTTP request](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585939.md)
 
 ### Drupal CMS
 
@@ -12,25 +28,9 @@ _112 summaries · 9 new this week_
 - [#3591489: Use the Tagify User List widget by default for user reference fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591489.md)
 - [#3591488: Add telemetry events for Project Browser](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591488.md)
 
-### Drupal AI
-
-_190 summaries · 20 new this week_
-
-- [#3583051: ListInputDefinition and MapInputDefinition accept output definitions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583051.md)
-- [#3583063: Reject the generic entity data type in the entity definition family](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583063.md)
-- [#3583076: Let a string definition say what it contains with contentMediaType](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583076.md)
-
-### Drupal Canvas
-
-_275 summaries · 6 new this week_
-
-- [#3592084: Canvas entity edit/delete/translation routes render in the front-end theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592084.md)
-- [#3591930: Apply brand kit colour changes optimistically](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591930.md)
-- [#3592052: Site template installation fails with Canvas 1.11](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592052.md)
-
 ### Drupal Core
 
-_613 summaries · 10 new this week_
+_613 summaries · 9 new this week_
 
 - [#3344629: Passing null to parameter #1 ($haystack) of type string is deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3344629.md)
 - [#3626105: Release runtime theme registries after destruction](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626105.md)
