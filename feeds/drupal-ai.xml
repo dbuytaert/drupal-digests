@@ -5,6 +5,144 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583049: Deprecate `multiple` on input and output definitions in favor of list definitions</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583049.md</link>
+      <guid isPermaLink="false">project/tool#3583049</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 08 Oct 2026 20:52:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583049"&gt;#3583049&lt;/a&gt; · 1 contributor · 11 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Declaring a tool input or output as &lt;code&gt;multiple: TRUE&lt;/code&gt; is now deprecated in favor of declaring a list definition. Existing &lt;code&gt;multiple&lt;/code&gt; declarations still load: they are converted to a list automatically and trigger a deprecation notice. The advertised JSON Schema stays the same. The conversion also fixes a bug where a &lt;code&gt;Count&lt;/code&gt; constraint on a &lt;code&gt;multiple&lt;/code&gt; input rejected every value, because &lt;code&gt;Count&lt;/code&gt; now applies to the list and not to each item. The &lt;code&gt;multiple&lt;/code&gt; option is planned for removal in 1.0.0-rc1.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;$multiple&lt;/code&gt; constructor parameter is dropped from &lt;code&gt;ListInputDefinition&lt;/code&gt; and &lt;code&gt;ListOutputDefinition&lt;/code&gt;, so positional arguments after &lt;code&gt;$required&lt;/code&gt; shift by one.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;multiple: TRUE&lt;/code&gt; on input definitions, output definitions (including core &lt;code&gt;ContextDefinition&lt;/code&gt; passed as outputs), map properties and refiner results is deprecated in tool:1.0.0-beta10 and removed in 1.0.0-rc1; declare list definitions instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The two ways of declaring a list disagreed about where constraints go. A &lt;code&gt;multiple&lt;/code&gt; input copied every constraint, &lt;code&gt;Count&lt;/code&gt; included, onto each item, so &lt;code&gt;Count&lt;/code&gt; failed every value. The new &lt;code&gt;ListInputDefinition::fromMultiple()&lt;/code&gt; splits the constraints: those that describe the list, such as &lt;code&gt;Count&lt;/code&gt;, go on the list, and the remaining constraints stay on a required item copy with no label or description. This is the same split the normalizer already applies to the JSON Schema, so the output is unchanged. The one exception is the default value, which moves to the list and is no longer advertised on each item. Both &lt;code&gt;ListInputDefinition&lt;/code&gt; and &lt;code&gt;ListOutputDefinition&lt;/code&gt; have a &lt;code&gt;fromMultiple()&lt;/code&gt;. It is marked &lt;code&gt;@internal&lt;/code&gt; and is deleted together with &lt;code&gt;multiple&lt;/code&gt;.\n\nThe conversion happens at several entry points, each with an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; pointing at work item 3583049. &lt;code&gt;ToolDefinition::addInputDefinition()&lt;/code&gt; converts inputs. &lt;code&gt;MapDefinitionBase&lt;/code&gt; converts map properties, to either an input or an output list. &lt;code&gt;OutputDefinition::fromContextDefinition()&lt;/code&gt; turns a core &lt;code&gt;ContextDefinition&lt;/code&gt; with &lt;code&gt;multiple&lt;/code&gt; into a &lt;code&gt;ListOutputDefinition&lt;/code&gt;. &lt;code&gt;TypedInputsTrait&lt;/code&gt; converts a refiner result that returns &lt;code&gt;multiple: TRUE&lt;/code&gt;, before the narrowing check runs. Lists produced by conversion are flagged (&lt;code&gt;isConvertedFromMultiple()&lt;/code&gt; in &lt;code&gt;ListDefinitionBase&lt;/code&gt;) so the refiner constraint split and the entity handle transformer treat them correctly. Bundled test tools such as &lt;code&gt;ComprehensiveTypesTool&lt;/code&gt; and &lt;code&gt;SchemaMatrixTool&lt;/code&gt; were moved to explicit list definitions, and &lt;code&gt;docs/developers/input-output-definitions.md&lt;/code&gt; was updated.\n\nStep 2 of the issue, removing &lt;code&gt;isMultiple()&lt;/code&gt;/&lt;code&gt;setMultiple()&lt;/code&gt; and the &lt;code&gt;$multiple&lt;/code&gt; constructor parameters, is not part of this change.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace &lt;code&gt;multiple: TRUE&lt;/code&gt; with a list definition, as in the issue's example. Put list-level constraints such as &lt;code&gt;Count&lt;/code&gt; on the list and per-item constraints on the item:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$list = new ListInputDefinition(
+  label: 'Tags',
+  description: 'Tags.',
+  constraints: ['Count' =&amp;gt; ['min' =&amp;gt; 2]],
+  item_definition: new InputDefinition(
+    data_type: 'string',
+    label: 'Tag',
+    description: 'A tag.',
+    constraints: ['Length' =&amp;gt; ['min' =&amp;gt; 3]],
+  ),
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Anything that constructs &lt;code&gt;ListInputDefinition&lt;/code&gt; or &lt;code&gt;ListOutputDefinition&lt;/code&gt; with positional arguments must drop the old &lt;code&gt;$multiple&lt;/code&gt; argument. The new signature is &lt;code&gt;($label, $description, $required, $default_value, $constraints, $item_definition, ...)&lt;/code&gt;. Using named arguments avoids the problem.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583078: Decide before rc1: separate invocation state from the tool definition behind one execution path</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583078.md</link>
+      <guid isPermaLink="false">project/tool#3583078</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 08 Oct 2026 20:51:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583078"&gt;#3583078&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module now has one place that runs a tool call: the &lt;code&gt;tool.runner&lt;/code&gt; service. It checks the declared permission, sets inputs, validates, checks access and executes, in that order, so each caller no longer repeats the sequence. The &lt;code&gt;tool:run&lt;/code&gt; Drush command and the AI connector now use it. Failure messages changed as a result: for example &lt;code&gt;Access denied for tool send_email. The 'send emails' permission is required.&lt;/code&gt; and &lt;code&gt;Invalid input:&lt;/code&gt; followed by the violations. Anyone parsing the old wording needs to adjust. The runner also gives a place to attach future features such as destructive-tool confirmation, at-most-once execution and auditing, but none of those are implemented here. This landed as a first phase: the plugin is still stateful and the invocation object is only a view over the tool instance. The issue's comments, which hold the agreed plan, could not be retrieved, so the summary is based on the merged commit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;tool.runner&lt;/code&gt; service (&lt;code&gt;Drupal\tool\Tool\ToolRunner::run()&lt;/code&gt;) returning a &lt;code&gt;Drupal\tool\Tool\ToolInvocation&lt;/code&gt;; &lt;code&gt;drupal:user&lt;/code&gt; added as a dependency of the Tool module.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ToolRunner::run($tool_id, $values, $configuration, $invoker, $account)&lt;/code&gt; first runs &lt;code&gt;ToolManager::checkPermission()&lt;/code&gt; against the definition, before any plugin instance exists. It then switches to an explicit &lt;code&gt;$account&lt;/code&gt; with the account switcher and restores it in a &lt;code&gt;finally&lt;/code&gt; block. A blocked non-anonymous &lt;code&gt;UserInterface&lt;/code&gt; account is refused with an Access failure. Inside the switch it creates the instance, calls &lt;code&gt;setInputValue()&lt;/code&gt; for each value, then &lt;code&gt;validateInputs()&lt;/code&gt;, &lt;code&gt;access()&lt;/code&gt; and &lt;code&gt;execute()&lt;/code&gt;, and finally materializes &lt;code&gt;getFormattedResult()&lt;/code&gt; so output transforms (handle downcasting) run at execute time. &lt;code&gt;InputException&lt;/code&gt; and &lt;code&gt;HandleExceptionInterface&lt;/code&gt; are caught and recorded as &lt;code&gt;FailureCategory::Input&lt;/code&gt;. Validation and access denials are written to the tool with &lt;code&gt;setFailureResult()&lt;/code&gt;. Comments in the code mark where an at-most-once claim, destructive confirmation and auditing would attach.\n\n&lt;code&gt;run()&lt;/code&gt; always returns a &lt;code&gt;ToolInvocation&lt;/code&gt;, whether the call was denied or completed. It exposes &lt;code&gt;getResult()&lt;/code&gt;, &lt;code&gt;getFormattedResult()&lt;/code&gt;, &lt;code&gt;getInputValue()&lt;/code&gt;, &lt;code&gt;getInputDefinitions()&lt;/code&gt;, &lt;code&gt;getTool()&lt;/code&gt; and &lt;code&gt;hasExecuted()&lt;/code&gt;. &lt;code&gt;getTool()&lt;/code&gt; is NULL when the call was denied before the tool was instantiated. The class docblock says the per-call state is intended to move into the invocation later.\n\n&lt;code&gt;ToolRunCommand&lt;/code&gt; no longer switches accounts itself. It passes &lt;code&gt;account:&lt;/code&gt; to the runner and maps the invocation to output: refusals before execute become &lt;code&gt;RunErrorType::AccessDenied&lt;/code&gt; or &lt;code&gt;InvalidInput&lt;/code&gt;, and an exception escaping the runner becomes &lt;code&gt;ExecutionFailed&lt;/code&gt;. In &lt;code&gt;tool_ai_connector&lt;/code&gt;, &lt;code&gt;ToolPluginBase&lt;/code&gt; collects the declared inputs, calls the runner with &lt;code&gt;ToolAiConnectorInvoker::create()&lt;/code&gt;, adopts the executed instance as its &lt;code&gt;toolPluginInstance&lt;/code&gt;, and mirrors the transformed inputs into its contexts. The Explorer execute form is not changed in this commit. The developer docs now recommend &lt;code&gt;tool.runner&lt;/code&gt; and describe the manual sequence for invokers such as the Explorer form that drive the stages themselves.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Invokers can replace the hand-written sequence with the runner:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$invocation = \Drupal::service('tool.runner')
+  -&amp;gt;run('my_tool', values: ['name' =&amp;gt; 'value']);
+$result = $invocation-&amp;gt;getResult();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pass &lt;code&gt;account:&lt;/code&gt; to run as a specific account. Code or tests matching the old messages (&lt;code&gt;Tool plugin access denied&lt;/code&gt;, &lt;code&gt;Tool plugin execution failed&lt;/code&gt;, &lt;code&gt;Input validation failed for tool ...&lt;/code&gt;) should match &lt;code&gt;Access denied for tool &amp;lt;id&amp;gt;.&lt;/code&gt; and &lt;code&gt;Invalid input&lt;/code&gt; instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 30, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;d34dman (Factorial.io)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583085: Tell callers which input a failed tool call is about</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583085.md</link>
+      <guid isPermaLink="false">project/tool#3583085</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 08 Oct 2026 20:46:23 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583085"&gt;#3583085&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a tool call fails on bad input, the failed result now says which input was at fault, as data rather than only inside the message text. A client such as an MCP agent can read the input name and pass it back to the model for a retry. A tool that checks several inputs together, such as an end date that must follow a start date, can now name the input it is complaining about. Failure messages are reworded to show each problem as &lt;code&gt;input_name: reason&lt;/code&gt;, with the duplicate naming removed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;InputException&lt;/code&gt; now extends &lt;code&gt;\InvalidArgumentException&lt;/code&gt;, and &lt;code&gt;getExecutableValues()&lt;/code&gt;/&lt;code&gt;getExecutableValue()&lt;/code&gt;/&lt;code&gt;setConfigurationValue()&lt;/code&gt; throw it (with violations) instead of a bare &lt;code&gt;\InvalidArgumentException&lt;/code&gt;. &lt;code&gt;ToolResultInterface&lt;/code&gt; gains a method, and &lt;code&gt;ToolInterface::setFailureResult()&lt;/code&gt; gains an optional third &lt;code&gt;$violations&lt;/code&gt; parameter. Failure message text changed: the &lt;code&gt;Input @name:&lt;/code&gt; and &lt;code&gt;The @label input is invalid:&lt;/code&gt; wrappers are gone, replaced by a &lt;code&gt;name: reason&lt;/code&gt; line prefix, and &lt;code&gt;Tool execution failed due to invalid input:&lt;/code&gt; became &lt;code&gt;Invalid input:&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ToolResultInterface::getViolations()&lt;/code&gt; on results, &lt;code&gt;InputException::getViolations()&lt;/code&gt;, &lt;code&gt;getInputNames()&lt;/code&gt;, &lt;code&gt;fromViolations()&lt;/code&gt;, and an &lt;code&gt;inputNames&lt;/code&gt; constructor argument; &lt;code&gt;ToolMessages::invalidInput()&lt;/code&gt; added.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;validateInputValues()&lt;/code&gt; in &lt;code&gt;TypedInputsTrait&lt;/code&gt; now keeps each violation's message as the reason alone and sets its property path to the input's machine name, joined to any inner path via the new &lt;code&gt;ValueViolationsTrait::joinPath()&lt;/code&gt; (for example &lt;code&gt;product.sku&lt;/code&gt;). The per-violation wrappers &lt;code&gt;Input @name:&lt;/code&gt; and &lt;code&gt;The @label input is invalid:&lt;/code&gt; are removed, and several other messages dropped their label (&lt;code&gt;This input is locked...&lt;/code&gt;, &lt;code&gt;This property is required.&lt;/code&gt;, &lt;code&gt;This input must be an entity.&lt;/code&gt;). &lt;code&gt;ToolMessages::violationList()&lt;/code&gt; now prefixes each line with its path, so text output reads &lt;code&gt;recipient: This value should not be null.&lt;/code&gt;. A new &lt;code&gt;ToolMessages::invalidInput()&lt;/code&gt; supplies the single &lt;code&gt;Invalid input:&lt;/code&gt; message template used by &lt;code&gt;ToolRunner&lt;/code&gt;, and &lt;code&gt;ToolBase::execute()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;InputException&lt;/code&gt; now takes a named &lt;code&gt;inputNames&lt;/code&gt; argument (&lt;code&gt;new InputException($message, inputNames: ['end_date'])&lt;/code&gt;; the issue text called it &lt;code&gt;inputs&lt;/code&gt;, but the merged code uses &lt;code&gt;inputNames&lt;/code&gt;). Each name becomes a violation with the reason as message and the name as path. &lt;code&gt;InputException::fromViolations()&lt;/code&gt; wraps validation violations, and &lt;code&gt;getViolations()&lt;/code&gt; and &lt;code&gt;getInputNames()&lt;/code&gt; read them back. &lt;code&gt;MarkupInterface&lt;/code&gt; messages are converted to plain text once in the constructor. &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; and the constructor accept an optional violation list, exposed by the new &lt;code&gt;getViolations()&lt;/code&gt; on &lt;code&gt;ToolResultInterface&lt;/code&gt; (also forwarded by &lt;code&gt;FormattedExecutableResult&lt;/code&gt;). It is empty for a success or a failure without violations. &lt;code&gt;ToolBase::execute()&lt;/code&gt; catches &lt;code&gt;InputException&lt;/code&gt; separately and fills the result's violations from it. A bare &lt;code&gt;\InvalidArgumentException&lt;/code&gt; thrown by tool code still fails as input, with message &lt;code&gt;Invalid input: @message&lt;/code&gt; and no violations. List item and map property positions still appear in the message text rather than on the path; that is left to &lt;a href="https://www.drupal.org/node/3583065"&gt;#3583065&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Tools that validate across inputs should name the input when throwing:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;throw new InputException(new TranslatableMarkup('The end date must be after the start date.'), inputNames: ['end_date']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pass &lt;code&gt;TranslatableMarkup&lt;/code&gt; objects directly, not cast to string. Code or tests that match on the old text (&lt;code&gt;Input recipient: ...&lt;/code&gt;, &lt;code&gt;The X input is invalid: ...&lt;/code&gt;, &lt;code&gt;Tool execution failed due to invalid input: ...&lt;/code&gt;) should read the input from &lt;code&gt;$result-&amp;gt;getViolations()&lt;/code&gt; (&lt;code&gt;getPropertyPath()&lt;/code&gt;) or expect the new &lt;code&gt;name: reason&lt;/code&gt; lines under &lt;code&gt;Invalid input:&lt;/code&gt;. Any custom &lt;code&gt;ToolResultInterface&lt;/code&gt; implementation must add &lt;code&gt;getViolations()&lt;/code&gt;, and any &lt;code&gt;ToolInterface::setFailureResult()&lt;/code&gt; override must accept the new optional &lt;code&gt;?ConstraintViolationListInterface $violations = NULL&lt;/code&gt; parameter.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;dries&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588987: Add Config Split guidance to the drupal-configuration skill</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588987.md</link>
       <guid isPermaLink="false">project/ai_best_practices#3588987</guid>
@@ -617,105 +755,6 @@ $access = $tool-&amp;gt;access(NULL, TRUE);
 &lt;p&gt;The root cause was in &lt;code&gt;ContextDefinitionNormalizer::getNormalizationSchema()&lt;/code&gt;. A &lt;code&gt;data_type: 'map'&lt;/code&gt; declared on the dedicated &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; classes (subclasses of &lt;code&gt;MapDataDefinition&lt;/code&gt;) was already handled correctly, taking the map branch that builds &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;object&amp;quot;, ...}&lt;/code&gt;. But the same &lt;code&gt;map&lt;/code&gt; data type declared on a plain &lt;code&gt;InputDefinition&lt;/code&gt; or &lt;code&gt;OutputDefinition&lt;/code&gt; is just a &lt;code&gt;DataDefinition&lt;/code&gt;, so it fell through to the typed-data branch, which asks the serializer for the &lt;code&gt;json_schema&lt;/code&gt; of a &lt;code&gt;Map&lt;/code&gt; typed-data object. On cores before 11.1, that request is handled by &lt;code&gt;LegacyTypedDataNormalizer&lt;/code&gt; (registered at a higher priority than &lt;code&gt;MapDefinitionNormalizer&lt;/code&gt; in &lt;code&gt;tool.services.yml&lt;/code&gt;), which has no arm for &lt;code&gt;Map&lt;/code&gt; and returns an empty array, which then falls back to advertising &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;string&amp;quot;}&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;The fix extends the existing map branch's condition from &lt;code&gt;$object instanceof MapDataDefinition&lt;/code&gt; to also match &lt;code&gt;$object-&amp;gt;getDataType() === 'map'&lt;/code&gt;, mirroring how the &lt;code&gt;list&lt;/code&gt; data type is already special-cased a few lines above it. When the object isn't a &lt;code&gt;MapDataDefinition&lt;/code&gt;, there are no property definitions to iterate, so &lt;code&gt;applyMapConstraintSchema()&lt;/code&gt; and the empty-properties object logic now apply uniformly to plain maps too. A new test, &lt;code&gt;PlainMapSchemaTest&lt;/code&gt;, asserts that a plain map definition and its &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; equivalent normalize to identical schemas, including under a &lt;code&gt;Count&lt;/code&gt; constraint that bounds &lt;code&gt;minProperties&lt;/code&gt;/&lt;code&gt;maxProperties&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;The issue notes other data types (&lt;code&gt;binary&lt;/code&gt;, &lt;code&gt;language_reference&lt;/code&gt;) may hit the same legacy-path string fallback on Drupal 10.6 but leaves deciding whether they need their own arm as a remaining task, not addressed by this change.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583073: A map output whose keys are 0, 1, 2… is sent as a JSON array, so it fails its object schema</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583073.md</link>
-      <guid isPermaLink="false">project/tool#3583073</guid>
-      <pubDate>Thu, 01 Oct 2026 02:55:45 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583073"&gt;#3583073&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module lets a plugin declare an output as a free-form &amp;quot;map&amp;quot;, advertised in its schema as a JSON object. If the PHP array a tool returned for that output happened to have sequential integer keys starting at 0 (&lt;code&gt;['a', 'b']&lt;/code&gt;, or &lt;code&gt;[0 =&amp;gt; 'x']&lt;/code&gt;), PHP's &lt;code&gt;json_encode()&lt;/code&gt; wrote it as a JSON array instead of an object, because PHP cannot distinguish a list from a map by its contents alone. The result then failed validation against the tool's own advertised output schema. This affected MCP clients and other code that validates a tool's &lt;code&gt;structuredContent&lt;/code&gt;, as well as Drush's &lt;code&gt;tool:run --json&lt;/code&gt; output. The fix makes every non-multiple map serialize as a JSON object regardless of its keys, matching what the schema promises.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The conversion happens in &lt;code&gt;OutputTypeCoercionSubscriber::onOutputTransform()&lt;/code&gt;. Previously it only wrapped a map value in &lt;code&gt;\ArrayObject&lt;/code&gt; when the value was exactly &lt;code&gt;[]&lt;/code&gt;, relying on the fact that &lt;code&gt;json_encode(new \ArrayObject())&lt;/code&gt; writes &lt;code&gt;{}&lt;/code&gt;. The fix widens the check to &lt;code&gt;\is_array($value) &amp;amp;&amp;amp; \array_is_list($value) &amp;amp;&amp;amp; $definition-&amp;gt;getDataType() === 'map' &amp;amp;&amp;amp; !$definition-&amp;gt;isMultiple()&lt;/code&gt;, wrapping any list-keyed array (empty or not) in &lt;code&gt;new \ArrayObject($value)&lt;/code&gt;. Since &lt;code&gt;json_encode()&lt;/code&gt; always writes an &lt;code&gt;\ArrayObject&lt;/code&gt; as an object, the wrapped value now matches the &lt;code&gt;object&lt;/code&gt; schema type whatever its keys. A map with declared properties has string keys and is therefore never a list, so it still gets walked by &lt;code&gt;RecursiveToolValueTransformSubscriber&lt;/code&gt; as before; only free-form, list-keyed maps take the new path.&lt;/p&gt;
-&lt;p&gt;Because the formatted value can now arrive as an &lt;code&gt;\ArrayObject&lt;/code&gt; instead of a plain array even when non-empty, two call sites needed updating: &lt;code&gt;ToolOutputTrait::referenceEntities()&lt;/code&gt; now unwraps an &lt;code&gt;\ArrayObject&lt;/code&gt; via &lt;code&gt;getArrayCopy()&lt;/code&gt;, replaces entities inside it, and re-wraps it, and &lt;code&gt;ToolRunCommand::serializeOutputs()&lt;/code&gt; comments and handling were updated accordingly (it already passed &lt;code&gt;\ArrayObject&lt;/code&gt; values through). Test coverage was added via a new &lt;code&gt;ListKeyedMapOutputTool&lt;/code&gt; fixture exercising a top-level map, a map declared via the plain &lt;code&gt;OutputDefinition&lt;/code&gt;, a map nested as a declared property of another map, and a list of maps, plus assertions in &lt;code&gt;AdvertisedOutputSchemaConformanceTest&lt;/code&gt; and &lt;code&gt;ToolRunCommandTest&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583072: The schema of an optional enum input allows null in its type but not in its enum, so null is rejected</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583072.md</link>
-      <guid isPermaLink="false">project/tool#3583072</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 01 Oct 2026 02:45:35 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583072"&gt;#3583072&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Optional tool inputs that are restricted to a fixed set of values (via Symfony's &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt; constraints, a derived &lt;code&gt;PluginExists&lt;/code&gt; enum, or an &lt;code&gt;IdenticalTo&lt;/code&gt; constant) advertised a JSON Schema that contradicted itself: the schema's type allowed &lt;code&gt;null&lt;/code&gt;, but its &lt;code&gt;enum&lt;/code&gt; or &lt;code&gt;const&lt;/code&gt; keyword did not, so any JSON Schema validator rejected a &lt;code&gt;null&lt;/code&gt; value even though Tool API itself accepted it for an optional input. In practice, MCP clients validate &lt;code&gt;tools/call&lt;/code&gt; arguments against the published schema before the call ever reaches the tool, so a model sending &lt;code&gt;null&lt;/code&gt; for an optional enum input it didn't want to set (ordinary, expected behavior) got its call rejected with a JSON-RPC error. This is now fixed: an optional input's schema lists &lt;code&gt;null&lt;/code&gt; as an allowed enum value (or widens a &lt;code&gt;const&lt;/code&gt; to an enum of the constant and &lt;code&gt;null&lt;/code&gt;), so the published schema matches what the tool actually accepts.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Optional inputs with a &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt;/&lt;code&gt;PluginExists&lt;/code&gt; constraint now advertise &lt;code&gt;null&lt;/code&gt; as a listed &lt;code&gt;enum&lt;/code&gt; value, and an optional &lt;code&gt;IdenticalTo&lt;/code&gt;-constrained input's &lt;code&gt;const&lt;/code&gt; is widened to &lt;code&gt;enum: [&amp;lt;const&amp;gt;, null]&lt;/code&gt;, so the published JSON Schema matches what Tool API already accepted for those inputs.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix lives in &lt;code&gt;ContextDefinitionNormalizer::allowNullValue()&lt;/code&gt;, called from the optional-input branch that already appends the null type (or &lt;code&gt;oneOf&lt;/code&gt; null branch on Drupal 11.1+). When the input is optional and not excluded by &lt;code&gt;NotNull&lt;/code&gt;/non-nullable &lt;code&gt;NotBlank&lt;/code&gt;, the new method widens the value keywords to agree with the type: if &lt;code&gt;const&lt;/code&gt; is set it becomes &lt;code&gt;enum: [&amp;lt;const&amp;gt;, null]&lt;/code&gt;; if &lt;code&gt;enum&lt;/code&gt; is set and lacks &lt;code&gt;null&lt;/code&gt;, &lt;code&gt;null&lt;/code&gt; is appended. This covers both the legacy &lt;code&gt;type: [string, null]&lt;/code&gt; array and the newer &lt;code&gt;oneOf&lt;/code&gt; composition without per-core branching, and applies uniformly to &lt;code&gt;Choice&lt;/code&gt;/&lt;code&gt;AllowedValues&lt;/code&gt;-derived enums, &lt;code&gt;PluginExists&lt;/code&gt;-derived enums, and &lt;code&gt;IdenticalTo&lt;/code&gt;-derived &lt;code&gt;const&lt;/code&gt; values.&lt;/p&gt;
-&lt;p&gt;A separate but related gap was closed in &lt;code&gt;SchemaToolsPropertyConverter::prepareAiPropertySchema()&lt;/code&gt;, used when rendering schemas for AI providers that require a flattened (non-union) &lt;code&gt;type&lt;/code&gt;: since that flattening drops the &lt;code&gt;null&lt;/code&gt; type member, any &lt;code&gt;null&lt;/code&gt; left in &lt;code&gt;enum&lt;/code&gt; would then mismatch the flattened type and be rejected by strict providers, so it now strips &lt;code&gt;null&lt;/code&gt; from &lt;code&gt;enum&lt;/code&gt; (and drops &lt;code&gt;enum&lt;/code&gt; entirely if that empties it) after flattening.&lt;/p&gt;
-&lt;p&gt;Test coverage was updated accordingly: &lt;code&gt;InputSchemaMatrixTest&lt;/code&gt;'s &lt;code&gt;enum_string&lt;/code&gt;/&lt;code&gt;enum_integer&lt;/code&gt; expectations now include &lt;code&gt;null&lt;/code&gt;, &lt;code&gt;RicherSchemaEmissionTest&lt;/code&gt; checks that an optional &lt;code&gt;IdenticalTo&lt;/code&gt; widens &lt;code&gt;const&lt;/code&gt; to an &lt;code&gt;enum&lt;/code&gt; with &lt;code&gt;null&lt;/code&gt; (while a required one keeps a plain &lt;code&gt;const&lt;/code&gt;), and a new &lt;code&gt;AdvertisedSchemaAcceptanceTest::testNullIsAcceptedWhereTheSchemaOffersIt()&lt;/code&gt; iterates every discovered tool's optional inputs whose schema allows the null type and asserts both that a JSON Schema validator accepts a &lt;code&gt;null&lt;/code&gt; value and that Tool API's own &lt;code&gt;validateInputValue()&lt;/code&gt; raises no violation for it, closing the gap that the prior sampled round-trip test never exercised the null branch.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583067: Decimal and string coercion of JSON numbers adds float noise to values with an integer part</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583067.md</link>
-      <guid isPermaLink="false">project/tool#3583067</guid>
-      <pubDate>Thu, 01 Oct 2026 01:55:07 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583067"&gt;#3583067&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module's coercion layer, which converts JSON numbers coming from AI tool calls into Drupal field values (and back), was adding binary floating-point noise to any number with an integer part. For example, sending &lt;code&gt;1234.567&lt;/code&gt; to a decimal or plain text field came back as &lt;code&gt;1234.56700000000001&lt;/code&gt;, and &lt;code&gt;99999.99&lt;/code&gt; came back as &lt;code&gt;99999.99000000000524&lt;/code&gt;. Decimal fields usually hid this on save because core rounds to the field's configured scale, but plain string fields had nothing to round the noise away, so the corrupted value could be stored as-is. This fix makes the formatter emit the number exactly as given (up to the precision a double can represent), so values round-trip cleanly through tools that set, read, or preview field values before saving.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was in &lt;code&gt;DecimalStringTrait::formatDecimalString()&lt;/code&gt;, used by both &lt;code&gt;InputTypeCoercionSubscriber&lt;/code&gt; (for &lt;code&gt;string&lt;/code&gt; and &lt;code&gt;decimal&lt;/code&gt; inputs) and &lt;code&gt;OutputTypeCoercionSubscriber&lt;/code&gt; (for &lt;code&gt;decimal&lt;/code&gt; outputs holding a float). It formatted every float with a fixed 14 &lt;em&gt;decimal places&lt;/em&gt; via &lt;code&gt;\number_format($value, 14, '.', '')&lt;/code&gt;, under the mistaken assumption that this matched PHP's precision setting. PHP's precision counts &lt;em&gt;significant digits&lt;/em&gt;, not decimal places, and a double only reliably holds about 15 to 17 significant digits, so once a value had an integer part, 14 decimal places reached past what the double actually stores and printed the binary rounding error.&lt;/p&gt;
-&lt;p&gt;The fix computes the decimal places needed to land on 15 significant digits: &lt;code&gt;$decimals = \max(0, 14 - (int) \floor(\log10(\abs($value))))&lt;/code&gt;, then formats and trims trailing zeros as before. Zero is special-cased to return &lt;code&gt;'0'&lt;/code&gt; directly. Below &lt;code&gt;1e15&lt;/code&gt; this reproduces the value as written (&lt;code&gt;1234.567&lt;/code&gt;, &lt;code&gt;99999.99&lt;/code&gt;, &lt;code&gt;12345678.123&lt;/code&gt;) while still collapsing genuine binary artifacts like &lt;code&gt;0.1 + 0.2&lt;/code&gt; down to &lt;code&gt;0.3&lt;/code&gt;. At &lt;code&gt;1e15&lt;/code&gt; and above, every integer digit of the double is still spelled out without exponent notation, so artifacts past that point can still appear, consistent with the corrected docblock.&lt;/p&gt;
-&lt;p&gt;Matrix test cases were added to &lt;code&gt;InputCoercionMatrixTest&lt;/code&gt; for &lt;code&gt;plain_decimal&lt;/code&gt; and &lt;code&gt;plain_string&lt;/code&gt; inputs, and a new &lt;code&gt;OutputCoercionMatrixTest&lt;/code&gt; was added covering the equivalent &lt;code&gt;decimal&lt;/code&gt; output cases, all asserting the exact strings callers should see. This bug was introduced alongside the decimal/string input coercion work in &lt;a href="https://www.drupal.org/node/3582983"&gt;#3582983&lt;/a&gt; and the decimal output coercion work in &lt;a href="https://www.drupal.org/node/3583030"&gt;#3583030&lt;/a&gt;.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
