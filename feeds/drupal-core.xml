@@ -5,6 +5,117 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3625895: Deprecate and remove Query::__wakeup() and ::__sleep()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625895.md</link>
+      <guid isPermaLink="false">node/3625895</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 08 Oct 2026 10:14:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +24/−17 · php +24/−17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/c305d6533a66de8fdff5e868df366cf3034bbeaf"&gt;c305d65&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3625895"&gt;#3625895&lt;/a&gt; · 6 contributors · 18 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Database query objects (&lt;code&gt;Select&lt;/code&gt;, &lt;code&gt;Insert&lt;/code&gt; and so on) can no longer be serialized or unserialized on the main branch (12.x). Attempting it now throws a &lt;code&gt;LogicException&lt;/code&gt;. On 11.5.x the same methods were deprecated rather than removed, so custom or contrib code that serializes a query, or an object holding one, gets a deprecation notice there and should stop. Core itself does not do this anywhere.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Query::__sleep()&lt;/code&gt; and &lt;code&gt;Query::__wakeup()&lt;/code&gt; removed in 12.x; &lt;code&gt;Query&lt;/code&gt; serialization and unserialization now throw &lt;code&gt;\LogicException&lt;/code&gt; (deprecated in 11.5.0 on the 11.x branches).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Query::__sleep()&lt;/code&gt; and &lt;code&gt;Query::__wakeup()&lt;/code&gt; are deprecated in drupal:11.5.0 and removed from drupal:12.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;Query::__sleep()&lt;/code&gt; and &lt;code&gt;Query::__wakeup()&lt;/code&gt; are replaced in &lt;code&gt;Drupal\Core\Database\Query\Query&lt;/code&gt; by &lt;code&gt;__serialize()&lt;/code&gt; and &lt;code&gt;__unserialize()&lt;/code&gt;, which both throw &lt;code&gt;\LogicException&lt;/code&gt;. The old &lt;code&gt;__wakeup()&lt;/code&gt; reattached an unserialized query to whatever connection &lt;code&gt;Database::getConnection($this-&amp;gt;connectionTarget, $this-&amp;gt;connectionKey)&lt;/code&gt; returned at the time, with no guarantee that connection was the right one. This was inconsistent with &lt;code&gt;Connection&lt;/code&gt;, which already refuses serialization (&lt;a href="https://www.drupal.org/node/2463321"&gt;#2463321&lt;/a&gt;), and with PDO. The change also finishes off &lt;a href="https://www.drupal.org/node/2463321"&gt;#2463321&lt;/a&gt;. The now-unused &lt;code&gt;Database&lt;/code&gt; import is removed. &lt;code&gt;SerializeQueryTest&lt;/code&gt; is rewritten to assert that &lt;code&gt;serialize()&lt;/code&gt; and &lt;code&gt;unserialize()&lt;/code&gt; throw. Per the thread, the full test suite showed nothing in core round-trips a query apart from that one test. The commit landed on &lt;code&gt;main&lt;/code&gt; and 12.0.x as a hard removal. On 11.x and 11.5.x it landed as a deprecation, with the deprecation version being 11.5.0 and removal in 12.0.0, pointing to change record https://www.drupal.org/node/3625908. I only read the &lt;code&gt;main&lt;/code&gt; diff, so the 11.5.x deprecation details come from the reviewer comment on MR !17239. &lt;a href="https://www.drupal.org/node/3548971"&gt;#3548971&lt;/a&gt; (replacing &lt;code&gt;__sleep()&lt;/code&gt;/&lt;code&gt;__wakeup()&lt;/code&gt; with &lt;code&gt;__serialize()&lt;/code&gt;/&lt;code&gt;__unserialize()&lt;/code&gt;) is the related issue, and this change means &lt;code&gt;Query&lt;/code&gt; no longer needs converting there.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Stop serializing query objects, and objects that hold references to them. Store the query arguments or the results instead. The exception message says: &amp;quot;Adjust your code so that is not necessary, for example by storing the query arguments or results instead.&amp;quot;&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 8, 2026 (13 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mcdruid (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;ghost of drupal past (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#1411074: Allow kernel tests to share the test environment</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1411074.md</link>
+      <guid isPermaLink="false">node/1411074</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 08 Oct 2026 10:09:17 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 36 files, +1261/−145 · php +1261/−145&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/47430c368bbde0c695d1e432a28139521b56616f"&gt;47430c3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/1411074"&gt;#1411074&lt;/a&gt; · 23 contributors · 138 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 47&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Kernel test classes can now opt in to sharing one database across all their test methods with the &lt;code&gt;#[ShareEnvironment]&lt;/code&gt; attribute. The schema, config and other initial state are built once per class instead of once per method, which speeds up classes with many methods (the issue reports roughly 20 to 40 percent of total time). Classes without the attribute behave exactly as before. In core, the config entity validation tests were converted as the first users. Converting the rest of core's Kernel tests, and later making sharing the default in the next major, are follow-ups. The change was also backported to 11.x and 11.5.x so contrib can adopt it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ConfigEntityValidationTestBase&lt;/code&gt; now builds its entity in &lt;code&gt;setUpEnvironment()&lt;/code&gt; and reloads it in &lt;code&gt;setUp()&lt;/code&gt; for shared classes. Core subclasses were converted from &lt;code&gt;setUp()&lt;/code&gt; to &lt;code&gt;setUpEnvironment()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\TestTools\Attribute\ShareEnvironment&lt;/code&gt; attribute, plus &lt;code&gt;KernelTestBase::setUpEnvironment()&lt;/code&gt;, &lt;code&gt;resetEnvironment()&lt;/code&gt; and &lt;code&gt;sharesEnvironment()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The attribute is not inherited: &lt;code&gt;ShareEnvironment::isEnabledFor()&lt;/code&gt; reflects on the concrete class only, and &lt;code&gt;#[ShareEnvironment(FALSE)]&lt;/code&gt; marks a class as needing its own environment. For an opted-in class, a &lt;code&gt;#[BeforeClass]&lt;/code&gt; hook (&lt;code&gt;allocateSharedDatabase()&lt;/code&gt;) reserves one database prefix with a locked &lt;code&gt;TestDatabase&lt;/code&gt; and passes it to the forked per-method processes through the &lt;code&gt;DRUPAL_TEST_SHARED_DB_PREFIX&lt;/code&gt; environment variable. An &lt;code&gt;#[AfterClass]&lt;/code&gt; hook drops all the tables and releases the lock. &lt;code&gt;PHPUnit&lt;/code&gt;'s &lt;code&gt;#[RunTestsInSeparateProcesses]&lt;/code&gt; is still in effect, so each method still has its own process, container and virtual file system. Only database state is shared.\n\nIn &lt;code&gt;bootKernel()&lt;/code&gt; the first method calls the new &lt;code&gt;setUpEnvironment()&lt;/code&gt; hook (empty by default), then records the table list and a &lt;code&gt;ready&lt;/code&gt; row in a &lt;code&gt;test_shared_database_state&lt;/code&gt; table. Later methods skip the hook. If the hook fails, or a method breaks the shared state, the state is marked &lt;code&gt;invalid&lt;/code&gt; and the remaining methods fail with the recorded reason. For shared classes the &lt;code&gt;keyvalue&lt;/code&gt; service is a &lt;code&gt;KeyValueDatabaseFactory&lt;/code&gt; instead of the in-memory factory, so entity definitions and &lt;code&gt;state&lt;/code&gt; persist with the tables. &lt;code&gt;core.extension&lt;/code&gt; is rewritten per method with the module list rebuilt but the installed themes kept.\n\nThe old &lt;code&gt;tearDown()&lt;/code&gt; table-dropping logic moved to &lt;code&gt;resetEnvironment()&lt;/code&gt;, which does nothing for shared classes. Instead &lt;code&gt;tearDownEnvironment()&lt;/code&gt; fails the method if it dropped a shared table or left a new table behind. &lt;code&gt;INFRASTRUCTURE_TABLES&lt;/code&gt; (currently &lt;code&gt;cache_container&lt;/code&gt;) is exempt, and a class can redeclare it. Test methods must not assume a clean database, and tables they create must be removed in &lt;code&gt;resetEnvironment()&lt;/code&gt;. &lt;code&gt;ConfigEntityValidationTestBase&lt;/code&gt; was adapted: shared subclasses build &lt;code&gt;$this-&amp;gt;entity&lt;/code&gt; in &lt;code&gt;setUpEnvironment()&lt;/code&gt;, and the base &lt;code&gt;setUp()&lt;/code&gt; records and reloads the entity from the key value store. Unconverted subclasses that assign &lt;code&gt;$this-&amp;gt;entity&lt;/code&gt; in &lt;code&gt;setUp()&lt;/code&gt; still work. A change record is at node 3623403, and follow-ups are &lt;a href="https://www.drupal.org/node/3623409"&gt;#3623409&lt;/a&gt; (add the attribute to all Kernel tests) and &lt;a href="https://www.drupal.org/node/3623410"&gt;#3623410&lt;/a&gt; (make sharing the default). &lt;a href="https://www.drupal.org/node/3613347"&gt;#3613347&lt;/a&gt; (re-use the container) builds on this.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To opt a Kernel test class in, add the attribute and move fixture creation from &lt;code&gt;setUp()&lt;/code&gt; to &lt;code&gt;setUpEnvironment()&lt;/code&gt;, as the converted core tests do:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\TestTools\Attribute\ShareEnvironment;
+
+#[RunTestsInSeparateProcesses]
+#[ShareEnvironment]
+class ActionValidationTest extends ConfigEntityValidationTestBase {
+
+  protected function setUpEnvironment(): void {
+    parent::setUpEnvironment();
+    // Build the shared fixture here.
+  }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Remove tables or other state a test method adds by overriding &lt;code&gt;resetEnvironment()&lt;/code&gt; and calling the parent.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: January 20, 2012&lt;/li&gt;
+&lt;li&gt;Committed: October 6, 2026 (14 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;sun&lt;/li&gt;
+&lt;li&gt;tstoeckler&lt;/li&gt;
+&lt;li&gt;mile23 (CivicActions)&lt;/li&gt;
+&lt;li&gt;moshe weitzman&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;amateescu&lt;/li&gt;
+&lt;li&gt;mstrelan (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;plach reworked the issue from per-method database setup toward a shared-environment approach. After benchmarking an experimental MR he dropped a complex database-reset mechanism in favor of an opt-in model, once he found few classes needed it. catch contributed the container re-use idea (split into &lt;a href="https://www.drupal.org/node/3613347"&gt;#3613347&lt;/a&gt;) and pushed for simpler semantics, and the two settled on the &lt;code&gt;#[ShareEnvironment]&lt;/code&gt; attribute, which preserves BC and leaves room to flip the default in the next major.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3344629: Passing null to parameter #1 ($haystack) of type string is deprecated</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3344629.md</link>
       <guid isPermaLink="false">node/3344629</guid>
@@ -933,142 +1044,6 @@ $overrides = $cached-&amp;gt;data ?? [];
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The issue sat open for over seven years. catch noted on commit that using a memory cache for the handful of remaining internal callers made it possible to finally start warning contrib about &lt;code&gt;drupal_static()&lt;/code&gt;'s eventual removal, calling it &amp;quot;good to be able to commit this one seven years (!) after it was opened.&amp;quot; nicxvan proposed the concrete approach that unblocked the issue: introducing the &lt;code&gt;clear_all&lt;/code&gt; (later &lt;code&gt;clear_all_skip_deprecation&lt;/code&gt;) sentinel so the few call sites that must reset all statics globally could keep doing so without triggering the deprecation, while all other calls would warn. feuerwagen thanked claudiu.cristea specifically for having &amp;quot;chipped away at this for (8+!) years.&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3067979: Exclude test files from release packages</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3067979.md</link>
-      <guid isPermaLink="false">node/3067979</guid>
-      <category>Site owners</category>
-      <pubDate>Wed, 23 Sep 2026 14:21:58 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +52/−40 · gitattributes +35/−32 · php +17/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/b8367add84ec3c2eaa73b8c76efe0bf3a2b23b70"&gt;b8367ad&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3067979"&gt;#3067979&lt;/a&gt; · 50 contributors · 173 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 78&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Starting with Drupal 12 (main), the &lt;code&gt;tests&lt;/code&gt; directory under Drupal core is excluded from the packages that most sites actually download: the Composer &amp;quot;dist&amp;quot; zip and the release tarballs built by drupal.org. This shrinks the on-disk footprint of a typical Drupal installation (tests accounted for a large share of core's total file count) and removes test code, which the issue's participants noted has occasionally been a source of security concerns, from production deployments. Nothing changes for anyone working from a git checkout of core, including core contributors and the testbot. Sites and projects that need to run tests which rely on core's test base classes or core-only test modules (for example when testing custom or contributed code against core, or applying patches that touch test files) need to install &lt;code&gt;drupal/core&lt;/code&gt; from source instead of from the default dist package.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Projects that run automated tests extending core test base classes (e.g. &lt;code&gt;KernelTestBase&lt;/code&gt;, &lt;code&gt;WebDriverTestBase&lt;/code&gt;) or depending on core test-only modules must install &lt;code&gt;drupal/core&lt;/code&gt; from source (e.g. &lt;code&gt;composer install --prefer-source&lt;/code&gt; for that package) since dist packages/tarballs no longer ship &lt;code&gt;core/tests&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The mechanism is a new &lt;code&gt;core/.gitattributes&lt;/code&gt; file with a &lt;code&gt;tests export-ignore&lt;/code&gt; (and &lt;code&gt;.gitattributes export-ignore&lt;/code&gt;) directive. Drupal.org's packaging pipeline builds releases with &lt;code&gt;git-archive&lt;/code&gt;, which honors &lt;code&gt;export-ignore&lt;/code&gt;, so the entire &lt;code&gt;core/tests&lt;/code&gt; directory is dropped from both the packaged tarball and the Composer dist zip without any change to the packaging scripts themselves.&lt;/p&gt;
-&lt;p&gt;This landed in three steps. The first commit (&lt;code&gt;5341dd83&lt;/code&gt;) tried a fine-grained approach, excluding most test paths but carving out exceptions such as &lt;code&gt;modules/*/tests/src/&lt;/code&gt; and &lt;code&gt;profiles/tests/testing/&lt;/code&gt; so that base test classes contrib relies on (like &lt;code&gt;WebDriverTestBase&lt;/code&gt;) would survive in dist packages. That broke contrib CI within hours because those base classes still depend on test-only helper modules (&lt;code&gt;js_testing_ajax_request_test&lt;/code&gt;, &lt;code&gt;js_testing_log_test&lt;/code&gt;, &lt;code&gt;css_disable_transitions_test&lt;/code&gt;, &lt;code&gt;entity_test&lt;/code&gt;, &lt;code&gt;performance_test&lt;/code&gt;, etc.) that lived in the excluded paths, so it was reverted (&lt;code&gt;34b130bd&lt;/code&gt;). After discussion of the maintenance burden of an ever-growing exceptions list versus the simplicity of &lt;code&gt;--prefer-source&lt;/code&gt;, the maintainers landed a much simpler final version (&lt;code&gt;b8367add&lt;/code&gt;): &lt;code&gt;core/.gitattributes&lt;/code&gt; excludes the entire &lt;code&gt;tests&lt;/code&gt; directory, with no carve-outs, on the understanding that anyone needing core's test infrastructure installs &lt;code&gt;drupal/core&lt;/code&gt; from source.&lt;/p&gt;
-&lt;p&gt;Because Package Manager's own build tests assemble a Composer project from the checked-out core codebase, its &lt;code&gt;TemplateProjectTestBase::createTestProject()&lt;/code&gt; now explicitly mirrors the &lt;code&gt;package_manager&lt;/code&gt; module's own test modules into the built test project, since those modules are no longer present when core is installed as a dist package.&lt;/p&gt;
-&lt;p&gt;Follow-up work was split out rather than handled here: a gitlab_templates change to default CI to &lt;code&gt;--prefer-source&lt;/code&gt; for &lt;code&gt;drupal/core&lt;/code&gt;, plus separate issues &lt;a href="https://www.drupal.org/node/3625050"&gt;#3625050&lt;/a&gt; (documenting composer-patches usage without patching tests) and &lt;a href="https://www.drupal.org/node/3625358"&gt;#3625358&lt;/a&gt; (deciding what to do with &lt;code&gt;run-tests.sh&lt;/code&gt; and similar dev scripts in dist builds, which currently fail without the excluded test code).&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;If your project or CI pipeline runs tests that depend on Drupal core's test base classes, traits, or test-only modules (for example &lt;code&gt;Drupal\Tests\...\KernelTestBase&lt;/code&gt;, &lt;code&gt;WebDriverTestBase&lt;/code&gt;, or fixture/test modules under &lt;code&gt;core/tests&lt;/code&gt; or &lt;code&gt;core/modules/*/tests&lt;/code&gt;), install &lt;code&gt;drupal/core&lt;/code&gt; from source rather than from dist, for instance:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;composer install --prefer-source
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;or, to target only core:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;composer config --global preferred-install.drupal/core source
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Patches that modify files under any &lt;code&gt;tests&lt;/code&gt; directory will also fail to apply against a dist install of core; see &lt;a href="https://www.drupal.org/node/3625050"&gt;#3625050&lt;/a&gt; for guidance on stripping test-only changes from patches.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 15, 2019&lt;/li&gt;
-&lt;li&gt;First commit: August 25, 2026 (7 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: September 23, 2026 (29 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;traviscarden (Acquia)&lt;/li&gt;
-&lt;li&gt;danepowell (Acquia)&lt;/li&gt;
-&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
-&lt;li&gt;drumm (Drupal Association)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;webchick (Acquia)&lt;/li&gt;
-&lt;li&gt;Mixologic (Drupal Association)&lt;/li&gt;
-&lt;li&gt;mile23&lt;/li&gt;
-&lt;li&gt;greggles (Morris Animal Foundation)&lt;/li&gt;
-&lt;li&gt;adamps (AlbanyWeb)&lt;/li&gt;
-&lt;li&gt;mglaman (Centarro)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
-&lt;li&gt;cmlara (DM13 Security LLC)&lt;/li&gt;
-&lt;li&gt;mstrelan&lt;/li&gt;
-&lt;li&gt;mably (Bordeaux Metropole)&lt;/li&gt;
-&lt;li&gt;spiderman (Consensus Enterprises)&lt;/li&gt;
-&lt;li&gt;star-szr (Consensus Enterprises)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The initial fine-grained &lt;code&gt;.gitattributes&lt;/code&gt; (&lt;code&gt;5341dd83&lt;/code&gt;) shipped with exceptions meant to keep contrib-usable base test classes available, but marcelovani reported within hours that it broke &lt;code&gt;FunctionalJavascript&lt;/code&gt; tests across core and contrib because &lt;code&gt;WebDriverTestBase&lt;/code&gt; installs test-only helper modules that had been excluded; catch reverted it the same day. mstrelan separately pushed back on an AI-generated bug report in the thread, asking contributors to &amp;quot;understand the output and communicate with us humans with human language.&amp;quot; Following the revert, spiderman and star-szr did hands-on investigation with &lt;code&gt;gitlab-ci-local&lt;/code&gt; to reproduce the contrib CI failures and test the &lt;code&gt;--prefer-source&lt;/code&gt; workaround end to end, and cmlara pressed for the exceptions-based approach to be validated more rigorously (tracing every base class's module and file dependencies) rather than just checked visually. That investigation, combined with longwave's finding that the exceptions list would need to keep growing, led catch and longwave to abandon the fine-grained exclusions and land the simple, exception-free version instead.&amp;lt;/collaboration&amp;gt;
-&amp;lt;ai_disclosures&amp;quot;&amp;gt;[]&amp;lt;/ai_disclosures&amp;gt;
-&amp;lt;/invoke&amp;gt;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3532930: Make Drupal\Core\Database\Database type strict and PHPStan L10 compliant</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3532930.md</link>
-      <guid isPermaLink="false">node/3532930</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 22 Sep 2026 12:07:24 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +271/−173 · php +271/−173&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3a8ca189fa46f608d64c32c5c16b8c70c9ba982e"&gt;3a8ca18&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3532930"&gt;#3532930&lt;/a&gt; · 8 contributors · 45 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 11&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 8 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;Drupal\Core\Database\Database&lt;/code&gt; class, along with &lt;code&gt;Connection::setKey()&lt;/code&gt;/&lt;code&gt;setTarget()&lt;/code&gt; and &lt;code&gt;Log::__construct()&lt;/code&gt;, has been made type strict and fully documented for PHPStan's strictest level. Connection keys and targets (the identifiers used to select which database to talk to, e.g. &lt;code&gt;'default'&lt;/code&gt;) have always been documented as strings, but the code silently accepted integers too. That silent acceptance is now deprecated: passing an integer key or target still works today but triggers a deprecation notice and will throw a &lt;code&gt;TypeError&lt;/code&gt; once removed in Drupal 13. Sites and contributed modules that pass integers as database keys or targets (for example in multi-database setups) should switch to strings.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;Drupal\Core\Database\Database&lt;/code&gt;'s static methods now declare native &lt;code&gt;string|int&lt;/code&gt; parameter types and return types (e.g. &lt;code&gt;getConnection(string|int $target = 'default', string|int|null $key = NULL): Connection&lt;/code&gt;) instead of being untyped, and the class itself now uses &lt;code&gt;declare(strict_types=1)&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Passing a non-string value as the database connection &lt;code&gt;$key&lt;/code&gt; or &lt;code&gt;$target&lt;/code&gt; to &lt;code&gt;Drupal\Core\Database\Database&lt;/code&gt; methods (&lt;code&gt;getConnection()&lt;/code&gt;, &lt;code&gt;addConnectionInfo()&lt;/code&gt;, &lt;code&gt;startLog()&lt;/code&gt;, &lt;code&gt;getLog()&lt;/code&gt;, &lt;code&gt;setActiveConnection()&lt;/code&gt;, &lt;code&gt;getConnectionInfo()&lt;/code&gt;, &lt;code&gt;renameConnection()&lt;/code&gt;, &lt;code&gt;removeConnection()&lt;/code&gt;, &lt;code&gt;openConnection()&lt;/code&gt;, &lt;code&gt;closeConnection()&lt;/code&gt;, &lt;code&gt;ignoreTarget()&lt;/code&gt;, &lt;code&gt;getConnectionInfoAsUrl()&lt;/code&gt;), to &lt;code&gt;Connection::setKey()&lt;/code&gt;/&lt;code&gt;setTarget()&lt;/code&gt;, or to &lt;code&gt;Log::__construct()&lt;/code&gt; is deprecated in drupal:11.5.0 and is removed from drupal:13.0.0.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The class gained &lt;code&gt;declare(strict_types=1);&lt;/code&gt; and PHPStan-level-10-compliant documentation, including new &lt;code&gt;@phpstan-type&lt;/code&gt; array shapes (&lt;code&gt;UnprocessedConnectionInfoArray&lt;/code&gt;, &lt;code&gt;ConnectionInfoArray&lt;/code&gt; in &lt;code&gt;Database.php&lt;/code&gt;, &lt;code&gt;DatabaseLogEntry&lt;/code&gt; in &lt;code&gt;Log.php&lt;/code&gt;) that describe the connection-info and query-log array structures instead of relying on &lt;code&gt;array&lt;/code&gt; alone. All previously-untyped static methods (&lt;code&gt;startLog()&lt;/code&gt;, &lt;code&gt;getLog()&lt;/code&gt;, &lt;code&gt;getConnection()&lt;/code&gt;, &lt;code&gt;setActiveConnection()&lt;/code&gt;, &lt;code&gt;parseConnectionInfo()&lt;/code&gt;, &lt;code&gt;addConnectionInfo()&lt;/code&gt;, &lt;code&gt;getConnectionInfo()&lt;/code&gt;, &lt;code&gt;getAllConnectionInfo()&lt;/code&gt;, &lt;code&gt;setMultipleConnectionInfo()&lt;/code&gt;, &lt;code&gt;renameConnection()&lt;/code&gt;, &lt;code&gt;removeConnection()&lt;/code&gt;, &lt;code&gt;openConnection()&lt;/code&gt;, &lt;code&gt;closeConnection()&lt;/code&gt;, &lt;code&gt;ignoreTarget()&lt;/code&gt;, &lt;code&gt;getConnectionInfoAsUrl()&lt;/code&gt;) now declare native parameter and return types, mostly &lt;code&gt;string|int&lt;/code&gt; for keys/targets to preserve backward compatibility, with a &lt;code&gt;@trigger_error()&lt;/code&gt; deprecation added wherever an &lt;code&gt;int&lt;/code&gt; is passed instead of the documented &lt;code&gt;string&lt;/code&gt;. Internally, values are cast with &lt;code&gt;(string)&lt;/code&gt; before being handed to &lt;code&gt;Connection::setTarget()&lt;/code&gt;/&lt;code&gt;setKey()&lt;/code&gt; or &lt;code&gt;Log&lt;/code&gt;'s constructor, since those now also deprecate non-string input under the stricter typing PHPStan otherwise enforces across the call chain.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;parseConnectionInfo()&lt;/code&gt; was reworked to build a fresh &lt;code&gt;$connection_info&lt;/code&gt; array (asserting &lt;code&gt;namespace&lt;/code&gt;/&lt;code&gt;autoload&lt;/code&gt; end up set) rather than mutating the incoming &lt;code&gt;$info&lt;/code&gt; in place, which also let outdated Drupal 8 backward-compatibility test cases for the old &lt;code&gt;Drupal\Driver\Database\*&lt;/code&gt; namespace layout (removed back in &lt;a href="https://www.drupal.org/node/3294695"&gt;#3294695&lt;/a&gt;) be dropped from &lt;code&gt;SettingsTest&lt;/code&gt;. A follow-up, &lt;a href="https://www.drupal.org/node/3533038"&gt;#3533038&lt;/a&gt;, proposes replacing the long connection-info array shape with a &lt;code&gt;ConnectionParameters&lt;/code&gt; value object, but was postponed in favor of this narrower type-strictness pass. Contrib database drivers were checked for impact; the MS SQL Server driver's queue got a dedicated follow-up (&lt;a href="https://www.drupal.org/node/3577786"&gt;#3577786&lt;/a&gt;) and the Oracle and DruDbal drivers were found unaffected or no longer maintained.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Replace integer database connection keys or targets with strings wherever &lt;code&gt;Drupal\Core\Database\Database&lt;/code&gt; methods are called, for example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before (still works, but now deprecated):
-Database::addConnectionInfo(100, 300, $connection_info);
-Database::getConnection(200, 100);
-
-// After:
-Database::addConnectionInfo('100', '300', $connection_info);
-Database::getConnection('200', '100');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same applies to &lt;code&gt;Drupal\Core\Database\Connection::setKey()&lt;/code&gt;/&lt;code&gt;setTarget()&lt;/code&gt; and to the &lt;code&gt;$key&lt;/code&gt; argument of &lt;code&gt;Drupal\Core\Database\Log::__construct()&lt;/code&gt;. Non-string values will raise a &lt;code&gt;TypeError&lt;/code&gt; once support is removed in Drupal 13.0.0.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 28, 2025&lt;/li&gt;
-&lt;li&gt;Committed: September 1, 2026 (1 year later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The change nearly broke real-world usage: alexpott tested the MR and found he could currently call &lt;code&gt;Database::getConnection(1)&lt;/code&gt; with an integer key, something that &amp;quot;works just fine&amp;quot; today, but bootstrapping failed with a &lt;code&gt;TypeError&lt;/code&gt; once the MR's strict types were applied. That prompted mondrake and alexpott to work out, in comments #19 to #22, a softer approach: keep &lt;code&gt;string|int&lt;/code&gt; as the accepted type but add &lt;code&gt;@trigger_error()&lt;/code&gt; deprecation notices for integer input rather than breaking it outright, deferring the hard break to Drupal 13. mondrake also raised, in #4, that &lt;code&gt;@final&lt;/code&gt; on an &lt;code&gt;abstract class&lt;/code&gt; looks contradictory; the discussion concluded the class is effectively meant to be static-only and uninstantiable, but changing that further was deferred to a separate issue to avoid delaying this one.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

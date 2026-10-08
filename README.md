@@ -1,8 +1,24 @@
-**TL;DR:** [1195 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1198 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_194 summaries · 14 new this week_
+
+- [#3588987: Add Config Split guidance to the drupal-configuration skill](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588987.md)
+- [#3583094: A required input explicitly set to NULL throws ContextException from execute()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583094.md)
+- [#3585928: Session lock delays elicitation and sampling replies until the lease expires](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585928.md)
+
+### Drupal Core
+
+_615 summaries · 10 new this week_
+
+- [#3625895: Deprecate and remove Query::__wakeup() and ::__sleep()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625895.md)
+- [#1411074: Allow kernel tests to share the test environment](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1411074.md)
+- [#3344629: Passing null to parameter #1 ($haystack) of type string is deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3344629.md)
 
 ### Drupal Canvas
 
@@ -12,14 +28,6 @@ _277 summaries · 8 new this week_
 - [#3591848: ∅ is added for empty fields, forcing translation and rendering on the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591848.md)
 - [#3592084: Canvas entity edit/delete/translation routes render in the front-end theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592084.md)
 
-### Drupal AI
-
-_193 summaries · 19 new this week_
-
-- [#3583094: A required input explicitly set to NULL throws ContextException from execute()...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583094.md)
-- [#3585928: Session lock delays elicitation and sampling replies until the lease expires](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585928.md)
-- [#3585939: mcp/sdk 0.8 logs an empty middleware list warning on every HTTP request](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585939.md)
-
 ### Drupal CMS
 
 _112 summaries · 9 new this week_
@@ -27,14 +35,6 @@ _112 summaries · 9 new this week_
 - [#3591490: Add an initial 'ping' when opting into telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591490.md)
 - [#3591489: Use the Tagify User List widget by default for user reference fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591489.md)
 - [#3591488: Add telemetry events for Project Browser](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591488.md)
-
-### Drupal Core
-
-_613 summaries · 9 new this week_
-
-- [#3344629: Passing null to parameter #1 ($haystack) of type string is deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3344629.md)
-- [#3626105: Release runtime theme registries after destruction](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3626105.md)
-- [#3568767: Deprecate Media::getRequestTime()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568767.md)
 
 
 ## Rector rules
