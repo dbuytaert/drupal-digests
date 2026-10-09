@@ -1,8 +1,16 @@
-**TL;DR:** [1207 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1208 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_616 summaries · 10 new this week_
+
+- [#3575642: Always free up old container on rebuild, not only in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575642.md)
+- [#3625895: Deprecate and remove Query::__wakeup() and ::__sleep()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625895.md)
+- [#1411074: Allow kernel tests to share the test environment](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1411074.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _197 summaries · 13 new this week_
 - [#3583049: Deprecate `multiple` on input and output definitions in favor of list...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583049.md)
 - [#3583078: Decide before rc1: separate invocation state from the tool definition behind...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583078.md)
 - [#3583085: Tell callers which input a failed tool call is about](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583085.md)
-
-### Drupal Core
-
-_615 summaries · 10 new this week_
-
-- [#3625895: Deprecate and remove Query::__wakeup() and ::__sleep()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625895.md)
-- [#1411074: Allow kernel tests to share the test environment](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1411074.md)
-- [#3344629: Passing null to parameter #1 ($haystack) of type string is deprecated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3344629.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _279 summaries · 9 new this week_
 
 ### Drupal CMS
 
-_116 summaries · 13 new this week_
+_116 summaries · 12 new this week_
 
 - [#3591490: Add an initial 'ping' when opting into telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591490.md)
 - [#3591489: Use the Tagify User List widget by default for user reference fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591489.md)
