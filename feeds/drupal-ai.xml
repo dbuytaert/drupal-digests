@@ -5,6 +5,101 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585933: Authorization denials surface as -32603 Internal server error, because the SDK dispatch loop swallows the exception</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585933.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585933</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 09 Oct 2026 16:24:49 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585933"&gt;#3585933&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Per-call authorization denials thrown from an SDK &lt;code&gt;RequestEvent&lt;/code&gt; subscriber never produced a 401 or 403. The SDK's per-message guard turned them into an HTTP 200 with JSON-RPC &lt;code&gt;-32603 Internal server error&lt;/code&gt; and an error-level log entry. The fix does not make that path work. It removes the handling that could never run and states the supported route: authorization belongs in a PSR-15 transport middleware, which answers a denial with its own 401 or 403 response before the SDK dispatches. Custom authorization code, and &lt;code&gt;mcp_server_oauth&lt;/code&gt; 1.0.0-alpha1 (which still throws the exception), cannot deny calls this way. That code needs to move to middleware.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;McpServerController&lt;/code&gt;, &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; and the &lt;code&gt;drush mcp:server&lt;/code&gt; command no longer catch or translate &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt;; &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; drops its logger constructor argument.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; is deprecated in mcp_server:2.0.0-beta6 and removed in 3.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The exception is thrown inside &lt;code&gt;Protocol::doProcessInput()&lt;/code&gt;'s &lt;code&gt;catch (\Throwable)&lt;/code&gt; guard, so the controller &lt;code&gt;catch&lt;/code&gt; and &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; could not be reached. Of the three options in the issue, the merged change picks neither out-of-band signalling nor an SDK change. It deletes the dead code and points to the existing &lt;code&gt;mcp_server.transport_middleware&lt;/code&gt; tag, where a middleware returns its own PSR-7 response without entering SDK dispatch or the kernel exception path.&lt;/p&gt;
+&lt;p&gt;Removed: the &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; catch in &lt;code&gt;McpServerController::handle()&lt;/code&gt;, the matching catch and JSON-RPC error writing in &lt;code&gt;McpServerCommands&lt;/code&gt;, and the exception branch in &lt;code&gt;McpExceptionSubscriber::onException()&lt;/code&gt;. That subscriber now only rewrites the route-level &lt;code&gt;AccessDeniedHttpException&lt;/code&gt; (&lt;code&gt;access mcp server&lt;/code&gt;) into &lt;code&gt;-32001&lt;/code&gt;/&lt;code&gt;-32002&lt;/code&gt; with 401/403, and its &lt;code&gt;@logger.channel.mcp_server&lt;/code&gt; argument was dropped from &lt;code&gt;mcp_server.exception_subscriber&lt;/code&gt; in &lt;code&gt;mcp_server.services.yml&lt;/code&gt;. The exception class stays, marked &lt;code&gt;@deprecated&lt;/code&gt;, only because &lt;code&gt;mcp_server_oauth&lt;/code&gt; 1.0.0-alpha1 still throws it.&lt;/p&gt;
+&lt;p&gt;The change adds a test fixture, &lt;code&gt;StateArmedDenyingMiddleware&lt;/code&gt; in &lt;code&gt;mcp_server_test&lt;/code&gt;, which denies &lt;code&gt;tools/call&lt;/code&gt; with 401 or 403 when armed through State. It also adds &lt;code&gt;TransportMiddlewareDenialTest&lt;/code&gt;, and the README authorization section and the &lt;code&gt;.ai/kenkeep&lt;/code&gt; notes now describe the middleware route. The kenkeep note also records that on SDK releases with php-sdk#528 the throw would escape to core as a 500 rather than &lt;code&gt;-32603&lt;/code&gt;, so throwing from a subscriber cannot deny a call either way.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace a &lt;code&gt;RequestEvent&lt;/code&gt; subscriber that throws &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; with a PSR-15 middleware registered under the existing tag, which returns the denial itself:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;services:
+  mcp_server_test.middleware.denying:
+    class: Drupal\mcp_server_test\Middleware\StateArmedDenyingMiddleware
+    tags:
+      - { name: mcp_server.transport_middleware, priority: 50 }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In &lt;code&gt;process()&lt;/code&gt;, return a PSR-7 response with status 401 or 403, JSON-RPC error code &lt;code&gt;-32001&lt;/code&gt; or &lt;code&gt;-32002&lt;/code&gt;, and a &lt;code&gt;WWW-Authenticate&lt;/code&gt; header, instead of calling &lt;code&gt;$handler-&amp;gt;handle($request)&lt;/code&gt;. The test fixture &lt;code&gt;StateArmedDenyingMiddleware&lt;/code&gt; shows the full pattern.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3518120: Define tools with attributes on typed methods</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3518120.md</link>
+      <guid isPermaLink="false">project/tool#3518120</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 09 Oct 2026 16:15:46 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3518120"&gt;#3518120&lt;/a&gt; · 4 contributors · 25 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool API module can now turn a public method of an existing service into a tool by adding PHP attributes, with no plugin class. The method's parameters become the tool's inputs, its return value becomes the output, and the docblock supplies the descriptions. Access is never inferred. Each tool must declare a permission, an access method, or an entity operation on each entity parameter. Existing &lt;code&gt;#[Tool]&lt;/code&gt; plugins can also declare a typed &lt;code&gt;__invoke()&lt;/code&gt; and get the same inference, so they can be converted one definition at a time. This landed in the &lt;code&gt;1.0.x-dev&lt;/code&gt; release.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ToolBase::doExecute()&lt;/code&gt; is no longer abstract: a &lt;code&gt;#[Tool]&lt;/code&gt; plugin may declare a typed &lt;code&gt;__invoke()&lt;/code&gt; instead. Other changes to existing behavior are listed in the MR.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New attributes &lt;code&gt;ToolMethod&lt;/code&gt;, &lt;code&gt;ToolInput&lt;/code&gt;, &lt;code&gt;ToolEntityInput&lt;/code&gt;, &lt;code&gt;ToolOutput&lt;/code&gt; and &lt;code&gt;ToolProperty&lt;/code&gt; in &lt;code&gt;Drupal\tool\Attribute&lt;/code&gt;, plus &lt;code&gt;Drupal\tool\Tool\Method\MethodTool&lt;/code&gt; as the plugin class for method tools.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;#[ToolMethod]&lt;/code&gt; goes on a public service method, or on the class of an invokable service, where it applies to &lt;code&gt;__invoke()&lt;/code&gt;. It requires an explicit &lt;code&gt;id&lt;/code&gt;, because agent, ECA and MCP configuration refer to tools by ID. &lt;code&gt;operation&lt;/code&gt; defaults to &lt;code&gt;ToolOperation::Write&lt;/code&gt;. Access options are &lt;code&gt;permission&lt;/code&gt; (same syntax as &lt;code&gt;#[Tool]&lt;/code&gt;) and &lt;code&gt;access&lt;/code&gt; (a service method returning an &lt;code&gt;AccessResultInterface&lt;/code&gt;). Every entity parameter must use &lt;code&gt;#[ToolEntityInput(op: ...)]&lt;/code&gt;, which is checked through the entity's access handler. A method with no declared check fails discovery. An entity operation only counts if it sits on a required, single entity parameter.\n\n&lt;code&gt;#[ToolInput]&lt;/code&gt; refines a parameter. &lt;code&gt;#[ToolOutput]&lt;/code&gt; names or refines the output, and two or more declare several outputs. An &lt;code&gt;array{...}&lt;/code&gt; shape in &lt;code&gt;@return&lt;/code&gt; also declares several outputs. &lt;code&gt;#[ToolProperty]&lt;/code&gt; marks the public properties or zero-argument methods of a plain PHP value object to publish. Outputs can narrow to a subset with &lt;code&gt;members:&lt;/code&gt;.\n\nInference reads native and docblock types: scalars, entities, backed enums, DateTime, lists, and &lt;code&gt;array{}&lt;/code&gt; shapes. Unsupported parameter types fail discovery.\n\nDiscovery runs in a compiler pass that scans service class sources for the attribute name before autoloading them. It records the results in the &lt;code&gt;tool.method_tools&lt;/code&gt; container parameter, which the tool manager merges with plugin discovery. A definition that cannot be built is logged to the &lt;code&gt;tool&lt;/code&gt; channel and skipped. The other tools still load. Definitions are cached, so a new attribute needs a cache rebuild.\n\nA method may return an &lt;code&gt;ExecutableResult&lt;/code&gt; to set its own message, failure category, or outputs on failure. Throwing &lt;code&gt;Drupal\\tool\\Exception\\InputException&lt;/code&gt; reports a caller error. Other exceptions are logged and the caller only learns that the run failed. For &lt;code&gt;#[Tool]&lt;/code&gt; plugins, a typed &lt;code&gt;__invoke()&lt;/code&gt; is used when &lt;code&gt;doExecute()&lt;/code&gt; is not overridden, and a plugin that declares &lt;code&gt;#[ToolEntityInput]&lt;/code&gt; parameters but overrides &lt;code&gt;access()&lt;/code&gt; is skipped at discovery. The change also adds a docs page, &lt;code&gt;docs/developers/tool-methods.md&lt;/code&gt;, and a Typed tools section in the creating-a-tool docs.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To convert an existing &lt;code&gt;#[Tool]&lt;/code&gt; plugin, replace &lt;code&gt;doExecute()&lt;/code&gt; and the &lt;code&gt;input_definitions&lt;/code&gt;/&lt;code&gt;output_definitions&lt;/code&gt; arrays with a typed &lt;code&gt;__invoke()&lt;/code&gt;:\n\n&lt;code&gt;php\n#[ToolOutput(name: 'message')]\npublic function __invoke(string $name, ?string $greeting = NULL): string {\n  return ($greeting ?? 'Hello') . \&amp;quot;, $name!\&amp;quot;;\n}\n&lt;/code&gt;\n\nThe required &lt;code&gt;op&lt;/code&gt; on &lt;code&gt;#[ToolEntityInput]&lt;/code&gt; adds an access check on every entity passed in, so a converted tool can deny calls the old plugin allowed. Throw &lt;code&gt;InputException&lt;/code&gt; instead of &lt;code&gt;\\InvalidArgumentException&lt;/code&gt; for messages meant for the caller.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: April 9, 2025&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;mrdalesmith (FreelyGive)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;svendecabooter (Sven Decabooter)&lt;/li&gt;
+&lt;li&gt;dries&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583049: Deprecate `multiple` on input and output definitions in favor of list definitions</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583049.md</link>
       <guid isPermaLink="false">project/tool#3583049</guid>
@@ -676,89 +771,6 @@ function mymodule_mcp_server_instructions_alter(?string &amp;amp;$instructions):
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 30, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583077: Invokers must check the declared permission before processing caller input</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583077.md</link>
-      <guid isPermaLink="false">project/tool#3583077</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 01 Oct 2026 03:59:40 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583077"&gt;#3583077&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module's built-in ways of running a tool (the &lt;code&gt;tool:run&lt;/code&gt; Drush command, the Explorer's execute form, and the AI connector used by &lt;code&gt;tool_ai_connector&lt;/code&gt;) previously processed the caller's input, resolving entity handles, running coercions and refiners, before checking whether the caller was even allowed to run the tool. For a tool that declares a &lt;code&gt;permission&lt;/code&gt; (added in &lt;a href="https://www.drupal.org/node/3583064"&gt;#3583064&lt;/a&gt;), that meant an unauthorized caller's attacker-controlled values were still touched before being denied. These invokers now check the declared permission first and deny immediately, before touching any input, falling back to the existing &lt;code&gt;access()&lt;/code&gt; check afterward as before.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; &lt;code&gt;tool:run&lt;/code&gt;, the Explorer's execute form, and the AI connector now call &lt;code&gt;ToolManager::checkPermission()&lt;/code&gt; to deny a caller lacking the tool's declared &lt;code&gt;permission&lt;/code&gt; before any of the caller's input is parsed, transformed, or validated, instead of only after resolving handles and running refiners on it.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Each in-tree invoker now calls the static &lt;code&gt;ToolManager::checkPermission($definition, $account)&lt;/code&gt; before setting any caller-supplied value. &lt;code&gt;ToolRunCommand::executeTool()&lt;/code&gt; checks it right after fetching the plugin definition, before &lt;code&gt;createInstance()&lt;/code&gt; or &lt;code&gt;setInputValue()&lt;/code&gt; runs; &lt;code&gt;ExecuteToolPluginForm::buildConfigurationForm()&lt;/code&gt; checks it before building any widgets from refined definitions, and &lt;code&gt;submitConfigurationForm()&lt;/code&gt; checks it again before extracting submitted values; &lt;code&gt;tool_ai_connector&lt;/code&gt;'s &lt;code&gt;ToolPluginBase::execute()&lt;/code&gt; checks it before forwarding any LLM-provided context value. All three still call &lt;code&gt;access()&lt;/code&gt; afterward as the real execution gate, since &lt;code&gt;checkPermission()&lt;/code&gt; is definition-only and cheap, while &lt;code&gt;access()&lt;/code&gt; also runs the tool's own values-dependent &lt;code&gt;checkAccess()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Denial reporting was consolidated so a caller cannot tell which stage denied: &lt;code&gt;ToolRunCommand&lt;/code&gt; gained a private &lt;code&gt;accessDeniedMessage()&lt;/code&gt; helper and &lt;code&gt;ToolPluginBase&lt;/code&gt; gained &lt;code&gt;recordAccessDenial()&lt;/code&gt;, both now shared between the permission pre-check and the &lt;code&gt;access()&lt;/code&gt; check.&lt;/p&gt;
-&lt;p&gt;The invoker contract is now documented in &lt;code&gt;docs/developers/index.md&lt;/code&gt; under &amp;quot;Invoking a tool&amp;quot;: check the declared permission, set inputs, validate, call &lt;code&gt;access()&lt;/code&gt;, then &lt;code&gt;execute()&lt;/code&gt;. It also specifies what each stage may reveal: nothing before the permission check passes (no transform events, no violation text, no schema echo), and only shape feedback (schema-based violations, correctable-failure schema echo) after it, since the schema is already advertised at that gate. &lt;code&gt;docs/developers/creating-a-tool.md&lt;/code&gt; now explains that a value-independent access rule belongs in &lt;code&gt;permission&lt;/code&gt;, not &lt;code&gt;checkAccess()&lt;/code&gt;, precisely because only the former denies before input processing. Kernel tests (&lt;code&gt;DeclaredPermissionDenialTest&lt;/code&gt;, additions to &lt;code&gt;ToolRunCommandTest&lt;/code&gt; and &lt;code&gt;ExecuteToolPluginFormTest&lt;/code&gt;) assert the denial happens before any input transform event fires.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Custom invokers (the MCP bridge, other external callers) should follow the documented ordering to get the same early-denial behavior:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$definition = $tool_manager-&amp;gt;getDefinition($tool_id);
-$permission_access = ToolManager::checkPermission($definition, $account);
-if (!$permission_access-&amp;gt;isAllowed()) {
-  // Report the denial the same way an access() denial is reported.
-  return;
-}
-
-// Now safe to process caller input:
-$tool = $tool_manager-&amp;gt;createInstance($tool_id, [], $invoker);
-$tool-&amp;gt;setInputValue($name, $value);
-// ... validate, then:
-$access = $tool-&amp;gt;access(NULL, TRUE);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Keep a value-independent access rule in a tool's &lt;code&gt;permission&lt;/code&gt; rather than its &lt;code&gt;checkAccess()&lt;/code&gt; override, since only &lt;code&gt;permission&lt;/code&gt; is checked before input processing.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 29, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583071: Inputs and outputs declared with data type "map" are advertised as strings on Drupal 10 and 11.0</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583071.md</link>
-      <guid isPermaLink="false">project/tool#3583071</guid>
-      <pubDate>Thu, 01 Oct 2026 03:08:15 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583071"&gt;#3583071&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On Drupal 10 and 11.0, Tool API's JSON Schema generator incorrectly advertised any tool input or output declared with the plain &lt;code&gt;map&lt;/code&gt; data type (as opposed to the dedicated map classes) as a string instead of an object. This mismatch broke tools in practice: a server or client that validates arguments or results against the advertised schema, such as mcp_server, would reject the object the tool actually needs or returns. The &lt;code&gt;tool_belt&lt;/code&gt; module alone declares 28 such plain map inputs and outputs, so this affected a substantial share of real tools. The fix makes plain map definitions advertise as objects consistently on every supported core version, matching the behavior already present on Drupal 11.1+.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The root cause was in &lt;code&gt;ContextDefinitionNormalizer::getNormalizationSchema()&lt;/code&gt;. A &lt;code&gt;data_type: 'map'&lt;/code&gt; declared on the dedicated &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; classes (subclasses of &lt;code&gt;MapDataDefinition&lt;/code&gt;) was already handled correctly, taking the map branch that builds &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;object&amp;quot;, ...}&lt;/code&gt;. But the same &lt;code&gt;map&lt;/code&gt; data type declared on a plain &lt;code&gt;InputDefinition&lt;/code&gt; or &lt;code&gt;OutputDefinition&lt;/code&gt; is just a &lt;code&gt;DataDefinition&lt;/code&gt;, so it fell through to the typed-data branch, which asks the serializer for the &lt;code&gt;json_schema&lt;/code&gt; of a &lt;code&gt;Map&lt;/code&gt; typed-data object. On cores before 11.1, that request is handled by &lt;code&gt;LegacyTypedDataNormalizer&lt;/code&gt; (registered at a higher priority than &lt;code&gt;MapDefinitionNormalizer&lt;/code&gt; in &lt;code&gt;tool.services.yml&lt;/code&gt;), which has no arm for &lt;code&gt;Map&lt;/code&gt; and returns an empty array, which then falls back to advertising &lt;code&gt;{&amp;quot;type&amp;quot;: &amp;quot;string&amp;quot;}&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The fix extends the existing map branch's condition from &lt;code&gt;$object instanceof MapDataDefinition&lt;/code&gt; to also match &lt;code&gt;$object-&amp;gt;getDataType() === 'map'&lt;/code&gt;, mirroring how the &lt;code&gt;list&lt;/code&gt; data type is already special-cased a few lines above it. When the object isn't a &lt;code&gt;MapDataDefinition&lt;/code&gt;, there are no property definitions to iterate, so &lt;code&gt;applyMapConstraintSchema()&lt;/code&gt; and the empty-properties object logic now apply uniformly to plain maps too. A new test, &lt;code&gt;PlainMapSchemaTest&lt;/code&gt;, asserts that a plain map definition and its &lt;code&gt;MapInputDefinition&lt;/code&gt;/&lt;code&gt;MapOutputDefinition&lt;/code&gt; equivalent normalize to identical schemas, including under a &lt;code&gt;Count&lt;/code&gt; constraint that bounds &lt;code&gt;minProperties&lt;/code&gt;/&lt;code&gt;maxProperties&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The issue notes other data types (&lt;code&gt;binary&lt;/code&gt;, &lt;code&gt;language_reference&lt;/code&gt;) may hit the same legacy-path string fallback on Drupal 10.6 but leaves deciding whether they need their own arm as a remaining task, not addressed by this change.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 28, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Key contributors&lt;/h3&gt;
 &lt;ul&gt;
