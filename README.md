@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_618 summaries · 10 new this week_
+_618 summaries · 9 new this week_
 
 - [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
 - [#3594336: Add a command to list modules and themes on a site](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594336.md)
@@ -30,7 +30,7 @@ _279 summaries · 8 new this week_
 
 ### Drupal CMS
 
-_116 summaries · 12 new this week_
+_116 summaries · 10 new this week_
 
 - [#3591490: Add an initial 'ping' when opting into telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591490.md)
 - [#3591489: Use the Tagify User List widget by default for user reference fields](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591489.md)
