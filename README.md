@@ -1,24 +1,24 @@
-**TL;DR:** [1210 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1212 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_618 summaries · 11 new this week_
+
+- [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
+- [#3594336: Add a command to list modules and themes on a site](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594336.md)
+- [#3575642: Always free up old container on rebuild, not only in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575642.md)
+
 ### Drupal AI
 
-_199 summaries · 15 new this week_
+_199 summaries · 14 new this week_
 
 - [#3585933: Authorization denials surface as -32603 Internal server error, because the SDK...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585933.md)
 - [#3518120: Define tools with attributes on typed methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3518120.md)
 - [#3583049: Deprecate `multiple` on input and output definitions in favor of list...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583049.md)
-
-### Drupal Core
-
-_616 summaries · 9 new this week_
-
-- [#3575642: Always free up old container on rebuild, not only in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575642.md)
-- [#3625895: Deprecate and remove Query::__wakeup() and ::__sleep()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625895.md)
-- [#1411074: Allow kernel tests to share the test environment](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/1411074.md)
 
 ### Drupal Canvas
 
