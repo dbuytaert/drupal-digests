@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_618 summaries · 11 new this week_
+_618 summaries · 10 new this week_
 
 - [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
 - [#3594336: Add a command to list modules and themes on a site](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594336.md)
