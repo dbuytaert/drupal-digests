@@ -5,6 +5,55 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3613347: Re-use container in kernel tests</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md</link>
+      <guid isPermaLink="false">node/3613347</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 10 Oct 2026 22:21:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +180/−41 · php +180/−41&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/6868135abe8e18373329d51bcb2d2bc81967d8c0"&gt;6868135&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3613347"&gt;#3613347&lt;/a&gt; · 4 contributors · 27 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Kernel test classes that share their environment (via the &lt;code&gt;ShareEnvironment&lt;/code&gt; attribute from &lt;a href="https://www.drupal.org/node/1411074"&gt;#1411074&lt;/a&gt;) now build the container once for the first test method and load it from cache for the remaining methods. Test classes that don't share the environment behave as before for container building. In the author's measurements, a 26-method test went from about 19s to about 15s. With xhprof enabled, per-method time dropped from about 2.5s to about 700ms. The saving is smaller for tests that install modules in several methods.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;KernelTestBase::$container&lt;/code&gt; is now typed &lt;code&gt;?ContainerInterface&lt;/code&gt; instead of &lt;code&gt;?ContainerBuilder&lt;/code&gt;; &lt;code&gt;KernelTestBase::$keyValue&lt;/code&gt; is now the booted container's &lt;code&gt;keyvalue&lt;/code&gt; service rather than a memory factory.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;Drupal\Core\Test\KernelTestDrupalKernel&lt;/code&gt; and a protected &lt;code&gt;DrupalKernel::getContainerFromCacheIfCacheable()&lt;/code&gt; hook.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;KernelTestBase::bootKernel()&lt;/code&gt; now creates a &lt;code&gt;Drupal\Core\Test\KernelTestDrupalKernel&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) instead of a plain &lt;code&gt;DrupalKernel&lt;/code&gt;, passing &lt;code&gt;static::sharesEnvironment()&lt;/code&gt; as the cache flag. When the environment is shared, it calls &lt;code&gt;setContainerNeedsRebuild(FALSE)&lt;/code&gt; and &lt;code&gt;setOverrideUseCache(TRUE)&lt;/code&gt;, so the first method compiles and caches the container and later methods load it. To support this, &lt;code&gt;DrupalKernel::initializeContainer()&lt;/code&gt; now calls a new protected &lt;code&gt;getContainerFromCacheIfCacheable()&lt;/code&gt;, which holds the old &amp;quot;module list not set and no forced rebuild&amp;quot; check, and the subclass overrides it. The subclass appends a &lt;code&gt;cacheSuffix&lt;/code&gt; to &lt;code&gt;getContainerCacheKey()&lt;/code&gt; and increments it in &lt;code&gt;rebuildContainer()&lt;/code&gt; and &lt;code&gt;resetContainer()&lt;/code&gt;. A container rebuilt inside a test method is therefore cached under its own key and does not overwrite the initial one. &lt;code&gt;bootKernel()&lt;/code&gt; calls &lt;code&gt;resetCacheSuffix()&lt;/code&gt; and then &lt;code&gt;resetContainer()&lt;/code&gt;, so every method starts from the same cached initial container with fresh service state. There is an &lt;code&gt;@todo&lt;/code&gt; pointing at &lt;a href="https://www.drupal.org/node/2218651"&gt;#2218651&lt;/a&gt;.\n\nKernelTestBase no longer registers its own synthetic &lt;code&gt;keyvalue&lt;/code&gt; service (memory factory, or database factory for shared environments). The container's normal key value service is used, and &lt;code&gt;$this-&amp;gt;keyValue&lt;/code&gt; is set from &lt;code&gt;$this-&amp;gt;container-&amp;gt;get('keyvalue')&lt;/code&gt; after boot. As a result the &lt;code&gt;key_value&lt;/code&gt; table now exists in kernel test databases. Core tests were adjusted: &lt;code&gt;SchemaTest&lt;/code&gt; expected table lists now include &lt;code&gt;key_value&lt;/code&gt;, a menu link content test lists &lt;code&gt;key_value&lt;/code&gt; among its tables, and the installer test drops &lt;code&gt;key_value&lt;/code&gt; in &lt;code&gt;setUp()&lt;/code&gt; so the installer sees an uninstalled site. &lt;code&gt;$container&lt;/code&gt; is now typed &lt;code&gt;?ContainerInterface&lt;/code&gt;. A new &lt;code&gt;KernelTestSharedContainerTest&lt;/code&gt; uses the &lt;code&gt;container_rebuild_test&lt;/code&gt; module's counter to assert the container is built once across three data-provider iterations. Follow-ups were opened for sharing caches between methods (&lt;a href="https://www.drupal.org/node/3629052"&gt;#3629052&lt;/a&gt;) and deprecating &lt;code&gt;KernelTestBase::$keyValue&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3629287"&gt;#3629287&lt;/a&gt;). The PhpDumper container work in &lt;a href="https://www.drupal.org/node/3583505"&gt;#3583505&lt;/a&gt; is expected to be compatible with this approach.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Core tests that inspect the database table list needed &lt;code&gt;key_value&lt;/code&gt; added, for example in &lt;code&gt;SchemaTest&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;assertEquals(['config', 'key_value', 'select'], $tables);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Contrib kernel tests that type-hint &lt;code&gt;$this-&amp;gt;container&lt;/code&gt; as &lt;code&gt;ContainerBuilder&lt;/code&gt; or assume an in-memory &lt;code&gt;$this-&amp;gt;keyValue&lt;/code&gt; may need adjusting. In the issue thread the committer expected existing tests to keep working and planned to update the shared-environment change record (https://www.drupal.org/node/3623403) with conversion steps.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 10, 2026 (2 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;plach (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3594337: Add a command to export configuration</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md</link>
       <guid isPermaLink="false">node/3594337</guid>
@@ -964,53 +1013,6 @@ usort($items, fn($a, $b) =&amp;gt; NaturalSort::strnatcasecmp($a-&amp;gt;label()
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The fix converged quickly through parallel experimentation: gáborhojtsy opened an initial MR (!17242) that kept the parse-time callable-swap approach but built a fresh &lt;code&gt;FilterExpression&lt;/code&gt; node, based on a suggestion from the upstream Twig issue thread. longwave then proposed an alternative in MR !17244, overriding the &lt;code&gt;escape&lt;/code&gt;/&lt;code&gt;e&lt;/code&gt; filter definitions themselves instead of touching the node visitor's callable-swap logic, noting it &amp;quot;should be more performant&amp;quot;. catch committed longwave's MR (!17244) to &lt;code&gt;main&lt;/code&gt; and &lt;code&gt;12.0.x&lt;/code&gt;, commenting &amp;quot;Agreed with taking this out of runtime.&amp;quot; godotislate and f0ns independently verified both MRs against real Twig 3.28/3.30 behavior (f0ns compared escaping output across several template constructs on a live 11.4.7 site) before the backports to 11.x, 11.4.x and 10.6.x followed.&amp;lt;/collaboration&amp;gt;
 &amp;lt;parameter name=&amp;quot;ai_disclosures&amp;quot;&amp;gt;[{&amp;quot;uid&amp;quot;: 4166, &amp;quot;username&amp;quot;: &amp;quot;gábor hojtsy&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Opus&amp;quot;, &amp;quot;cid&amp;quot;: 16784606}, {&amp;quot;uid&amp;quot;: 205645, &amp;quot;username&amp;quot;: &amp;quot;phenaproxima&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Opus&amp;quot;, &amp;quot;cid&amp;quot;: 16784631}, {&amp;quot;uid&amp;quot;: 246492, &amp;quot;username&amp;quot;: &amp;quot;longwave&amp;quot;, &amp;quot;tool&amp;quot;: &amp;quot;Claude Opus 5.5&amp;quot;, &amp;quot;cid&amp;quot;: 16784698}]&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3581349: Remove Syndicate block config</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3581349.md</link>
-      <guid isPermaLink="false">node/3581349</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 24 Sep 2026 18:00:23 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 12.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +158/−0 · php +96 · yml +62&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/be4d7799375c0681bcf28121a7d4baa20ea56dad"&gt;be4d779&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3581349"&gt;#3581349&lt;/a&gt; · 5 contributors · 21 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Syndicate block (the RSS feed icon block) was deprecated in Drupal 11.2 with no replacement and its plugin code was removed ahead of Drupal 12. That left orphaned &lt;code&gt;block.block.*&lt;/code&gt; configuration on any site that still had the block placed. Running database updates to Drupal 12.0.0 now automatically deletes that leftover block configuration, in any theme, not just Olivero where the block originally lived.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;block_post_update_remove_syndicate_blocks()&lt;/code&gt; post update deletes any &lt;code&gt;block.block.*&lt;/code&gt; configuration using the removed &lt;code&gt;node_syndicate_block&lt;/code&gt; plugin whose &lt;code&gt;settings.provider&lt;/code&gt; is &lt;code&gt;node&lt;/code&gt;, in any theme.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix adds &lt;code&gt;block_post_update_remove_syndicate_blocks()&lt;/code&gt; in &lt;code&gt;core/modules/block/block.post_update.php&lt;/code&gt;, which loads all &lt;code&gt;block&lt;/code&gt; config entities with &lt;code&gt;plugin&lt;/code&gt; set to &lt;code&gt;node_syndicate_block&lt;/code&gt; and &lt;code&gt;settings.provider&lt;/code&gt; set to &lt;code&gt;node&lt;/code&gt;, and deletes them. Restricting the match to &lt;code&gt;settings.provider: node&lt;/code&gt; (rather than just the plugin ID) means a block config entity that a contrib or custom module has taken over, for example by changing its provider, such as the &lt;code&gt;stark_custom_syndicate&lt;/code&gt; fixture with &lt;code&gt;provider: custom_syndicate&lt;/code&gt;, is left alone.&lt;/p&gt;
-&lt;p&gt;Test coverage was added in &lt;code&gt;BlockRemoveSyndicateBlocksUpdateTest&lt;/code&gt;, using new fixtures (&lt;code&gt;block.block.olivero_syndicate.yml&lt;/code&gt;, &lt;code&gt;block.block.stark_syndicate.yml&lt;/code&gt;, &lt;code&gt;block.block.stark_custom_syndicate.yml&lt;/code&gt;) loaded via a new &lt;code&gt;syndicate-block-config.php&lt;/code&gt; update fixture script, verifying that Syndicate blocks in both Olivero and Stark are removed while the provider-overridden block and unrelated blocks survive the update. The related issue &lt;a href="https://www.drupal.org/node/3518990"&gt;#3518990&lt;/a&gt; originally deprecated the &lt;code&gt;SyndicateBlock&lt;/code&gt; plugin before its removal in core.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: March 25, 2026&lt;/li&gt;
-&lt;li&gt;Committed: September 24, 2026 (6 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;li&gt;xjm (Zoocha)&lt;/li&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;catch traced the history of the change (deprecation in &lt;a href="https://www.drupal.org/node/3518990"&gt;#3518990&lt;/a&gt;, code removal in &lt;a href="https://www.drupal.org/node/3571623"&gt;#3571623&lt;/a&gt;) and laid out the tradeoff: leave the zombie config with a release note telling sites to check for it, or add an update to delete it outright, at the risk that some site is still relying on it. Gábor Hojtsy reasoned that because the code removal had only ever landed on the main branch and never in a released version, no site could yet have taken ownership of the config by reimplementing the plugin, which made it safe to delete now; he then opened the merge request implementing the deletion. xjm pushed for a more discoverable change record rather than relying on release notes alone, and catch added one before the fix was committed.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

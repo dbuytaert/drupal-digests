@@ -1,4 +1,4 @@
-**TL;DR:** [1212 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1213 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Core
 
-_618 summaries · 9 new this week_
+_619 summaries · 10 new this week_
 
+- [#3613347: Re-use container in kernel tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md)
 - [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
 - [#3594336: Add a command to list modules and themes on a site](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594336.md)
-- [#3575642: Always free up old container on rebuild, not only in the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575642.md)
 
 ### Drupal AI
 
