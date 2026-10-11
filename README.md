@@ -1,24 +1,24 @@
-**TL;DR:** [1213 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1252 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_238 summaries · 53 new this week_
+
+- [#3594782: --as-user and caller_uid do not switch the Drupal account](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594782.md)
+- [#3594783: The run drops the agent's own error when it does not answer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594783.md)
+- [#3594784: Let the decision rubric judge see the question as well as the answer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594784.md)
+
 ### Drupal Core
 
-_619 summaries · 9 new this week_
+_619 summaries · 8 new this week_
 
 - [#3613347: Re-use container in kernel tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md)
 - [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
 - [#3594336: Add a command to list modules and themes on a site](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594336.md)
-
-### Drupal AI
-
-_199 summaries · 14 new this week_
-
-- [#3585933: Authorization denials surface as -32603 Internal server error, because the SDK...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585933.md)
-- [#3518120: Define tools with attributes on typed methods](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3518120.md)
-- [#3583049: Deprecate `multiple` on input and output definitions in favor of list...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583049.md)
 
 ### Drupal Canvas
 
