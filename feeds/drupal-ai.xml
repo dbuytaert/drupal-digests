@@ -5,6 +5,183 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3594796: Add a settings form and a requirements check for the content review judge</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594796.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594796</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 12 Oct 2026 20:45:30 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594796"&gt;#3594796&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The content review judge in &lt;code&gt;ai_eval_content_review&lt;/code&gt; now has a settings form at &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; for the review rule, criterion, content type, body field and text format. It offers only choices that exist on the site. Previously these could only be changed with &lt;code&gt;drush cset&lt;/code&gt; or config import, and a content type without the expected &lt;code&gt;body&lt;/code&gt; field (as on a Drupal CMS &lt;code&gt;page&lt;/code&gt;) made the criterion see only the title and score the answer 0 with no warning. Now a judge with settings that do not fit the site reports the answer as not measured, and the status report says what is wrong. New installs leave the content type, body field and text format unset, so a site owner must choose them before the judge can run. Existing sites keep their current values.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New installs ship &lt;code&gt;ai_eval_content_review.settings&lt;/code&gt; with &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;body_field&lt;/code&gt; and &lt;code&gt;body_format&lt;/code&gt; empty (previously &lt;code&gt;page&lt;/code&gt;, &lt;code&gt;body&lt;/code&gt;, &lt;code&gt;basic_html&lt;/code&gt;); existing sites keep their values.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New route &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; is gated by the existing &lt;code&gt;administer ai eval&lt;/code&gt; permission.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;JudgeSettingsChecker&lt;/code&gt; service (&lt;code&gt;ai_eval_content_review.settings_checker&lt;/code&gt;) with &lt;code&gt;problems()&lt;/code&gt; and &lt;code&gt;errors()&lt;/code&gt;; &lt;code&gt;CriterionRunner&lt;/code&gt; takes it as a fifth constructor argument.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A single &lt;code&gt;JudgeSettingsChecker&lt;/code&gt; is shared by the form, the status report and the judge. &lt;code&gt;problems()&lt;/code&gt; returns errors and warnings keyed by setting. Errors cover a missing rule, a missing criterion index, a missing or nonexistent content type, a body field that is unset, absent or not of type &lt;code&gt;text&lt;/code&gt;, &lt;code&gt;text_long&lt;/code&gt; or &lt;code&gt;text_with_summary&lt;/code&gt;, an unset, nonexistent or disabled text format, a format the field's &lt;code&gt;allowed_formats&lt;/code&gt; excludes, and &lt;code&gt;extra_fields&lt;/code&gt; the type lacks. A warning is raised for a disabled rule, or for a rule that does not apply to the configured bundle. &lt;code&gt;errors()&lt;/code&gt; returns only the blocking messages.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CriterionRunner::review()&lt;/code&gt; calls &lt;code&gt;errors()&lt;/code&gt; before building the unsaved node. If any are returned it throws a &lt;code&gt;RuntimeException&lt;/code&gt; (&amp;quot;The content review judge settings do not fit this site: ...&amp;quot;), so the judge records no measurement instead of reviewing a page without the answer. &lt;code&gt;JudgeSettingsRequirements&lt;/code&gt; (&lt;code&gt;hook_runtime_requirements&lt;/code&gt;) adds a status report row: &amp;quot;Not set up&amp;quot; (warning) when no rule is set, &amp;quot;Settings fit this site&amp;quot; (OK), &amp;quot;Check the settings&amp;quot; (warning) or &amp;quot;Cannot review&amp;quot; (error). &lt;code&gt;JudgeSettingsForm&lt;/code&gt; is a &lt;code&gt;ConfigFormBase&lt;/code&gt; that filters the criterion, body field and format selects by the chosen rule, content type and field, and redraws them with htmx. It warns when the criterion changes, since existing judges then check another criterion and need validating again. Earlier validations are not marked stale. The default &lt;code&gt;config/install&lt;/code&gt; values for &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;body_field&lt;/code&gt; and &lt;code&gt;body_format&lt;/code&gt; are now empty strings.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom code that constructs &lt;code&gt;CriterionRunner&lt;/code&gt; directly must pass the new &lt;code&gt;ai_eval_content_review.settings_checker&lt;/code&gt; service (&lt;code&gt;JudgeSettingsChecker&lt;/code&gt;) as the fifth argument. On new installs, open &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; and choose the content type, body field and text format before running the judge.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594795: Judge content review criteria without saving a node</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594795.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594795</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 12 Oct 2026 20:45:30 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594795"&gt;#3594795&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Eval content review judge no longer saves and deletes a temporary unpublished node for every judged answer. The page is built in memory and reviewed without being saved, so automators, search indexing and other save hooks stop running per answer. That removes the extra LLM call per judged answer and the search index warning for the deleted node. Records made by the judge are visible only to users with &amp;quot;configure reviews&amp;quot; and are hidden from the AI Content Review review queue. A criterion that needs a saved entity cannot be judged this way.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;ai_eval_content_review&lt;/code&gt; now depends on the &lt;code&gt;entity&lt;/code&gt; module.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_content_review_update_10001()&lt;/code&gt; installs the &lt;code&gt;ai_eval_page&lt;/code&gt; review record bundle with an &lt;code&gt;eval_key&lt;/code&gt; field.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Records of type &lt;code&gt;ai_eval_page&lt;/code&gt; and their suggestions require &amp;quot;configure reviews&amp;quot; to view, and are hidden from the AI Content Review review queue.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CriterionRunner&lt;/code&gt; constructor takes a new fourth argument, the &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt; service (&lt;code&gt;EvalPageRegistry&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;AI Content Review's internal record type reloads the reviewed entity by id, so it cannot review an unsaved one. The submodule now ships its own &lt;code&gt;review_record&lt;/code&gt; bundle plugin, &lt;code&gt;ai_eval_page&lt;/code&gt;, with an &lt;code&gt;eval_key&lt;/code&gt; bundle field. &lt;code&gt;CriterionRunner::review()&lt;/code&gt; builds the node with &lt;code&gt;create()&lt;/code&gt; and does not save it. It wraps the node and a random key in a new &lt;code&gt;EvalPage&lt;/code&gt; value object, which is deliberately not an entity because the internal record type claims every entity. The &lt;code&gt;EvalPage&lt;/code&gt; is registered in a request-scoped &lt;code&gt;EvalPageRegistry&lt;/code&gt; (service &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt;) and passed to the real &lt;code&gt;ReviewOrchestrator::runCriterion()&lt;/code&gt;. The record type looks the page up by key. It gives the criterion the same review context lines as for a saved node, with the node as its &lt;code&gt;node&lt;/code&gt; token context, and it applies no rules and refuses suggestions. In a &lt;code&gt;finally&lt;/code&gt; block, &lt;code&gt;deleteReviews()&lt;/code&gt; removes the records and their suggestions by &lt;code&gt;eval_key&lt;/code&gt;, and the page is removed from the registry.&lt;/p&gt;
+&lt;p&gt;Access: AI Content Review alpha3 checks the reviewed subject only for records about a Drupal entity, so &lt;code&gt;ai_eval_page&lt;/code&gt; records and their suggestions would be viewable with &amp;quot;view review records&amp;quot;. &lt;code&gt;EvalPageAccess&lt;/code&gt; forbids view, update and delete of them, and of their suggestions, without &amp;quot;configure reviews&amp;quot;. Two pages in AI Content Review do not check entity access. A route subscriber adds &lt;code&gt;JudgedPageRecordAccessCheck&lt;/code&gt; to the record detail route (&lt;code&gt;/ai-content-review/record/{record_id}/detail&lt;/code&gt;), and a form alter on the review queue removes &lt;code&gt;ai_eval_page&lt;/code&gt; rows for everyone and leaves them out of the waiting count.&lt;/p&gt;
+&lt;p&gt;Limit: the criterion gets an entity with no id. Tools that reload the node by id (for example &lt;code&gt;GetCurrentContentEntityValues&lt;/code&gt;) and resumed runs cannot see it. The &lt;code&gt;extra_fields&lt;/code&gt; setting still fills extra values on the unsaved node, but automators no longer fill them.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates. &lt;code&gt;ai_eval_content_review_update_10001()&lt;/code&gt; installs the &lt;code&gt;ai_eval_page&lt;/code&gt; review record bundle on existing sites. The submodule now also depends on the &lt;code&gt;entity&lt;/code&gt; module, which AI Content Review already requires. Code that constructs &lt;code&gt;CriterionRunner&lt;/code&gt; directly must pass the new fourth argument, the &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt; service:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;ai_eval_content_review.eval_pages:
+  class: Drupal\ai_eval_content_review\EvalPageRegistry
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594794: Add a judge for every criterion of a review rule</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594794.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594794</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 12 Oct 2026 20:45:30 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594794"&gt;#3594794&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Eval content review judge now covers every criterion of every AI Content Review rule, not just the one at the site-wide &lt;code&gt;criterion_index&lt;/code&gt;. A rule with three criteria such as Tone &amp;amp; voice, Inclusive language and Grammar now has three judges. Existing judges keep their ids, so their scores and validations stay attached to the same criterion. The drush scoring command can target one criterion, and importing a fixture refuses to continue when the criterion at its recorded position has since changed label.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Optional trailing criterion position argument on &lt;code&gt;CriterionRunner::reviewAsJudge()&lt;/code&gt;, &lt;code&gt;judgeModel()&lt;/code&gt;, &lt;code&gt;editorsModel()&lt;/code&gt;, &lt;code&gt;review()&lt;/code&gt;, &lt;code&gt;criterion()&lt;/code&gt; and &lt;code&gt;ReviewRuleJudges::judgeId()&lt;/code&gt;; new &lt;code&gt;content_review_criterion_at__&amp;lt;rule&amp;gt;__&amp;lt;index&amp;gt;&lt;/code&gt; judge ids; new &lt;code&gt;--criterion&lt;/code&gt; drush option on &lt;code&gt;ai-eval-cr:score-items&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ReviewRuleJudges::graderInfoAlter()&lt;/code&gt; now loops over every criterion of each &lt;code&gt;review_rule&lt;/code&gt;, plus the &lt;code&gt;criterion_index&lt;/code&gt; from settings even if the rule has no criterion there. The criterion at that position keeps the existing id (&lt;code&gt;content_review_criterion&lt;/code&gt;, or &lt;code&gt;content_review_criterion__&amp;lt;rule&amp;gt;&lt;/code&gt; for other rules). All other positions get &lt;code&gt;content_review_criterion_at__&amp;lt;rule&amp;gt;__&amp;lt;index&amp;gt;&lt;/code&gt;, counting from 0. This prefix is disjoint from the older ids, so a rule id containing &lt;code&gt;criterion_1&lt;/code&gt; or &lt;code&gt;__&lt;/code&gt; cannot collide with an existing judge. If another module already declares an id, that judge is skipped and a warning is logged. Ids follow positions, as AI Content Review's own &lt;code&gt;{rule}__{index}&lt;/code&gt; names do, so reordering a rule's criteria moves its judges. Judge definitions carry &lt;code&gt;criterion_index&lt;/code&gt; and &lt;code&gt;criterion_label&lt;/code&gt;, and the label reads &amp;quot;Content review: &amp;lt;rule&amp;gt; / &amp;lt;criterion&amp;gt;&amp;quot;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CriterionRunner::reviewAsJudge()&lt;/code&gt;, &lt;code&gt;judgeModel()&lt;/code&gt;, &lt;code&gt;editorsModel()&lt;/code&gt;, &lt;code&gt;review()&lt;/code&gt; and &lt;code&gt;criterion()&lt;/code&gt;, and &lt;code&gt;ReviewRuleJudges::judgeId()&lt;/code&gt;, take an optional trailing criterion position (&lt;code&gt;judgeId()&lt;/code&gt; also takes the default index). &lt;code&gt;drush ai-eval-cr:score-items&lt;/code&gt; has a new &lt;code&gt;--criterion&lt;/code&gt; option (a position from 0, defaulting to the settings value) and writes &lt;code&gt;criterion_index&lt;/code&gt; and &lt;code&gt;criterion_label&lt;/code&gt; into the fixture meta. &lt;code&gt;import-run&lt;/code&gt; rebuilds the judge id from that meta and errors with a request to give &lt;code&gt;--grader&lt;/code&gt; when the label now at that position differs from the recorded one. The CHANGELOG notes it cannot distinguish criteria that share a label.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Callers of the listed &lt;code&gt;CriterionRunner&lt;/code&gt; methods and &lt;code&gt;ReviewRuleJudges::judgeId()&lt;/code&gt; need no change: the new criterion position argument is optional and trailing. To score a non-default criterion from drush:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;drush ai-eval-cr:score-items --items=items.yaml --criterion=2 --out=/tmp/out.yaml
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Fixtures scored before this change have no &lt;code&gt;criterion_index&lt;/code&gt; and import against the judge for the &lt;code&gt;criterion_index&lt;/code&gt; in settings.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594790: Show how many questions were measured next to the pass rate</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594790.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594790</guid>
+      <pubDate>Mon, 12 Oct 2026 19:56:25 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594790"&gt;#3594790&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When some questions error out or can't be scored, the pass rate is calculated only over the questions that were measured. The drush run summary and the result detail page now say so next to the pass rate, for example &amp;quot;9 of 12 measured&amp;quot;, so a &amp;quot;100%&amp;quot; is no longer easy to read as 100% of all 12 questions. The text appears only when fewer than all questions were measured.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;In &lt;code&gt;EvalRunCommand&lt;/code&gt;, the target result line now carries the count inside the parentheses after the pass rate, such as &lt;code&gt;(pass_rate: 100% [70.1%–100%], 9 of 12 measured: 3 errors) [PASS] 34s&lt;/code&gt;. The reasons for missing questions (&lt;code&gt;N errors&lt;/code&gt;, &lt;code&gt;N unscored&lt;/code&gt;) are listed after the count. This replaces the old trailing &lt;code&gt;(3 errors)&lt;/code&gt; / &lt;code&gt;(3 unscored)&lt;/code&gt; suffix after the duration. The measured count uses &lt;code&gt;valid_count&lt;/code&gt; from the result, falling back to total questions minus errors minus unscored. The same value is reused by the existing insufficient-coverage warning.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;EvalResultsController&lt;/code&gt;, the pass-rate cell on the result detail page computes &lt;code&gt;$measuredCount&lt;/code&gt; once (&lt;code&gt;question_count - error_count - unscored&lt;/code&gt;) and uses it for the existing &lt;code&gt;(passed / total)&lt;/code&gt; figure. It appends &lt;code&gt;, N of M measured&lt;/code&gt; when &lt;code&gt;$measuredCount&lt;/code&gt; is below &lt;code&gt;question_count&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594788: Validate a judge only on answers it scored</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594788.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594788</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 12 Oct 2026 19:56:25 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594788"&gt;#3594788&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Validating a judge that has no dimension (decision rubric, content review) in the browser used to read every pass or fail given on any results page, whatever the judge. A review now counts for a judge only when that judge scored that answer in that result: a score was recorded without an error, and a zero counts. Reviews from another test, or on answers the judge failed to score, are left out. The validation report and the calibration page now say that reviews are whole-answer verdicts while a judge may check only some rules. Per-judge verdicts are a follow-up (&lt;a href="https://www.drupal.org/node/3594789"&gt;#3594789&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;HumanLabelSourceInterface&lt;/code&gt; gains &lt;code&gt;unattributedAnnotationCount()&lt;/code&gt;; any class implementing the interface must add it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;HumanLabelSourceInterface::unattributedAnnotationCount()&lt;/code&gt; returns how many results-page reviews cannot be attributed to any judge.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;HumanLabelSource::forGrader()&lt;/code&gt; previously ignored &lt;code&gt;$graderId&lt;/code&gt;. It now passes it to &lt;code&gt;fromAnnotations()&lt;/code&gt;, which calls &lt;code&gt;hydrateFromResult()&lt;/code&gt; and keeps an annotation only if the grader id appears among the entries in that question's &lt;code&gt;grader_scores&lt;/code&gt; in the stored &lt;code&gt;ai_eval_result.scores_json&lt;/code&gt; with a numeric &lt;code&gt;score&lt;/code&gt; and no &lt;code&gt;error&lt;/code&gt;. Errored entries and entries with a NULL score (not applicable) do not count. Annotations are still merged only on the holistic path, when both &lt;code&gt;$domainTags&lt;/code&gt; and &lt;code&gt;$dimension&lt;/code&gt; are NULL. Review labels from &lt;code&gt;ai_eval_review_label&lt;/code&gt; (dimension-scoped) are unchanged.&lt;/p&gt;
+&lt;p&gt;A result stored without &lt;code&gt;grader_scores&lt;/code&gt; cannot say which judges scored it, so its annotations count for no judge. The new &lt;code&gt;unattributedAnnotationCount()&lt;/code&gt; counts those, one per (result, question), and the validation page shows the number for judges without a dimension. The docs entry JUDGE-L13 in &lt;code&gt;docs/semantic/tech/JUDGE_01_JudgeValidation.md&lt;/code&gt; was updated to match.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Reviews on results stored before AI Eval recorded which judges scored each answer no longer count for any judge's validation. They are kept, not deleted, and the judge's validation page says how many were left out. Run the test again and review the new results.&lt;/p&gt;
+&lt;p&gt;Custom classes implementing &lt;code&gt;HumanLabelSourceInterface&lt;/code&gt; must add:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function unattributedAnnotationCount(): int;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586640: [Meta] ai_disclosure: EU AI Act Article 50 transparency module</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-initiative/3586640.md</link>
       <guid isPermaLink="false">project/ai_initiative#3586640</guid>
@@ -517,185 +694,6 @@ public function __invoke(string $name, ?string $greeting = NULL): string {
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: October 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594767: Promoting an annotated answer drops the question's criteria and can duplicate it</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594767.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594767</guid>
-      <pubDate>Fri, 09 Oct 2026 08:29:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594767"&gt;#3594767&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Annotate &amp;gt; Add to dataset on a result page now builds the new question from the question the answer was given for, not from the input alone. The &amp;quot;What makes an answer good&amp;quot; field is prefilled with the source question's criteria and one expected fact. The new question keeps the source id (for example &lt;code&gt;sunday_visit&lt;/code&gt;) instead of &lt;code&gt;annotation-&amp;lt;id&amp;gt;&lt;/code&gt;. Adding an answer to a dataset that already holds the source question no longer creates a silent copy. It adds nothing and links to the existing question. The status message now shows in the form next to the button.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix landed in the Sprint 7 commit 8c8f8cd, which fixed several promotion problems at once. &lt;code&gt;PromotionService::promoteAnnotationOutcome()&lt;/code&gt; now calls &lt;code&gt;sourceQuestion()&lt;/code&gt; and &lt;code&gt;sourceDataset()&lt;/code&gt; to find the dataset question behind a result. It prefers the dataset recorded in the run's snapshot over the test's current dataset. It also reports a certainty (&lt;code&gt;exact&lt;/code&gt; when the dataset still hashes to the recorded &lt;code&gt;dataset_sha256&lt;/code&gt;, &lt;code&gt;current&lt;/code&gt; when it changed or only the current dataset is known, &lt;code&gt;none&lt;/code&gt; when no question matched). The new question copies the source's &lt;code&gt;CARRIED_FIELDS&lt;/code&gt; (criteria, expected, expected_facts, expected_tools, rubric_ref, choices, files, bundle, tags, caller_uid, user_name). The source's &lt;code&gt;trace_key&lt;/code&gt; is dropped so the trace is not treated as already promoted. Provenance goes in metadata along with &lt;code&gt;source_question_id&lt;/code&gt; and &lt;code&gt;source_certainty&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The id is the source id. If a different question in the target already has it, &lt;code&gt;-2&lt;/code&gt;, &lt;code&gt;-3&lt;/code&gt; and so on are appended. When the target already holds the source id with the same recorded transcript, the new status &lt;code&gt;PromotionService::STATUS_SOURCE_PRESENT&lt;/code&gt; is returned with the existing question's &lt;code&gt;qid&lt;/code&gt; and &lt;code&gt;question_entity_id&lt;/code&gt;. &lt;code&gt;PromoteFragment&lt;/code&gt; renders that status. The old &lt;code&gt;annotation-&amp;lt;id&amp;gt;&lt;/code&gt; id remains only as the fallback when no source question can be found.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;sourcePrefill()&lt;/code&gt; supplies the form's criteria and one fact. It picks the first scalar fact that is not &lt;code&gt;must_not_contain&lt;/code&gt; and can be stored back unchanged. The new optional &lt;code&gt;$formFact&lt;/code&gt; argument of &lt;code&gt;promoteAnnotationOutcome()&lt;/code&gt; tells the service which fact the form showed. This way, clearing a field drops only that criteria or fact, and the source's other facts stay.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594766: Promote all creates a dataset when nothing qualifies, ignores conversation labels, allows duplicate names</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594766.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594766</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 09 Oct 2026 08:29:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594766"&gt;#3594766&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the AI Eval module's Trace review, &amp;quot;Promote all&amp;quot; into a new dataset now behaves sensibly. It no longer leaves an empty dataset behind when nothing qualifies, and the message says so instead of reporting &amp;quot;Promoted 0 traces&amp;quot;. A conversation or agent run labeled Fail or Defer now counts, and the report splits trace labels from conversation or run labels. A new dataset name that another dataset already uses is refused, on Promote all, on a trace card and on a result annotation. The refusal comes with a refreshed dataset list and an emptied name field, so you can pick the existing dataset.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;PromotionService&lt;/code&gt; promote methods accept a dataset ref or a &lt;code&gt;PromotionTarget&lt;/code&gt; and their outcome adds &lt;code&gt;dataset_ref&lt;/code&gt;; &lt;code&gt;PromoteFragment::bulkConfirmation()&lt;/code&gt; replaced by &lt;code&gt;bulkReport()&lt;/code&gt;; &lt;code&gt;bulkControl()&lt;/code&gt; takes an optional message.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;PromotionService::promoteByVerdictReport()&lt;/code&gt;, &lt;code&gt;PromotionService::datasetWithLabel()&lt;/code&gt;, &lt;code&gt;PromotionTarget&lt;/code&gt;, &lt;code&gt;LabelStore::groupLabelsWithVerdicts()&lt;/code&gt;, &lt;code&gt;AnnotationFragment::datasetSelect()&lt;/code&gt; and &lt;code&gt;::newDatasetInput()&lt;/code&gt; added.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix landed in the AI Eval commit &amp;quot;Sprint 7 data integrity&amp;quot; (8c8f8cd) as part of a larger change. I read the CHANGELOG and docs for it, not the full code diff. &lt;code&gt;PromotionService&lt;/code&gt; promote methods now take a dataset ref string or a &lt;code&gt;PromotionTarget&lt;/code&gt;. For a new dataset, &lt;code&gt;append()&lt;/code&gt; creates the dataset and its first question in one database transaction, so selection happens first and no empty dataset is written on the SQL entity storage. &lt;code&gt;promoteByVerdictReport()&lt;/code&gt; returns &lt;code&gt;{qualifying, created, from_traces, from_groups, duplicate, refused, missing, unresolved, dataset_ref}&lt;/code&gt;. &lt;code&gt;promoteByVerdict()&lt;/code&gt; stays as a qid-only wrapper around it.&lt;/p&gt;
-&lt;p&gt;Conversation and agent run labels are read through the new &lt;code&gt;LabelStore::groupLabelsWithVerdicts()&lt;/code&gt;. It loads all &lt;code&gt;scope = 'group'&lt;/code&gt; rows and keeps the earliest row per group key. Each qualifying group is represented by one trace: the last turn of a conversation, or the root of an agent run. Group labels whose group has no trace left are counted as &lt;code&gt;unresolved&lt;/code&gt;. &lt;code&gt;PromoteFragment::bulkReport()&lt;/code&gt; renders the outcome as sentences, replacing &lt;code&gt;bulkConfirmation()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Duplicate names are checked by &lt;code&gt;PromotionService::datasetWithLabel()&lt;/code&gt;, which compares trimmed, lowercased labels. &lt;code&gt;PromoteController::promote()&lt;/code&gt;, &lt;code&gt;PromoteController::bulk()&lt;/code&gt; and &lt;code&gt;EvalResultsController::promoteAnnotation()&lt;/code&gt; call it only for a new dataset target and return a visible refusal without writing. The annotation path also swaps a fresh dataset select and an empty name input out of band, using &lt;code&gt;AnnotationFragment::datasetSelect()&lt;/code&gt; and &lt;code&gt;::newDatasetInput()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code calling &lt;code&gt;PromoteFragment::bulkConfirmation()&lt;/code&gt; must switch to &lt;code&gt;PromoteFragment::bulkReport(array $report, string $datasetLabel, bool $newDataset)&lt;/code&gt;. Callers of the &lt;code&gt;PromotionService&lt;/code&gt; promote methods can now pass a &lt;code&gt;PromotionTarget&lt;/code&gt; as well as a dataset ref. The outcome array now includes &lt;code&gt;dataset_ref&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594765: Envelope import does not recognize a result that was first run on this site</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594765.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594765</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 09 Oct 2026 08:29:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594765"&gt;#3594765&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Importing an envelope that this site exported from one of its own runs no longer stores the run a second time. Previously, exporting a local run with &lt;code&gt;drush ai-eval:export-envelope&lt;/code&gt; and importing the file again created a duplicate result under a new &lt;code&gt;ai_eval/&amp;lt;dataset&amp;gt;&lt;/code&gt; target with status Imported, and the results list counted the run twice. Now the import reports &amp;quot;already on this site (run #N)&amp;quot; when the measurement is unchanged. If the same run carries a different measurement, it is reported as a conflict and nothing is written. The original run is not modified.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;EnvelopeImporter::__construct()&lt;/code&gt; takes an optional fifth argument, &lt;code&gt;?ResultEnvelopeBuilderInterface $resultEnvelope&lt;/code&gt; (default NULL). Without it, a site's own exports import as new rows as before.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The old duplicate check looked up existing rows by &lt;code&gt;import_key&lt;/code&gt;. Rows from local runs have a NULL &lt;code&gt;import_key&lt;/code&gt;, so they never matched. The fix does not set &lt;code&gt;import_key&lt;/code&gt; on native rows, because a non-NULL value marks a row as imported with no gate applied, and the duplicate path also compares a fingerprint.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;EnvelopeImporter&lt;/code&gt; gets a private &lt;code&gt;nativeRun()&lt;/code&gt; step that applies only to envelopes whose &lt;code&gt;source_metadata.source_name&lt;/code&gt; is &lt;code&gt;ai_eval&lt;/code&gt;. It parses the &lt;code&gt;evaluation_id&lt;/code&gt; (target, model, timestamp, row id) and loads the &lt;code&gt;ai_eval_result&lt;/code&gt; row with that id, target and timestamp and a NULL &lt;code&gt;import_key&lt;/code&gt;. It then rebuilds that row's envelope through &lt;code&gt;ResultEnvelopeBuilderInterface::buildFromResultRow()&lt;/code&gt; and requires the rebuilt &lt;code&gt;evaluation_id&lt;/code&gt; to match. The &lt;code&gt;measurement()&lt;/code&gt; and &lt;code&gt;sameMeasurement()&lt;/code&gt; helpers compare the &lt;code&gt;avg_score&lt;/code&gt; and &lt;code&gt;pass_rate&lt;/code&gt; items: scale, sample size, score, confidence interval bounds and &lt;code&gt;passed_gate&lt;/code&gt;. Numbers are compared within 1e-6. &lt;code&gt;corrected_pass_rate&lt;/code&gt; is deliberately excluded, since its presence and value depend on judge validation at export time. A metric that appears more than once makes the measurement ambiguous, which never counts as equal.&lt;/p&gt;
-&lt;p&gt;Limits noted in the code and changelog: the &lt;code&gt;evaluation_id&lt;/code&gt; names no site, so a run from another site with the same test id, start second and row id would read as local. A run without a run snapshot rebuilds its identity from the test's current configuration. If that test was later deleted or its model changed, the export no longer matches and imports as a new result, as before. No update hook is needed because matching uses the computed identity.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Only relevant if you instantiate &lt;code&gt;EnvelopeImporter&lt;/code&gt; yourself. Pass the result envelope builder as the optional fifth constructor argument to get round-trip detection. The core service definition in &lt;code&gt;ai_eval.services.yml&lt;/code&gt; was updated in the same commit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 8, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3537838: Field Widget Action throws error when associated Automator is removed from field</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3537838.md</link>
-      <guid isPermaLink="false">project/ai#3537838</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 08 Oct 2026 23:23:13 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +240/−0 · php +237 · yml +3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3537838"&gt;#3537838&lt;/a&gt; · 6 contributors · 20 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When an AI Automator was deleted or disabled on a field but a Field Widget Action (for example &amp;quot;Automator Text Suggestion&amp;quot;) still pointed to it, clicking the action's button on the edit form failed with &amp;quot;Oops, something went wrong&amp;quot; and a PHP fatal error. Now, deleting an automator also removes the Field Widget Actions that reference it from your form displays, so the broken button no longer appears.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_automators.cleanup&lt;/code&gt; service (&lt;code&gt;AiAutomatorCleanupService::cleanupActionsForAutomator()&lt;/code&gt;) and an &lt;code&gt;ai_automators_entity_predelete()&lt;/code&gt; hook in &lt;code&gt;ai_automators&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The error came from &lt;code&gt;AutomatorBaseAction::populateAutomatorValues()&lt;/code&gt; calling &lt;code&gt;get()&lt;/code&gt; on a &lt;code&gt;NULL&lt;/code&gt; automator after the referenced &lt;code&gt;ai_automator&lt;/code&gt; entity was gone. The maintainer said Field Widget Actions must not depend on AI Automators, because Automators build on Field Widget Actions. So the cleanup lives in &lt;code&gt;ai_automators&lt;/code&gt;. A new &lt;code&gt;ai_automators_entity_predelete()&lt;/code&gt; hook calls the &lt;code&gt;ai_automators.cleanup&lt;/code&gt; service for &lt;code&gt;AiAutomatorInterface&lt;/code&gt; entities. &lt;code&gt;AiAutomatorCleanupService::cleanupActionsForAutomator()&lt;/code&gt; loads all &lt;code&gt;entity_form_display&lt;/code&gt; entities and removes entries under each component's &lt;code&gt;third_party_settings.field_widget_actions&lt;/code&gt; whose &lt;code&gt;settings.automator_id&lt;/code&gt; matches the deleted automator. It saves the changed displays and logs each removal.&lt;/p&gt;
-&lt;p&gt;The MR also adds a guard in &lt;code&gt;AutomatorBaseAction::populateAutomatorValues()&lt;/code&gt;. If the configured &lt;code&gt;automator_id&lt;/code&gt; no longer loads, it logs a warning and returns the existing form element instead of failing. I could not confirm this guard in the current repo, because that code has since moved to &lt;code&gt;AutomatorFieldWidgetActionTrait&lt;/code&gt;. MR !917 also carried a parallel &lt;code&gt;field_widget_actions&lt;/code&gt; predelete hook and a stub &lt;code&gt;Autowire&lt;/code&gt; attribute class. The maintainer called that code unnecessary, and it is not present in the current repo. The cleanup runs only on automator deletion. Disabling the automator on a field, as in the reproduction steps, is not covered by it.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 24, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;sijumpk (QED42)&lt;/li&gt;
-&lt;li&gt;anjaliprasannan (QED42)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;sarvjeetsingh (QED42)&lt;/li&gt;
-&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
-&lt;li&gt;arisha (Zoocha)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;The first patch (sijumpk, MR !806) put the removal hook in &lt;code&gt;field_widget_actions&lt;/code&gt;. marcus_johansson pointed out that this reversed the dependency, since Field Widget Actions must not know about AI Automators. sarvjeetsingh moved the logic into &lt;code&gt;ai_automators&lt;/code&gt; as a cleanup service, and abhisekmazumdar finished the review comments. marcus_johansson tested removal, removal without Field Widget Actions installed, removal after uninstalling it, and form access. He also said the separate MR !917 should not have been needed.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3539071: AI chatbot response limited to 10 items when querying config entities like taxonomy vocabularies</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-agents/3539071.md</link>
-      <guid isPermaLink="false">project/ai_agents#3539071</guid>
-      <pubDate>Thu, 08 Oct 2026 22:05:24 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +1/−1 · php +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_agents/-/work_items/3539071"&gt;#3539071&lt;/a&gt; · 3 contributors · 6 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 3 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI agents that call tools with a parameter explicitly set to &lt;code&gt;0&lt;/code&gt; now pass that value to the tool. Before, &lt;code&gt;0&lt;/code&gt; was dropped, so the tool's default took over. In the reported case, asking the Drupal CMS Assistant chatbot how many taxonomy vocabularies exist returned only 10 and reported a count of 10, even when more existed. The issue is closed as fixed, but the merge request had not been committed when this was written.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;AiAgentEntityWrapper&lt;/code&gt;, where tool parameters from the agent's configured tools are applied to the tool plugin, the guard &lt;code&gt;if ($parameter_value)&lt;/code&gt; treated &lt;code&gt;0&lt;/code&gt; as empty and skipped &lt;code&gt;setContextValue()&lt;/code&gt;. The &lt;code&gt;amount&lt;/code&gt; context then fell back to its field-definition default of 10, which capped config entity listings. The proposed change in MR !168 is &lt;code&gt;if (!empty($parameter_value) || $parameter_value === 0)&lt;/code&gt;. The strict comparison only matches integer &lt;code&gt;0&lt;/code&gt;. Other falsy values, including the string &lt;code&gt;&amp;quot;0&amp;quot;&lt;/code&gt;, still behave as before. Reading this as &amp;quot;0 means no limit&amp;quot; is the issue author's framing, and I did not verify it in the tool code.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: July 31, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;sijumpk (QED42)&lt;/li&gt;
-&lt;li&gt;anjaliprasannan (QED42)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

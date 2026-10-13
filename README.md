@@ -1,4 +1,4 @@
-**TL;DR:** [1257 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1263 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,23 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_239 summaries · 54 new this week_
+_244 summaries · 59 new this week_
 
-- [#3586640: [Meta] ai_disclosure: EU AI Act Article 50 transparency module](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-initiative/3586640.md)
-- [#3594782: --as-user and caller_uid do not switch the Drupal account](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594782.md)
-- [#3594783: The run drops the agent's own error when it does not answer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594783.md)
+- [#3594796: Add a settings form and a requirements check for the content review judge](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594796.md)
+- [#3594795: Judge content review criteria without saving a node](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594795.md)
+- [#3594794: Add a judge for every criterion of a review rule](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594794.md)
+
+### Drupal Canvas
+
+_280 summaries · 7 new this week_
+
+- [#3591748: Hydrate components with diamond dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591748.md)
+- [#3591894: Error message for empty value is displayed for select props even when they're...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591894.md)
+- [#3591848: ∅ is added for empty fields, forcing translation and rendering on the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591848.md)
 
 ### Drupal CMS
 
-_119 summaries · 12 new this week_
+_119 summaries · 10 new this week_
 
 - [#3591493: Add package name to opt-in ping for telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591493.md)
 - [#3591491: 🤖 AI-assisted review of the telemetry feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591491.md)
@@ -22,19 +30,11 @@ _119 summaries · 12 new this week_
 
 ### Drupal Core
 
-_620 summaries · 8 new this week_
+_620 summaries · 7 new this week_
 
 - [#3625998: Update CKEditor5 version for Drupal core 10.6, 11.3, 11.4, 11.5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625998.md)
 - [#3613347: Re-use container in kernel tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md)
 - [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
-
-### Drupal Canvas
-
-_279 summaries · 6 new this week_
-
-- [#3591894: Error message for empty value is displayed for select props even when they're...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591894.md)
-- [#3591848: ∅ is added for empty fields, forcing translation and rendering on the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591848.md)
-- [#3592084: Canvas entity edit/delete/translation routes render in the front-end theme...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592084.md)
 
 
 ## Rector rules
