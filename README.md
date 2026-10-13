@@ -1,4 +1,4 @@
-**TL;DR:** [1263 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1268 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_244 summaries · 59 new this week_
+_248 summaries · 63 new this week_
 
-- [#3594796: Add a settings form and a requirements check for the content review judge](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594796.md)
-- [#3594795: Judge content review criteria without saving a node](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594795.md)
-- [#3594794: Add a judge for every criterion of a review rule](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594794.md)
+- [#3594797: Evaluate stored AI prompts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594797.md)
+- [#3594792: Evaluate answers through AI Answers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594792.md)
+- [#3594791: Let each question pass its own inputs to a workflow target](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594791.md)
+
+### Drupal Core
+
+_621 summaries · 8 new this week_
+
+- [#3250827: [policy, no patch] Use declare(strict_types=1) in new code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3250827.md)
+- [#3625998: Update CKEditor5 version for Drupal core 10.6, 11.3, 11.4, 11.5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625998.md)
+- [#3613347: Re-use container in kernel tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md)
 
 ### Drupal Canvas
 
@@ -27,14 +35,6 @@ _119 summaries · 10 new this week_
 - [#3591493: Add package name to opt-in ping for telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591493.md)
 - [#3591491: 🤖 AI-assisted review of the telemetry feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591491.md)
 - [#3591492: drupal_cms_site_template_base 2.2.3 requires Tagify 2, so 11 site templates of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591492.md)
-
-### Drupal Core
-
-_620 summaries · 7 new this week_
-
-- [#3625998: Update CKEditor5 version for Drupal core 10.6, 11.3, 11.4, 11.5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3625998.md)
-- [#3613347: Re-use container in kernel tests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3613347.md)
-- [#3594337: Add a command to export configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594337.md)
 
 
 ## Rector rules
