@@ -5,6 +5,59 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3594335: Add a module and theme uninstall command</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594335.md</link>
+      <guid isPermaLink="false">node/3594335</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 14 Oct 2026 06:37:33 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +580/−38 · php +579/−38 · txt +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3b94128e92964c45e6b4edeef666c3df8a3c60c2"&gt;3b94128&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3594335"&gt;#3594335&lt;/a&gt; · 9 contributors · 34 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core now has an &lt;code&gt;ex:uninstall&lt;/code&gt; console command (aliases &lt;code&gt;exun&lt;/code&gt;, &lt;code&gt;pm:uninstall&lt;/code&gt;, &lt;code&gt;pmu&lt;/code&gt;) that uninstalls modules or themes from the command line. It takes a comma-separated list of machine names. It lists the extensions it will remove, including dependents pulled in automatically, and asks for confirmation before removing the dependents. &lt;code&gt;--yes&lt;/code&gt; skips the prompt and &lt;code&gt;--dry-run&lt;/code&gt; shows what would happen without changing anything. It is the counterpart to the &lt;code&gt;ex:install&lt;/code&gt; command, as part of the CLI in Core initiative.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Both installer interfaces gained a new abstract method, so custom implementations of &lt;code&gt;ModuleInstallerInterface&lt;/code&gt; or &lt;code&gt;ThemeInstallerInterface&lt;/code&gt; must implement it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ModuleInstallerInterface::getModulesToUninstall()&lt;/code&gt; and &lt;code&gt;ThemeInstallerInterface::getThemesToUninstall()&lt;/code&gt; resolve the full, ordered set of extensions an uninstall would remove.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The command is &lt;code&gt;Drupal\Core\Extension\Command\ExtensionUninstallCommand&lt;/code&gt;, marked &lt;code&gt;@internal&lt;/code&gt;. It classifies each name as a module or theme, reports unknown names, and refuses to mix modules and themes in one invocation. It resolves the full set through the new &lt;code&gt;getModulesToUninstall()&lt;/code&gt; or &lt;code&gt;getThemesToUninstall()&lt;/code&gt; method. For modules it then runs &lt;code&gt;validateUninstall()&lt;/code&gt;, the same checks as the uninstall form, and reports blockers before changing anything. In non-interactive mode, extra dependents without &lt;code&gt;--yes&lt;/code&gt; throw &lt;code&gt;UserAbortException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;To make this possible, the dependency resolution that used to sit inside &lt;code&gt;ModuleInstaller::uninstall()&lt;/code&gt; and &lt;code&gt;ThemeInstaller::uninstall()&lt;/code&gt; was extracted into the two new public interface methods. &lt;code&gt;getModulesToUninstall()&lt;/code&gt; returns the installed modules to remove, including installed dependents when &lt;code&gt;$uninstall_dependents&lt;/code&gt; is TRUE. They are sorted by module weight, the order &lt;code&gt;uninstall()&lt;/code&gt; uses. It throws &lt;code&gt;UnknownExtensionException&lt;/code&gt; for unknown modules or dependents. &lt;code&gt;ModuleInstaller::uninstall()&lt;/code&gt; still returns FALSE in those cases, so its behavior for callers is unchanged.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;getThemesToUninstall()&lt;/code&gt; throws for themes that are not installed, the default theme and the admin theme. With &lt;code&gt;$uninstall_dependents&lt;/code&gt; TRUE it adds installed sub-themes to the list. &lt;code&gt;ThemeInstaller::uninstall()&lt;/code&gt; passes FALSE, so it still throws if a base theme's sub-theme is not listed explicitly. &lt;code&gt;ModulesUninstallConfirmForm::buildForm()&lt;/code&gt; now also calls &lt;code&gt;getModulesToUninstall()&lt;/code&gt;, so the confirmation list includes dependents in uninstall order.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom classes implementing &lt;code&gt;ModuleInstallerInterface&lt;/code&gt; or &lt;code&gt;ThemeInstallerInterface&lt;/code&gt; must add the new methods:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function getModulesToUninstall(array $module_list, bool $uninstall_dependents = TRUE): array;
+public function getThemesToUninstall(array $theme_list, bool $uninstall_dependents = TRUE): array;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 14, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mradcliffe (Kosada)&lt;/li&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;moshe weitzman&lt;/li&gt;
+&lt;li&gt;kristiantosney&lt;/li&gt;
+&lt;li&gt;vasyl vasylkiv&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3250827: [policy, no patch] Use declare(strict_types=1) in new code</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3250827.md</link>
       <guid isPermaLink="false">node/3250827</guid>
@@ -925,64 +978,6 @@ usort($items, fn($a, $b) =&amp;gt; NaturalSort::strnatcasecmp($a-&amp;gt;label()
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The patch stalled for months after the initial 2025 MR. robloach revived it, and dmundra reviewed by manually running a test recipe with &lt;code&gt;drush recipe&lt;/code&gt; against the MR and requested test coverage for the newly added exception paths (invalid item type, missing &lt;code&gt;item_name&lt;/code&gt;); robloach then added &lt;code&gt;testInvalidItemTypeIsRejected&lt;/code&gt; and &lt;code&gt;testMissingItemNameIsRejected&lt;/code&gt; to cover them. Committer longwave flagged that aliasing the action via &lt;code&gt;hook_config_action_alter()&lt;/code&gt; &amp;quot;decouples the plural action from the singular definition&amp;quot; and is a bit ugly, but accepted it as a pragmatic fix given that the &lt;code&gt;ConfigAction&lt;/code&gt; attribute doesn't support repeatable/alias definitions yet, leaving a cleaner alias mechanism for a followup.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3465228: Twig disallows dashes in variable names, so SDC should disallow it in prop names and slots</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3465228.md</link>
-      <guid isPermaLink="false">node/3465228</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 29 Sep 2026 12:50:52 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +92/−4 · php +59 · json +33/−4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/7dd6a4c9d48b1939b1e2bf018c6997a5638cda40"&gt;7dd6a4c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3465228"&gt;#3465228&lt;/a&gt; · 14 contributors · 35 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 19&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 14 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Single Directory Components (SDC) prop and slot names are now validated to ensure they are usable as Twig variables. Because Twig compiles a dash in a variable name as a subtraction operator, a prop or slot named something like &lt;code&gt;test-required-string&lt;/code&gt; silently broke templates instead of producing a clear error, costing developers debugging time. Component definitions with prop or slot names that don't start with a letter or underscore and continue with letters, digits, or underscores now fail validation immediately with a clear error message, rather than failing confusingly at render time. Variant names are unaffected, since they are used as string values (e.g. CSS modifiers) and never become Twig variable or block names.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Single Directory Component (SDC) prop and slot names must now match &lt;code&gt;^[a-zA-Z_][a-zA-Z0-9_]*$&lt;/code&gt; (valid Twig/PHP identifiers); previously dashes and other characters were tolerated even though they never worked correctly in Twig templates.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The fix lives in two places. &lt;code&gt;core/assets/schemas/v1/metadata.schema.json&lt;/code&gt; tightens &lt;code&gt;slotDefinition&lt;/code&gt;'s &lt;code&gt;patternProperties&lt;/code&gt; from &lt;code&gt;^[a-zA-Z0-9_-]+$&lt;/code&gt; to &lt;code&gt;^[a-zA-Z_][a-zA-Z0-9_]*$&lt;/code&gt;, and wraps &lt;code&gt;propDefinition&lt;/code&gt; in an &lt;code&gt;allOf&lt;/code&gt; alongside the existing draft-04 schema &lt;code&gt;$ref&lt;/code&gt; to add the same &lt;code&gt;patternProperties&lt;/code&gt;/&lt;code&gt;additionalProperties: false&lt;/code&gt; constraint for props (this was needed because &lt;code&gt;propDefinition&lt;/code&gt; delegates its base schema to &lt;code&gt;http://json-schema.org/draft-04/schema#&lt;/code&gt;, which can't be edited directly). &lt;code&gt;$comment&lt;/code&gt; annotations document why props/slots differ from variants.&lt;/p&gt;
-&lt;p&gt;Because prop names are validated against a JSON Schema draft version (draft-04, via &lt;code&gt;justinrainbow&lt;/code&gt;) that lacks &lt;code&gt;propertyNames&lt;/code&gt; support, &lt;code&gt;ComponentValidator::validateDefinition()&lt;/code&gt; in &lt;code&gt;core/lib/Drupal/Core/Theme/Component/ComponentValidator.php&lt;/code&gt; also gained an explicit PHP-side check: it filters &lt;code&gt;$prop_names&lt;/code&gt; against &lt;code&gt;/^[a-zA-Z_][a-zA-Z0-9_]*$/&lt;/code&gt; and throws &lt;code&gt;InvalidComponentException&lt;/code&gt; up front, before falling through to the JSON Schema validator, when it finds a name that doesn't match. This gives an explicit &amp;quot;Prop names must match the pattern...&amp;quot; error instead of a validator error that's harder to trace back to the actual cause.&amp;lt;/technical&amp;gt;
-&amp;lt;parameter name=&amp;quot;upgrade&amp;quot;&amp;gt;Rename any SDC prop or slot names that contain dashes, spaces, or a leading digit to use only letters, digits, and underscores, starting with a letter or underscore:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;props:
-  type: object
-  properties:
-    my-prop:   # invalid, will now throw InvalidComponentException
-      type: string
-    my_prop:   # valid
-      type: string
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The same pattern applies to &lt;code&gt;slots&lt;/code&gt;. &lt;code&gt;variants&lt;/code&gt; names are unaffected and may still contain dashes.&amp;lt;/upgrade&amp;gt;
-&amp;lt;parameter name=&amp;quot;collaboration&amp;quot;&amp;gt;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 1, 2024&lt;/li&gt;
-&lt;li&gt;Committed: September 29, 2026 (2 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pdureau&lt;/li&gt;
-&lt;li&gt;vensires (E-Sepia Web Innovation)&lt;/li&gt;
-&lt;li&gt;lirak&lt;/li&gt;
-&lt;li&gt;kwiseman (net2Community, Inc.)&lt;/li&gt;
-&lt;li&gt;penyaskito (Acquia)&lt;/li&gt;
-&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
