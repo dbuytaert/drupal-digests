@@ -1,4 +1,4 @@
-**TL;DR:** [1274 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1275 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_120 summaries · 11 new this week_
+_121 summaries · 12 new this week_
 
+- [#3591424: Recipes cannot be installed via UI due to bug with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591424.md)
 - [#3591495: Telemetry: switch from opt-in to opt-out](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591495.md)
 - [#3591493: Add package name to opt-in ping for telemetry](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591493.md)
-- [#3591491: 🤖 AI-assisted review of the telemetry feature](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591491.md)
 
 ### Drupal AI
 
