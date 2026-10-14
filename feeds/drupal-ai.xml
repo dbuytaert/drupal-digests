@@ -5,6 +5,131 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586791: Add Refusal Answer type to support OpenAI Decision API</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586791.md</link>
+      <guid isPermaLink="false">project/ai#3586791</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 14 Oct 2026 14:06:38 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586791"&gt;#3586791&lt;/a&gt; · 1 contributor · 6 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI module's Decision operation can now represent a model declining to answer an individual question. Previously a refusal, which OpenAI's Decision API can return, was treated as broken output and failed the whole response. Models that declare the new &lt;code&gt;decision_refusals&lt;/code&gt; capability may now refuse single questions while the other answers stay usable. Refusals from models that don't declare it still count as broken output.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AnswerValidation::forQuestion()&lt;/code&gt; gains an optional third parameter &lt;code&gt;$allow_refusal&lt;/code&gt; (default &lt;code&gt;FALSE&lt;/code&gt;); &lt;code&gt;AnswerFactory::fromArray()&lt;/code&gt; accepts a &lt;code&gt;refusal&lt;/code&gt; type.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;RefusalAnswer&lt;/code&gt; value, &lt;code&gt;AiModelCapability::DecisionRefusals&lt;/code&gt;, &lt;code&gt;AiDecisionRefusedException&lt;/code&gt;, and &lt;code&gt;DecisionResponse::isRefused()&lt;/code&gt; / &lt;code&gt;getRefusals()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A new &lt;code&gt;final&lt;/code&gt; class &lt;code&gt;Drupal\ai\OperationType\Decision\Value\RefusalAnswer&lt;/code&gt; implements &lt;code&gt;AnswerInterface&lt;/code&gt;. Its type is &lt;code&gt;'refusal'&lt;/code&gt; (&lt;code&gt;RefusalAnswer::TYPE&lt;/code&gt;), &lt;code&gt;getRaw()&lt;/code&gt; keeps the provider's wire data, and &lt;code&gt;toArray()&lt;/code&gt; returns only &lt;code&gt;['type' =&amp;gt; 'refusal']&lt;/code&gt;. &lt;code&gt;AnswerFactory::fromArray()&lt;/code&gt; gains a &lt;code&gt;refusal&lt;/code&gt; case.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AnswerValidation::forQuestion()&lt;/code&gt; takes a third parameter &lt;code&gt;bool $allow_refusal = FALSE&lt;/code&gt;. A &lt;code&gt;RefusalAnswer&lt;/code&gt; is accepted for any question type when it is TRUE, and otherwise throws &lt;code&gt;\InvalidArgumentException&lt;/code&gt;. &lt;code&gt;DecisionValidationEventSubscriber::postGenerate()&lt;/code&gt; only resolves the model's capabilities when the answer is a refusal. It checks the provider's &lt;code&gt;getDecisionCapabilities()&lt;/code&gt; for &lt;code&gt;AiModelCapability::DecisionRefusals&lt;/code&gt;. If the provider or model can't be resolved, it counts as not declared, and the &lt;code&gt;InvalidArgumentException&lt;/code&gt; becomes &lt;code&gt;AiBrokenOutputException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On &lt;code&gt;DecisionResponse&lt;/code&gt;, &lt;code&gt;isRefused($id)&lt;/code&gt; and &lt;code&gt;getRefusals()&lt;/code&gt; (question ids) were added. &lt;code&gt;getNoul()&lt;/code&gt;, &lt;code&gt;getChoice()&lt;/code&gt; and &lt;code&gt;getScore()&lt;/code&gt; now throw the new &lt;code&gt;AiDecisionRefusedException&lt;/code&gt; (an &lt;code&gt;\UnexpectedValueException&lt;/code&gt; implementing &lt;code&gt;AiExceptionInterface&lt;/code&gt;) when the question was refused, instead of the type-mismatch error. The capability's enum value is &lt;code&gt;decision_refusals&lt;/code&gt;, in the &lt;code&gt;decision&lt;/code&gt; operation type group.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Provider authors whose Decision API can decline a question should declare the capability and return a refusal answer:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;AiModelCapability::DecisionRefusals
+// wire answer: ['type' =&amp;gt; 'refusal', ...]; AnswerFactory::fromArray() turns it into RefusalAnswer
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Callers of &lt;code&gt;DecisionResponse&lt;/code&gt; should check &lt;code&gt;isRefused($id)&lt;/code&gt; or &lt;code&gt;getRefusals()&lt;/code&gt; before calling &lt;code&gt;getNoul()&lt;/code&gt;, &lt;code&gt;getChoice()&lt;/code&gt; or &lt;code&gt;getScore()&lt;/code&gt;, or catch &lt;code&gt;AiDecisionRefusedException&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;markusa&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3589000: drupal-a11y-dynamic recommends FocusCommand, which does not exist in core (use FocusFirstCommand)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589000.md</link>
+      <guid isPermaLink="false">project/ai_best_practices#3589000</guid>
+      <pubDate>Wed, 14 Oct 2026 13:37:04 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3589000"&gt;#3589000&lt;/a&gt; · 1 contributor · 7 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;drupal-a11y-dynamic&lt;/code&gt; skill in AI Best Practices told agents to return focus after AJAX responses with &lt;code&gt;\Drupal\Core\Ajax\FocusCommand&lt;/code&gt;, a class core does not have. Code generated from it would fail when the AJAX response was built. The skill and its evals now point to core's &lt;code&gt;FocusFirstCommand&lt;/code&gt;, and the skill notes that a heading or landmark used as a focus target needs &lt;code&gt;tabindex=&amp;quot;-1&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The skill's &lt;code&gt;SKILL.md&lt;/code&gt; now uses &lt;code&gt;FocusFirstCommand&lt;/code&gt; in its frontmatter description, the AJAX focus section and its code example, the inline-error example and the &amp;quot;What not to do&amp;quot; section. It describes the command as taking a container selector. Focus moves to the first tabbable element inside the container, or to the container itself if that is focusable. Otherwise focus stays on the triggering element, which is why heading or landmark targets need &lt;code&gt;tabindex=&amp;quot;-1&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The evals had locked in the wrong class. In the rubric for case B02, &lt;code&gt;FocusFirstCommand&lt;/code&gt; moves into &lt;code&gt;must_contain_any&lt;/code&gt;, and &lt;code&gt;new FocusCommand(&lt;/code&gt; and &lt;code&gt;Ajax\FocusCommand&lt;/code&gt; are listed under &lt;code&gt;must_not_contain&lt;/code&gt;, so an answer using the nonexistent class now fails. The dataset criteria, the &lt;code&gt;README.md&lt;/code&gt; and the static check (S06) text are updated to match.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 5, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;zorz (Point Blank)&lt;/li&gt;
+&lt;li&gt;hansrossel&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586784: Let Decision models declare a minimum number of choice options</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586784.md</link>
+      <guid isPermaLink="false">project/ai#3586784</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 14 Oct 2026 12:53:57 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586784"&gt;#3586784&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Decision providers can now declare a minimum number of options for choice questions. Some backends need at least two options and previously could only fail after a round trip to the server, because the shared contract suite assumed a single option was valid. With a declared minimum, a choice question with too few options is rejected with &lt;code&gt;AiBadRequestException&lt;/code&gt; before anything is sent. The provider's capability details now show the minimum next to the maximum. Existing declarations keep working unchanged.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;DecisionCapabilities&lt;/code&gt; gains a trailing nullable constructor argument and public property &lt;code&gt;minChoiceOptions&lt;/code&gt; (NULL means unknown, a single option is accepted).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;DecisionCapabilities&lt;/code&gt; takes &lt;code&gt;?int $minChoiceOptions = NULL&lt;/code&gt; as the last constructor argument. The constructor throws &lt;code&gt;\InvalidArgumentException&lt;/code&gt; if a minimum is set without &lt;code&gt;DecisionChoice&lt;/code&gt; support, is below 1, or exceeds &lt;code&gt;maxChoiceOptions&lt;/code&gt;. &lt;code&gt;DecisionRequestValidator::validate()&lt;/code&gt; calls a new private &lt;code&gt;checkMinimum()&lt;/code&gt; for choice questions, throwing &lt;code&gt;AiBadRequestException&lt;/code&gt; (&amp;quot;supplied N choice options; the minimum is M&amp;quot;) before the existing maximum check. An unknown (NULL) minimum is left to the provider.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DecisionCapabilityDetails::limits()&lt;/code&gt; now prints &amp;quot;Choice options: minimum X, maximum Y&amp;quot; (or &amp;quot;maximum Y&amp;quot;, or &amp;quot;not supported&amp;quot; when choice is not declared). It also reports &amp;quot;not supported&amp;quot; for score levels when score is not declared. The markup string changed from &amp;quot;Maximum choice options: ...&amp;quot; to &amp;quot;Choice options: ...&amp;quot;.&lt;/p&gt;
+&lt;p&gt;On the test side, &lt;code&gt;DecisionContractCases&lt;/code&gt; builds choice questions with &lt;code&gt;max(1, minChoiceOptions)&lt;/code&gt; options. &lt;code&gt;boundaries()&lt;/code&gt; adds an accepted &lt;code&gt;choices/&amp;lt;min&amp;gt;&lt;/code&gt; case and a rejected &lt;code&gt;choices/&amp;lt;min - 1&amp;gt;&lt;/code&gt; case when the minimum is above 1. &lt;code&gt;DecisionProviderContractTestBase::testDecisionDeclarationsAndDiscovery()&lt;/code&gt; now compares &lt;code&gt;minChoiceOptions&lt;/code&gt; too. &lt;code&gt;docs/developers/decision_provider_contract.md&lt;/code&gt; and &lt;code&gt;call_decision.md&lt;/code&gt; document the limit.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Providers whose models need more than one choice option can declare it in their capabilities, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new DecisionCapabilities([Capability::DecisionChoice], maxChoiceOptions: 26, minChoiceOptions: 2)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Providers that currently map a server 4xx for too few options can drop that workaround.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 4, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;markusa&lt;/li&gt;
+&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3594801: Show the workflow run on the results page, and small dashboard fixes</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594801.md</link>
       <guid isPermaLink="false">project/ai_eval#3594801</guid>
@@ -571,122 +696,6 @@ $this-&amp;gt;assertSame('Words that describe the album.', $schema['description'
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: October 9, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594784: Let the decision rubric judge see the question as well as the answer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594784.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594784</guid>
-      <category>Site owners</category>
-      <pubDate>Sun, 11 Oct 2026 15:38:05 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594784"&gt;#3594784&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The decision rubric judge can now see the test question as well as the answer. Previously it only received the answer, so rules such as &amp;quot;do not add facts that answer a different question&amp;quot; or &amp;quot;reply in the visitor's language&amp;quot; could not be judged. Set the new optional &lt;code&gt;input_key&lt;/code&gt; in &lt;code&gt;ai_eval.decision_rubric&lt;/code&gt; and every rule is asked with the question under that name. Left empty, nothing changes and stored calibrations keep applying. Once it is set, any calibration fitted on the answer alone stops applying and you need to fit a new one. The issue's demo-site validation (72 labeled answers) showed mixed results: fewer missed padding errors, but lower overall true positive rate. The author says the rule wording is probably the next thing to tune.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New optional &lt;code&gt;input_key&lt;/code&gt; in &lt;code&gt;ai_eval.decision_rubric&lt;/code&gt;; empty (default) keeps current behavior and stored calibrations.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;DecisionRubric&lt;/code&gt; gains a readonly &lt;code&gt;inputKey&lt;/code&gt; property, read from config &lt;code&gt;input_key&lt;/code&gt; and trimmed, defaulting to an empty string. In &lt;code&gt;DecisionRubricGrader::grade()&lt;/code&gt;, when &lt;code&gt;inputKey&lt;/code&gt; is non-empty the Decision state becomes &lt;code&gt;[$rubric-&amp;gt;inputKey =&amp;gt; $input, $rubric-&amp;gt;stateKey =&amp;gt; $response]&lt;/code&gt;. Otherwise it stays &lt;code&gt;[$rubric-&amp;gt;stateKey =&amp;gt; $response]&lt;/code&gt;. &lt;code&gt;DecisionRubric::fingerprint()&lt;/code&gt; adds &lt;code&gt;input_key&lt;/code&gt; to the fingerprint settings only when it is set, so a rubric without it keeps its old fingerprint and its stored calibrations stay valid. A rubric with it gets a new fingerprint, since a curve fitted on the answer alone says nothing about judging with the question. &lt;code&gt;problem()&lt;/code&gt; now refuses an &lt;code&gt;input_key&lt;/code&gt; equal to &lt;code&gt;state_key&lt;/code&gt;, because the answer would overwrite the input in the state array. The config schema &lt;code&gt;ai_eval.decision_rubric&lt;/code&gt; has the new &lt;code&gt;input_key&lt;/code&gt; string. &lt;code&gt;docs/user/usage/calibration.md&lt;/code&gt; gains a paragraph that suggests wording the rubric's question to mention the visitor's question and the assistant's reply.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Optional. To let the judge see the question, set &lt;code&gt;input_key&lt;/code&gt; in &lt;code&gt;ai_eval.decision_rubric&lt;/code&gt; (the docs use &lt;code&gt;question&lt;/code&gt; as an example) and reword the rubric question to say it is given a question and a reply. Then refit the calibration, because the fingerprint changes. Existing configs without &lt;code&gt;input_key&lt;/code&gt; need no action.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 11, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594781: Judges fail on models that refuse temperature; make the pin optional</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594781.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594781</guid>
-      <category>Site owners</category>
-      <pubDate>Sun, 11 Oct 2026 15:30:52 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594781"&gt;#3594781&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;LLM judges are pinned to temperature 0 and top_p 1 where the provider offers them. Some models, such as Claude Haiku 5.5, reject &lt;code&gt;temperature&lt;/code&gt;, and every judged question then failed and the run measured nothing. Now, if a model refuses a pinned setting, the judge asks again without the pin and the run records the judge as not pinned. A new settings checkbox, &amp;quot;Pin judges to temperature 0&amp;quot; (on by default), lets a site turn pinning off entirely and use the provider defaults.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10048()&lt;/code&gt; sets &lt;code&gt;pin_judge_decoding&lt;/code&gt; to TRUE on existing sites.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;pin_judge_decoding&lt;/code&gt; boolean in &lt;code&gt;ai_eval.settings&lt;/code&gt; (default TRUE), with schema and a checkbox on the settings form.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The setting is stored as &lt;code&gt;pin_judge_decoding&lt;/code&gt; and read in &lt;code&gt;LlmJudgeBase::create()&lt;/code&gt;. A public &lt;code&gt;setPinDecoding()&lt;/code&gt; setter exists for tests. &lt;code&gt;pinDeterministicDecoding()&lt;/code&gt; returns early when pinning is off or the model has already refused. It also keeps the provider configuration without the pinned knobs in &lt;code&gt;unpinnedConfiguration&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The chat call moved into a new private &lt;code&gt;askJudge()&lt;/code&gt;, used both directly and inside the rate-limit handler callback. On an exception, &lt;code&gt;refusesPinnedKnob()&lt;/code&gt; checks whether the message names a knob that was actually pinned (&lt;code&gt;temperature&lt;/code&gt; or &lt;code&gt;top_p&lt;/code&gt;, with spellings such as &lt;code&gt;top-p&lt;/code&gt; and &lt;code&gt;topP&lt;/code&gt;) within a few words of a refusal term (deprecated, unsupported, not supported, invalid, and similar). A message that only echoes the request, such as an invalid API key with &lt;code&gt;temperature=0&lt;/code&gt; in it, does not match. On a match, the provider is reset to the unpinned configuration, &lt;code&gt;lastPinnedDecoding&lt;/code&gt; is set to &lt;code&gt;[]&lt;/code&gt; so the run identity records no pin, and the call is retried once. Any other error is rethrown as before, so a broken provider does not cost two calls per question. A retry that hits a rate limit goes through the existing rate-limit handler.&lt;/p&gt;
-&lt;p&gt;The refusal is remembered in a static &lt;code&gt;$pinRefused&lt;/code&gt; array keyed by provider and model. It is static because stepped runs create a new judge per question. So the extra call happens once per process and model, not once per question.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run &lt;code&gt;drush updatedb&lt;/code&gt; to apply &lt;code&gt;ai_eval_update_10048()&lt;/code&gt;, which sets &lt;code&gt;pin_judge_decoding: true&lt;/code&gt; and keeps the existing behavior. To use provider defaults, uncheck &amp;quot;Pin judges to temperature 0&amp;quot; on the settings form, or set &lt;code&gt;pin_judge_decoding: false&lt;/code&gt; in &lt;code&gt;ai_eval.settings&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 9, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585933: Authorization denials surface as -32603 Internal server error, because the SDK dispatch loop swallows the exception</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585933.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585933</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 09 Oct 2026 16:24:49 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585933"&gt;#3585933&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Per-call authorization denials thrown from an SDK &lt;code&gt;RequestEvent&lt;/code&gt; subscriber never produced a 401 or 403. The SDK's per-message guard turned them into an HTTP 200 with JSON-RPC &lt;code&gt;-32603 Internal server error&lt;/code&gt; and an error-level log entry. The fix does not make that path work. It removes the handling that could never run and states the supported route: authorization belongs in a PSR-15 transport middleware, which answers a denial with its own 401 or 403 response before the SDK dispatches. Custom authorization code, and &lt;code&gt;mcp_server_oauth&lt;/code&gt; 1.0.0-alpha1 (which still throws the exception), cannot deny calls this way. That code needs to move to middleware.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;McpServerController&lt;/code&gt;, &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; and the &lt;code&gt;drush mcp:server&lt;/code&gt; command no longer catch or translate &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt;; &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; drops its logger constructor argument.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Drupal\mcp_server\Exception\McpAuthorizationDeniedException&lt;/code&gt; is deprecated in mcp_server:2.0.0-beta6 and removed in 3.0.0.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The exception is thrown inside &lt;code&gt;Protocol::doProcessInput()&lt;/code&gt;'s &lt;code&gt;catch (\Throwable)&lt;/code&gt; guard, so the controller &lt;code&gt;catch&lt;/code&gt; and &lt;code&gt;McpExceptionSubscriber&lt;/code&gt; could not be reached. Of the three options in the issue, the merged change picks neither out-of-band signalling nor an SDK change. It deletes the dead code and points to the existing &lt;code&gt;mcp_server.transport_middleware&lt;/code&gt; tag, where a middleware returns its own PSR-7 response without entering SDK dispatch or the kernel exception path.&lt;/p&gt;
-&lt;p&gt;Removed: the &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; catch in &lt;code&gt;McpServerController::handle()&lt;/code&gt;, the matching catch and JSON-RPC error writing in &lt;code&gt;McpServerCommands&lt;/code&gt;, and the exception branch in &lt;code&gt;McpExceptionSubscriber::onException()&lt;/code&gt;. That subscriber now only rewrites the route-level &lt;code&gt;AccessDeniedHttpException&lt;/code&gt; (&lt;code&gt;access mcp server&lt;/code&gt;) into &lt;code&gt;-32001&lt;/code&gt;/&lt;code&gt;-32002&lt;/code&gt; with 401/403, and its &lt;code&gt;@logger.channel.mcp_server&lt;/code&gt; argument was dropped from &lt;code&gt;mcp_server.exception_subscriber&lt;/code&gt; in &lt;code&gt;mcp_server.services.yml&lt;/code&gt;. The exception class stays, marked &lt;code&gt;@deprecated&lt;/code&gt;, only because &lt;code&gt;mcp_server_oauth&lt;/code&gt; 1.0.0-alpha1 still throws it.&lt;/p&gt;
-&lt;p&gt;The change adds a test fixture, &lt;code&gt;StateArmedDenyingMiddleware&lt;/code&gt; in &lt;code&gt;mcp_server_test&lt;/code&gt;, which denies &lt;code&gt;tools/call&lt;/code&gt; with 401 or 403 when armed through State. It also adds &lt;code&gt;TransportMiddlewareDenialTest&lt;/code&gt;, and the README authorization section and the &lt;code&gt;.ai/kenkeep&lt;/code&gt; notes now describe the middleware route. The kenkeep note also records that on SDK releases with php-sdk#528 the throw would escape to core as a 500 rather than &lt;code&gt;-32603&lt;/code&gt;, so throwing from a subscriber cannot deny a call either way.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace a &lt;code&gt;RequestEvent&lt;/code&gt; subscriber that throws &lt;code&gt;McpAuthorizationDeniedException&lt;/code&gt; with a PSR-15 middleware registered under the existing tag, which returns the denial itself:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;services:
-  mcp_server_test.middleware.denying:
-    class: Drupal\mcp_server_test\Middleware\StateArmedDenyingMiddleware
-    tags:
-      - { name: mcp_server.transport_middleware, priority: 50 }
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;In &lt;code&gt;process()&lt;/code&gt;, return a PSR-7 response with status 401 or 403, JSON-RPC error code &lt;code&gt;-32001&lt;/code&gt; or &lt;code&gt;-32002&lt;/code&gt;, and a &lt;code&gt;WWW-Authenticate&lt;/code&gt; header, instead of calling &lt;code&gt;$handler-&amp;gt;handle($request)&lt;/code&gt;. The test fixture &lt;code&gt;StateArmedDenyingMiddleware&lt;/code&gt; shows the full pattern.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;jurgenhaas (LakeDrops)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

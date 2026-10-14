@@ -5,6 +5,56 @@
     <description>Stay informed about developments in Drupal CMS.</description>
     <link>https://www.drupal.org/project/drupal_cms</link>
     <item>
+      <title>#3591494: CMS 2.2.4 causes contrib DrupalCmsCompatibilityTest to fail. Replace with a new job</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591494.md</link>
+      <guid isPermaLink="false">project/drupal_cms#3591494</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 14 Oct 2026 15:47:26 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3591494"&gt;#3591494&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Since Drupal CMS 2.2.4, the standard contrib &lt;code&gt;DrupalCmsCompatibilityTest&lt;/code&gt; fails with an &lt;code&gt;assert(is_array($all_choices) &amp;amp;&amp;amp; array_key_exists($choice, $all_choices))&lt;/code&gt; error, so the &lt;code&gt;Drupal CMS&lt;/code&gt; job in standard GitLab pipelines breaks. Rather than patching the test, Drupal CMS adds a new GitLab CI include, &lt;code&gt;site-templates.ci.yml&lt;/code&gt;, that smoke-tests a module, theme or recipe against a chosen site template. The old test is deprecated and now just skips itself.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;DrupalCmsCompatibilityTest&lt;/code&gt; is deprecated, now skips itself, and will be removed in the next major version of Drupal CMS.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;site-templates.ci.yml&lt;/code&gt; GitLab CI include with a &lt;code&gt;.cms-site-template-base&lt;/code&gt; job, configured through the &lt;code&gt;SITE_TEMPLATE&lt;/code&gt; and optional &lt;code&gt;PAGES&lt;/code&gt; variables.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;site-templates.ci.yml&lt;/code&gt; defines a hidden job, &lt;code&gt;.cms-site-template-base&lt;/code&gt;, marked &lt;code&gt;@api&lt;/code&gt;. It does not run the extension's PHPUnit tests. Its &lt;code&gt;script&lt;/code&gt; requires the extension to have a &lt;code&gt;composer.json&lt;/code&gt; with &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;type&lt;/code&gt;. It moves the extension into a temp directory and creates a &lt;code&gt;drupal/recommended-project&lt;/code&gt;. It adds the extension as a &lt;code&gt;path&lt;/code&gt; repository and requires the package at &lt;code&gt;@dev&lt;/code&gt;, the site template named in the &lt;code&gt;SITE_TEMPLATE&lt;/code&gt; variable, and &lt;code&gt;drush/drush&lt;/code&gt;. It then runs &lt;code&gt;drush site:install&lt;/code&gt; with &lt;code&gt;../recipes/&amp;lt;template&amp;gt;&lt;/code&gt;. The extension is installed by package type: &lt;code&gt;pm:enable&lt;/code&gt; for &lt;code&gt;drupal-module&lt;/code&gt;, &lt;code&gt;theme:install&lt;/code&gt; for &lt;code&gt;drupal-theme&lt;/code&gt;, &lt;code&gt;drush recipe&lt;/code&gt; for &lt;code&gt;drupal-recipe&lt;/code&gt;. Any other type fails the job. Finally it starts &lt;code&gt;drush serve&lt;/code&gt; on port 8888 and fetches each page in &lt;code&gt;PAGES&lt;/code&gt; with curl. &lt;code&gt;PAGES&lt;/code&gt; defaults to &lt;code&gt;/&lt;/code&gt; and &lt;code&gt;/user/login&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The file's header says the standard GitLab configuration already includes it. It also says a maintainer can add a per-template job that extends &lt;code&gt;.cms-site-template-base&lt;/code&gt; and sets &lt;code&gt;SITE_TEMPLATE&lt;/code&gt; (for example &lt;code&gt;drupal/haven&lt;/code&gt;). I did not confirm from this repo that the include is wired into the standard templates. The root &lt;code&gt;DrupalCmsCompatibilityTest.php&lt;/code&gt; is now &lt;code&gt;@deprecated&lt;/code&gt;: &lt;code&gt;testExtensionIsInstallable()&lt;/code&gt; only calls &lt;code&gt;markTestSkipped()&lt;/code&gt;. Its docblock says it will be removed in the next major version of Drupal CMS. The same commit also adds a large set of &lt;code&gt;.ddev&lt;/code&gt; helper commands and &lt;code&gt;.agents&lt;/code&gt; files for project development, which are unrelated to the fix.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Extension maintainers who relied on &lt;code&gt;DrupalCmsCompatibilityTest&lt;/code&gt; should switch to the new include. If the standard GitLab configuration doesn't already include it, add:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;include:
+  - { project: project/drupal_cms, file: site-templates.ci.yml }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To test against a specific site template, add a job:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;haven:
+  extends: .cms-site-template-base
+  variables:
+    SITE_TEMPLATE: drupal/haven
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The extension needs a &lt;code&gt;composer.json&lt;/code&gt; that defines &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;type&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 13, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;jonathan1055&lt;/li&gt;
+&lt;li&gt;fjgarlin (Drupal Association)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591424: Recipes cannot be installed via UI due to bug with append-default.settings.php.txt</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591424.md</link>
       <guid isPermaLink="false">project/drupal_cms#3591424</guid>
@@ -650,37 +700,6 @@
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3591478: Add Vardot site templates to the installer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591478.md</link>
-      <guid isPermaLink="false">project/drupal_cms#3591478</guid>
-      <pubDate>Mon, 28 Sep 2026 09:36:19 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal CMS&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal_cms/-/work_items/3591478"&gt;#3591478&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal CMS's installer now offers &amp;quot;The Rightup&amp;quot; as a site template option, alongside the existing choices like Byte, Haven, and Varbase. The Rightup is built by Vardot for newsrooms, magazines, publishers, and editorial teams, and includes news and podcast listings, article and episode pages, section landing pages, filterable search, a newsletter, and a home page feed ticker that editors curate from an entity queue (falling back to the newest published content). It uses the Vartheme BS5 Rightup theme and is built with Drupal Canvas. Anyone running the Drupal CMS installer will now see it listed with its screenshot, description, and links to learn more or try a live demo.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is a single new entry added to &lt;code&gt;drupal_cms_installer/site-templates.yml&lt;/code&gt;, the curated list the installer reads to populate its site template chooser. No code changes were needed since the file already supports everything the entry requires: &lt;code&gt;name&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;screenshot&lt;/code&gt;, &lt;code&gt;package&lt;/code&gt; (resolved from Packagist as &lt;code&gt;drupal/rightup&lt;/code&gt;), &lt;code&gt;links&lt;/code&gt; (Learn more, Demo, Documentation), and &lt;code&gt;creator&lt;/code&gt; (Vardot). The entry follows the same shape used by other Vardot-supplied templates already in the file, such as &lt;code&gt;varbase_starter&lt;/code&gt;, &lt;code&gt;educare&lt;/code&gt;, and &lt;code&gt;horizonaid&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 27, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;rajab natshah (Webship)&lt;/li&gt;
-&lt;li&gt;pameeela (Technocrat)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
