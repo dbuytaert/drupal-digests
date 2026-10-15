@@ -1,28 +1,28 @@
-**TL;DR:** [1282 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1283 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal CMS
+
+_123 summaries · 11 new this week_
+
+- [#3591496: Drupal CMS 2.2.4 : Read-only installs have no site templates and the template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591496.md)
+- [#3591494: CMS 2.2.4 causes contrib DrupalCmsCompatibilityTest to fail. Replace with a new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591494.md)
+- [#3591424: Recipes cannot be installed via UI due to bug with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591424.md)
+
 ### Drupal Canvas
 
-_282 summaries · 7 new this week_
+_282 summaries · 5 new this week_
 
 - [#3592127: Checkbox shows stale content after publishing the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md)
 - [#3592132: Allow modules to add operations to the Canvas content list](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592132.md)
 - [#3591748: Hydrate components with diamond dependencies](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591748.md)
 
-### Drupal CMS
-
-_122 summaries · 10 new this week_
-
-- [#3591494: CMS 2.2.4 causes contrib DrupalCmsCompatibilityTest to fail. Replace with a new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591494.md)
-- [#3591424: Recipes cannot be installed via UI due to bug with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591424.md)
-- [#3591495: Telemetry: switch from opt-in to opt-out](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591495.md)
-
 ### Drupal AI
 
-_256 summaries · 66 new this week_
+_256 summaries · 63 new this week_
 
 - [#3586791: Add Refusal Answer type to support OpenAI Decision API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586791.md)
 - [#3589000: drupal-a11y-dynamic recommends FocusCommand, which does not exist in core (use...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589000.md)
