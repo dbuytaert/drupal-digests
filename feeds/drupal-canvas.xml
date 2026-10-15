@@ -5,6 +5,53 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592085: Canvas AI: Let the user stop a running chat turn</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md</link>
+      <guid isPermaLink="false">project/canvas#3592085</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 15 Oct 2026 12:49:38 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592085"&gt;#3592085&lt;/a&gt; · 1 contributor · 63 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the Canvas AI dev chat (&lt;code&gt;AiWizardDev&lt;/code&gt;), the user can now stop the agent while it is working. A stop button shows only during a running turn. Pressing it drops the in-flight request, stops applying further placements or edits, clears the loader, and unlocks the input and Tools selector. The chat adds the assistant message &amp;quot;You interrupted the agent. What would you like to change?&amp;quot; and the progress row shows a neutral stopped icon, not the completed check. Work already applied to the page stays, and the user can undo it from the editor. The next message starts a fresh turn and does not resume the stopped one. The server is not interrupted: PHP already running finishes its current step. The original non-dev &lt;code&gt;AiWizard.tsx&lt;/code&gt; is untouched.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CanvasAiTempStore::getStoredConversationState()&lt;/code&gt; now requires a &lt;code&gt;$request_id&lt;/code&gt; argument. &lt;code&gt;setStoredConversationState()&lt;/code&gt; now takes &lt;code&gt;$request_id&lt;/code&gt; as its second argument and an optional &lt;code&gt;$resumed_request_id&lt;/code&gt; as its last. The dev AI endpoint reads a new &lt;code&gt;last_successful_request_id&lt;/code&gt; prompt key.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;last_successful_request_id&lt;/code&gt; field in the dev AI request payload, naming the checkpoint the next turn resumes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The fix is in &lt;code&gt;AiWizardDev.tsx&lt;/code&gt; and &lt;code&gt;CanvasDevAiBuilder&lt;/code&gt;, in &lt;code&gt;canvas_dev_ai&lt;/code&gt;. The client keeps a per-turn &lt;code&gt;stopped&lt;/code&gt; flag that the hop loop and the placement and edit batches check (&lt;code&gt;isStopped()&lt;/code&gt;), and it aborts the fetch. This is needed because aborting alone only rejects the current request.&lt;/p&gt;
+&lt;p&gt;A stopped turn can still finish on the server and write its agent state. If the next turn resumed that state, it could send an unrun tool call back to the model. To prevent this, the client now sends &lt;code&gt;last_successful_request_id&lt;/code&gt; with every hop. This is the last turn that was fully applied and not stopped. &lt;code&gt;CanvasDevAiBuilder::prepareAgent()&lt;/code&gt; resumes only the checkpoint stored under that request ID, and otherwise seeds the agent from the client transcript. A stopped turn is never named, so it is never resumed.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CanvasAiTempStore&lt;/code&gt; conversation state is now a map keyed by request ID. It holds at most two entries: the checkpoint the current turn resumed from, and the one it wrote. Older entries, including those from stopped turns, are dropped on the next write. When &lt;code&gt;keep_tool_calls_in_history&lt;/code&gt; is off, or the turn fails or is not solvable, all checkpoints are deleted. &lt;code&gt;placementUtils.ts&lt;/code&gt; was also changed so placements can be cut short when a stop lands.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Callers of the &lt;code&gt;CanvasAiTempStore&lt;/code&gt; conversation methods must now pass request IDs:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$store-&amp;gt;getStoredConversationState($conversation_id, $request_id);
+$store-&amp;gt;setStoredConversationState($conversation_id, $request_id, $agent_id, $state, $resumed_request_id);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Clients of the dev AI endpoint should send &lt;code&gt;last_successful_request_id&lt;/code&gt; in the prompt payload. Without it the turn is seeded from the transcript.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
+&lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
+&lt;li&gt;rduterte (Cambridge University Press &amp;amp; Assessment)&lt;/li&gt;
+&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592127: Checkbox shows stale content after publishing the page</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md</link>
       <guid isPermaLink="false">project/canvas#3592127</guid>
@@ -711,52 +758,6 @@ const client = useJsonApiClient();
 &lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;li&gt;ankithashetty (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592128: Remove experimental Canvas Headless properties and CLI flag</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592128.md</link>
-      <guid isPermaLink="false">project/canvas#3592128</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 25 Sep 2026 09:43:36 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592128"&gt;#3592128&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas Headless submodule has graduated out of experimental status. It is no longer marked &lt;code&gt;hidden&lt;/code&gt; or &lt;code&gt;experimental&lt;/code&gt;, so it now shows up and can be enabled like any other module instead of being concealed from the module list. Its description was also updated to reflect that it connects a headless frontend app to Canvas for editing and preview. Separately, the &lt;code&gt;@drupal-canvas/create&lt;/code&gt; scaffolding CLI no longer requires the &lt;code&gt;--experimental-headless&lt;/code&gt; flag: all headless frontend templates (Next.js, Astro, Nuxt, TanStack Start, Angular) are now offered directly in the interactive template picker, and non-interactive runs that omit &lt;code&gt;--template&lt;/code&gt; fall back to the &lt;code&gt;default&lt;/code&gt; template instead of erroring out.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The &lt;code&gt;canvas_headless&lt;/code&gt; submodule is no longer &lt;code&gt;hidden&lt;/code&gt;/&lt;code&gt;experimental&lt;/code&gt;, so it appears in the module list and can be enabled directly.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;@drupal-canvas/create&lt;/code&gt; CLI's &lt;code&gt;--experimental-headless&lt;/code&gt; flag and the &lt;code&gt;experimental&lt;/code&gt;/&lt;code&gt;experimentalHeadless&lt;/code&gt; options on its &lt;code&gt;Template&lt;/code&gt; and &lt;code&gt;CreateOptions&lt;/code&gt; types were removed.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;modules/canvas_headless/canvas_headless.info.yml&lt;/code&gt;, the &lt;code&gt;lifecycle: experimental&lt;/code&gt; and &lt;code&gt;hidden: true&lt;/code&gt; keys were removed and the module description was rewritten. In the &lt;code&gt;@drupal-canvas/create&lt;/code&gt; package, the &lt;code&gt;experimental&lt;/code&gt; flag on each &lt;code&gt;Template&lt;/code&gt; (in &lt;code&gt;templates.json&lt;/code&gt; and the &lt;code&gt;Template&lt;/code&gt; type) was dropped, along with the &lt;code&gt;experimentalHeadless&lt;/code&gt; option on &lt;code&gt;CreateOptions&lt;/code&gt; and the &lt;code&gt;--experimental-headless&lt;/code&gt; Commander option. The template selection logic in the CLI's main command was simplified to always build its list from &lt;code&gt;predefinedTemplates&lt;/code&gt; rather than filtering by an &lt;code&gt;experimental&lt;/code&gt; flag; the special-case branch that auto-selected a single available template, or exited with an error in non-interactive mode when none was specified, was replaced with a straightforward fallback to the &lt;code&gt;default&lt;/code&gt; template for non-interactive runs.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Remove any use of the &lt;code&gt;--experimental-headless&lt;/code&gt; flag from scripts or documentation that invoke the CLI:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;# before
-npx @drupal-canvas/create@latest --experimental-headless
-
-# after
-npx @drupal-canvas/create@latest
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;The Canvas Headless module can now be enabled directly (it is no longer &lt;code&gt;hidden&lt;/code&gt;), so no special discovery step is needed to find it in the module list.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
