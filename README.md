@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_259 summaries · 65 new this week_
+_259 summaries · 62 new this week_
 
 - [#3583075: Rename ContextDefinitionNormalizer now that it normalizes input and output...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583075.md)
 - [#3589004: Eval runner: add a Kiro CLI provider](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589004.md)
@@ -14,7 +14,7 @@ _259 summaries · 65 new this week_
 
 ### Drupal Canvas
 
-_283 summaries · 6 new this week_
+_283 summaries · 4 new this week_
 
 - [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
 - [#3592127: Checkbox shows stale content after publishing the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md)
