@@ -1,16 +1,24 @@
-**TL;DR:** [1289 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1293 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_625 summaries · 9 new this week_
+
+- [#3571580: add a generic bundle type entity delete form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571580.md)
+- [#3114467: 'Negate' form value for condition plugins should be cast to boolean in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3114467.md)
+- [#3627629: Remove search module coverage from robots.txt](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627629.md)
+
 ### Drupal AI
 
-_260 summaries · 63 new this week_
+_262 summaries · 65 new this week_
 
+- [#3588981: Export skill-harness results as every_eval_ever 0.2.2 envelopes (to_eee.py...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588981.md)
+- [#3588982: Add a canvas-migration eval instrument (agentic site-to-Canvas migration grader)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588982.md)
 - [#3589007: composer reinstall and composer install --no-dev delete ai_best_practices.yaml...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589007.md)
-- [#3583075: Rename ContextDefinitionNormalizer now that it normalizes input and output...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583075.md)
-- [#3589004: Eval runner: add a Kiro CLI provider](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589004.md)
 
 ### Drupal Canvas
 
@@ -19,14 +27,6 @@ _283 summaries · 4 new this week_
 - [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
 - [#3592127: Checkbox shows stale content after publishing the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md)
 - [#3592132: Allow modules to add operations to the Canvas content list](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592132.md)
-
-### Drupal Core
-
-_623 summaries · 8 new this week_
-
-- [#3627629: Remove search module coverage from robots.txt](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627629.md)
-- [#3594335: Add a module and theme uninstall command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594335.md)
-- [#3250827: [policy, no patch] Use declare(strict_types=1) in new code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3250827.md)
 
 ### Drupal CMS
 
