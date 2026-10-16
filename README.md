@@ -1,4 +1,4 @@
-**TL;DR:** [1288 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1289 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_259 summaries · 62 new this week_
+_260 summaries · 63 new this week_
 
+- [#3589007: composer reinstall and composer install --no-dev delete ai_best_practices.yaml...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589007.md)
 - [#3583075: Rename ContextDefinitionNormalizer now that it normalizes input and output...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583075.md)
 - [#3589004: Eval runner: add a Kiro CLI provider](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589004.md)
-- [#3594805: Eval Commons schemas are out of date with the 1.1.x targets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594805.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _623 summaries · 8 new this week_
 
 ### Drupal CMS
 
-_123 summaries · 11 new this week_
+_123 summaries · 7 new this week_
 
 - [#3591496: Drupal CMS 2.2.4 : Read-only installs have no site templates and the template...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591496.md)
 - [#3591494: CMS 2.2.4 causes contrib DrupalCmsCompatibilityTest to fail. Replace with a new...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591494.md)
