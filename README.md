@@ -22,7 +22,7 @@ _625 summaries · 9 new this week_
 
 ### Drupal AI
 
-_262 summaries · 65 new this week_
+_262 summaries · 63 new this week_
 
 - [#3588981: Export skill-harness results as every_eval_ever 0.2.2 envelopes (to_eee.py...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588981.md)
 - [#3588982: Add a canvas-migration eval instrument (agentic site-to-Canvas migration grader)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588982.md)
