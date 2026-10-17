@@ -1,8 +1,16 @@
-**TL;DR:** [1294 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1296 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_627 summaries · 9 new this week_
+
+- [#2879023: Batch is dependent on the order of query string parameters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2879023.md)
+- [#3513035: Add constraint to check that the max delta for a field item list does not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3513035.md)
+- [#3571580: add a generic bundle type entity delete form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571580.md)
 
 ### Drupal Canvas
 
@@ -11,14 +19,6 @@ _284 summaries · 5 new this week_
 - [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
 - [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
 - [#3592127: Checkbox shows stale content after publishing the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md)
-
-### Drupal Core
-
-_625 summaries · 7 new this week_
-
-- [#3571580: add a generic bundle type entity delete form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571580.md)
-- [#3114467: 'Negate' form value for condition plugins should be cast to boolean in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3114467.md)
-- [#3627629: Remove search module coverage from robots.txt](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627629.md)
 
 ### Drupal AI
 
