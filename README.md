@@ -14,7 +14,7 @@ _284 summaries · 5 new this week_
 
 ### Drupal Core
 
-_625 summaries · 9 new this week_
+_625 summaries · 7 new this week_
 
 - [#3571580: add a generic bundle type entity delete form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3571580.md)
 - [#3114467: 'Negate' form value for condition plugins should be cast to boolean in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3114467.md)
