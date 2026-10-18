@@ -14,7 +14,7 @@ _267 summaries · 68 new this week_
 
 ### Drupal Core
 
-_627 summaries · 9 new this week_
+_627 summaries · 8 new this week_
 
 - [#2879023: Batch is dependent on the order of query string parameters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2879023.md)
 - [#3513035: Add constraint to check that the max delta for a field item list does not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3513035.md)
