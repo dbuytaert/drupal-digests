@@ -1,8 +1,16 @@
-**TL;DR:** [1296 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1301 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_267 summaries · 68 new this week_
+
+- [#3586448: Disable agent subscriptions for Languages and gate Specific Entities on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586448.md)
+- [#3586388: Align scope scoring, language service, and contextual selection behavior](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586388.md)
+- [#3586207: Conditional Subcontext Provider Calls](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586207.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _284 summaries · 5 new this week_
 - [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
 - [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
 - [#3592127: Checkbox shows stale content after publishing the page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592127.md)
-
-### Drupal AI
-
-_262 summaries · 63 new this week_
-
-- [#3588981: Export skill-harness results as every_eval_ever 0.2.2 envelopes (to_eee.py...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588981.md)
-- [#3588982: Add a canvas-migration eval instrument (agentic site-to-Canvas migration grader)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588982.md)
-- [#3589007: composer reinstall and composer install --no-dev delete ai_best_practices.yaml...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589007.md)
 
 ### Drupal CMS
 

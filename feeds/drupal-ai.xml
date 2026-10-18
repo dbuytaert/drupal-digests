@@ -5,6 +5,237 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586448: Disable agent subscriptions for Languages and gate Specific Entities on availability</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586448.md</link>
+      <guid isPermaLink="false">project/ai_context#3586448</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 18 Oct 2026 02:50:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586448"&gt;#3586448&lt;/a&gt; · 1 contributor · 15 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In AI Context, agents can no longer subscribe to Languages. A language tag on an item no longer ranks it higher for an agent. Items are still dropped when the request language doesn't match, and they are still included in Relevant and Broad when it does. In Minimal mode, items tagged only with a language are no longer injected unless they use Always include. Existing language subscriptions stay in agent config but are ignored. Sites without Dynamic Entity Reference now list Specific Entities as Unavailable on the scope overview, where it used to be missing. Rebuild caches after updating. No update hook or config change is needed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; No config change; existing agent &lt;code&gt;scope_subscriptions.language&lt;/code&gt; values are preserved but ignored.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;getParticipatingSubscriptions()&lt;/code&gt; added to the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;AiContextScopeResolverInterface&lt;/code&gt;; &lt;code&gt;ai_context_ai_context_scope_info_alter()&lt;/code&gt; is no longer implemented.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Languages now overrides &lt;code&gt;supportsSubscriptions()&lt;/code&gt; to &lt;code&gt;FALSE&lt;/code&gt; and keeps &lt;code&gt;supportsSituationalMatch()&lt;/code&gt; as &lt;code&gt;TRUE&lt;/code&gt;, so its capability row is &lt;code&gt;language =&amp;gt; [FALSE, FALSE, TRUE]&lt;/code&gt;. The request language from &lt;code&gt;AiContextLanguageService::detect()&lt;/code&gt; is always known, so &lt;code&gt;matchesRequestContext()&lt;/code&gt; is never NULL. A subscription could only re-rank items and never broaden reach, the same reasoning as Roles. Form hiding, the &amp;quot;do not allow subscriptions&amp;quot; note, the scoring skip and save-time preservation of stored values follow from the capability.&lt;/p&gt;
+&lt;p&gt;Changing the capability alone leaked language-only items into Minimal. &lt;code&gt;prefilterItemIdsByScope()&lt;/code&gt; is also used for Global index lookup, so non-subscription scopes can't be stripped inside it. The internal resolver (&lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;AiContextScopeResolverInterface&lt;/code&gt;) gains &lt;code&gt;getParticipatingSubscriptions()&lt;/code&gt;. It drops empty lists and scopes that are disabled, unavailable or &lt;code&gt;supportsSubscriptions(): FALSE&lt;/code&gt;. The selector and budget calculator call it before prefilter and subscribed-ID resolution. This also fixes the same leak for stored Roles subscriptions.&lt;/p&gt;
+&lt;p&gt;Specific Entities was handled differently from Languages: &lt;code&gt;ai_context_ai_context_scope_info_alter()&lt;/code&gt; removed its &lt;code&gt;entity_item&lt;/code&gt; definition when &lt;code&gt;dynamic_entity_reference&lt;/code&gt; was missing. That made its capability unreadable, so &lt;code&gt;calculateScopeScore()&lt;/code&gt; carried a hardcoded skip list (&lt;code&gt;global&lt;/code&gt;, &lt;code&gt;entity_item&lt;/code&gt;, &lt;code&gt;target_entity&lt;/code&gt;). Now &lt;code&gt;AiContextScopeEntityItem::isAvailable()&lt;/code&gt; reports whether DER is installed, the alter hook implementation is removed, and the skip list is gone. Scoring and &lt;code&gt;getParticipatingSubscriptions()&lt;/code&gt; decide purely by capability. A stored &lt;code&gt;entity_item&lt;/code&gt; subscription on a non-DER site previously scored at the minimum weight and diluted other dimensions (90/91 instead of 90/90). Because the settings tab is now reachable while the scope is unavailable, &lt;code&gt;validateSettingsForm()&lt;/code&gt; no longer queries the missing &lt;code&gt;entity_items&lt;/code&gt; field, which otherwise threw a &lt;code&gt;QueryException&lt;/code&gt;. The local task deriver is the one &lt;code&gt;getScopePlugins()&lt;/code&gt; consumer that doesn't gate on availability, so the tab shows up.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Rebuild caches (&lt;code&gt;drush cr&lt;/code&gt;) after deploying so plugin definitions and the agent form pick up the new capability and availability. Stored &lt;code&gt;scope_subscriptions.language&lt;/code&gt; values on agents are kept but have no effect.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 23, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;tormi (Mearra (formerly known as Wunder))&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586388: Align scope scoring, language service, and contextual selection behavior</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586388.md</link>
+      <guid isPermaLink="false">project/ai_context#3586388</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 18 Oct 2026 02:50:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586388"&gt;#3586388&lt;/a&gt; · 1 contributor · 28 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Scope ordering, subscription scoring and language handling in AI Context now follow one rule. A scope plugin's &lt;code&gt;weight&lt;/code&gt; sets both its position in the UI and its influence on scoring, and higher values come first. Entity Bundle and Site Section scoped items are now excluded when no entity or request is available, instead of staying eligible. Content language is now detected the same way for selection, the language scope, and the list and load-by-id function calls. This includes AJAX calls that carry the language only in the Referer header.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Scope plugin &lt;code&gt;weight&lt;/code&gt; now means higher = displayed first and scored more strongly (previously lower = first). The &lt;code&gt;AiContextScope&lt;/code&gt; attribute default weight changed from 0 to 1, and &lt;code&gt;AiContextScopeBase::getWeight()&lt;/code&gt; falls back to 1.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_context.detected_language&lt;/code&gt; cache context, used by selection cache metadata.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Built-in weights are now Global 100, Use Case 70, Entity Type (shown as Entity Bundle) 60, Site Section 50, Tag 40, Language 30 and Specific Entities (&lt;code&gt;entity_item&lt;/code&gt;) 10. Scores use the weight directly through a &lt;code&gt;max(1, weight)&lt;/code&gt; clamp in &lt;code&gt;AiContextScopeResolver&lt;/code&gt;, replacing &lt;code&gt;abs(weight) + 1&lt;/code&gt;. Scoring skips scopes where &lt;code&gt;supportsSubscriptions()&lt;/code&gt; is FALSE. For plugin IDs with no plugin instance it also skips &lt;code&gt;global&lt;/code&gt;, &lt;code&gt;entity_item&lt;/code&gt; and &lt;code&gt;target_entity&lt;/code&gt;. &lt;code&gt;AiContextScopeManager&lt;/code&gt; sorts by weight descending with plugin ID as the tiebreaker. It no longer lists &lt;code&gt;ai_context&lt;/code&gt; provider plugins before other modules, so custom plugins can fall between built-ins.&lt;/p&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\ai_context\Service\AiContextLanguageService&lt;/code&gt; (&lt;code&gt;ai_context.language_service&lt;/code&gt;, marked &lt;code&gt;@internal&lt;/code&gt;) provides &lt;code&gt;detect()&lt;/code&gt;, &lt;code&gt;translateItem()&lt;/code&gt; and &lt;code&gt;translateItems()&lt;/code&gt;. It replaces &lt;code&gt;AiContextLanguageDetectorTrait&lt;/code&gt;, which is deleted, and the private &lt;code&gt;translateItems()&lt;/code&gt; copies in &lt;code&gt;AiContextSelector&lt;/code&gt; and &lt;code&gt;LoadAiContextItemById&lt;/code&gt;. &lt;code&gt;AiContextSelector&lt;/code&gt;, &lt;code&gt;AiContextScopeLanguage&lt;/code&gt;, &lt;code&gt;ListAiContextItems&lt;/code&gt; and &lt;code&gt;LoadAiContextItemById&lt;/code&gt; all use it. The &lt;code&gt;AiContextSelector&lt;/code&gt; constructor now takes the language service in place of &lt;code&gt;LanguageManagerInterface&lt;/code&gt;. &lt;code&gt;AiContextItemRevisionOverviewForm&lt;/code&gt; drops its unused &lt;code&gt;languageManager&lt;/code&gt; argument. A new &lt;code&gt;AiContextDetectedLanguageCacheContext&lt;/code&gt; returns &lt;code&gt;detect()&lt;/code&gt; as its value and itself depends on &lt;code&gt;languages:language_content&lt;/code&gt; and &lt;code&gt;url.path&lt;/code&gt;. &lt;code&gt;AiContextSelector&lt;/code&gt; now uses it in place of &lt;code&gt;languages:language_content&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextScopeEntityType&lt;/code&gt; gains &lt;code&gt;matchesCurrentContext()&lt;/code&gt;: no item values gives NULL (neutral), no current value gives FALSE, otherwise a match test. &lt;code&gt;AiContextScopeSiteSection&lt;/code&gt; returns FALSE instead of NULL when there is no current request. &lt;code&gt;ListAiContextItems&lt;/code&gt; seeds the current entity from &lt;code&gt;entity_type&lt;/code&gt; and &lt;code&gt;entity_id&lt;/code&gt; through &lt;code&gt;AiContextCurrentEntityResolver::setCurrentEntity()&lt;/code&gt; before &lt;code&gt;filterByCurrentContext()&lt;/code&gt;, and clears it in a &lt;code&gt;finally&lt;/code&gt; block.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom scope plugins that declared a &lt;code&gt;weight&lt;/code&gt; for the old &amp;quot;lower is first&amp;quot; ordering need new values. For example, the built-in plugins changed like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// AiContextScopeGlobal
+weight: 100,   // was -100
+// AiContextScopeUseCase
+weight: 70,    // was -10
+// AiContextScopeLanguage
+weight: 30,    // was 0
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pick a value between the built-in weights (for example 65, between Use Case and Entity Bundle) to place a custom scope. Code that calls &lt;code&gt;ListAiContextItems&lt;/code&gt; for bundle-scoped content must pass &lt;code&gt;entity_type&lt;/code&gt; and &lt;code&gt;entity_id&lt;/code&gt;, because bundle-scoped items are now rejected when no entity can be resolved.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 7, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;lbesenyei (Brainsum)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;sjpagan&lt;/li&gt;
+&lt;li&gt;tormi (Mearra (formerly known as Wunder))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586207: Conditional Subcontext Provider Calls</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586207.md</link>
+      <guid isPermaLink="false">project/ai_context#3586207</guid>
+      <category>Site owners</category>
+      <pubDate>Sun, 18 Oct 2026 02:50:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586207"&gt;#3586207&lt;/a&gt; · 1 contributor · 40 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Conditional subcontext children used to cost one synchronous AI provider call per selected parent, which could dominate agent latency and provider usage. There are now two new settings on the Context item settings page (&lt;code&gt;/admin/config/ai/context/settings/items&lt;/code&gt;). One turns AI decisions for conditional children on or off. The other caps how many parents get an AI decision per context resolution (default 3, range 1 to 20). The toggle defaults to on, so existing behavior is preserved apart from the new cap of 3. If AI decisions are off, all conditional children are included with no provider call. Parents over the cap keep their required children, but their conditional children are dropped. Identical decisions within one request are cached.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_context_update_10010()&lt;/code&gt; adds the two new settings to existing sites.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;ai_context.settings&lt;/code&gt; keys &lt;code&gt;conditional_subcontext_enabled&lt;/code&gt; (default true) and &lt;code&gt;conditional_max_parents&lt;/code&gt; (default 3, range 1 to 20); &lt;code&gt;subcontext_enabled&lt;/code&gt; checkbox moved to the Context item settings form.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiContextSubcontextResolver::resolve()&lt;/code&gt; reads &lt;code&gt;conditional_subcontext_enabled&lt;/code&gt; and &lt;code&gt;conditional_max_parents&lt;/code&gt; (clamped to 1..20) and passes a by-reference &lt;code&gt;$conditional_calls_made&lt;/code&gt; counter through &lt;code&gt;resolveForParent()&lt;/code&gt; into &lt;code&gt;resolveConditionalChildren()&lt;/code&gt;. The cap is checked before any prompt or provider work. Once reached, the parent's conditional children are dropped and an info message is logged. Which parents are dropped follows internal processing order, not relevance to the task. Calls are one per parent and are not batched.&lt;/p&gt;
+&lt;p&gt;A per-instance &lt;code&gt;$decisionCache&lt;/code&gt; is keyed by &lt;code&gt;md5(parent id | task | sorted candidate ids)&lt;/code&gt;. It stores approved results, and it also stores empty results from a missing provider, a provider with no &lt;code&gt;chat()&lt;/code&gt;, a bad response or an exception, so a broken provider is not re-hit within the request. Cap skips are deliberately not cached. A later &lt;code&gt;resolve()&lt;/code&gt; call with budget left can still make the call.&lt;/p&gt;
+&lt;p&gt;The form layout changed too. The &lt;code&gt;subcontext_enabled&lt;/code&gt; checkbox moved from &lt;code&gt;AiContextSettingsForm&lt;/code&gt; to &lt;code&gt;AiContextItemSettingsForm&lt;/code&gt;, which gains the two new fields with &lt;code&gt;#states&lt;/code&gt; visibility. The provider field in &lt;code&gt;AiContextSettingsForm&lt;/code&gt; gets a &lt;code&gt;- None -&lt;/code&gt; option. Clearing the provider is now blocked only when conditional AI decisions are enabled and published conditional items exist. The provider description now says whether AI decisions are on. Config schema adds the two keys, with a &lt;code&gt;Range&lt;/code&gt; constraint of 1 to 20 on &lt;code&gt;conditional_max_parents&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ai_context_update_10010()&lt;/code&gt; sets &lt;code&gt;conditional_subcontext_enabled: true&lt;/code&gt; and &lt;code&gt;conditional_max_parents: 3&lt;/code&gt; in &lt;code&gt;ai_context.settings&lt;/code&gt; when they are unset. Run &lt;code&gt;drush updb&lt;/code&gt;. Sites exporting config should export the two new keys.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;afoster (Foster Interactive Inc.)&lt;/li&gt;
+&lt;li&gt;emma horrell (The University of Edinburgh)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586416: Clean stale scope values when options are deleted</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586416.md</link>
+      <guid isPermaLink="false">project/ai_context#3586416</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 18 Oct 2026 02:13:10 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586416"&gt;#3586416&lt;/a&gt; · 1 contributor · 15 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Context items and agent subscriptions no longer keep scope values for options that have been removed. Deleting a content type, taxonomy term, vocabulary, context tag, language or role now removes that value from items, subscriptions and the scope index. Removing an entity type from Entity Types settings, or a site section from settings, does the same. Uninstalling a module that provided those options also triggers a scrub. Deleting a bundle keeps the type-level &lt;code&gt;type:_all&lt;/code&gt; value, but removing the whole type from settings removes it. Use Case values are never scrubbed. After upgrading, run &lt;code&gt;drush updatedb&lt;/code&gt;: a one-time post-update cleans up leftovers that already exist. Because updates normally run before config import, on a lower environment with a copied production database this scrub can remove values for options the import is about to add.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;ai_context_post_update_0006_scrub_stale_scope_values()&lt;/code&gt; strips already-stale scope values from items, agent subscriptions and the scope index.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New optional &lt;code&gt;AiContextScopeStoredValueInterface&lt;/code&gt; for scope plugins whose options can disappear; new &lt;code&gt;AiContextScopeCleanupService&lt;/code&gt; methods &lt;code&gt;scrubScope()&lt;/code&gt;, &lt;code&gt;scrubStaleScopeValues()&lt;/code&gt;, &lt;code&gt;scrubScopesAfterEntityDelete()&lt;/code&gt;, &lt;code&gt;scrubScopesAfterBundleDelete()&lt;/code&gt;, &lt;code&gt;scrubScopeAfterSettingsChange()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The existing &lt;code&gt;ai_context.scope_cleanup&lt;/code&gt; service (&lt;code&gt;AiContextScopeCleanupService&lt;/code&gt;) still only strips values. The decision about what is stale moved into scope plugins through the new optional &lt;code&gt;AiContextScopeStoredValueInterface&lt;/code&gt;: &lt;code&gt;getStaleStoredValues()&lt;/code&gt;, &lt;code&gt;shouldScrubAfterEntityDelete()&lt;/code&gt;, &lt;code&gt;getStaleStoredValuesForEntityDelete()&lt;/code&gt;, &lt;code&gt;shouldScrubAfterBundleDelete()&lt;/code&gt; and &lt;code&gt;shouldScrubAfterSettingsChange()&lt;/code&gt;. The service now takes &lt;code&gt;plugin.manager.ai_context_scope&lt;/code&gt;, collects stored values from the scope index (new &lt;code&gt;AiContextScopeIndexService::getIndexedScopeValues()&lt;/code&gt;) and from raw &lt;code&gt;ai_context.agents&lt;/code&gt; subscriptions, then asks the plugin which are stale. &lt;code&gt;AiContextScopeInterface&lt;/code&gt; is unchanged.&lt;/p&gt;
+&lt;p&gt;Triggers are generic and do not special-case plugin IDs: &lt;code&gt;ai_context_entity_delete()&lt;/code&gt;, the new &lt;code&gt;ai_context_entity_bundle_delete()&lt;/code&gt;, and the new &lt;code&gt;ai_context_modules_uninstalled()&lt;/code&gt;. The last skips config sync and skips uninstalling &lt;code&gt;ai_context&lt;/code&gt; itself. &lt;code&gt;AiContextScopeConfigSubscriber&lt;/code&gt; now reacts to any &lt;code&gt;ai_context.scope_settings.{plugin_id}&lt;/code&gt; save and skips it while &lt;code&gt;config.installer&lt;/code&gt; &lt;code&gt;isSyncing()&lt;/code&gt;, because a mid-import scrub would compare stored values to a half-imported environment. Bundle-delete hooks still run during sync.&lt;/p&gt;
+&lt;p&gt;Plugin policy: Language, Roles, Tag and Entity Types treat a value as stale if it is missing from &lt;code&gt;getAlteredValues()&lt;/code&gt;, via the new &lt;code&gt;AiContextScopeBase::getStoredValuesMissingFromAlteredValues()&lt;/code&gt;. Site Section also keeps &lt;code&gt;custom:&lt;/code&gt; patterns. Taxonomy Terms keeps a value if the term exists and is not in the &lt;code&gt;ai_context_tags&lt;/code&gt; vocabulary, or an alter hook added it. Term, language and role deletes return the deleted ID for a cheap strip. A vocabulary delete returns &lt;code&gt;NULL&lt;/code&gt; for a full scan. Entity Types scrubs after a bundle delete only when that entity type is enabled in settings, and after any settings save. Use Case, Global and Entity Item do not implement the interface.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run the new post-update after deploying:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb -y
+drush cr
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;ai_context_post_update_0006_scrub_stale_scope_values()&lt;/code&gt; runs against the environment as it exists at that moment, before &lt;code&gt;drush config:import&lt;/code&gt; in standard pipelines. On a lower environment with a copied production database it can remove values for options that the pending import would add.&lt;/p&gt;
+&lt;p&gt;Custom scope plugins that can lose options can implement &lt;code&gt;AiContextScopeStoredValueInterface&lt;/code&gt; (in the &lt;code&gt;Drupal\ai_context\Plugin\AiContextScope&lt;/code&gt; namespace) alongside &lt;code&gt;AiContextScopeInterface&lt;/code&gt;. Plugins that do not implement it are left alone.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 17, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586471: Fix CCC scope index, stored-value cleanup, and request matching</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586471.md</link>
+      <guid isPermaLink="false">project/ai_context#3586471</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 18 Oct 2026 02:13:09 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586471"&gt;#3586471&lt;/a&gt; · 1 contributor · 48 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Several scope-data bugs in AI Context are fixed. Saving a draft of a published item no longer rewrites the live scope index, so a published Global item stays findable by prefilters while a draft is pending. Unchecking an entity type on the Entity Types settings page is now blocked, with an error naming the usage, while context items or consumer subscriptions still reference it. Language values are no longer deleted on single-language sites. Deleting the last bundle of a type keeps &lt;code&gt;type:_all&lt;/code&gt;. Taxonomy matching now uses the revision or translation of the requested entity, and language detection honours a caller-supplied path such as &lt;code&gt;/es/...&lt;/code&gt;. The Global checkbox stays visible on the item form when the Global scope is disabled, so existing global items can be cleared. Inheriting subcontexts score using the parent's values when a scope plugin is missing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Service &lt;code&gt;ai_context.language_service&lt;/code&gt; now receives &lt;code&gt;@ai_context.request_info_resolver&lt;/code&gt; instead of &lt;code&gt;@request_stack&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextScopeCleanupService&lt;/code&gt; gains public &lt;code&gt;getStoredValuesWithPrefix()&lt;/code&gt; and &lt;code&gt;countStoredValueUsage()&lt;/code&gt;; &lt;code&gt;AiContextScopeEntityType&lt;/code&gt; implements &lt;code&gt;validateSettingsForm()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Index: &lt;code&gt;ai_context_ai_context_item_update()&lt;/code&gt; in &lt;code&gt;ai_context.module&lt;/code&gt; returns early when &lt;code&gt;!$entity-&amp;gt;isDefaultRevision()&lt;/code&gt;. The cascade to inheriting children now runs only if the original revision was a default revision and its scope differs. Publishing a draft therefore no longer compares against a draft whose scope was never written to the children.&lt;/p&gt;
+&lt;p&gt;Cleanup: &lt;code&gt;AiContextScopeEntityType::validateSettingsForm()&lt;/code&gt; collects stored values for removed types via &lt;code&gt;AiContextScopeCleanupService::getStoredValuesWithPrefix()&lt;/code&gt;. It counts usage with &lt;code&gt;countStoredValueUsage()&lt;/code&gt;, which skips inheriting subcontexts, and sets a form error. &lt;code&gt;getContentEntityTypeOptions()&lt;/code&gt; keeps a configured type listed even with no bundles. &lt;code&gt;getValues()&lt;/code&gt; keeps the All option for a bundled type with no bundles, so the generic stale-value diff never reports &lt;code&gt;type:_all&lt;/code&gt; missing after the last bundle delete. Live and settings-change scrubs skip disabled or unavailable plugins. Entity and bundle delete scrubs still run regardless. This is documented on &lt;code&gt;AiContextScopeStoredValueInterface&lt;/code&gt;: a plugin returning &lt;code&gt;NULL&lt;/code&gt; from &lt;code&gt;getStaleStoredValuesForEntityDelete()&lt;/code&gt; gets a full &lt;code&gt;getStaleStoredValues()&lt;/code&gt; scan even while the scope is disabled.&lt;/p&gt;
+&lt;p&gt;Matching: &lt;code&gt;AiContextScopeResolver&lt;/code&gt; scoring falls back to &lt;code&gt;$item-&amp;gt;getScopeItem()-&amp;gt;getScopeValues()&lt;/code&gt; instead of the child's own empty scope. &lt;code&gt;AiContextLanguageService&lt;/code&gt; now takes &lt;code&gt;AiContextRequestInfoResolver&lt;/code&gt; (service definition changed) and extracts the language prefix from the single path returned by &lt;code&gt;getPath()&lt;/code&gt;. Taxonomy changes are in &lt;code&gt;AiContextScopeTaxonomy&lt;/code&gt; and &lt;code&gt;AiContextRequestInfoResolver&lt;/code&gt;. The summary describes the intended behaviour; I did not read that diff in full.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you construct &lt;code&gt;AiContextLanguageService&lt;/code&gt; yourself or override its service definition, the third argument changes from &lt;code&gt;@request_stack&lt;/code&gt; to &lt;code&gt;@ai_context.request_info_resolver&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;arguments:
+  - '@config.factory'
+  - '@language_manager'
+  - '@ai_context.request_info_resolver'
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 1, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;rduterte (Cambridge University Press &amp;amp; Assessment)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588981: Export skill-harness results as every_eval_ever 0.2.2 envelopes (to_eee.py covers only the Inspect path)</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588981.md</link>
       <guid isPermaLink="false">project/ai_best_practices#3588981</guid>
@@ -547,182 +778,6 @@ $this-&amp;gt;assertSame('Words that describe the album.', $schema['description'
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: October 13, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594792: Evaluate answers through AI Answers</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594792.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594792</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 13 Oct 2026 09:36:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594792"&gt;#3594792&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI Eval gets a new submodule, &lt;code&gt;ai_eval_ai_answers&lt;/code&gt;, for evaluating answers through AI Answers. AI Answers wraps an agent for visitors. It forces a search, renders references, and returns a no-answer message when no sources are found. Agent-mode evaluation tests only the inner agent, so its scores can differ from what visitors see. The new runner grades the answer text the visitor reads. Sources can optionally be appended to the graded response, either as a list or with card excerpts for groundedness checks. Streaming and multi-turn conversations are out of scope.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New submodule &lt;code&gt;ai_eval_ai_answers&lt;/code&gt; with a workflow runner over the AI Answers service.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This is based on the issue description only. The merged code was not in the cloned &lt;code&gt;main&lt;/code&gt; branch, so I could not check it against a diff. The issue describes a workflow runner over the AI Answers service. It makes single-question, non-streaming calls as the question's caller. It records the tool calls the top-level agent chose. It records the forced search as a separate step, marked complete only when references arrive before the agent's first tool call. It marks the no-answer case. By default it deletes the conversation record. The issue is a child of &lt;a href="https://www.drupal.org/node/3594785"&gt;#3594785&lt;/a&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594791: Let each question pass its own inputs to a workflow target</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594791.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594791</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 13 Oct 2026 09:36:25 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594791"&gt;#3594791&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In AI Eval, a question in a dataset can now set its own inputs for a workflow target. Put a map of port name to value under the question's &lt;code&gt;metadata.inputs&lt;/code&gt;. It overrides the target's fixed inputs for the same ports. One target can then cover questions that need different values, such as a language or a length limit, so you no longer need a target for each combination. Bad input is refused before the workflow starts. The question editor keeps these inputs as a typed map when you save.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Question &lt;code&gt;metadata.inputs&lt;/code&gt; (map of workflow port to value) is read by workflow targets and described in &lt;code&gt;schema/dataset.schema.json&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;EvalRunner::invokeWorkflow()&lt;/code&gt; now builds the workflow inputs in three layers. First come the target's fixed &lt;code&gt;workflow_inputs&lt;/code&gt;. The question's &lt;code&gt;metadata.inputs&lt;/code&gt; goes over them with &lt;code&gt;array_replace()&lt;/code&gt;, so the question wins on the same key and values keep their types. The question port is set last, so nothing else can override it. The workflow arm of the question dispatch passes &lt;code&gt;$question['metadata']['inputs']&lt;/code&gt;. Chat and agent modes ignore it.&lt;/p&gt;
-&lt;p&gt;Validation happens before launch, and failures are recorded as &lt;code&gt;refused&lt;/code&gt;. A new &lt;code&gt;questionInputs()&lt;/code&gt; helper accepts NULL, a string-keyed map, or a JSON object string. It rejects lists and empty or non-string keys. A &lt;code&gt;metadata.inputs&lt;/code&gt; key that matches the question port is refused. The runner's &lt;code&gt;inputPorts()&lt;/code&gt; is called, and an exception from it is also a refusal. When the workflow declares ports, the question port and every fixed or per-question input must be one of them. The refusal message lists the declared ports. A workflow that declares no ports takes any names as given.&lt;/p&gt;
-&lt;p&gt;For the editor, &lt;code&gt;DatasetQuestionEditor::assemble()&lt;/code&gt; decodes the JSON text in &lt;code&gt;metadata.inputs&lt;/code&gt; and stores it as a map. An empty &lt;code&gt;{}&lt;/code&gt; or &lt;code&gt;[]&lt;/code&gt; is dropped. Nested empty objects are refused, because dataset storage cannot tell &lt;code&gt;{}&lt;/code&gt; from &lt;code&gt;[]&lt;/code&gt; once decoded. &lt;code&gt;DatasetQuestionEditor::inputsError()&lt;/code&gt; gives a readable message for this, and &lt;code&gt;DatasetQuestionController&lt;/code&gt; and &lt;code&gt;GuidedTestController&lt;/code&gt; call it. A question with &lt;code&gt;metadata.inputs&lt;/code&gt; stays editable instead of read-only. &lt;code&gt;schema/dataset.schema.json&lt;/code&gt; declares &lt;code&gt;metadata.inputs&lt;/code&gt; as an object. The same commit also adds the &lt;code&gt;ai_eval_ai_answers&lt;/code&gt; submodule and moves tool-call recording into &lt;code&gt;Workflow\ToolCallRecord&lt;/code&gt;. Those are not part of this issue.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Per-question inputs are set in the dataset. For example, &lt;code&gt;schema/examples/valid/dataset-workflow-inputs.yaml&lt;/code&gt; is a working example. A question carries &lt;code&gt;metadata.inputs&lt;/code&gt; such as &lt;code&gt;{&amp;quot;language&amp;quot;: &amp;quot;el&amp;quot;}&lt;/code&gt;, keyed by the workflow's input port names.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3589003: Eval runner: let run-evals.py evaluate another repository's skills (--root)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589003.md</link>
-      <guid isPermaLink="false">project/ai_best_practices#3589003</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 13 Oct 2026 07:32:48 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3589003"&gt;#3589003&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The eval runner can now grade another repository's skills. A package that ships its own skills through the Composer sync, such as an organisation's layer on top of the AI best practices package, can run the runner from &lt;code&gt;vendor/drupal/ai_best_practices/evals/&lt;/code&gt; against its own &lt;code&gt;skills/&lt;/code&gt; and &lt;code&gt;evals/&lt;/code&gt; directories instead of copying the runner. Without the new option, behaviour is unchanged.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;--root &amp;lt;dir&amp;gt;&lt;/code&gt; option on &lt;code&gt;evals/run-evals.py&lt;/code&gt; and new &lt;code&gt;scoring.set_repo_root()&lt;/code&gt; in &lt;code&gt;evals/scoring.py&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Before this change, &lt;code&gt;run-evals.py&lt;/code&gt; and &lt;code&gt;scoring.py&lt;/code&gt; computed &lt;code&gt;REPO_ROOT&lt;/code&gt; from their own file location, so they only ever saw the package's own &lt;code&gt;skills/&lt;/code&gt; and &lt;code&gt;evals/&lt;/code&gt;. &lt;code&gt;run-evals.py&lt;/code&gt; now takes &lt;code&gt;--root&lt;/code&gt;. When it is given, the script resolves the path, overrides its module-level &lt;code&gt;REPO_ROOT&lt;/code&gt;, and calls the new &lt;code&gt;scoring.set_repo_root()&lt;/code&gt;. That function reassigns &lt;code&gt;scoring.REPO_ROOT&lt;/code&gt; and &lt;code&gt;EVALS_DIR&lt;/code&gt;, so case loading follows the same root.&lt;/p&gt;
-&lt;p&gt;The runner also fails earlier on bad input. It calls &lt;code&gt;parser.error()&lt;/code&gt; if &lt;code&gt;&amp;lt;root&amp;gt;/evals&lt;/code&gt; does not exist, and again if no eval suites (&lt;code&gt;static-checks.json&lt;/code&gt; directories) are found under it. &lt;code&gt;test_scoring.py&lt;/code&gt; builds a temporary repository with one skill. It checks exit codes for a passing and a failing suite, that only that repository's suites run, and that &lt;code&gt;set_repo_root()&lt;/code&gt; follows and restores. &lt;code&gt;CONTRIBUTING.md&lt;/code&gt; documents the option.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run the vendored runner against your own package's skills:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;python3 vendor/drupal/ai_best_practices/evals/run-evals.py --static --root .
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594796: Add a settings form and a requirements check for the content review judge</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594796.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594796</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 12 Oct 2026 20:45:30 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594796"&gt;#3594796&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The content review judge in &lt;code&gt;ai_eval_content_review&lt;/code&gt; now has a settings form at &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; for the review rule, criterion, content type, body field and text format. It offers only choices that exist on the site. Previously these could only be changed with &lt;code&gt;drush cset&lt;/code&gt; or config import, and a content type without the expected &lt;code&gt;body&lt;/code&gt; field (as on a Drupal CMS &lt;code&gt;page&lt;/code&gt;) made the criterion see only the title and score the answer 0 with no warning. Now a judge with settings that do not fit the site reports the answer as not measured, and the status report says what is wrong. New installs leave the content type, body field and text format unset, so a site owner must choose them before the judge can run. Existing sites keep their current values.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New installs ship &lt;code&gt;ai_eval_content_review.settings&lt;/code&gt; with &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;body_field&lt;/code&gt; and &lt;code&gt;body_format&lt;/code&gt; empty (previously &lt;code&gt;page&lt;/code&gt;, &lt;code&gt;body&lt;/code&gt;, &lt;code&gt;basic_html&lt;/code&gt;); existing sites keep their values.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New route &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; is gated by the existing &lt;code&gt;administer ai eval&lt;/code&gt; permission.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;JudgeSettingsChecker&lt;/code&gt; service (&lt;code&gt;ai_eval_content_review.settings_checker&lt;/code&gt;) with &lt;code&gt;problems()&lt;/code&gt; and &lt;code&gt;errors()&lt;/code&gt;; &lt;code&gt;CriterionRunner&lt;/code&gt; takes it as a fifth constructor argument.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;A single &lt;code&gt;JudgeSettingsChecker&lt;/code&gt; is shared by the form, the status report and the judge. &lt;code&gt;problems()&lt;/code&gt; returns errors and warnings keyed by setting. Errors cover a missing rule, a missing criterion index, a missing or nonexistent content type, a body field that is unset, absent or not of type &lt;code&gt;text&lt;/code&gt;, &lt;code&gt;text_long&lt;/code&gt; or &lt;code&gt;text_with_summary&lt;/code&gt;, an unset, nonexistent or disabled text format, a format the field's &lt;code&gt;allowed_formats&lt;/code&gt; excludes, and &lt;code&gt;extra_fields&lt;/code&gt; the type lacks. A warning is raised for a disabled rule, or for a rule that does not apply to the configured bundle. &lt;code&gt;errors()&lt;/code&gt; returns only the blocking messages.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;CriterionRunner::review()&lt;/code&gt; calls &lt;code&gt;errors()&lt;/code&gt; before building the unsaved node. If any are returned it throws a &lt;code&gt;RuntimeException&lt;/code&gt; (&amp;quot;The content review judge settings do not fit this site: ...&amp;quot;), so the judge records no measurement instead of reviewing a page without the answer. &lt;code&gt;JudgeSettingsRequirements&lt;/code&gt; (&lt;code&gt;hook_runtime_requirements&lt;/code&gt;) adds a status report row: &amp;quot;Not set up&amp;quot; (warning) when no rule is set, &amp;quot;Settings fit this site&amp;quot; (OK), &amp;quot;Check the settings&amp;quot; (warning) or &amp;quot;Cannot review&amp;quot; (error). &lt;code&gt;JudgeSettingsForm&lt;/code&gt; is a &lt;code&gt;ConfigFormBase&lt;/code&gt; that filters the criterion, body field and format selects by the chosen rule, content type and field, and redraws them with htmx. It warns when the criterion changes, since existing judges then check another criterion and need validating again. Earlier validations are not marked stale. The default &lt;code&gt;config/install&lt;/code&gt; values for &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;body_field&lt;/code&gt; and &lt;code&gt;body_format&lt;/code&gt; are now empty strings.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Custom code that constructs &lt;code&gt;CriterionRunner&lt;/code&gt; directly must pass the new &lt;code&gt;ai_eval_content_review.settings_checker&lt;/code&gt; service (&lt;code&gt;JudgeSettingsChecker&lt;/code&gt;) as the fifth argument. On new installs, open &lt;code&gt;/admin/config/ai/ai-eval/content-review&lt;/code&gt; and choose the content type, body field and text format before running the judge.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594795: Judge content review criteria without saving a node</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594795.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594795</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 12 Oct 2026 20:45:30 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594795"&gt;#3594795&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Eval content review judge no longer saves and deletes a temporary unpublished node for every judged answer. The page is built in memory and reviewed without being saved, so automators, search indexing and other save hooks stop running per answer. That removes the extra LLM call per judged answer and the search index warning for the deleted node. Records made by the judge are visible only to users with &amp;quot;configure reviews&amp;quot; and are hidden from the AI Content Review review queue. A criterion that needs a saved entity cannot be judged this way.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;ai_eval_content_review&lt;/code&gt; now depends on the &lt;code&gt;entity&lt;/code&gt; module.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_content_review_update_10001()&lt;/code&gt; installs the &lt;code&gt;ai_eval_page&lt;/code&gt; review record bundle with an &lt;code&gt;eval_key&lt;/code&gt; field.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Records of type &lt;code&gt;ai_eval_page&lt;/code&gt; and their suggestions require &amp;quot;configure reviews&amp;quot; to view, and are hidden from the AI Content Review review queue.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CriterionRunner&lt;/code&gt; constructor takes a new fourth argument, the &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt; service (&lt;code&gt;EvalPageRegistry&lt;/code&gt;).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;AI Content Review's internal record type reloads the reviewed entity by id, so it cannot review an unsaved one. The submodule now ships its own &lt;code&gt;review_record&lt;/code&gt; bundle plugin, &lt;code&gt;ai_eval_page&lt;/code&gt;, with an &lt;code&gt;eval_key&lt;/code&gt; bundle field. &lt;code&gt;CriterionRunner::review()&lt;/code&gt; builds the node with &lt;code&gt;create()&lt;/code&gt; and does not save it. It wraps the node and a random key in a new &lt;code&gt;EvalPage&lt;/code&gt; value object, which is deliberately not an entity because the internal record type claims every entity. The &lt;code&gt;EvalPage&lt;/code&gt; is registered in a request-scoped &lt;code&gt;EvalPageRegistry&lt;/code&gt; (service &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt;) and passed to the real &lt;code&gt;ReviewOrchestrator::runCriterion()&lt;/code&gt;. The record type looks the page up by key. It gives the criterion the same review context lines as for a saved node, with the node as its &lt;code&gt;node&lt;/code&gt; token context, and it applies no rules and refuses suggestions. In a &lt;code&gt;finally&lt;/code&gt; block, &lt;code&gt;deleteReviews()&lt;/code&gt; removes the records and their suggestions by &lt;code&gt;eval_key&lt;/code&gt;, and the page is removed from the registry.&lt;/p&gt;
-&lt;p&gt;Access: AI Content Review alpha3 checks the reviewed subject only for records about a Drupal entity, so &lt;code&gt;ai_eval_page&lt;/code&gt; records and their suggestions would be viewable with &amp;quot;view review records&amp;quot;. &lt;code&gt;EvalPageAccess&lt;/code&gt; forbids view, update and delete of them, and of their suggestions, without &amp;quot;configure reviews&amp;quot;. Two pages in AI Content Review do not check entity access. A route subscriber adds &lt;code&gt;JudgedPageRecordAccessCheck&lt;/code&gt; to the record detail route (&lt;code&gt;/ai-content-review/record/{record_id}/detail&lt;/code&gt;), and a form alter on the review queue removes &lt;code&gt;ai_eval_page&lt;/code&gt; rows for everyone and leaves them out of the waiting count.&lt;/p&gt;
-&lt;p&gt;Limit: the criterion gets an entity with no id. Tools that reload the node by id (for example &lt;code&gt;GetCurrentContentEntityValues&lt;/code&gt;) and resumed runs cannot see it. The &lt;code&gt;extra_fields&lt;/code&gt; setting still fills extra values on the unsaved node, but automators no longer fill them.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates. &lt;code&gt;ai_eval_content_review_update_10001()&lt;/code&gt; installs the &lt;code&gt;ai_eval_page&lt;/code&gt; review record bundle on existing sites. The submodule now also depends on the &lt;code&gt;entity&lt;/code&gt; module, which AI Content Review already requires. Code that constructs &lt;code&gt;CriterionRunner&lt;/code&gt; directly must pass the new fourth argument, the &lt;code&gt;ai_eval_content_review.eval_pages&lt;/code&gt; service:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;ai_eval_content_review.eval_pages:
-  class: Drupal\ai_eval_content_review\EvalPageRegistry
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 12, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
