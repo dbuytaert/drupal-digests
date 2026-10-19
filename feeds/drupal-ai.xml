@@ -5,6 +5,127 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3583065: Report item and property positions in the violation path, not the message</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583065.md</link>
+      <guid isPermaLink="false">project/tool#3583065</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 19 Oct 2026 19:28:34 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583065"&gt;#3583065&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the Tool module, a validation failure on a list item or map property now reports where it happened in the violation's property path (&lt;code&gt;code&lt;/code&gt;, &lt;code&gt;codes.0&lt;/code&gt;, &lt;code&gt;rows.0.sku&lt;/code&gt;). Before, the position was embedded in the message text, e.g. &lt;code&gt;(item 0) ...&lt;/code&gt;. Output validation failures now follow the same shape as input failures: the output name is on the path and the message states only the reason. The plain-text failure message still shows the path in front of each reason, so Drush-style text consumers still see where the failure is. Code that parsed &lt;code&gt;(item N)&lt;/code&gt; or &lt;code&gt;(property x)&lt;/code&gt; out of messages, or that matched the old output messages, needs updating.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Violation property paths for list items and map properties now carry the position (&lt;code&gt;code&lt;/code&gt;, &lt;code&gt;codes.0&lt;/code&gt;, &lt;code&gt;rows.0.sku&lt;/code&gt;); the &lt;code&gt;(item N)&lt;/code&gt; and &lt;code&gt;(property x)&lt;/code&gt; message prefixes are gone. Output violations carry the output name on the path with generic messages, and &lt;code&gt;getViolations()&lt;/code&gt; is now populated on output failures.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ValueViolationsTrait::addItemViolations()&lt;/code&gt; no longer takes a &lt;code&gt;$kind&lt;/code&gt; argument and no longer wraps the message. It rebuilds each violation with &lt;code&gt;static::joinPath($position, $violation-&amp;gt;getPropertyPath())&lt;/code&gt;, and now also passes the constraint through to the new violation. &lt;code&gt;validateInputValues()&lt;/code&gt; now uses it for the input name too, replacing its own rebuild loop. &lt;code&gt;TypedOutputsTrait::validateOutputs()&lt;/code&gt; uses it to put the output name on the path. &lt;code&gt;getItemDefinitionForViolations()&lt;/code&gt; is removed, since messages no longer need the item's label, and callers use &lt;code&gt;$definition-&amp;gt;getItemDefinition()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Messages that named the value by label became generic and name-free, because the name is now on the path: &lt;code&gt;This output is required but was not provided.&lt;/code&gt;, &lt;code&gt;This property is required.&lt;/code&gt;, &lt;code&gt;This output must be an entity.&lt;/code&gt;, &lt;code&gt;This output is invalid: @type.&lt;/code&gt;. The required-output violation now carries the output name as its path instead of an empty string.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ToolBase&lt;/code&gt; now builds the Runtime failure from &lt;code&gt;ToolMessages::violationList($violations)&lt;/code&gt; and passes &lt;code&gt;$violations&lt;/code&gt; to &lt;code&gt;ExecutableResult::failure()&lt;/code&gt;. &lt;code&gt;ToolResultInterface::getViolations()&lt;/code&gt; therefore covers output failures as well as input failures. Callers can use &lt;code&gt;getFailureCategory()&lt;/code&gt; to tell an input they can correct from an output the tool got wrong. The &lt;code&gt;ToolResultInterface&lt;/code&gt; docblock documents the path format: the name is the segment before the first dot, and a map property reads &lt;code&gt;product.sku&lt;/code&gt;, a list item &lt;code&gt;codes.0&lt;/code&gt;, both &lt;code&gt;rows.0.sku&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Read the position from the violation path instead of the message. Messages like &lt;code&gt;(item 0) This value should be of the correct primitive type.&lt;/code&gt; are now path &lt;code&gt;codes.0&lt;/code&gt; with the message &lt;code&gt;This value should be of the correct primitive type.&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;foreach ($result-&amp;gt;getViolations() as $violation) {
+  $path = $violation-&amp;gt;getPropertyPath(); // e.g. &amp;quot;rows.0.sku&amp;quot;; first segment is the input or output name.
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583086: Let `destructive` be undeclared, so write tools aren't reported as non-destructive</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583086.md</link>
+      <guid isPermaLink="false">project/tool#3583086</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 19 Oct 2026 19:17:03 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583086"&gt;#3583086&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Tool module can now tell a tool that never declared &lt;code&gt;destructive&lt;/code&gt; apart from one that said it is not destructive. An undeclared Write or Trigger tool is now treated as destructive, and an undeclared Read tool is not. Before, every write tool that left the flag out looked non-destructive, so the MCP bridge told clients it only added data. That is the opposite of MCP's own default. Authors of write tools that only add data should now set &lt;code&gt;destructive: FALSE&lt;/code&gt; explicitly.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;destructive&lt;/code&gt; on &lt;code&gt;#[Tool]&lt;/code&gt;, &lt;code&gt;#[ToolMethod]&lt;/code&gt; and &lt;code&gt;ToolDefinition::setDestructive()&lt;/code&gt; is now &lt;code&gt;?bool&lt;/code&gt; defaulting to &lt;code&gt;NULL&lt;/code&gt; (undeclared); &lt;code&gt;ToolDefinition::isDestructive()&lt;/code&gt; answers from the operation when undeclared.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;destructive&lt;/code&gt; on the &lt;code&gt;#[Tool]&lt;/code&gt; and &lt;code&gt;#[ToolMethod]&lt;/code&gt; attributes and the &lt;code&gt;ToolDefinition::$destructive&lt;/code&gt; property changed from &lt;code&gt;bool&lt;/code&gt; defaulting to &lt;code&gt;FALSE&lt;/code&gt; to &lt;code&gt;?bool&lt;/code&gt; defaulting to &lt;code&gt;NULL&lt;/code&gt;. &lt;code&gt;ToolDefinition::setDestructive()&lt;/code&gt; accepts &lt;code&gt;?bool&lt;/code&gt;. &lt;code&gt;ToolDefinition::isDestructive()&lt;/code&gt; now returns &lt;code&gt;$this-&amp;gt;destructive ?? $this-&amp;gt;getOperation()-&amp;gt;isModifying()&lt;/code&gt;. &lt;code&gt;ToolOperation::isModifying()&lt;/code&gt; is TRUE for &lt;code&gt;Write&lt;/code&gt; and &lt;code&gt;Trigger&lt;/code&gt; and FALSE for &lt;code&gt;Explain&lt;/code&gt;, &lt;code&gt;Read&lt;/code&gt; and &lt;code&gt;Transform&lt;/code&gt;. An explicit &lt;code&gt;TRUE&lt;/code&gt; or &lt;code&gt;FALSE&lt;/code&gt; always wins over the operation. &lt;code&gt;#[ToolMethod]&lt;/code&gt; defaults its operation to &lt;code&gt;Write&lt;/code&gt;, so a method that omits &lt;code&gt;destructive&lt;/code&gt; is now destructive.&lt;/p&gt;
+&lt;p&gt;The Drush &lt;code&gt;ToolGenerator&lt;/code&gt; prompt now defaults its answer to what an undeclared tool would get for the chosen operation. &lt;code&gt;tool.twig&lt;/code&gt; always writes &lt;code&gt;destructive: TRUE&lt;/code&gt; or &lt;code&gt;FALSE&lt;/code&gt; instead of omitting it when false, so answering no on a Write tool is an explicit declaration. The issue body says the MCP bridge (&lt;code&gt;mcp_server_tool_bridge&lt;/code&gt;) sends this as &lt;code&gt;destructiveHint&lt;/code&gt;. The commit does not touch that bridge, which gets the new value through &lt;code&gt;isDestructive()&lt;/code&gt;. The issue was meant to land before the RC1 freeze (&lt;a href="https://www.drupal.org/node/3582976"&gt;#3582976&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Write or Trigger tools that only add data and relied on the old default must now say so:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[ToolMethod(id: 'tool_test.notebook.export', operation: ToolOperation::Write, permission: 'access content', destructive: FALSE)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code that passes &lt;code&gt;destructive: FALSE&lt;/code&gt; or &lt;code&gt;TRUE&lt;/code&gt; is unchanged. Code that reads &lt;code&gt;isDestructive()&lt;/code&gt; still gets a &lt;code&gt;bool&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;dries&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583091: Name the input when an entity handle fails, so getViolations() covers handle failures</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583091.md</link>
+      <guid isPermaLink="false">project/tool#3583091</guid>
+      <pubDate>Mon, 19 Oct 2026 17:19:41 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583091"&gt;#3583091&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a tool call is given a malformed, missing or wrong-type entity handle, the failed result now says which input was at fault. Before, &lt;code&gt;getViolations()&lt;/code&gt; was empty for these failures and the message was only a generic &amp;quot;Invalid input&amp;quot; text. A caller, such as an AI agent, can now see every bad input in one response and fix them together.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;HandleExceptionInterface&lt;/code&gt; is a bare marker with no input context, so &lt;code&gt;ToolRunner&lt;/code&gt; could only produce &lt;code&gt;Invalid input: @message&lt;/code&gt; with no violations. The issue weighed two options: a per-input catch in the runner, or an &lt;code&gt;InputAwareExceptionInterface&lt;/code&gt; with &lt;code&gt;getInputNames()&lt;/code&gt;. The merged code takes the per-input catch. It adds no new interface.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;ToolRunner&lt;/code&gt;, the loop that calls &lt;code&gt;$tool-&amp;gt;setInputValue()&lt;/code&gt; now catches &lt;code&gt;HandleExceptionInterface&lt;/code&gt; for each input. It records a &lt;code&gt;ConstraintViolation&lt;/code&gt; whose property path is the input name, built by the new private &lt;code&gt;handleViolation()&lt;/code&gt;. A &lt;code&gt;HandleNotFoundException&lt;/code&gt; gets an extra sentence saying a handle resolves only for the account that created it, until it expires. A refiner that throws is attributed to the input whose set triggered it.&lt;/p&gt;
+&lt;p&gt;The loop also catches &lt;code&gt;InputException&lt;/code&gt; per input. Its named violations join the same list. A bare-reason exception keeps its own message as the whole result unless another input has already failed. The runner collects every input that cannot be stored before refusing the call. It then runs &lt;code&gt;validateInputs()&lt;/code&gt; on the inputs that were stored and adds those violations, skipping the inputs that failed to store, so a bad value shows up beside a bad handle. The combined list is set with &lt;code&gt;setFailureResult()&lt;/code&gt; using &lt;code&gt;FailureCategory::Input&lt;/code&gt;. The private &lt;code&gt;inputNamed()&lt;/code&gt; reads the first segment of a violation path to do that filtering. The outer &lt;code&gt;HandleExceptionInterface&lt;/code&gt; catch remains only for handle exceptions thrown after the input loop, such as an output transform, which have no input to name.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3588983: Git ignore ai_best_practices.yaml file?</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588983.md</link>
       <guid isPermaLink="false">project/ai_best_practices#3588983</guid>
@@ -688,113 +809,6 @@ arguments: ['@tool.normalizer.input_output_definition']
 &lt;p&gt;The root cause, per the issue, was that forms saved only the fields they displayed. The resolution keeps the stored data and adds fields where settings had no UI. The workflow target edit form keeps the mode and workflow settings and shows them read-only, and the guided editor refuses workflow targets and links to the edit form. The rubric editor starts from the stored data and gets a Case sensitive checkbox. Model and agent selects keep a saved value that is no longer listed, labeled as saved. The question editor gets caller user ID, caller name and split, which cover questions using &lt;code&gt;caller_uid&lt;/code&gt;, &lt;code&gt;user_name&lt;/code&gt; or &lt;code&gt;split&lt;/code&gt;. The settings form gets &lt;code&gt;judge_trust_stale_days&lt;/code&gt;, &lt;code&gt;gold_target_n&lt;/code&gt; and &lt;code&gt;export_envelope_on_complete&lt;/code&gt;. Update 10049 adds the trust window default where it is missing. The Run history on a target's workflow page also lists finished results that have no browser run.&lt;/p&gt;
 &lt;h2&gt;Upgrade&lt;/h2&gt;
 &lt;p&gt;Run database updates (&lt;code&gt;drush updb&lt;/code&gt;) so update 10049 adds the &lt;code&gt;judge_trust_stale_days&lt;/code&gt; default where it is missing.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 13, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3585947: Multi-round elicitation fails on protocol 2026-07-28 without a request state signing key</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585947.md</link>
-      <guid isPermaLink="false">project/mcp_server#3585947</guid>
-      <pubDate>Tue, 13 Oct 2026 19:24:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585947"&gt;#3585947&lt;/a&gt; · 1 contributor · 10 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On MCP protocol &lt;code&gt;2026-07-28&lt;/code&gt;, a tool that asks the client more than one question in a single &lt;code&gt;tools/call&lt;/code&gt; used to fail on the second question with a &amp;quot;could not carry its own state&amp;quot; internal error. The module now signs the state that carries earlier answers between rounds, so multi-round elicitation works. No new setting is needed. Tools that elicit only once were not affected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Under &lt;code&gt;2026-07-28&lt;/code&gt; there are no server-to-client requests. &lt;code&gt;ClientGateway::elicit()&lt;/code&gt; ends the call with an &lt;code&gt;InputRequiredResult&lt;/code&gt;, the client resends the whole call, and the tool reruns from the top. Earlier answers travel in a signed &lt;code&gt;requestState&lt;/code&gt;. The SDK needs an HMAC key from &lt;code&gt;Builder::setRequestState()&lt;/code&gt;, which &lt;code&gt;McpServerFactory&lt;/code&gt; never called.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;McpServerFactory&lt;/code&gt; now takes &lt;code&gt;@private_key&lt;/code&gt; as a new last constructor argument (&lt;code&gt;mcp_server.services.yml&lt;/code&gt; is updated). It calls &lt;code&gt;$builder-&amp;gt;setRequestState()&lt;/code&gt; with &lt;code&gt;Crypt::hmacBase64('mcp_server.request_state', $this-&amp;gt;privateKey-&amp;gt;get() . Settings::getHashSalt())&lt;/code&gt;. This is the same derivation style as core's &lt;code&gt;CsrfTokenGenerator&lt;/code&gt;. The key comes from secrets shared across web heads, so a retry can land on any of them. The call is wrapped in &lt;code&gt;method_exists($builder, 'setRequestState')&lt;/code&gt;, because &lt;code&gt;mcp/sdk&lt;/code&gt; 0.7 predates this protocol version and has no such method.&lt;/p&gt;
-&lt;p&gt;Rotating the private key or hash salt only invalidates multi-round calls in progress. The issue cites the SDK's 10-minute TTL for this state. The commit adds a fixture tool, &lt;code&gt;ElicitingTwiceTool&lt;/code&gt;, and a &lt;code&gt;2026-07-28&lt;/code&gt; &lt;code&gt;tools/call&lt;/code&gt; test in &lt;code&gt;McpServerFunctionalTest&lt;/code&gt; that answers both rounds.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583032: Split title from description in the JSON Schema instead of prefixing the label onto every description</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583032.md</link>
-      <guid isPermaLink="false">project/tool#3583032</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 13 Oct 2026 17:19:15 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583032"&gt;#3583032&lt;/a&gt; · 1 contributor · 15 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Tool API's generated JSON Schema no longer prepends the label to every &lt;code&gt;description&lt;/code&gt;. A member with the label &amp;quot;Title&amp;quot; and the docblock text &amp;quot;Gets the title.&amp;quot; used to be advertised with &lt;code&gt;\&amp;quot;description\&amp;quot;: \&amp;quot;Title: Gets the title.\&amp;quot;&lt;/code&gt;. It now gets &lt;code&gt;\&amp;quot;description\&amp;quot;: \&amp;quot;Gets the title.\&amp;quot;&lt;/code&gt;, and the label stays in &lt;code&gt;title&lt;/code&gt;. This changes the prompt text of every tool's inputs and outputs. Any client, test or documentation that matches the old &lt;code&gt;Label: description&lt;/code&gt; strings needs updating. The issue asks for a mention in the 1.0.0 release notes.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ContextDefinitionNormalizer::getDescription()&lt;/code&gt; now returns the definition's description only, with no &lt;code&gt;Label: &lt;/code&gt; prefix (and NULL when empty).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is in &lt;code&gt;ContextDefinitionNormalizer::getDescription()&lt;/code&gt; in &lt;code&gt;src/Normalizer/ContextDefinitionNormalizer.php&lt;/code&gt;. It now returns &lt;code&gt;(string) $definition-&amp;gt;getDescription() ?: NULL&lt;/code&gt;. A definition with no description therefore emits no &lt;code&gt;description&lt;/code&gt; key, and the label travels only as &lt;code&gt;title&lt;/code&gt;. The comment that deferred this split to a follow-up issue was replaced with one saying the label goes out as the title only.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;multiple&lt;/code&gt; branch already blanked the item definition's label and description before normalizing &lt;code&gt;items&lt;/code&gt;. I did not see a change to it in the commit I read. With &lt;code&gt;getDescription()&lt;/code&gt; fixed, the author's text lands on the array and &lt;code&gt;items&lt;/code&gt; carries a description only when something adds one, such as the entity handle hints &amp;quot;(pass a handle from a previous tool call)&amp;quot; and &amp;quot;(returns a handle for use in subsequent tool calls)&amp;quot;. Most of the diff is test expectation updates: &lt;code&gt;InputSchemaMatrixTest&lt;/code&gt;, &lt;code&gt;MultipleListSchemaTest&lt;/code&gt;, &lt;code&gt;RicherSchemaEmissionTest&lt;/code&gt;, &lt;code&gt;ListDescriptionSchemaTest&lt;/code&gt;, &lt;code&gt;MethodToolTest&lt;/code&gt;, &lt;code&gt;ToolComplexEventTransformTest&lt;/code&gt; and &lt;code&gt;ToolDefinitionNormalizeTest&lt;/code&gt;. I did not check the documentation examples that the issue's task list mentions.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Update any code or tests that assert on the old prefixed text. For example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before.
-$this-&amp;gt;assertSame('Tags: Words that describe the album.', $schema['description']);
-// After.
-$this-&amp;gt;assertSame('Words that describe the album.', $schema['description']);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Read the label from &lt;code&gt;title&lt;/code&gt; if a consumer needs it.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dries&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594799: Grade taxonomy automators with auto-create without saving terms</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594799.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594799</guid>
-      <pubDate>Tue, 13 Oct 2026 15:20:36 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594799"&gt;#3594799&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Eval field automator target (&lt;a href="https://www.drupal.org/node/3594787"&gt;#3594787&lt;/a&gt;) used to refuse taxonomy rules whose field has auto-create on, because running them saves a new term for every label that has no match. That left tagging automators on such sites untested. They can now be graded. The run captures the labels the rule would store and grades those, without saving any terms. It also records which labels match existing terms and which would be new.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The rule runs as usual. The labels it produced are taken just before storage, and the rule is stopped from storing them, so no term is saved. The labels the field would have received are graded, with each one recorded as matching an existing term or as a would-be new term. A separate guard blocks term saves for the whole run. The run fails rather than storing anything when the labels cannot be taken safely. This is a child of &lt;a href="https://www.drupal.org/node/3594785"&gt;#3594785&lt;/a&gt;. The fix diff was not available to me and the merged code is not in the cloned repository, so this description comes from the issue body only. I could not verify class or hook names.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
