@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_267 summaries · 68 new this week_
+_267 summaries · 29 new this week_
 
 - [#3586448: Disable agent subscriptions for Languages and gate Specific Entities on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586448.md)
 - [#3586388: Align scope scoring, language service, and contextual selection behavior](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586388.md)
