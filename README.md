@@ -1,24 +1,32 @@
-**TL;DR:** [1313 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1317 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_285 summaries · 5 new this week_
-
-- [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
-- [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
-- [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
-
 ### Drupal AI
 
-_273 summaries · 29 new this week_
+_275 summaries · 27 new this week_
 
+- [#3583005: Advertise truthful formats for unmarked datetimes and timestamps](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583005.md)
+- [#3583043: Output definitions cannot say "always present, may be null"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583043.md)
 - [#3630882: Store the OAuth2 client identifier on tokens](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3630882.md)
-- [#3588999: Add drupal-ckeditor5-plugins skill: CKEditor 5 plugin customization, version...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588999.md)
-- [#3583065: Report item and property positions in the violation path, not the message](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583065.md)
+
+### Drupal Canvas
+
+_286 summaries · 6 new this week_
+
+- [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
+- [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
+- [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
+
+### Drupal Core
+
+_630 summaries · 9 new this week_
+
+- [#3398033: Fix deprecated assert.active directive](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md)
+- [#3471113: Update to selenium/standalone-chrome:134+](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3471113.md)
+- [#3029364: "None" Argument Validator for Views Contains an Undefined Variable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3029364.md)
 
 ### Drupal CMS
 
@@ -27,14 +35,6 @@ _126 summaries · 7 new this week_
 - [#3591502: Installer writes Composer's cache into <project root>/.composer when installing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591502.md)
 - [#3591500: Add some new admin page events to benchmark](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591500.md)
 - [#3591504: Telemetry checkbox prevents Basic site settings from being saved](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591504.md)
-
-### Drupal Core
-
-_629 summaries · 9 new this week_
-
-- [#3471113: Update to selenium/standalone-chrome:134+](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3471113.md)
-- [#3029364: "None" Argument Validator for Views Contains an Undefined Variable](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3029364.md)
-- [#2879023: Batch is dependent on the order of query string parameters](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2879023.md)
 
 
 ## Rector rules
