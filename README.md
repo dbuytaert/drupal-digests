@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_271 summaries · 32 new this week_
+_271 summaries · 27 new this week_
 
 - [#3583065: Report item and property positions in the violation path, not the message](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583065.md)
 - [#3583086: Let `destructive` be undeclared, so write tools aren't reported as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583086.md)
@@ -30,7 +30,7 @@ _629 summaries · 9 new this week_
 
 ### Drupal Canvas
 
-_284 summaries · 5 new this week_
+_284 summaries · 4 new this week_
 
 - [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
 - [#3592085: Canvas AI: Let the user stop a running chat turn](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592085.md)
