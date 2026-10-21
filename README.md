@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_128 summaries · 8 new this week_
+_128 summaries · 7 new this week_
 
 - [#3591505: Update ping to weekly and add increment property](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591505.md)
 - [#3591455: Update search recipe to create blocks instead of a views page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591455.md)
