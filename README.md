@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_128 summaries · 9 new this week_
+_128 summaries · 8 new this week_
 
 - [#3591505: Update ping to weekly and add increment property](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591505.md)
 - [#3591455: Update search recipe to create blocks instead of a views page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591455.md)
@@ -14,7 +14,7 @@ _128 summaries · 9 new this week_
 
 ### Drupal AI
 
-_277 summaries · 29 new this week_
+_277 summaries · 25 new this week_
 
 - [#3583083: Entity input violation tells an in-process invoker that it cannot pass entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583083.md)
 - [#3583108: Check view label access before including an entity label in handle hints and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583108.md)
@@ -22,7 +22,7 @@ _277 summaries · 29 new this week_
 
 ### Drupal Canvas
 
-_286 summaries · 6 new this week_
+_286 summaries · 5 new this week_
 
 - [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
 - [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
