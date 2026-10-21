@@ -1,4 +1,4 @@
-**TL;DR:** [1321 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1324 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_128 summaries · 7 new this week_
+_129 summaries · 7 new this week_
 
+- [#3591508: Trust the cweagans/composer-patches plugin by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591508.md)
 - [#3591505: Update ping to weekly and add increment property](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591505.md)
 - [#3591455: Update search recipe to create blocks instead of a views page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591455.md)
-- [#3591502: Installer writes Composer's cache into <project root>/.composer when installing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591502.md)
 
 ### Drupal AI
 
-_277 summaries · 25 new this week_
+_279 summaries · 23 new this week_
 
+- [#3582968: Tool Explorer execute form: masked exception on access denial, duplicate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582968.md)
+- [#3589006: Default skills output_directory to .claude/skills when Claude Code is detected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589006.md)
 - [#3583083: Entity input violation tells an in-process invoker that it cannot pass entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583083.md)
-- [#3583108: Check view label access before including an entity label in handle hints and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583108.md)
-- [#3583005: Advertise truthful formats for unmarked datetimes and timestamps](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583005.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _286 summaries · 5 new this week_
 
 ### Drupal Core
 
-_630 summaries · 9 new this week_
+_630 summaries · 8 new this week_
 
 - [#3398033: Fix deprecated assert.active directive](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md)
 - [#3471113: Update to selenium/standalone-chrome:134+](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3471113.md)
