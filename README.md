@@ -22,7 +22,7 @@ _279 summaries · 23 new this week_
 
 ### Drupal Canvas
 
-_286 summaries · 5 new this week_
+_286 summaries · 4 new this week_
 
 - [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
 - [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
