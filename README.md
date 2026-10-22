@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_129 summaries · 7 new this week_
+_129 summaries · 6 new this week_
 
 - [#3591508: Trust the cweagans/composer-patches plugin by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591508.md)
 - [#3591505: Update ping to weekly and add increment property](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591505.md)
