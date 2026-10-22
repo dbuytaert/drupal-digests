@@ -1,8 +1,16 @@
-**TL;DR:** [1324 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1325 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_287 summaries · 5 new this week_
+
+- [#3592226: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592226.md)
+- [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
+- [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
 
 ### Drupal CMS
 
@@ -14,23 +22,15 @@ _129 summaries · 6 new this week_
 
 ### Drupal AI
 
-_279 summaries · 23 new this week_
+_279 summaries · 22 new this week_
 
 - [#3582968: Tool Explorer execute form: masked exception on access denial, duplicate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582968.md)
 - [#3589006: Default skills output_directory to .claude/skills when Claude Code is detected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589006.md)
 - [#3583083: Entity input violation tells an in-process invoker that it cannot pass entities](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583083.md)
 
-### Drupal Canvas
-
-_286 summaries · 4 new this week_
-
-- [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
-- [#3592225: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592225.md)
-- [#3592211: Workspaces PR 1: retire the 1.x external-edit conflict detection](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592211.md)
-
 ### Drupal Core
 
-_630 summaries · 8 new this week_
+_630 summaries · 7 new this week_
 
 - [#3398033: Fix deprecated assert.active directive](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md)
 - [#3471113: Update to selenium/standalone-chrome:134+](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3471113.md)

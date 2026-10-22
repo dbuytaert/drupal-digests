@@ -5,6 +5,43 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592226: Workspaces PR 3: workspace-scoped auto-save (the core change)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592226.md</link>
+      <guid isPermaLink="false">project/canvas#3592226</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Thu, 22 Oct 2026 10:16:04 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592226"&gt;#3592226&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On the &lt;code&gt;1.x-workspaces&lt;/code&gt; branch, every Canvas draft is now staged in the active core Workspace, or in the Main workspace when none is active, instead of in the 1.x key-value auto-save store. This is PR 3 of a planned series. It covers the storage and manager layers. The controllers (PR 5) and per-item publish replacement (PR 7a) land separately. Per the issue, &lt;code&gt;ApiAutoSaveControllerTest&lt;/code&gt; fails after this PR until PR 7a, and the 1.x &lt;code&gt;post()&lt;/code&gt; publish is unsafe inside a workspace until then. This is an intermediate step on a feature branch. Its description is a plan, and the merge request was never linked to it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Per-workspace key-value collections &lt;code&gt;canvas.auto_save.{workspace}&lt;/code&gt; and &lt;code&gt;canvas.auto_save_meta.{workspace}&lt;/code&gt; replace the single 1.x &lt;code&gt;canvas.auto_save&lt;/code&gt; collection.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AutoSaveManager&lt;/code&gt; auto-save keys become workspace-prefixed (&lt;code&gt;{workspace}:{type}:{id}[:{langcode}]&lt;/code&gt;), and Canvas content drafts are now staged in the active workspace instead of the 1.x key-value store.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;AutoSaveFallbackStore&lt;/code&gt; and &lt;code&gt;WorkspaceAutoSave&lt;/code&gt; services under &lt;code&gt;src/AutoSave/Workspace/&lt;/code&gt;; &lt;code&gt;AutoSaveManager&lt;/code&gt; delegates to them.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The design is ADR 0022, which landed in PR 2. Content entity drafts become the entity's single tracked pending revision in the active workspace, and the previous one is deleted. Config entity drafts, and content drafts the storage layer rejects (for example an invalid component tree that throws in presave), go to a per-workspace fallback store, &lt;code&gt;AutoSaveFallbackStore&lt;/code&gt;. That store uses the collections &lt;code&gt;canvas.auto_save.{ws}&lt;/code&gt; for draft rows and &lt;code&gt;canvas.auto_save_meta.{ws}&lt;/code&gt; for client instance, draft path and attribution. It caps workspace IDs at 100 characters and offers &lt;code&gt;deleteWorkspace()&lt;/code&gt; and &lt;code&gt;workspaceIds()&lt;/code&gt;. Exactly one store holds a target's current draft: a fallback row shadows the primary store until the next successful primary persist. Staging never validates. &lt;code&gt;ClientDataToEntityConverter&lt;/code&gt; converts and validates inside the staging workspace so core's one-workspace-per-entity lock passes. Writes are idempotent, and dirty state is computed at read time by hashing staged data against Live.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;WorkspaceAutoSave&lt;/code&gt; (about 1,300 lines per the issue) holds the persist, read, discard and delete logic. &lt;code&gt;AutoSaveManager&lt;/code&gt; delegates to it, adds workspace-prefixed keys, and gains &lt;code&gt;executeInStagingWorkspace()&lt;/code&gt;, &lt;code&gt;getEntityForLayoutEditing()&lt;/code&gt;, &lt;code&gt;deleteTranslation()&lt;/code&gt; and a &lt;code&gt;forcePreserve&lt;/code&gt; option. &lt;code&gt;onCanvasConfigEntitySave()&lt;/code&gt; checks &lt;code&gt;isPublishTimeStaging()&lt;/code&gt;. A cross-workspace lock raises &lt;code&gt;WorkspaceEntityLockedException&lt;/code&gt;, which &lt;code&gt;ApiExceptionSubscriber&lt;/code&gt; maps to a 409 with a new &lt;code&gt;ErrorCodesEnum&lt;/code&gt; code (8). The 1.x hash-based conflict detection is kept: the base hash of a content draft is recorded in the metadata collection, and fallback rows keep &lt;code&gt;original_hash&lt;/code&gt;. It is compared against &lt;code&gt;WorkspaceAutoSave::loadUnchangedBase()&lt;/code&gt;. &lt;code&gt;AutoSaveWorkspacePublishSubscriber::validateItem()&lt;/code&gt; adds the &lt;code&gt;AutoSaveEntityConflictConstraint&lt;/code&gt; violation for a Page draft with an unresolved conflict. &lt;code&gt;ContentTemplate&lt;/code&gt; is now created enabled, and the translation synchronizer skips staged non-default translations. &lt;code&gt;AutoSaveManager::groupContentEntityAutoSaves()&lt;/code&gt; and &lt;code&gt;autoSavePublish()&lt;/code&gt; stay until PR 7a. The planned tests include &lt;code&gt;WorkspaceAutoSaveStagingTest&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The MR for this PR was not attached, and the issue has no comments. I read the issue text and the reference branch MR 1845, whose diff was partial and omitted &lt;code&gt;WorkspaceAutoSave.php&lt;/code&gt; and &lt;code&gt;AutoSaveManager.php&lt;/code&gt;. I did not read the final merged code of this PR.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Existing 1.x key-value drafts are not migrated by this PR. The issue says &lt;code&gt;canvas_post_update_0026&lt;/code&gt; is unchanged. The reference branch has a &lt;code&gt;LegacyAutoSaveMigrator&lt;/code&gt; that moves them into the Main workspace, but I did not confirm it lands here. Code that reads auto-save keys must handle the new &lt;code&gt;{workspace}:{type}:{id}[:{langcode}]&lt;/code&gt; form.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 20, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592109: CLI pull/push loses entity references and options in component link props</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md</link>
       <guid isPermaLink="false">project/canvas#3592109</guid>
@@ -681,50 +718,6 @@ $operation['components'] = $this-&amp;gt;responseValidator-&amp;gt;validateCompo
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 10, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592111: Unify headless frame-ancestors policies across frameworks</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592111.md</link>
-      <guid isPermaLink="false">project/canvas#3592111</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 28 Sep 2026 17:47:26 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592111"&gt;#3592111&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Canvas headless frontends embed inside the Canvas editor's iframe during draft preview, which requires the frontend's Content-Security-Policy to allow that specific embedding via &lt;code&gt;frame-ancestors&lt;/code&gt;. Each framework adapter (Next.js, Nuxt, Astro, TanStack Start) previously computed this policy on its own, and at least one combination, Vercel-hosted Next.js apps, ended up refusing the embed entirely, blocking preview and editing of the headless site from within Canvas. All adapters now share one resolver for this policy, so the behavior is consistent and documented across frameworks, and site owners get an explicit &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; setting to override the defaults when needed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; environment variable (a whitespace- or comma-separated list of origins) that explicitly sets which origins may embed a headless frontend for draft preview. When unset, the policy defaults to &lt;code&gt;'self'&lt;/code&gt; plus the &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; origin and the current draft session's editor origin; setting &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; (even to an empty or fully invalid value) replaces both defaults rather than adding to them.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The policy logic now lives in one place, &lt;code&gt;resolveFrameAncestors()&lt;/code&gt; and &lt;code&gt;mergeFrameAncestors()&lt;/code&gt; in &lt;code&gt;packages/headless/src/server/csp.ts&lt;/code&gt;, exported from &lt;code&gt;@drupal-canvas/headless/server&lt;/code&gt;, and every adapter's middleware/plugin (&lt;code&gt;headless-next&lt;/code&gt;'s &lt;code&gt;applyCanvasHeaders()&lt;/code&gt;, &lt;code&gt;headless-nuxt&lt;/code&gt;'s &lt;code&gt;beforeResponse&lt;/code&gt; server plugin, &lt;code&gt;headless-astro&lt;/code&gt;'s &lt;code&gt;onRequest&lt;/code&gt; middleware, &lt;code&gt;headless-tanstack-start&lt;/code&gt;'s &lt;code&gt;cspMiddleware&lt;/code&gt;) calls the same two functions instead of building the header itself.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;resolveFrameAncestors()&lt;/code&gt; reads &lt;code&gt;process.env.CANVAS_EDITOR_ORIGINS&lt;/code&gt; on every call. When set, it replaces both defaults with the parsed list (split on whitespace or commas); when unset, it falls back to &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; plus the current draft session's &lt;code&gt;renewUrl&lt;/code&gt; origin. Every candidate goes through &lt;code&gt;toEditorOrigin()&lt;/code&gt;, which normalizes to scheme, host, and port and rejects anything that is not a plain &lt;code&gt;http(s)&lt;/code&gt; URL: credentialed URLs, wildcard or CSP-delimiter-bearing hosts, and literal IPv6 addresses are all dropped (DNS hostnames that resolve to IPv6 still work). &lt;code&gt;'self'&lt;/code&gt; is always included, and origins are deduplicated.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;mergeFrameAncestors()&lt;/code&gt; folds the resolved directive into whatever &lt;code&gt;Content-Security-Policy&lt;/code&gt; value(s) the app already set, handling repeated header fields, array values, and comma-separated policy lists uniformly, and leaves an application-owned &lt;code&gt;frame-ancestors&lt;/code&gt; directive untouched rather than overriding it. This is embedding policy only; it does not affect draft authentication or postMessage trust between the editor and the frontend. The Astro and TanStack Start Vite integrations also now load &lt;code&gt;CANVAS_EDITOR_ORIGINS&lt;/code&gt; from framework &lt;code&gt;.env&lt;/code&gt; files into &lt;code&gt;process.env&lt;/code&gt;, matching how they already load &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Optional. To explicitly control which origins may embed the frontend for draft preview, set the new variable in the frontend's environment, for example:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;CANVAS_EDITOR_ORIGINS=https://cms.example, https://staging.example:8443
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Leave it unset to keep the default behavior (&lt;code&gt;'self'&lt;/code&gt; plus &lt;code&gt;CANVAS_SITE_URL&lt;/code&gt; and the draft session's editor origin). Setting it to an empty string suppresses both defaults and admits only &lt;code&gt;'self'&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
-&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
-&lt;li&gt;wotnak (Smartbees)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
