@@ -1,36 +1,36 @@
-**TL;DR:** [1329 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1336 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_289 summaries · 6 new this week_
-
-- [#3592120: Canvas AI: Give the Canvas Agent editor-facing knowledge about Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592120.md)
-- [#3592021: Canvas AI: Unify error handling in `canvas_component_agent`'s tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592021.md)
-- [#3592226: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592226.md)
-
 ### Drupal AI
 
-_281 summaries · 21 new this week_
+_285 summaries · 23 new this week_
 
-- [#3587321: Add a Composer plugin that harvests project context and injects a "This...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3587321.md)
-- [#3586558: Preserve HTML in streamed output (1.3.x)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586558.md)
-- [#3582968: Tool Explorer execute form: masked exception on access denial, duplicate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582968.md)
+- [#3594686: Failure-mode taxonomy artifact for error analysis](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594686.md)
+- [#3594690: Artifact source plugins expose capabilities for read/write/promote/versioning](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594690.md)
+- [#3594780: Apply decision calibrations to the callers a site selects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594780.md)
 
 ### Drupal CMS
 
-_129 summaries · 6 new this week_
+_131 summaries · 8 new this week_
 
+- [#3591510: Switch `drush si` default site template to Forma](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591510.md)
+- [#3591506: Updates to telemetry for env info, remove user_login, specify recipes &...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591506.md)
 - [#3591508: Trust the cweagans/composer-patches plugin by default](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591508.md)
-- [#3591505: Update ping to weekly and add increment property](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591505.md)
-- [#3591455: Update search recipe to create blocks instead of a views page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591455.md)
+
+### Drupal Canvas
+
+_290 summaries · 7 new this week_
+
+- [#3591889: Canvas Editor: Component collapses and becomes un-clickable on the canvas when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591889.md)
+- [#3592120: Canvas AI: Give the Canvas Agent editor-facing knowledge about Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592120.md)
+- [#3592021: Canvas AI: Unify error handling in `canvas_component_agent`'s tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592021.md)
 
 ### Drupal Core
 
-_630 summaries · 7 new this week_
+_630 summaries · 5 new this week_
 
 - [#3398033: Fix deprecated assert.active directive](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md)
 - [#3471113: Update to selenium/standalone-chrome:134+](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3471113.md)
