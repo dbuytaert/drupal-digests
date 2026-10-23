@@ -5,6 +5,61 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3218381: #file_value_callbacks bypass the TrustedCallbackInterface protections</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3218381.md</link>
+      <guid isPermaLink="false">node/3218381</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Fri, 23 Oct 2026 21:04:42 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +72/−7 · php +72/−7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/ecc5d9423f16e6cf9328b205279dc95a02473fb6"&gt;ecc5d94&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3218381"&gt;#3218381&lt;/a&gt; · 6 contributors · 24 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 13&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 6 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;managed_file&lt;/code&gt; form element accepted &lt;code&gt;#file_value_callbacks&lt;/code&gt; and called whatever was listed there, bypassing the trusted callback protections added in &lt;a href="https://www.drupal.org/node/2966327"&gt;#2966327&lt;/a&gt; to limit remote code execution through render arrays. Those callbacks are now checked the same way as other render callbacks. In Drupal 12.1 an untrusted callback still runs but triggers a deprecation. In Drupal 13.0 it will throw an exception. Custom and contrib code that uses &lt;code&gt;#file_value_callbacks&lt;/code&gt; needs updating.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Closes a bypass of the trusted callback protections: arbitrary callables in &lt;code&gt;#file_value_callbacks&lt;/code&gt; were executed unchecked.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Using &lt;code&gt;#file_value_callbacks&lt;/code&gt; callbacks on &lt;code&gt;managed_file&lt;/code&gt; that are not &lt;code&gt;#[TrustedCallback]&lt;/code&gt;-tagged methods, &lt;code&gt;TrustedCallbackInterface&lt;/code&gt; methods or anonymous functions is deprecated in drupal:12.1.0 and will throw in drupal:13.0.0.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ManagedFile::valueCallback()&lt;/code&gt; used to run &lt;code&gt;$callback($element, $input, $form_state)&lt;/code&gt; for each entry in &lt;code&gt;#file_value_callbacks&lt;/code&gt;. It now passes each one to &lt;code&gt;StaticTrustedCallbackHelper::callback()&lt;/code&gt; with a custom message. That message says untrusted callbacks are deprecated in drupal:12.1.0 and will throw in drupal:13.0.0, and it links to https://www.drupal.org/node/3620771. &lt;code&gt;StaticTrustedCallbackHelper&lt;/code&gt; no longer supports a silenced deprecation (&lt;a href="https://www.drupal.org/node/3081025"&gt;#3081025&lt;/a&gt;). The code therefore catches &lt;code&gt;UntrustedCallbackException&lt;/code&gt;, calls &lt;code&gt;@trigger_error($e-&amp;gt;getMessage(), E_USER_DEPRECATED)&lt;/code&gt;, and then still invokes the callback, which keeps the deprecation period working. The &lt;code&gt;%%s&lt;/code&gt; in the &lt;code&gt;sprintf()&lt;/code&gt; format is intentional: it leaves a &lt;code&gt;%s&lt;/code&gt; placeholder for the helper to fill in with the callback. Trusted callbacks are methods tagged &lt;code&gt;#[TrustedCallback]&lt;/code&gt;, methods of a &lt;code&gt;TrustedCallbackInterface&lt;/code&gt; class, and anonymous functions. Kernel test coverage was added in the file module's managed file element test. A comment on the issue notes that contrib has copied this pattern into other elements, and follow-up issues are probably needed for them.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Tag any &lt;code&gt;#file_value_callbacks&lt;/code&gt; callback method with the attribute used in the core test:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Security\Attribute\TrustedCallback;
+
+#[TrustedCallback]
+public function managedFileValueCallbackTrusted(array &amp;amp;$element, $input, FormStateInterface $form_state): void {
+  // ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Alternatively, implement &lt;code&gt;TrustedCallbackInterface&lt;/code&gt; on the class or use an anonymous function. Plain function names such as &lt;code&gt;'die'&lt;/code&gt; are no longer trusted. They trigger a deprecation in 12.1 and will throw in 13.0.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 11, 2021&lt;/li&gt;
+&lt;li&gt;Committed: October 23, 2026 (5 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;kim.pepper (PreviousNext)&lt;/li&gt;
+&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
+&lt;li&gt;prudloff (Insite)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3398033: Fix deprecated assert.active directive</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md</link>
       <guid isPermaLink="false">node/3398033</guid>
@@ -947,56 +1002,6 @@ class ActionValidationTest extends ConfigEntityValidationTestBase {
 &lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3568767: Deprecate Media::getRequestTime()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3568767.md</link>
-      <guid isPermaLink="false">node/3568767</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sun, 04 Oct 2026 18:08:37 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +12/−9 · php +12/−9&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3568767"&gt;#3568767&lt;/a&gt; · 5 contributors · 28 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;Media&lt;/code&gt; entity's &lt;code&gt;getRequestTime()&lt;/code&gt; method, previously undocumented beyond a generic &lt;code&gt;{@inheritdoc}&lt;/code&gt; comment despite not actually overriding anything, is now deprecated with no replacement. The method will be removed in Drupal 13. It is no longer used internally by Drupal core, so most sites are unaffected; only code that explicitly calls &lt;code&gt;Media::getRequestTime()&lt;/code&gt; needs to change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; &lt;code&gt;Media::getRequestTime()&lt;/code&gt; is deprecated in drupal:12.1.0 and removed from drupal:13.0.0, with no replacement.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;created&lt;/code&gt; base field on the &lt;code&gt;Media&lt;/code&gt; entity used &lt;code&gt;Media::getRequestTime()&lt;/code&gt; as its &lt;code&gt;setDefaultValueCallback()&lt;/code&gt;, even though the method simply returned &lt;code&gt;\Drupal::time()-&amp;gt;getRequestTime()&lt;/code&gt;, the same value the &lt;code&gt;created&lt;/code&gt; field type (&lt;code&gt;CreatedItem::applyDefaultValue()&lt;/code&gt;) already sets by default. Since the callback was redundant, it was removed from &lt;code&gt;Media::baseFieldDefinitions()&lt;/code&gt; entirely rather than just documented, and the method itself was marked &lt;code&gt;@deprecated&lt;/code&gt; with a proper docblock, a return type hint (&lt;code&gt;: int&lt;/code&gt;), and a &lt;code&gt;trigger_error()&lt;/code&gt; call pointing to the change record at https://www.drupal.org/node/3624921. The corresponding PHPStan baseline entry for the method's missing return type was also removed since the new return type hint makes it unnecessary.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace any direct calls to the deprecated method:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Before:
-$time = Media::getRequestTime();
-
-// After:
-$time = \Drupal::time()-&amp;gt;getRequestTime();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: January 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;avpaderno&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;What started as a documentation-only fix changed direction after catch pointed out that &lt;code&gt;getRequestTime()&lt;/code&gt; wasn't needed at all, since &lt;code&gt;CreatedItem&lt;/code&gt; already defaults the &lt;code&gt;created&lt;/code&gt; field to the request time without it; this prompted removing the &lt;code&gt;setDefaultValueCallback()&lt;/code&gt; usage and deprecating the method instead of just documenting it. Later, catch also caught that the deprecation's target version needed updating once Drupal 12.0.x opened, which avpaderno corrected to drupal:12.1.0 after initially targeting the wrong release.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
