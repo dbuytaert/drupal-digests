@@ -1,24 +1,24 @@
-**TL;DR:** [1327 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1329 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_280 summaries · 21 new this week_
-
-- [#3586558: Preserve HTML in streamed output (1.3.x)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586558.md)
-- [#3582968: Tool Explorer execute form: masked exception on access denial, duplicate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582968.md)
-- [#3589006: Default skills output_directory to .claude/skills when Claude Code is detected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589006.md)
-
 ### Drupal Canvas
 
-_288 summaries · 5 new this week_
+_289 summaries · 6 new this week_
 
+- [#3592120: Canvas AI: Give the Canvas Agent editor-facing knowledge about Drupal Canvas](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592120.md)
 - [#3592021: Canvas AI: Unify error handling in `canvas_component_agent`'s tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592021.md)
 - [#3592226: Workspaces PR 3: workspace-scoped auto-save (the core change)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592226.md)
-- [#3592109: CLI pull/push loses entity references and options in component link props](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592109.md)
+
+### Drupal AI
+
+_281 summaries · 21 new this week_
+
+- [#3587321: Add a Composer plugin that harvests project context and injects a "This...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3587321.md)
+- [#3586558: Preserve HTML in streamed output (1.3.x)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586558.md)
+- [#3582968: Tool Explorer execute form: masked exception on access denial, duplicate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582968.md)
 
 ### Drupal CMS
 
