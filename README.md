@@ -1,12 +1,20 @@
-**TL;DR:** [1339 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1343 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_290 summaries · 28 new this week_
+
+- [#3586639: Status badge contrast (WCAG 1.4.3): Unavailable fails on row hover](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586639.md)
+- [#3586541: Make duplicate consumer_id rows resolve consistently and map validator errors...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586541.md)
+- [#3586571: Scheduled publish on save can leave context item Draft in the listing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586571.md)
+
 ### Drupal Core
 
-_631 summaries · 6 new this week_
+_631 summaries · 4 new this week_
 
 - [#3218381: #file_value_callbacks bypass the TrustedCallbackInterface protections](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3218381.md)
 - [#3398033: Fix deprecated assert.active directive](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3398033.md)
@@ -19,14 +27,6 @@ _132 summaries · 9 new this week_
 - [#3591501: Add an event or param to track use of the launcher](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591501.md)
 - [#3591510: Switch `drush si` default site template to Forma](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591510.md)
 - [#3591506: Updates to telemetry for env info, remove user_login, specify recipes &...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591506.md)
-
-### Drupal AI
-
-_286 summaries · 24 new this week_
-
-- [#3594686: Failure-mode taxonomy artifact for error analysis](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594686.md)
-- [#3594690: Artifact source plugins expose capabilities for read/write/promote/versioning](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594690.md)
-- [#3594780: Apply decision calibrations to the callers a site selects](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594780.md)
 
 ### Drupal Canvas
 
