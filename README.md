@@ -1,4 +1,4 @@
-**TL;DR:** [1343 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1348 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_290 summaries · 28 new this week_
+_295 summaries · 28 new this week_
 
-- [#3586639: Status badge contrast (WCAG 1.4.3): Unavailable fails on row hover](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586639.md)
-- [#3586541: Make duplicate consumer_id rows resolve consistently and map validator errors...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586541.md)
-- [#3586571: Scheduled publish on save can leave context item Draft in the listing](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586571.md)
+- [#3586619: Hide context items and usage records from JSON:API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586619.md)
+- [#3586489: Remove stale consumer config when a host entity is deleted](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586489.md)
+- [#3586470: Fix CCC beta4-to-beta5 upgrade and config-import path](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586470.md)
 
 ### Drupal Core
 

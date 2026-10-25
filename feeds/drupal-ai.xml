@@ -5,6 +5,240 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586619: Hide context items and usage records from JSON:API</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586619.md</link>
+      <guid isPermaLink="false">project/ai_context#3586619</guid>
+      <category>Site owners</category>
+      <pubDate>Sun, 25 Oct 2026 00:07:01 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586619"&gt;#3586619&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In AI Context (CCC) 1.0.0, context items and usage records are no longer available through core JSON:API. Before, a site that enabled JSON:API let every account with &lt;strong&gt;Use Published AI Context in AI Features&lt;/strong&gt; page through all published context items over HTTP and read their raw fields, without the CCC delivery rules and without usage being recorded. Sites that read or synced items through JSON:API (for example with Entity Share) lose that access, and 1.0.0 has no supported replacement. Run &lt;code&gt;drush cr&lt;/code&gt; after updating, because the resources stay available until caches are rebuilt. Core REST can still be enabled on purpose for context items, but no longer offers usage records. If you enabled a REST resource for usage records, delete it before rebuilding the router.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Removes a bulk JSON:API read path that let any account with &lt;strong&gt;Use Published AI Context in AI Features&lt;/strong&gt; page through all published context items with raw fields, bypassing CCC delivery rules.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; A site that enabled a core REST resource for usage records must delete &lt;code&gt;rest.resource.entity.ai_context_usage&lt;/code&gt; before &lt;code&gt;drush cr&lt;/code&gt; or &lt;code&gt;drush updatedb&lt;/code&gt;, or the router rebuild fails.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ai_context_usage&lt;/code&gt; now has &lt;code&gt;internal = TRUE&lt;/code&gt; in its &lt;code&gt;@ContentEntityType&lt;/code&gt; annotation, so JSON:API, core REST discovery and other integrations that skip internal entity types ignore it. A side effect noted in the release note is that Workspaces now ignores usage records, so usage is also recorded while a non-default workspace is active.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ai_context_item&lt;/code&gt; is deliberately not marked internal, because Content Moderation and Workspaces skip internal entity types and the flag would remove the editorial workflow and moderation transition access checks. Instead, a new &lt;code&gt;@internal&lt;/code&gt; subscriber, &lt;code&gt;AiContextJsonApiResourceTypeSubscriber&lt;/code&gt; (registered as &lt;code&gt;ai_context.jsonapi_resource_type_subscriber&lt;/code&gt;), listens to the string event name &lt;code&gt;jsonapi.resource_type.build&lt;/code&gt; at priority 1000 and calls &lt;code&gt;disableResourceType()&lt;/code&gt; for resource types whose name starts with &lt;code&gt;ai_context_item--&lt;/code&gt;. Using the string event name means it works when JSON:API is not installed. No post-update is added; &lt;code&gt;drush cr&lt;/code&gt; rebuilds the container, entity type definitions and JSON:API resource types.&lt;/p&gt;
+&lt;p&gt;A kernel test, &lt;code&gt;AiContextEntityExposureTest&lt;/code&gt;, checks that with JSON:API enabled both resource types are internal and the &lt;code&gt;user&lt;/code&gt; type is not, and that items keep the &lt;code&gt;moderation&lt;/code&gt; handler. Docs changed in &lt;code&gt;access-boundaries.md&lt;/code&gt; (new &amp;quot;Generic entity APIs&amp;quot; section and updated permission titles), &lt;code&gt;api-stability.md&lt;/code&gt; (output of generic entity APIs such as core REST or the serializer is not public API; the scope field section is renamed &amp;quot;normalized shape&amp;quot;) and &lt;code&gt;configuration.md&lt;/code&gt;. The issue plans an opt-in for context items later (&lt;a href="https://www.drupal.org/node/3586600"&gt;#3586600&lt;/a&gt;), which would need a dedicated read permission (&lt;a href="https://www.drupal.org/node/3586357"&gt;#3586357&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;After updating, rebuild caches so the container and JSON:API resource types pick up the change:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush cr
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If the site enabled a core REST resource for usage records, delete it first, before &lt;code&gt;drush cr&lt;/code&gt; or &lt;code&gt;drush updatedb&lt;/code&gt;, and remove it from config sync:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush config:delete rest.resource.entity.ai_context_usage
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Also remove &lt;code&gt;rest.resource.entity.ai_context_usage.yml&lt;/code&gt; from the config sync directory. Otherwise the router rebuild fails because the REST plugin for usage records no longer exists.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586489: Remove stale consumer config when a host entity is deleted</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586489.md</link>
+      <guid isPermaLink="false">project/ai_context#3586489</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 24 Oct 2026 22:19:20 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586489"&gt;#3586489&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Deleting an AI Automator now removes its &lt;code&gt;automator:{id}&lt;/code&gt; row from &lt;code&gt;ai_context.consumers&lt;/code&gt;. Before this, only deleting an &lt;code&gt;ai_agent&lt;/code&gt; did that, and a deleted automator showed up as a stale entry in the consumers listing until an admin removed it by hand. Consumer types from other modules can now get the same cleanup by declaring which entity type hosts them. A consumer type that fails to load is now skipped and logged instead of breaking entity deletes, the consumers listing, or routing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AiContextConsumerTypeInterface&lt;/code&gt; gains a required method; plugins that implement the interface directly instead of extending &lt;code&gt;AiContextConsumerTypeBase&lt;/code&gt; must add it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextConsumerTypeInterface::getConsumerIdForDeletedEntity()&lt;/code&gt; and a &lt;code&gt;host_entity_type&lt;/code&gt; key on the &lt;code&gt;AiContextConsumerType&lt;/code&gt; attribute.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ai_context_entity_delete()&lt;/code&gt; no longer special-cases &lt;code&gt;ai_agent&lt;/code&gt;. It calls a new &lt;code&gt;AiContextConsumerTypeManager::getConsumerIdsForDeletedEntity()&lt;/code&gt;, which is marked &lt;code&gt;@internal&lt;/code&gt;. That method asks every discovered consumer type plugin, including disabled or unavailable ones, because a leftover row can exist after a kill switch. Each returned ID goes to the existing &lt;code&gt;AiContextScopeCleanupService::removeDeletedConsumerConfig()&lt;/code&gt;, so there is no second write path.&lt;/p&gt;
+&lt;p&gt;Each type answers through the new &lt;code&gt;getConsumerIdForDeletedEntity(EntityInterface $entity): ?AiContextConsumerId&lt;/code&gt; method. &lt;code&gt;AiContextConsumerTypeBase&lt;/code&gt; implements the 1:1 case from the new &lt;code&gt;host_entity_type&lt;/code&gt; attribute argument. If the entity type matches and the ID is non-empty, it returns &lt;code&gt;{plugin_id}:{entity_id}&lt;/code&gt;. Otherwise it returns NULL. The &lt;code&gt;agent&lt;/code&gt; and &lt;code&gt;automator&lt;/code&gt; plugins set &lt;code&gt;host_entity_type&lt;/code&gt; to &lt;code&gt;ai_agent&lt;/code&gt; and &lt;code&gt;ai_automator&lt;/code&gt;. Types with a different ID scheme override the method. Types with no host omit the key.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextConsumerTypeManager::getConsumerTypePlugins()&lt;/code&gt; now catches &lt;code&gt;\Exception&lt;/code&gt; (not &lt;code&gt;\Error&lt;/code&gt;) from &lt;code&gt;createInstance()&lt;/code&gt;. It logs the failure and omits that type. The same applies to the mapping call. This is why a broken type is also dropped from the listing and from routing. The manager takes a new optional &lt;code&gt;$logger&lt;/code&gt; argument, wired to &lt;code&gt;@logger.channel.ai_context&lt;/code&gt; in &lt;code&gt;ai_context.services.yml&lt;/code&gt;. No config dependencies were added on &lt;code&gt;ai_context.consumers&lt;/code&gt;, and rows that are already stale are not cleaned up retroactively.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Plugins that extend &lt;code&gt;AiContextConsumerTypeBase&lt;/code&gt; need no change. A type whose instances are 1:1 with a host entity can opt in through the attribute:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[AiContextConsumerType(
+  id: 'automator',
+  // label and description omitted
+  host_entity_type: 'ai_automator',
+)]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Types with a different ID scheme should override &lt;code&gt;getConsumerIdForDeletedEntity()&lt;/code&gt;. Do not gate it on &lt;code&gt;isEnabled()&lt;/code&gt; or &lt;code&gt;isAvailable()&lt;/code&gt;. Return NULL when the type does not own the entity.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 5, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586470: Fix CCC beta4-to-beta5 upgrade and config-import path</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586470.md</link>
+      <guid isPermaLink="false">project/ai_context#3586470</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 24 Oct 2026 22:06:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586470"&gt;#3586470&lt;/a&gt; · 1 contributor · 34 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Fixes three problems for sites upgrading AI Context from beta4 to beta5. Migrated agents now keep beta4's implicit Minimal selection mode instead of silently becoming Relevant. &lt;code&gt;match_all&lt;/code&gt; becomes Broad, and explicit Minimal, Relevant and Broad values are preserved. A complete beta4 config export can be imported after &lt;code&gt;updatedb&lt;/code&gt;. Its agents are turned into consumers, and the usage View is repaired. Settings without a selection mode fall back to the beta5 default. The one-shot post-update 0006 now removes only scope values whose entities no longer exist. Values for disabled or unavailable scopes stay. The beta5 release notes say to run &lt;code&gt;drush updatedb&lt;/code&gt; before importing configuration, and to re-export afterwards.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; A beta4 &lt;code&gt;ai_context.settings&lt;/code&gt; object without &lt;code&gt;selection_mode&lt;/code&gt; is accepted on import, and a beta4 sync directory is converted to consumers during import.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Update 10028 and the import transform share a new &lt;code&gt;@internal&lt;/code&gt; helper, &lt;code&gt;AiContextLegacyAgentConverter&lt;/code&gt;. &lt;code&gt;convertAgentRow()&lt;/code&gt; normalizes the selection mode: missing or unrecognized becomes &lt;code&gt;minimal&lt;/code&gt;, &lt;code&gt;match_all&lt;/code&gt; becomes &lt;code&gt;broad&lt;/code&gt;, valid modes are preserved. &lt;code&gt;convertAgentsToConsumerRows()&lt;/code&gt; collapses identical duplicate rows and throws on conflicting duplicates. It also throws when the &lt;code&gt;agents&lt;/code&gt; list is missing, because that is treated as corrupt rather than empty. Converted rows are written in the &lt;code&gt;ai_context.consumers&lt;/code&gt; schema key order. Without that, &lt;code&gt;StorageComparer&lt;/code&gt; would report a phantom update on every later import.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextConfigImportValidateSubscriber&lt;/code&gt; now also subscribes to &lt;code&gt;ConfigEvents::STORAGE_TRANSFORM_IMPORT&lt;/code&gt; via &lt;code&gt;onImportStorageTransform()&lt;/code&gt;. When the source has &lt;code&gt;ai_context.agents&lt;/code&gt; but no &lt;code&gt;ai_context.consumers&lt;/code&gt;, it converts the rows and drops the leftover agents object. Per the issue it also does these things:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;It supplies the agent consumer-type settings and copies the active Roles settings when the source omits them.&lt;/li&gt;
+&lt;li&gt;It remaps leftover usage-View handlers, beta1/beta2 paths and scope-map plugin IDs in place.&lt;/li&gt;
+&lt;li&gt;It runs the same residual repairs when &lt;code&gt;ai_context.agents.yml&lt;/code&gt; is missing but structural leftovers remain, so a mixed sync does not delete beta5 settings or restore a leftover View.&lt;/li&gt;
+&lt;li&gt;It fails validation if leftover agents appear alongside consumers, and tells the site to re-export.&lt;/li&gt;
+&lt;li&gt;It is registered after Config Split's default merge and before Config Ignore.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;ai_context_post_update_0006_scrub_stale_scope_values()&lt;/code&gt; now calls &lt;code&gt;ai_context.scope_cleanup&lt;/code&gt;'s &lt;code&gt;scrubStaleScopeValuesForUpgrade()&lt;/code&gt;. This is a conservative upgrade-specific policy: it skips disabled or unavailable scope plugins, and removes Entity Types values only when the entity type or bundle no longer exists. It does not remove Site Section values based on pre-import settings, and it preserves Language values when Language is unavailable. The live settings-save cleanup from &lt;a href="https://www.drupal.org/node/3586416"&gt;#3586416&lt;/a&gt; is unchanged. The docblock of post-update 0004 now describes Relevant as the new-install default and Minimal as beta4's implicit behavior.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run &lt;code&gt;drush updatedb&lt;/code&gt; before importing configuration. A beta4 sync directory can still be imported after the upgrade, but re-export afterwards. Scope values for a language removed from active configuration, or for an entity type whose module is disabled in the database, are removed even if the incoming configuration re-adds them. Re-add those by hand after the import.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 31, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586466: Consumer include/exclude config stores context item entity IDs instead of UUIDs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586466.md</link>
+      <guid isPermaLink="false">project/ai_context#3586466</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 24 Oct 2026 21:38:11 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; ersion::v1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586466"&gt;#3586466&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;AI Context consumer &amp;quot;Always include&amp;quot; and &amp;quot;Never include&amp;quot; overrides are now stored as context item UUIDs instead of local numeric entity IDs. Before, exporting config and importing it into another environment could attach the wrong context item, or none, because the numeric IDs differed between databases. The exported &lt;code&gt;ai_context.consumers.yml&lt;/code&gt; now also lists the referenced items under &lt;code&gt;dependencies.content&lt;/code&gt; (for example &lt;code&gt;ai_context_item:ai_context_item:&amp;lt;uuid&amp;gt;&lt;/code&gt;), so config import can use Drupal's missing-content dependency workflow. A post-update converts existing sites, so run database updates and re-export config.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;0008&lt;/code&gt; converts numeric IDs in &lt;code&gt;ai_context.consumers&lt;/code&gt; to UUIDs and backfills &lt;code&gt;dependencies.content&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;ai_context.consumers&lt;/code&gt; &lt;code&gt;always_include&lt;/code&gt;/&lt;code&gt;never_include&lt;/code&gt; now hold context item UUIDs, with a new optional &lt;code&gt;dependencies.content&lt;/code&gt; key.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Config now stores UUIDs, while runtime selection still works with local entity IDs. &lt;code&gt;AiContextSelectionFactory&lt;/code&gt; resolves stored identifiers (UUIDs or leftover numeric IDs) to local IDs when building an &lt;code&gt;AiContextSelection&lt;/code&gt;, and &lt;code&gt;AiContextSubscriptionBudgetCalculator&lt;/code&gt; does the same. The shared logic is in the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;AiContextItemIdentifierResolverTrait&lt;/code&gt;. Input order is kept and the first occurrence wins. &lt;code&gt;AiContextSelector::select()&lt;/code&gt; called directly still accepts UUIDs or numeric IDs. &lt;code&gt;AiContextConsumerStoredConfig&lt;/code&gt; and &lt;code&gt;AiContextConsumerResolvedConfig&lt;/code&gt; return the stored values as-is, so callers may see UUIDs or leftover numeric IDs.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextConsumerForm&lt;/code&gt; saves UUIDs, still recognizes leftover numeric IDs when showing inclusion state (never wins over always, including mixed UUID and numeric entries), and rewrites them to UUIDs on save. On save it computes &lt;code&gt;dependencies.content&lt;/code&gt; from &lt;code&gt;getConfigDependencyName()&lt;/code&gt; of the referenced items and merges it into the existing &lt;code&gt;dependencies&lt;/code&gt; map, so other keys such as &lt;code&gt;module&lt;/code&gt; survive. An empty list removes only &lt;code&gt;content&lt;/code&gt;. The previous carry-over of entries for deleted items was removed, so unknown identifiers are no longer dropped on save. The &lt;code&gt;ai_context.consumers&lt;/code&gt; schema gains an optional &lt;code&gt;dependencies&lt;/code&gt; key of type &lt;code&gt;config_dependencies&lt;/code&gt;, and the &lt;code&gt;always_include&lt;/code&gt; and &lt;code&gt;never_include&lt;/code&gt; labels now say UUIDs. The &lt;code&gt;GetRelevantAiContextItems&lt;/code&gt; function call parameter is relabeled &amp;quot;Always include UUIDs&amp;quot; and accepts UUIDs or leftover numeric IDs.&lt;/p&gt;
+&lt;p&gt;Post-update &lt;code&gt;ai_context_post_update_0008_convert_consumer_context_item_ids_to_uuids()&lt;/code&gt; converts numeric IDs to UUIDs where the item still exists, deduplicates the lists, and backfills &lt;code&gt;dependencies.content&lt;/code&gt;. Numeric IDs for items that no longer exist stay in the list. Per the issue, leftover &lt;code&gt;ai_context.agents&lt;/code&gt; config is not converted and still holds IDs.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates (&lt;code&gt;drush updb&lt;/code&gt;) so post-update &lt;code&gt;0008&lt;/code&gt; converts stored numeric IDs to UUIDs and adds &lt;code&gt;dependencies.content&lt;/code&gt;, then re-export config. Custom code that builds &lt;code&gt;always_include&lt;/code&gt; or &lt;code&gt;never_include&lt;/code&gt; lists can pass either UUIDs or numeric IDs; numeric IDs remain accepted until the next consumer form save or post-update.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 31, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;jibran (Morpht)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586545: Store Tag and Taxonomy scope values as entity UUIDs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586545.md</link>
+      <guid isPermaLink="false">project/ai_context#3586545</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sat, 24 Oct 2026 21:32:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586545"&gt;#3586545&lt;/a&gt; · 1 contributor · 22 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In AI Context, the Context Tags and Taxonomy Terms scopes now store the term's UUID instead of its serial term ID. Before this, default content and recipes could not carry these scope values across installs. Terms got new IDs on import, so items and consumer subscriptions pointed at the wrong term or at nothing. Recipes can now ship &lt;code&gt;scope_id: tag&lt;/code&gt; with a UUID &lt;code&gt;value&lt;/code&gt;, and the term YAML no longer needs a pinned &lt;code&gt;tid&lt;/code&gt;. A post-update converts existing stored IDs. Unknown or deleted IDs are left as they are and stay unmatched.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids&lt;/code&gt; rewrites tids to UUIDs in the item scope field tables, the scope index and consumer &lt;code&gt;scope_subscriptions&lt;/code&gt; config.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;scope_subscriptions&lt;/code&gt; for &lt;code&gt;tag&lt;/code&gt; and &lt;code&gt;taxonomy&lt;/code&gt; in &lt;code&gt;ai_context.consumers&lt;/code&gt; and &lt;code&gt;ai_context.agents&lt;/code&gt; now hold term UUIDs.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; is removed. Tag and Taxonomy scope value IDs, in &lt;code&gt;scope_subscriptions&lt;/code&gt; and item scope values, are now term UUIDs instead of numeric tids.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Runtime matching was already string equality on &lt;code&gt;scope.value&lt;/code&gt;, so the change is in what gets stored and how it is resolved. The new &lt;code&gt;AiContextTaxonomyTermUuidTrait&lt;/code&gt; is used by &lt;code&gt;AiContextScopeTag&lt;/code&gt; and &lt;code&gt;AiContextScopeTaxonomy&lt;/code&gt;. It loads terms by stored value and converts autocomplete term IDs to UUIDs on save. &lt;code&gt;getValues()&lt;/code&gt; keys options by UUID. Form defaults, label lookup, cacheable-metadata dependencies, stale-value detection and delete cleanup (&lt;code&gt;getStaleTermValuesForEntityDelete()&lt;/code&gt;) all resolve by UUID. &lt;code&gt;AiContextScopeTaxonomy&lt;/code&gt; also adds the &lt;code&gt;taxonomy_term_list&lt;/code&gt; cache tag, because a stored UUID can start resolving after its term is imported. Detected request-entity values and &lt;code&gt;getMatchingIndexedValues()&lt;/code&gt; now use term UUIDs.&lt;/p&gt;
+&lt;p&gt;Tag stale-value detection still keeps a leftover numeric tid until the post-update converts it, provided its tag is still offered.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids()&lt;/code&gt; collects numeric values from &lt;code&gt;ai_context_item__scope&lt;/code&gt;, &lt;code&gt;ai_context_item_revision__scope&lt;/code&gt;, the scope index table, and &lt;code&gt;scope_subscriptions&lt;/code&gt; in &lt;code&gt;ai_context.consumers&lt;/code&gt; and &lt;code&gt;ai_context.agents&lt;/code&gt;. It maps each tid to a UUID per scope: terms in the &lt;code&gt;tags&lt;/code&gt; vocabulary map to &lt;code&gt;tag&lt;/code&gt;, and all other terms map to &lt;code&gt;taxonomy&lt;/code&gt;. A tid that points at the other scope's vocabulary is left for stale cleanup. The update rewrites the field tables, the index (dropping rows that would collide on the primary key) and the consumer config. It can be re-run if it stops partway.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; is removed. Callers can use &lt;code&gt;getScopeValues('tag')&lt;/code&gt;, which the removed method wrapped. The scope diff builder, docs and &lt;code&gt;AiContextSelection&lt;/code&gt; examples were updated to UUIDs. New test fixtures for a tagged item and a portable tag term cover the default-content round trip.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates so &lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids&lt;/code&gt; converts stored tids.&lt;/p&gt;
+&lt;p&gt;Custom code, recipes and exported config that pass serial term IDs for the &lt;code&gt;tag&lt;/code&gt; or &lt;code&gt;taxonomy&lt;/code&gt; scopes need to pass the term UUID instead:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;scope:
+  - scope_id: tag
+    value: 7a1e8432-3616-438e-a411-76c93afba733
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Term YAML in recipes should no longer set &lt;code&gt;tid&lt;/code&gt;. Replace calls to the removed &lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; with &lt;code&gt;getScopeValues('tag')&lt;/code&gt;, which now returns UUIDs.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586639: Status badge contrast (WCAG 1.4.3): Unavailable fails on row hover</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586639.md</link>
       <guid isPermaLink="false">project/ai_context#3586639</guid>
@@ -577,233 +811,6 @@ workflow_input_port: url
 &lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
 &lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
 &lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583043: Output definitions cannot say "always present, may be null"</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583043.md</link>
-      <guid isPermaLink="false">project/tool#3583043</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 20 Oct 2026 12:54:04 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583043"&gt;#3583043&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Output definitions can now say a value is always sent but may be null, such as a photo's EXIF date or a timestamp that has not happened yet. Before, one &lt;code&gt;required&lt;/code&gt; flag meant both &amp;quot;key must be present&amp;quot; and &amp;quot;never null&amp;quot;, so such outputs were published as optional and possibly missing. This also changes existing behavior: an optional output that holds NULL is now left out of the result, and its published schema no longer advertises &lt;code&gt;null&lt;/code&gt;. The change landed before rc1 because it alters the published schema of every optional output.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Custom classes implementing &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; must implement &lt;code&gt;isNullable()&lt;/code&gt; and &lt;code&gt;setNullable()&lt;/code&gt;. Optional outputs set to NULL are now omitted from the result, and their schema no longer includes &lt;code&gt;null&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;nullable&lt;/code&gt; constructor parameter and &lt;code&gt;isNullable()&lt;/code&gt; / &lt;code&gt;setNullable()&lt;/code&gt; on output definitions (&lt;code&gt;OutputDefinitionInterface&lt;/code&gt;, &lt;code&gt;NullableOutputTrait&lt;/code&gt;), default &lt;code&gt;FALSE&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;required&lt;/code&gt; now means key presence only. A new &lt;code&gt;nullable&lt;/code&gt; flag, default &lt;code&gt;FALSE&lt;/code&gt;, means null is a value the output carries. This is provided by &lt;code&gt;NullableOutputTrait&lt;/code&gt; (&lt;code&gt;isNullable()&lt;/code&gt; / &lt;code&gt;setNullable()&lt;/code&gt;), added to &lt;code&gt;OutputDefinitionInterface&lt;/code&gt; and to the &lt;code&gt;OutputDefinition&lt;/code&gt;, &lt;code&gt;ListOutputDefinition&lt;/code&gt;, &lt;code&gt;MapOutputDefinition&lt;/code&gt; and &lt;code&gt;EntityOutputDefinition&lt;/code&gt; constructors as a trailing &lt;code&gt;bool $nullable = FALSE&lt;/code&gt; argument.&lt;/p&gt;
-&lt;p&gt;The four combinations behave as follows:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;required: TRUE, nullable: FALSE&lt;/code&gt;: the key is always present and never null.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;required: TRUE, nullable: TRUE&lt;/code&gt;: the key is always present, may be null, and is listed in the parent's &lt;code&gt;required&lt;/code&gt; with &lt;code&gt;[T, &amp;quot;null&amp;quot;]&lt;/code&gt; as its type.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;required: FALSE, nullable: FALSE&lt;/code&gt;: an output holding NULL is left out of the result.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;required: FALSE, nullable: TRUE&lt;/code&gt;: the output may be missing or null, and its type is &lt;code&gt;[T, &amp;quot;null&amp;quot;]&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;code&gt;InputOutputDefinitionNormalizer&lt;/code&gt; reads &lt;code&gt;isNullable()&lt;/code&gt; for outputs and strips the null branch (&lt;code&gt;removeNullBranch()&lt;/code&gt;) from non-nullable outputs. Inputs keep the old rule, where an optional input is nullable. &lt;code&gt;EffectiveDataDefinition&lt;/code&gt; does not mark a nullable output required, so core's &lt;code&gt;NotNull&lt;/code&gt; is not added.&lt;/p&gt;
-&lt;p&gt;Runtime handling is in several places. &lt;code&gt;setOutputValue()&lt;/code&gt; and &lt;code&gt;ToolBase&lt;/code&gt; drop an optional non-nullable output set to NULL. &lt;code&gt;validateOutputs()&lt;/code&gt; uses &lt;code&gt;array_key_exists()&lt;/code&gt; to tell &amp;quot;set to NULL&amp;quot; from &amp;quot;never set&amp;quot;, so a required nullable output set to NULL passes. The same rule applies inside maps through &lt;code&gt;RecursiveToolValueTransformSubscriber&lt;/code&gt;: a null in an optional, non-nullable property is removed. A null list item is not removed, because that would shift the positions after it. It fails validation unless the item definition is nullable. &lt;code&gt;ListOutputDefinition::createFrom()&lt;/code&gt; carries the flag on the list itself and sets it &lt;code&gt;FALSE&lt;/code&gt; on the item.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;TypedMethodDescriber&lt;/code&gt; now maps nullable method-tool return types and members to &lt;code&gt;required&lt;/code&gt; plus &lt;code&gt;nullable&lt;/code&gt;. &lt;code&gt;omit_when_null&lt;/code&gt; maps to optional and non-nullable. &lt;code&gt;memberIsRequired()&lt;/code&gt; and its &lt;code&gt;@todo&lt;/code&gt; were replaced by &lt;code&gt;memberAllowsNull()&lt;/code&gt;. Input-side &lt;code&gt;nullable&lt;/code&gt; is left to a follow-up issue.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;For an output that is always sent and may hold null, declare both flags:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new OutputDefinition('timestamp', 'Date', 'When the photo was taken.', required: TRUE, nullable: TRUE);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Optional outputs that relied on sending an explicit null now need &lt;code&gt;nullable: TRUE&lt;/code&gt;. Without it, a NULL value is dropped from the result and the schema no longer lists &lt;code&gt;null&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3630882: Store the OAuth2 client identifier on tokens</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3630882.md</link>
-      <guid isPermaLink="false">node/3630882</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 20 Oct 2026 08:50:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 6.1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +213/−7 · php +213/−7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/simple_oauth/-/commit/aa563c3665091ac16226e6ca9a6711a54b59ca3b"&gt;aa563c3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3630882"&gt;#3630882&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;OAuth2 tokens now record the client identifier (the same value the server uses in requests and in the access token &lt;code&gt;aud&lt;/code&gt; claim) in a new &lt;code&gt;client_id&lt;/code&gt; field. Before, a token only pointed to a saved consumer entity. This is groundwork for allowing clients that are not saved consumer entities (&lt;a href="https://www.drupal.org/node/3630879"&gt;#3630879&lt;/a&gt;). Existing tokens are filled in by a database update, so run updates after deploying. The old &lt;code&gt;client&lt;/code&gt; reference is kept.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;simple_oauth_update_8609()&lt;/code&gt; installs a new indexed &lt;code&gt;client_id&lt;/code&gt; string field on &lt;code&gt;oauth2_token&lt;/code&gt; and backfills it from each token's referenced consumer.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;client_id&lt;/code&gt; base field on the &lt;code&gt;oauth2_token&lt;/code&gt; entity type, holding the OAuth2 client identifier the token was issued to.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;Oauth2Token::baseFieldDefinitions()&lt;/code&gt; adds a non-translatable &lt;code&gt;client_id&lt;/code&gt; string field (max length 255) and lists it in &lt;code&gt;field_indexes&lt;/code&gt;. &lt;code&gt;TokenEntityNormalizer&lt;/code&gt; sets it from &lt;code&gt;$client-&amp;gt;getIdentifier()&lt;/code&gt;. &lt;code&gt;RefreshTokenEntityNormalizer&lt;/code&gt; sets it from &lt;code&gt;$token_entity-&amp;gt;getAccessToken()-&amp;gt;getClient()-&amp;gt;getIdentifier()&lt;/code&gt;. The &lt;code&gt;client&lt;/code&gt; entity reference is still written by &lt;code&gt;TokenEntityNormalizer&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;simple_oauth_update_8609()&lt;/code&gt; installs the field storage definition. It then copies &lt;code&gt;client_id&lt;/code&gt; from &lt;code&gt;consumer_field_data&lt;/code&gt; (default language rows only) into &lt;code&gt;oauth2_token&lt;/code&gt;, matching on the token's &lt;code&gt;client&lt;/code&gt; column. Tokens with no consumer reference stay &lt;code&gt;NULL&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ExpiredCollector::collectForClient()&lt;/code&gt; now matches on an OR group of &lt;code&gt;client&lt;/code&gt; (consumer entity ID) and &lt;code&gt;client_id&lt;/code&gt; (&lt;code&gt;$client-&amp;gt;getClientId()&lt;/code&gt;). This differs from the issue's proposal to query by &lt;code&gt;client_id&lt;/code&gt; alone. The code comment says matching the reference as well finds tokens issued before a consumer's client ID changed. Kernel tests cover token creation across the authorization code flow and the update path. The unit test for the collector was adjusted for the OR group.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates (&lt;code&gt;drush updb&lt;/code&gt;) to apply &lt;code&gt;simple_oauth_update_8609()&lt;/code&gt;, which adds the &lt;code&gt;client_id&lt;/code&gt; field to &lt;code&gt;oauth2_token&lt;/code&gt; and backfills existing tokens from their consumers.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 14, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 20, 2026 (5 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3588999: Add drupal-ckeditor5-plugins skill: CKEditor 5 plugin customization, version alignment, and installation methods</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3588999.md</link>
-      <guid isPermaLink="false">project/ai_best_practices#3588999</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 20 Oct 2026 08:28:44 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3588999"&gt;#3588999&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ai_best_practices&lt;/code&gt; project has a new skill, &lt;code&gt;drupal-ckeditor5-plugins&lt;/code&gt;, for AI coding agents that customize CKEditor 5 in Drupal. It targets three recurring agent mistakes: reading the &lt;code&gt;latest&lt;/code&gt; CKEditor docs instead of the version bundled in the site's core, shipping raw ES modules where Drupal 10.3 to 11 needs a webpack DLL bundle, and mixing the DLL method with the new-builds (UMD) method used from Drupal 12 and CKEditor 5 v48. It also tells agents to look for an existing plugin in core, the CKEditor 5 Plugin Pack or Premium Features before writing a custom one. The Drupal 12 guidance is flagged as beta.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;drupal-ckeditor5-plugins&lt;/code&gt; skill under &lt;code&gt;skills/&lt;/code&gt; with five reference files and an eval set under &lt;code&gt;evals/drupal-ckeditor5-plugins/&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;SKILL.md&lt;/code&gt; makes the version check a required Step 0. The agent reads the &lt;code&gt;version:&lt;/code&gt; under &lt;code&gt;ckeditor5:&lt;/code&gt; in &lt;code&gt;core/core.libraries.yml&lt;/code&gt; and uses it to pin all CKEditor docs lookups. It then routes to reference files through a task table. Detailed content sits in &lt;code&gt;references/&lt;/code&gt;: &lt;code&gt;version-matrix.md&lt;/code&gt;, &lt;code&gt;custom-plugins-dll.md&lt;/code&gt;, &lt;code&gt;drupal-12-outlook.md&lt;/code&gt;, &lt;code&gt;plugin-pack-premium-features.md&lt;/code&gt; and &lt;code&gt;agent-docs.md&lt;/code&gt;. This follows the progressive-disclosure pattern of the &lt;code&gt;drupal-gitlab&lt;/code&gt; skill.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;version-matrix.md&lt;/code&gt; deliberately gives a derivation procedure instead of a static table. The bundled CKEditor version can change between patch releases of one core minor, and it may carry a &lt;code&gt;-drupal.A&lt;/code&gt; fork suffix. The docs URL is derived by truncating to &lt;code&gt;&amp;lt;major&amp;gt;.&amp;lt;minor&amp;gt;.0&lt;/code&gt;, because exact-patch URLs return 404.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;SKILL.md&lt;/code&gt; also lists cross-cutting rules. Check for existing plugins even when the user explicitly asks for a custom one. Bundling is mandatory on Drupal 10 and 11. The DLL and new-builds methods are mutually exclusive per Drupal major. The plugin key chain across &lt;code&gt;&amp;lt;module&amp;gt;.ckeditor5.yml&lt;/code&gt;, the webpack &lt;code&gt;library: ['CKEditor5', '&amp;lt;namespace&amp;gt;']&lt;/code&gt; output and &lt;code&gt;&amp;lt;module&amp;gt;.libraries.yml&lt;/code&gt; must match exactly. Plugin source must import only from &lt;code&gt;ckeditor5/src/*&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The issue states that evals are added under &lt;code&gt;evals/drupal-ckeditor5-plugins/&lt;/code&gt;, with static checks plus five behavioral cases. The directory contains &lt;code&gt;static-checks.json&lt;/code&gt;, &lt;code&gt;dataset.yaml&lt;/code&gt;, &lt;code&gt;rubrics.yaml&lt;/code&gt; and &lt;code&gt;README.md&lt;/code&gt;. The issue says a refresh of &lt;code&gt;references/drupal-12-outlook.md&lt;/code&gt; is a follow-up once the 2.x Plugin Pack and Premium Features modules ship their 2.0.0-beta.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 1, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;simply007&lt;/li&gt;
-&lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583065: Report item and property positions in the violation path, not the message</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583065.md</link>
-      <guid isPermaLink="false">project/tool#3583065</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 19 Oct 2026 19:28:34 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583065"&gt;#3583065&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the Tool module, a validation failure on a list item or map property now reports where it happened in the violation's property path (&lt;code&gt;code&lt;/code&gt;, &lt;code&gt;codes.0&lt;/code&gt;, &lt;code&gt;rows.0.sku&lt;/code&gt;). Before, the position was embedded in the message text, e.g. &lt;code&gt;(item 0) ...&lt;/code&gt;. Output validation failures now follow the same shape as input failures: the output name is on the path and the message states only the reason. The plain-text failure message still shows the path in front of each reason, so Drush-style text consumers still see where the failure is. Code that parsed &lt;code&gt;(item N)&lt;/code&gt; or &lt;code&gt;(property x)&lt;/code&gt; out of messages, or that matched the old output messages, needs updating.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Violation property paths for list items and map properties now carry the position (&lt;code&gt;code&lt;/code&gt;, &lt;code&gt;codes.0&lt;/code&gt;, &lt;code&gt;rows.0.sku&lt;/code&gt;); the &lt;code&gt;(item N)&lt;/code&gt; and &lt;code&gt;(property x)&lt;/code&gt; message prefixes are gone. Output violations carry the output name on the path with generic messages, and &lt;code&gt;getViolations()&lt;/code&gt; is now populated on output failures.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ValueViolationsTrait::addItemViolations()&lt;/code&gt; no longer takes a &lt;code&gt;$kind&lt;/code&gt; argument and no longer wraps the message. It rebuilds each violation with &lt;code&gt;static::joinPath($position, $violation-&amp;gt;getPropertyPath())&lt;/code&gt;, and now also passes the constraint through to the new violation. &lt;code&gt;validateInputValues()&lt;/code&gt; now uses it for the input name too, replacing its own rebuild loop. &lt;code&gt;TypedOutputsTrait::validateOutputs()&lt;/code&gt; uses it to put the output name on the path. &lt;code&gt;getItemDefinitionForViolations()&lt;/code&gt; is removed, since messages no longer need the item's label, and callers use &lt;code&gt;$definition-&amp;gt;getItemDefinition()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Messages that named the value by label became generic and name-free, because the name is now on the path: &lt;code&gt;This output is required but was not provided.&lt;/code&gt;, &lt;code&gt;This property is required.&lt;/code&gt;, &lt;code&gt;This output must be an entity.&lt;/code&gt;, &lt;code&gt;This output is invalid: @type.&lt;/code&gt;. The required-output violation now carries the output name as its path instead of an empty string.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ToolBase&lt;/code&gt; now builds the Runtime failure from &lt;code&gt;ToolMessages::violationList($violations)&lt;/code&gt; and passes &lt;code&gt;$violations&lt;/code&gt; to &lt;code&gt;ExecutableResult::failure()&lt;/code&gt;. &lt;code&gt;ToolResultInterface::getViolations()&lt;/code&gt; therefore covers output failures as well as input failures. Callers can use &lt;code&gt;getFailureCategory()&lt;/code&gt; to tell an input they can correct from an output the tool got wrong. The &lt;code&gt;ToolResultInterface&lt;/code&gt; docblock documents the path format: the name is the segment before the first dot, and a map property reads &lt;code&gt;product.sku&lt;/code&gt;, a list item &lt;code&gt;codes.0&lt;/code&gt;, both &lt;code&gt;rows.0.sku&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Read the position from the violation path instead of the message. Messages like &lt;code&gt;(item 0) This value should be of the correct primitive type.&lt;/code&gt; are now path &lt;code&gt;codes.0&lt;/code&gt; with the message &lt;code&gt;This value should be of the correct primitive type.&lt;/code&gt;&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;foreach ($result-&amp;gt;getViolations() as $violation) {
-  $path = $violation-&amp;gt;getPropertyPath(); // e.g. &amp;quot;rows.0.sku&amp;quot;; first segment is the input or output name.
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583086: Let `destructive` be undeclared, so write tools aren't reported as non-destructive</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583086.md</link>
-      <guid isPermaLink="false">project/tool#3583086</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 19 Oct 2026 19:17:03 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583086"&gt;#3583086&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 1&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module can now tell a tool that never declared &lt;code&gt;destructive&lt;/code&gt; apart from one that said it is not destructive. An undeclared Write or Trigger tool is now treated as destructive, and an undeclared Read tool is not. Before, every write tool that left the flag out looked non-destructive, so the MCP bridge told clients it only added data. That is the opposite of MCP's own default. Authors of write tools that only add data should now set &lt;code&gt;destructive: FALSE&lt;/code&gt; explicitly.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;destructive&lt;/code&gt; on &lt;code&gt;#[Tool]&lt;/code&gt;, &lt;code&gt;#[ToolMethod]&lt;/code&gt; and &lt;code&gt;ToolDefinition::setDestructive()&lt;/code&gt; is now &lt;code&gt;?bool&lt;/code&gt; defaulting to &lt;code&gt;NULL&lt;/code&gt; (undeclared); &lt;code&gt;ToolDefinition::isDestructive()&lt;/code&gt; answers from the operation when undeclared.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;destructive&lt;/code&gt; on the &lt;code&gt;#[Tool]&lt;/code&gt; and &lt;code&gt;#[ToolMethod]&lt;/code&gt; attributes and the &lt;code&gt;ToolDefinition::$destructive&lt;/code&gt; property changed from &lt;code&gt;bool&lt;/code&gt; defaulting to &lt;code&gt;FALSE&lt;/code&gt; to &lt;code&gt;?bool&lt;/code&gt; defaulting to &lt;code&gt;NULL&lt;/code&gt;. &lt;code&gt;ToolDefinition::setDestructive()&lt;/code&gt; accepts &lt;code&gt;?bool&lt;/code&gt;. &lt;code&gt;ToolDefinition::isDestructive()&lt;/code&gt; now returns &lt;code&gt;$this-&amp;gt;destructive ?? $this-&amp;gt;getOperation()-&amp;gt;isModifying()&lt;/code&gt;. &lt;code&gt;ToolOperation::isModifying()&lt;/code&gt; is TRUE for &lt;code&gt;Write&lt;/code&gt; and &lt;code&gt;Trigger&lt;/code&gt; and FALSE for &lt;code&gt;Explain&lt;/code&gt;, &lt;code&gt;Read&lt;/code&gt; and &lt;code&gt;Transform&lt;/code&gt;. An explicit &lt;code&gt;TRUE&lt;/code&gt; or &lt;code&gt;FALSE&lt;/code&gt; always wins over the operation. &lt;code&gt;#[ToolMethod]&lt;/code&gt; defaults its operation to &lt;code&gt;Write&lt;/code&gt;, so a method that omits &lt;code&gt;destructive&lt;/code&gt; is now destructive.&lt;/p&gt;
-&lt;p&gt;The Drush &lt;code&gt;ToolGenerator&lt;/code&gt; prompt now defaults its answer to what an undeclared tool would get for the chosen operation. &lt;code&gt;tool.twig&lt;/code&gt; always writes &lt;code&gt;destructive: TRUE&lt;/code&gt; or &lt;code&gt;FALSE&lt;/code&gt; instead of omitting it when false, so answering no on a Write tool is an explicit declaration. The issue body says the MCP bridge (&lt;code&gt;mcp_server_tool_bridge&lt;/code&gt;) sends this as &lt;code&gt;destructiveHint&lt;/code&gt;. The commit does not touch that bridge, which gets the new value through &lt;code&gt;isDestructive()&lt;/code&gt;. The issue was meant to land before the RC1 freeze (&lt;a href="https://www.drupal.org/node/3582976"&gt;#3582976&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Write or Trigger tools that only add data and relied on the old default must now say so:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;#[ToolMethod(id: 'tool_test.notebook.export', operation: ToolOperation::Write, permission: 'access content', destructive: FALSE)]
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Code that passes &lt;code&gt;destructive: FALSE&lt;/code&gt; or &lt;code&gt;TRUE&lt;/code&gt; is unchanged. Code that reads &lt;code&gt;isDestructive()&lt;/code&gt; still gets a &lt;code&gt;bool&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;dries&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
