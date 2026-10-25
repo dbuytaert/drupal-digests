@@ -1,4 +1,4 @@
-**TL;DR:** [1348 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1357 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [209 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_295 summaries · 28 new this week_
+_304 summaries · 37 new this week_
 
-- [#3586619: Hide context items and usage records from JSON:API](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586619.md)
-- [#3586489: Remove stale consumer config when a host entity is deleted](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586489.md)
-- [#3586470: Fix CCC beta4-to-beta5 upgrade and config-import path](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586470.md)
+- [#3594806: Show the input and the model's answer when reviewing recorded decisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594806.md)
+- [#3594822: Failure mode rates count each reviewer's annotation of the same question](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594822.md)
+- [#3594729: Disabling a failure mode does nothing: it is still offered, saved, counted and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594729.md)
 
 ### Drupal Core
 
