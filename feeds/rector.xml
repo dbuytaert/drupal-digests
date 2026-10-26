@@ -5,6 +5,116 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Rename hook_system_info_alter implementations to hook_extension_info_alter</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rename-hook-system-info-alter-implementations-to-hook-3623862.php</link>
+      <guid isPermaLink="false">node/3623862</guid>
+      <pubDate>Mon, 26 Oct 2026 22:37:20 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3623862"&gt;#3623862&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 12.1.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Drupal 12.1 renames hook_system_info_alter() to hook_extension_info_alter(). The old hook is still invoked through alterDeprecated() until 13.0. This rule rewrites #[Hook('system_info_alter')] attributes and procedural mymodule_system_info_alter() functions in .module files to the new hook name.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Hook('system_info_alter')]
+public function systemInfoAlter(array &amp;amp;$info, Extension $file, $type): void {}
+
+// In mymodule.module:
+function mymodule_system_info_alter(array &amp;amp;$info, $file, $type) {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;#[Hook('extension_info_alter')]
+public function systemInfoAlter(array &amp;amp;$info, Extension $file, $type): void {}
+
+// In mymodule.module:
+function mymodule_extension_info_alter(array &amp;amp;$info, $file, $type) {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;The new hook only exists from Drupal 12.1, so do not apply this to modules that must still support 11.x (the CR describes how to support both). Hook method names such as &lt;code&gt;systemInfoAlter&lt;/code&gt; are left unchanged to avoid breaking callers. Procedural rewrites only apply to functions named exactly &lt;code&gt;&amp;lt;module&amp;gt;_system_info_alter&lt;/code&gt; in &lt;code&gt;&amp;lt;module&amp;gt;.module&lt;/code&gt;, and requires the .module extension to be processed (configured by the rule).&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Function_;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class RenameSystemInfoAlterHookRector extends AbstractRector
+{
+    private const OLD = 'system_info_alter';
+    private const NEW = 'extension_info_alter';
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Rename hook_system_info_alter() implementations to hook_extension_info_alter().',
+            [new CodeSample(
+                &amp;quot;#[Hook('system_info_alter')]\npublic function systemInfoAlter(array &amp;amp;\$info, Extension \$file, \$type): void {}&amp;quot;,
+                &amp;quot;#[Hook('extension_info_alter')]\npublic function systemInfoAlter(array &amp;amp;\$info, Extension \$file, \$type): void {}&amp;quot;,
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Attribute::class, Function_::class];
+    }
+
+    public function refactor(Node $node): ?Node
+    {
+        if ($node instanceof Attribute) {
+            if (!$this-&amp;gt;isName($node-&amp;gt;name, 'Drupal\\Core\\Hook\\Attribute\\Hook')) {
+                return null;
+            }
+            $arg = $node-&amp;gt;args[0] ?? null;
+            if ($arg === null) {
+                return null;
+            }
+            // Only the first positional argument or the named `hook` argument.
+            if ($arg-&amp;gt;name !== null &amp;amp;&amp;amp; !$this-&amp;gt;isName($arg-&amp;gt;name, 'hook')) {
+                return null;
+            }
+            if (!$arg-&amp;gt;value instanceof String_ || $arg-&amp;gt;value-&amp;gt;value !== self::OLD) {
+                return null;
+            }
+            $arg-&amp;gt;value = new String_(self::NEW);
+            return $node;
+        }
+
+        if ($node instanceof Function_) {
+            $path = $this-&amp;gt;getFile()-&amp;gt;getFilePath();
+            if (!str_ends_with($path, '.module')) {
+                return null;
+            }
+            $module = basename($path, '.module');
+            $name = $node-&amp;gt;name-&amp;gt;toString();
+            if ($name !== $module . '_' . self::OLD) {
+                return null;
+            }
+            $node-&amp;gt;name = new Identifier($module . '_' . self::NEW);
+            return $node;
+        }
+
+        return null;
+    }
+}
+
+return RectorConfig::configure()
+    -&amp;gt;withFileExtensions(['php', 'module', 'inc'])
+    -&amp;gt;withRules([RenameSystemInfoAlterHookRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Remove deprecated $error_type argument from doTrustedCallback() calls</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/remove-deprecated-error-type-argument-from-3081025.php</link>
       <guid isPermaLink="false">node/3081025</guid>
@@ -2086,133 +2196,6 @@ CODE_SAMPLE
 }
 
 return RectorConfig::configure()-&amp;gt;withRules([ReplaceDeprecatedLocaleFunctionsRector::class]);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Add $memoryCache argument to UpdateRegistry instantiations</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/add-memorycache-argument-to-updateregistry-instantiations-3303751.php</link>
-      <guid isPermaLink="false">node/3303751</guid>
-      <pubDate>Tue, 25 Aug 2026 08:32:02 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3303751"&gt;#3303751&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 12.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Drupal\Core\Update\UpdateRegistry::__construct() now takes an optional MemoryCacheInterface $memoryCache parameter inserted before the trailing $updateType parameter. Omitting it triggers an E_USER_DEPRECATED notice and will be a hard error in Drupal 12. This rule rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; calls (positional or named) to pass &lt;code&gt;\Drupal::service('cache.memory')&lt;/code&gt; in the new slot, correctly shifting an explicitly-passed $updateType.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, 'post_update');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \Drupal::service('cache.memory'), 'post_update');
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only rewrites direct &lt;code&gt;new UpdateRegistry(...)&lt;/code&gt; instantiations; code that obtains the service via &lt;code&gt;\Drupal::service('update.post_update_registry')&lt;/code&gt; or dependency injection needs no change since core's service definition already passes the new argument. Calls using &lt;code&gt;...$args&lt;/code&gt; spread/unpacking are skipped because the argument position cannot be determined statically; these need manual review.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\New_;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\Node\VariadicPlaceholder;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class AddUpdateRegistryMemoryCacheArgumentRector extends AbstractRector
-{
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Add the $memoryCache constructor argument to Drupal\Core\Update\UpdateRegistry instantiations.',
-            [new CodeSample(
-                'new UpdateRegistry($root, $sitePath, $module_list, $keyValue, $theme_handler, \'post_update\');',
-                &amp;quot;new UpdateRegistry(\$root, \$sitePath, \$module_list, \$keyValue, \$theme_handler, \\Drupal::service('cache.memory'), 'post_update');&amp;quot;,
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [New_::class];
-    }
-
-    /** @param New_ $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof New_) {
-            return null;
-        }
-        if (!$this-&amp;gt;isName($node-&amp;gt;class, 'Drupal\\Core\\Update\\UpdateRegistry')) {
-            return null;
-        }
-
-        $args = $node-&amp;gt;args;
-
-        // Bail on unpacked/spread args (`...$args`): position cannot be determined safely.
-        foreach ($args as $arg) {
-            if ($arg instanceof VariadicPlaceholder) {
-                return null;
-            }
-        }
-
-        $memoryCacheCall = new StaticCall(new FullyQualified('Drupal'), 'service', [new Arg(new String_('cache.memory'))]);
-
-        $hasNamedArgs = false;
-        foreach ($args as $arg) {
-            if ($arg-&amp;gt;name !== null) {
-                $hasNamedArgs = true;
-                if ($this-&amp;gt;isName($arg-&amp;gt;name, 'memoryCache')) {
-                    // Already migrated.
-                    return null;
-                }
-            }
-        }
-
-        if ($hasNamedArgs) {
-            $node-&amp;gt;args[] = new Arg($memoryCacheCall, false, false, [], new Identifier('memoryCache'));
-            return $node;
-        }
-
-        $argCount = count($args);
-
-        // Fewer than 5 positional args is not a valid call to this constructor
-        // ($root, $sitePath, $module_list, $keyValue, $theme_handler are all required); skip.
-        if ($argCount &amp;lt; 5) {
-            return null;
-        }
-
-        // 7+ positional args already include $memoryCache; nothing to do.
-        if ($argCount &amp;gt;= 7) {
-            return null;
-        }
-
-        $memoryCacheArg = new Arg($memoryCacheCall);
-
-        if ($argCount === 5) {
-            // No $updateType passed: append $memoryCache as the 6th argument.
-            $node-&amp;gt;args[] = $memoryCacheArg;
-            return $node;
-        }
-
-        // $argCount === 6: an explicit $updateType was passed positionally in the old
-        // signature's 6th slot. Insert $memoryCache before it, shifting $updateType to 7th.
-        array_splice($node-&amp;gt;args, 5, 0, [$memoryCacheArg]);
-        return $node;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([AddUpdateRegistryMemoryCacheArgumentRector::class]);
-
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
