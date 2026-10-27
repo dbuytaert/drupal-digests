@@ -22,7 +22,7 @@ _636 summaries · 6 new this week_
 
 ### Drupal AI
 
-_305 summaries · 30 new this week_
+_305 summaries · 28 new this week_
 
 - [#3586702: Emit automator config ID tag and entity_context on chat requests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586702.md)
 - [#3594806: Show the input and the model's answer when reviewing recorded decisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594806.md)
@@ -30,7 +30,7 @@ _305 summaries · 30 new this week_
 
 ### Drupal CMS
 
-_133 summaries · 7 new this week_
+_133 summaries · 5 new this week_
 
 - [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
 - [#3591501: Add an event or param to track use of the launcher](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591501.md)
