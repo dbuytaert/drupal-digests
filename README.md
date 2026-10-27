@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_294 summaries · 9 new this week_
+_294 summaries · 8 new this week_
 
 - [#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md)
 - [#3592176: Duplicating a page template silently does nothing: the GET representation is no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592176.md)
@@ -14,7 +14,7 @@ _294 summaries · 9 new this week_
 
 ### Drupal Core
 
-_636 summaries · 7 new this week_
+_636 summaries · 6 new this week_
 
 - [#2735997: Decimal separator and precision settings unavailable when aggregating decimal...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2735997.md)
 - [#3082239: Forbid limited length primary and unique keys, allow only in indexes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3082239.md)
@@ -22,7 +22,7 @@ _636 summaries · 7 new this week_
 
 ### Drupal AI
 
-_305 summaries · 32 new this week_
+_305 summaries · 30 new this week_
 
 - [#3586702: Emit automator config ID tag and entity_context on chat requests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586702.md)
 - [#3594806: Show the input and the model's answer when reviewing recorded decisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594806.md)
