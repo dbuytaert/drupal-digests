@@ -5,6 +5,107 @@
     <description>Runnable Rector rules extracted from Drupal issue discussions. Drop them into your project to automatically rewrite deprecated code.</description>
     <link>https://github.com/dbuytaert/drupal-digests</link>
     <item>
+      <title>Replace Schema::ensureNotNullPrimaryKey() with validatePrimaryKeySchema()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-schema-ensurenotnullprimarykey-with-3082239.php</link>
+      <guid isPermaLink="false">node/3082239</guid>
+      <pubDate>Tue, 27 Oct 2026 12:00:04 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3082239"&gt;#3082239&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 12.1.0, removed in Drupal 13.0.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Rewrites calls to the deprecated protected &lt;code&gt;Schema::ensureNotNullPrimaryKey()&lt;/code&gt; to &lt;code&gt;validatePrimaryKeySchema()&lt;/code&gt; inside classes extending &lt;code&gt;Drupal\Core\Database\Schema&lt;/code&gt; (typically contrib database drivers). The new method performs the same NOT NULL check and also flags partial column length primary keys, which are no longer allowed.&lt;/p&gt;
+&lt;h2&gt;Before&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;ensureNotNullPrimaryKey($table['primary key'], $table['fields']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;After&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$this-&amp;gt;validatePrimaryKeySchema($table['primary key'], $table['fields']);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Caveats&lt;/h2&gt;
+&lt;p&gt;Skips classes that define their own &lt;code&gt;ensureNotNullPrimaryKey()&lt;/code&gt; override, calls using named or unpacked arguments, and &lt;code&gt;parent::&lt;/code&gt; static calls. Other deprecated behaviour (partial column length in primary or unique keys) needs manual changes.&lt;/p&gt;
+&lt;h2&gt;Code&lt;/h2&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
+declare(strict_types=1);
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\NodeVisitor;
+use PHPStan\Type\ObjectType;
+use Rector\Config\RectorConfig;
+use Rector\Rector\AbstractRector;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+final class EnsureNotNullPrimaryKeyToValidatePrimaryKeySchemaRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated Schema::ensureNotNullPrimaryKey() with validatePrimaryKeySchema().',
+            [new CodeSample(
+                '$this-&amp;gt;ensureNotNullPrimaryKey($table[&amp;quot;primary key&amp;quot;], $table[&amp;quot;fields&amp;quot;]);',
+                '$this-&amp;gt;validatePrimaryKeySchema($table[&amp;quot;primary key&amp;quot;], $table[&amp;quot;fields&amp;quot;]);',
+            )],
+        );
+    }
+
+    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
+    public function getNodeTypes(): array
+    {
+        return [Class_::class];
+    }
+
+    /** @param Class_ $node */
+    public function refactor(Node $node): ?Node
+    {
+        if (!$node instanceof Class_) {
+            return null;
+        }
+        // A class overriding the deprecated method would change behaviour if redirected to core.
+        if ($node-&amp;gt;getMethod('ensureNotNullPrimaryKey') !== null) {
+            return null;
+        }
+        $changed = false;
+        $this-&amp;gt;traverseNodesWithCallable($node-&amp;gt;stmts, function (Node $inner) use (&amp;amp;$changed) {
+            // Nested (anonymous) classes are visited on their own.
+            if ($inner instanceof Class_) {
+                return NodeVisitor::DONT_TRAVERSE_CURRENT_AND_CHILDREN;
+            }
+            if (!$inner instanceof MethodCall) {
+                return null;
+            }
+            if (!$this-&amp;gt;isName($inner-&amp;gt;name, 'ensureNotNullPrimaryKey')) {
+                return null;
+            }
+            if (!$this-&amp;gt;isObjectType($inner-&amp;gt;var, new ObjectType('Drupal\\Core\\Database\\Schema'))) {
+                return null;
+            }
+            if (count($inner-&amp;gt;args) !== 2) {
+                return null;
+            }
+            foreach ($inner-&amp;gt;args as $arg) {
+                if (!$arg instanceof Arg || $arg-&amp;gt;unpack || $arg-&amp;gt;name !== null) {
+                    return null;
+                }
+            }
+            $inner-&amp;gt;name = new Identifier('validatePrimaryKeySchema');
+            $changed = true;
+            return $inner;
+        });
+        return $changed ? $node : null;
+    }
+}
+
+return RectorConfig::configure()-&amp;gt;withRules([EnsureNotNullPrimaryKeyToValidatePrimaryKeySchemaRector::class]);
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>Rename hook_system_info_alter implementations to hook_extension_info_alter</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/rename-hook-system-info-alter-implementations-to-hook-3623862.php</link>
       <guid isPermaLink="false">node/3623862</guid>
@@ -2071,131 +2172,6 @@ final class ReplaceLocaleJsUnderscoreFunctionsRector extends AbstractRector
 
 return RectorConfig::configure()-&amp;gt;withRules([ReplaceLocaleJsUnderscoreFunctionsRector::class]);
 
-&lt;/code&gt;&lt;/pre&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>Replace deprecated locale.module global functions with class calls</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/rector/rules/replace-deprecated-locale-module-global-functions-with-3616277.php</link>
-      <guid isPermaLink="false">node/3616277</guid>
-      <pubDate>Wed, 26 Aug 2026 00:27:21 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3616277"&gt;#3616277&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Timeline:&lt;/strong&gt; Deprecated in Drupal 11.5.0, removed in Drupal 13.0.0&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Drupal 11.5 deprecates several &lt;code&gt;locale.module&lt;/code&gt; global functions in favor of methods on new classes. &lt;code&gt;locale_string_is_safe()&lt;/code&gt; becomes the static &lt;code&gt;LocaleXss::stringIsSafe()&lt;/code&gt;; &lt;code&gt;locale_is_translatable()&lt;/code&gt;, &lt;code&gt;locale_translatable_language_list()&lt;/code&gt;, and &lt;code&gt;locale_js_translate()&lt;/code&gt; become instance methods on the &lt;code&gt;LocaleLanguages&lt;/code&gt; and &lt;code&gt;LocaleJs&lt;/code&gt; services, obtained via &lt;code&gt;\Drupal::service()&lt;/code&gt;. This rule rewrites direct calls to the old global functions so contrib and custom modules keep working after the functions are removed in Drupal 13.&lt;/p&gt;
-&lt;h2&gt;Before&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$safe = locale_string_is_safe($string);
-$translatable = locale_is_translatable($langcode);
-$languages = locale_translatable_language_list();
-$translation_file = locale_js_translate($files, $language_interface);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;After&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$safe = \Drupal\locale\LocaleXss::stringIsSafe($string);
-$translatable = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;isTranslatable($langcode);
-$languages = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;getTranslatableLanguages();
-$translation_file = \Drupal::service(\Drupal\locale\LocaleJs::class)-&amp;gt;jsTranslate($files, $language_interface);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Caveats&lt;/h2&gt;
-&lt;p&gt;Only covers the four functions with a direct 1:1 replacement (&lt;code&gt;locale_string_is_safe&lt;/code&gt;, &lt;code&gt;locale_is_translatable&lt;/code&gt;, &lt;code&gt;locale_translatable_language_list&lt;/code&gt;, &lt;code&gt;locale_js_translate&lt;/code&gt;). &lt;code&gt;locale_translation_use_remote_source()&lt;/code&gt; and &lt;code&gt;locale_translation_language_table()&lt;/code&gt; are also deprecated by this issue but have no direct replacement (inlined config check, or a class method meant to be referenced by name as a &lt;code&gt;#after_build&lt;/code&gt; callback), so they are intentionally left untouched; callers of those two must be migrated by hand.&lt;/p&gt;
-&lt;h2&gt;Code&lt;/h2&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;&amp;lt;?php
-declare(strict_types=1);
-
-use PhpParser\Node;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Name\FullyQualified;
-use Rector\Config\RectorConfig;
-use Rector\Rector\AbstractRector;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
-use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-
-final class ReplaceDeprecatedLocaleFunctionsRector extends AbstractRector
-{
-    /**
-     * Functions replaced by a static method call.
-     *
-     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
-     */
-    private const STATIC_MAP = [
-        'locale_string_is_safe' =&amp;gt; ['Drupal\locale\LocaleXss', 'stringIsSafe'],
-    ];
-
-    /**
-     * Functions replaced by a call on a service obtained via \Drupal::service().
-     *
-     * @var array&amp;lt;string, array{0: string, 1: string}&amp;gt;
-     */
-    private const SERVICE_MAP = [
-        'locale_is_translatable' =&amp;gt; ['Drupal\locale\LocaleLanguages', 'isTranslatable'],
-        'locale_translatable_language_list' =&amp;gt; ['Drupal\locale\LocaleLanguages', 'getTranslatableLanguages'],
-        'locale_js_translate' =&amp;gt; ['Drupal\locale\LocaleJs', 'jsTranslate'],
-    ];
-
-    public function getRuleDefinition(): RuleDefinition
-    {
-        return new RuleDefinition(
-            'Replace deprecated locale.module global functions with calls on their replacement classes.',
-            [new CodeSample(
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-$safe = locale_string_is_safe($string);
-$translatable = locale_is_translatable($langcode);
-$languages = locale_translatable_language_list();
-CODE_SAMPLE
-                ,
-                &amp;lt;&amp;lt;&amp;lt;'CODE_SAMPLE'
-$safe = \Drupal\locale\LocaleXss::stringIsSafe($string);
-$translatable = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;isTranslatable($langcode);
-$languages = \Drupal::service(\Drupal\locale\LocaleLanguages::class)-&amp;gt;getTranslatableLanguages();
-CODE_SAMPLE
-            )],
-        );
-    }
-
-    /** @return array&amp;lt;class-string&amp;lt;Node&amp;gt;&amp;gt; */
-    public function getNodeTypes(): array
-    {
-        return [FuncCall::class];
-    }
-
-    /** @param FuncCall $node */
-    public function refactor(Node $node): ?Node
-    {
-        if (!$node instanceof FuncCall) {
-            return null;
-        }
-
-        $functionName = $this-&amp;gt;getName($node-&amp;gt;name);
-        if ($functionName === null) {
-            return null;
-        }
-
-        if (isset(self::STATIC_MAP[$functionName])) {
-            [$class, $method] = self::STATIC_MAP[$functionName];
-            return new StaticCall(new FullyQualified($class), $method, $node-&amp;gt;args);
-        }
-
-        if (isset(self::SERVICE_MAP[$functionName])) {
-            [$class, $method] = self::SERVICE_MAP[$functionName];
-            $service = new StaticCall(
-                new FullyQualified('Drupal'),
-                'service',
-                [new Arg(new ClassConstFetch(new FullyQualified($class), 'class'))],
-            );
-            return new MethodCall($service, $method, $node-&amp;gt;args);
-        }
-
-        return null;
-    }
-}
-
-return RectorConfig::configure()-&amp;gt;withRules([ReplaceDeprecatedLocaleFunctionsRector::class]);
 &lt;/code&gt;&lt;/pre&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

@@ -1,32 +1,32 @@
-**TL;DR:** [1364 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [210 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1368 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_294 summaries · 9 new this week_
+
+- [#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md)
+- [#3592176: Duplicating a page template silently does nothing: the GET representation is no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592176.md)
+- [#3592122: Canvas AI: get_component_details and get_component_context omit item type and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592122.md)
+
 ### Drupal Core
 
-_634 summaries · 5 new this week_
+_636 summaries · 7 new this week_
 
+- [#2735997: Decimal separator and precision settings unavailable when aggregating decimal...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2735997.md)
+- [#3082239: Forbid limited length primary and unique keys, allow only in indexes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3082239.md)
 - [#3594338: Add a command to import configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594338.md)
-- [#3623862: Rename hook_system_info_alter to hook_extension_info_alter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623862.md)
-- [#3575547: Deprecate StatementPrefetchIterator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3575547.md)
 
 ### Drupal AI
 
-_305 summaries · 34 new this week_
+_305 summaries · 32 new this week_
 
 - [#3586702: Emit automator config ID tag and entity_context on chat requests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586702.md)
 - [#3594806: Show the input and the model's answer when reviewing recorded decisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594806.md)
 - [#3594822: Failure mode rates count each reviewer's annotation of the same question](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594822.md)
-
-### Drupal Canvas
-
-_292 summaries · 8 new this week_
-
-- [#3592122: Canvas AI: get_component_details and get_component_context omit item type and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592122.md)
-- [#3592216: Workspaces PR 2: hard dependency on core Workspaces, Main workspace, install...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592216.md)
-- [#3591889: Canvas Editor: Component collapses and becomes un-clickable on the canvas when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591889.md)
 
 ### Drupal CMS
 
@@ -39,7 +39,7 @@ _133 summaries · 7 new this week_
 
 ## Rector rules
 
-[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [210 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
+[Rector](https://getrector.com) can rewrite PHP code automatically, so you don't have to update deprecated API calls by hand. These [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules), extracted from Drupal core issues using AI, handle recent deprecations and new coding patterns.
 
 ```bash
 git clone --depth 1 https://github.com/dbuytaert/drupal-digests.git
@@ -51,11 +51,11 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_210 rules · 1 new this week_
+_211 rules · 2 new this week_
 
+- [Replace Schema::ensureNotNullPrimaryKey() with validatePrimaryKeySchema()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-schema-ensurenotnullprimarykey-with-3082239.php)
 - [Rename hook_system_info_alter implementations to hook_extension_info_alter](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-hook-system-info-alter-implementations-to-hook-3623862.php)
 - [Remove deprecated $error_type argument from doTrustedCallback() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-error-type-argument-from-3081025.php)
-- [Remove deprecated no-op InstallerTestBase::setUpProfile() calls](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/remove-deprecated-no-op-installertestbase-setupprofile-calls-3520028.php)
 
 
 ## RSS feeds
