@@ -5,6 +5,136 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585954: Replace SessionLockingStreamableHttpTransport with the SDK's session lock</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585954.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585954</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 28 Oct 2026 16:12:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +665/−550 · php +629/−515 · md +26/−23 · yml +9/−11 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/41b50f654c98dfa4d91747681cbac2bce46e009a"&gt;41b50f6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585954"&gt;#3585954&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;mcp_server 2.x now requires mcp/sdk 0.9 or later, and drops support for 0.7 and 0.8. Per-session request serialization is no longer done by module code in the HTTP controller and a custom transport. The SDK's own session lock now does it, backed by Drupal's lock service. The change also fixes tool input schemas that Tool API writes with an empty &lt;code&gt;properties&lt;/code&gt; map (an &lt;code&gt;\ArrayObject&lt;/code&gt;), which the SDK's &lt;code&gt;Tool&lt;/code&gt; class would not accept.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;mcp/sdk&lt;/code&gt; constraint changed from &lt;code&gt;^0.7.1 || ^0.8&lt;/code&gt; to &lt;code&gt;^0.9&lt;/code&gt;; 0.7 and 0.8 are no longer supported.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service (tagged &lt;code&gt;mcp_server.transport_middleware&lt;/code&gt;) is removed. &lt;code&gt;McpServerController&lt;/code&gt; no longer takes the lock or database services.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;mcp_server.session_lock&lt;/code&gt; service, &lt;code&gt;Drupal\mcp_server\Session\LockBackendSessionLock&lt;/code&gt;, implementing the SDK's &lt;code&gt;SessionLockInterface&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;McpServerFactory&lt;/code&gt; takes a new &lt;code&gt;SessionLockInterface&lt;/code&gt; argument and passes it to &lt;code&gt;Builder::setSessionLock()&lt;/code&gt;. The implementation is &lt;code&gt;LockBackendSessionLock&lt;/code&gt;, registered as &lt;code&gt;mcp_server.session_lock&lt;/code&gt; with the &lt;code&gt;lock&lt;/code&gt; and &lt;code&gt;database&lt;/code&gt; services. It keeps the lock name &lt;code&gt;mcp_session:&amp;lt;sha256 of session id&amp;gt;&lt;/code&gt;. &lt;code&gt;acquire()&lt;/code&gt; waits once and then throws the SDK's &lt;code&gt;SessionLockTimeoutException&lt;/code&gt;. &lt;code&gt;tryAcquire()&lt;/code&gt; is for the SDK's SSE polls. &lt;code&gt;release()&lt;/code&gt; is deferred while &lt;code&gt;Connection::inTransaction()&lt;/code&gt; is true, because a rollback would restore the deleted semaphore row. This keeps the old behavior for a tool that suspends inside a transaction.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;SessionLockingStreamableHttpTransport&lt;/code&gt;, which overrode protected SDK hooks, is deleted. So are its lock handling in &lt;code&gt;McpServerController::handle()&lt;/code&gt; and the &lt;code&gt;PassThroughMiddleware&lt;/code&gt; class. The controller now builds the SDK's &lt;code&gt;StreamableHttpTransport&lt;/code&gt; and passes the SDK's &lt;code&gt;PassthroughMiddleware&lt;/code&gt; when no middleware is tagged. SSE responses are still converted to streamed Symfony responses. A lock timeout is now answered by the SDK (503 with a JSON-RPC error), not by &lt;code&gt;ServiceUnavailableHttpException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The 0.7/0.8 compatibility code is also removed. That covers the &lt;code&gt;method_exists()&lt;/code&gt; guards around &lt;code&gt;setRequestState()&lt;/code&gt;, &lt;code&gt;McpServerServiceProvider::alter()&lt;/code&gt;, and the &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service. &lt;code&gt;FiberShield&lt;/code&gt; now recognizes the SDK's &lt;code&gt;RequestSuspension&lt;/code&gt; and &lt;code&gt;NotificationSuspension&lt;/code&gt; objects, where it used to look for an array with a &lt;code&gt;type&lt;/code&gt; key. &lt;code&gt;McpServerFactory&lt;/code&gt; converts an &lt;code&gt;\ArrayObject&lt;/code&gt; schema map to an array. A &lt;code&gt;test_array_object_input&lt;/code&gt; tool was added to &lt;code&gt;mcp_server_test&lt;/code&gt; to cover that. The CI lowest-SDK job and the contributor docs now pin &lt;code&gt;^0.9&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update the constraint in &lt;code&gt;composer.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;mcp/sdk&amp;quot;: &amp;quot;^0.9&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code that tags or references &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt;, or constructs &lt;code&gt;McpServerController&lt;/code&gt; directly with the lock and database arguments, needs updating. The SDK's transport already applies &lt;code&gt;ProtocolVersionMiddleware&lt;/code&gt; to handshake-era requests.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 28, 2026 (5 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585949: Allow mcp/sdk ^0.9</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585949.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585949</guid>
+      <pubDate>Wed, 28 Oct 2026 16:12:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +665/−550 · php +629/−515 · md +26/−23 · yml +9/−11 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/41b50f654c98dfa4d91747681cbac2bce46e009a"&gt;41b50f6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585949"&gt;#3585949&lt;/a&gt; · 1 contributor · 17 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;mcp_server 2.x now requires mcp/sdk 0.9 and no longer installs with 0.7 or 0.8. Update with &lt;code&gt;composer update mcp/sdk --with-all-dependencies&lt;/code&gt; when you update the module. The issue's release notes say 0.9 rejects tool results that don't match a tool's &lt;code&gt;outputSchema&lt;/code&gt;, so custom tools with a mismatched schema will start returning errors. The issue says 0.9 also fixes concurrent SSE streams of one session taking each other's client responses, and stateless SSE output buffering that kept Claude Code from connecting.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The commit raises the floor in &lt;code&gt;composer.json&lt;/code&gt; and pins the &lt;code&gt;composer (lowest SDK)&lt;/code&gt; CI job to &lt;code&gt;^0.9&lt;/code&gt;. It also removes the code that handled 0.7 and 0.8: the &lt;code&gt;method_exists()&lt;/code&gt; guards, the &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service, and &lt;code&gt;McpServerServiceProvider::alter()&lt;/code&gt;. The controller now passes the SDK's own &lt;code&gt;PassthroughMiddleware&lt;/code&gt; when no middleware is tagged, replacing the deleted &lt;code&gt;Transport\PassThroughMiddleware&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Session locking moved from the controller into the SDK. &lt;code&gt;McpServerController&lt;/code&gt; no longer takes a lock, and &lt;code&gt;SessionLockingStreamableHttpTransport&lt;/code&gt; is deleted. &lt;code&gt;McpServerFactory&lt;/code&gt; passes the new &lt;code&gt;LockBackendSessionLock&lt;/code&gt; to &lt;code&gt;Builder::setSessionLock()&lt;/code&gt;. It uses the same lock name as before, &lt;code&gt;mcp_session:&lt;/code&gt; plus the sha256 of the session id. It throws &lt;code&gt;SessionLockTimeoutException&lt;/code&gt; when the lock can't be acquired. The SDK holds the lock around session reads and saves, and releases it while a tool waits on the client. If a tool suspends inside a database transaction, the release is deferred until the transaction ends, because a rollback would restore the semaphore row. The issue says 0.9 saves a resumed tool's session inside the fiber resume, which only the SDK's lock covers.&lt;/p&gt;
+&lt;p&gt;Other adaptations to 0.9: &lt;code&gt;FiberShield&lt;/code&gt; now re-yields &lt;code&gt;RequestSuspension&lt;/code&gt; and &lt;code&gt;NotificationSuspension&lt;/code&gt; objects instead of arrays with a &lt;code&gt;type&lt;/code&gt; key. &lt;code&gt;McpServerFactory&lt;/code&gt; converts an &lt;code&gt;ArrayObject&lt;/code&gt; schema map, such as the empty &lt;code&gt;properties&lt;/code&gt; map Tool API writes, to an array so the SDK's &lt;code&gt;Tool&lt;/code&gt; accepts it. A new test tool, &lt;code&gt;test_array_object_input&lt;/code&gt;, covers that case. Tests that fed &lt;code&gt;StdioTransport&lt;/code&gt; from &lt;code&gt;php://memory&lt;/code&gt; now use &lt;code&gt;tmpfile()&lt;/code&gt;, since the transport calls &lt;code&gt;stream_select()&lt;/code&gt; on stdin.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update the SDK together with the module:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;composer update mcp/sdk --with-all-dependencies
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Custom tools that declare an &lt;code&gt;outputSchema&lt;/code&gt; must return results that match it, or 0.9 will return errors. Code that referenced &lt;code&gt;Drupal\mcp_server\Transport\PassThroughMiddleware&lt;/code&gt; should use &lt;code&gt;Mcp\Server\Transport\Http\Middleware\PassthroughMiddleware&lt;/code&gt; instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 8, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 28, 2026 (20 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;boychev&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585946: Concurrent tool calls on one session can receive each other's elicitation answers</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585946.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585946</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 28 Oct 2026 16:12:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +665/−550 · php +629/−515 · md +26/−23 · yml +9/−11 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/41b50f654c98dfa4d91747681cbac2bce46e009a"&gt;41b50f6&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585946"&gt;#3585946&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The issue reported that two tool calls eliciting on the same MCP session could receive each other's answers. The proposed fix was to wait for an upstream fix in the PHP SDK (php-sdk#544) and then add a test. The shipped commit raises the SDK requirement to &lt;code&gt;mcp/sdk&lt;/code&gt; ^0.9 only. The SDK now owns the per-session locking that this module used to do itself. Sites need an SDK 0.9 install, and 0.7 and 0.8 are no longer supported. The commit does not include the end to end test with two eliciting tool calls that the issue proposed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;mcp/sdk&lt;/code&gt; constraint changes from &lt;code&gt;^0.7.1 || ^0.8&lt;/code&gt; to &lt;code&gt;^0.9&lt;/code&gt;; 0.7 and 0.8 are no longer supported.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service is removed, and the &lt;code&gt;mcp_server.session_lock&lt;/code&gt; service is added. Calling code that referenced &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; must stop doing so.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The module's own locking is replaced by SDK hooks. &lt;code&gt;McpServerController&lt;/code&gt; no longer takes a Drupal lock around the whole run, and it no longer wraps the SSE stream callback to release the lock. It builds the SDK's own &lt;code&gt;StreamableHttpTransport&lt;/code&gt;. The custom &lt;code&gt;SessionLockingStreamableHttpTransport&lt;/code&gt;, which overrode &lt;code&gt;getOutgoingMessages()&lt;/code&gt;, &lt;code&gt;checkForResponse()&lt;/code&gt; and &lt;code&gt;handleFiberYield()&lt;/code&gt;, is deleted. So is the &lt;code&gt;PassThroughMiddleware&lt;/code&gt; class, replaced by the SDK's &lt;code&gt;PassthroughMiddleware&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The new &lt;code&gt;Drupal\mcp_server\Session\LockBackendSessionLock&lt;/code&gt; implements the SDK's &lt;code&gt;SessionLockInterface&lt;/code&gt; (&lt;code&gt;acquire()&lt;/code&gt;, &lt;code&gt;tryAcquire()&lt;/code&gt;, &lt;code&gt;release()&lt;/code&gt;) on Drupal's &lt;code&gt;lock&lt;/code&gt; service. It uses the lock name &lt;code&gt;mcp_session:&amp;lt;sha256 of session id&amp;gt;&lt;/code&gt;, as before. &lt;code&gt;acquire()&lt;/code&gt; waits once and retries, then throws the SDK's &lt;code&gt;SessionLockTimeoutException&lt;/code&gt;. If a tool suspends inside a database transaction, &lt;code&gt;release()&lt;/code&gt; is deferred until the transaction ends, because a release inside it would be invisible to other requests and a rollback would restore the semaphore row. The service is &lt;code&gt;mcp_server.session_lock&lt;/code&gt;, passed to &lt;code&gt;McpServerFactory&lt;/code&gt;, which calls &lt;code&gt;Builder::setSessionLock()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Other changes: &lt;code&gt;FiberShield&lt;/code&gt; now recognises the SDK's &lt;code&gt;RequestSuspension&lt;/code&gt; and &lt;code&gt;NotificationSuspension&lt;/code&gt; objects instead of arrays with a &lt;code&gt;type&lt;/code&gt; key. &lt;code&gt;McpServerFactory&lt;/code&gt; calls &lt;code&gt;setRequestState()&lt;/code&gt; unconditionally. It also converts an empty &lt;code&gt;ArrayObject&lt;/code&gt; schema map (as Tool API writes it) to an array before building the SDK &lt;code&gt;Tool&lt;/code&gt;. The &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service and &lt;code&gt;McpServerServiceProvider::alter()&lt;/code&gt; are removed, because the 0.9 transport applies that middleware itself. CI's lowest-SDK job now pins &lt;code&gt;^0.9&lt;/code&gt;. Tests that hit &lt;code&gt;StdioTransport&lt;/code&gt; now use &lt;code&gt;tmpfile()&lt;/code&gt; for stdin, since the transport's &lt;code&gt;stream_select()&lt;/code&gt; rejects &lt;code&gt;php://memory&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update the SDK constraint in &lt;code&gt;composer.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;mcp/sdk&amp;quot;: &amp;quot;^0.9&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Custom code that referenced the &lt;code&gt;mcp_server.middleware.protocol_version&lt;/code&gt; service, &lt;code&gt;Drupal\mcp_server\Transport\PassThroughMiddleware&lt;/code&gt; or &lt;code&gt;SessionLockingStreamableHttpTransport&lt;/code&gt; must stop using them. Use &lt;code&gt;Mcp\Server\Transport\Http\Middleware\PassthroughMiddleware&lt;/code&gt; and the SDK's &lt;code&gt;StreamableHttpTransport&lt;/code&gt; instead.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 28, 2026 (21 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586702: Emit automator config ID tag and entity_context on chat requests</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586702.md</link>
       <guid isPermaLink="false">project/ai#3586702</guid>
@@ -640,112 +770,6 @@
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: September 19, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586571: Scheduled publish on save can leave context item Draft in the listing</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586571.md</link>
-      <guid isPermaLink="false">project/ai_context#3586571</guid>
-      <pubDate>Sat, 24 Oct 2026 17:13:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586571"&gt;#3586571&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On a moderated site with Scheduler enabled, saving an AI Context Item whose &lt;strong&gt;Publish on&lt;/strong&gt; date was already due used to publish the item but leave its moderation state at Draft. The listing showed Draft while selection and counts treated the item as published. The moderation state now follows the scheduled publish state, so the listing shows Published. Future dates handled by cron already worked and are unchanged.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Scheduler publishes immediately in &lt;code&gt;hook_entity_presave()&lt;/code&gt; when the date is due and dispatches &lt;code&gt;SchedulerAiContextItemEvents::PUBLISH_IMMEDIATELY&lt;/code&gt;. &lt;code&gt;scheduler_content_moderation_integration&lt;/code&gt; only listens to the node and media versions of that event, so &lt;code&gt;moderation_state&lt;/code&gt; was never updated. The listing reads &lt;code&gt;moderation_state&lt;/code&gt;, while selection and counts use the &lt;code&gt;status&lt;/code&gt; flag.&lt;/p&gt;
-&lt;p&gt;The fix adds an &lt;code&gt;@internal&lt;/code&gt; event subscriber, &lt;code&gt;AiContextSchedulerImmediatePublishSubscriber&lt;/code&gt;, registered as &lt;code&gt;ai_context.scheduler_immediate_publish_subscriber&lt;/code&gt;. It takes &lt;code&gt;content_moderation.moderation_information&lt;/code&gt; as an optional dependency, so it does nothing when Content Moderation or Scheduler is absent. On the event it checks that the entity is moderated, has the &lt;code&gt;publish_state&lt;/code&gt; field, and that the field is not empty. It then copies &lt;code&gt;publish_state&lt;/code&gt; into &lt;code&gt;moderation_state&lt;/code&gt;. Like the node and media handling, it leaves &lt;code&gt;publish_state&lt;/code&gt; in place. Cron publish and unpublish go through the generic Scheduler hooks and were not changed. A kernel test (&lt;code&gt;AiContextSchedulerImmediatePublishTest&lt;/code&gt;) covers a due &lt;code&gt;publish_on&lt;/code&gt; without SQL backdating.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
-&lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
-&lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586638: Scope settings table: Edit links do not say which scope they are for (WCAG 2.4.4)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586638.md</link>
-      <guid isPermaLink="false">project/ai_context#3586638</guid>
-      <category>Front-end developers</category>
-      <pubDate>Sat, 24 Oct 2026 17:03:31 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586638"&gt;#3586638&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On the AI Context Scope settings page, all the Edit links were just called &amp;quot;Edit&amp;quot;, so screen reader users could not tell which scope each one opened. Each link now has an accessible name that includes the scope, such as &amp;quot;Edit Global&amp;quot;, while the visible text stays &amp;quot;Edit&amp;quot;. The scope name in the first column is now a row header, so assistive technology announces it as the heading for its row. This addresses WCAG 2.2 SC 2.4.4 (Link Purpose) and SC 1.3.1 (Info and Relationships).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Scope overview table now renders the first cell of each row as &lt;code&gt;&amp;lt;th scope=&amp;quot;row&amp;quot;&amp;gt;&lt;/code&gt; and Edit links carry an &lt;code&gt;aria-label&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change is in &lt;code&gt;src/Form/AiContextScopeOverviewForm.php&lt;/code&gt;. The label cell gets &lt;code&gt;'#wrapper_attributes' =&amp;gt; ['header' =&amp;gt; TRUE, 'scope' =&amp;gt; 'row']&lt;/code&gt;, so the &lt;code&gt;table&lt;/code&gt; element renders a &lt;code&gt;th&lt;/code&gt; instead of a &lt;code&gt;td&lt;/code&gt;. Each operations link gets &lt;code&gt;'attributes' =&amp;gt; ['aria-label' =&amp;gt; $this-&amp;gt;t('Edit @scope', ['@scope' =&amp;gt; $plugin-&amp;gt;getLabel()])]&lt;/code&gt;. The label starts with &amp;quot;Edit&amp;quot;, so voice control users can still say &amp;quot;Edit&amp;quot; (SC 2.5.3 Label in Name). The issue also lists a functional test checking that each Edit link has its own name and that the first cell is a &lt;code&gt;th&lt;/code&gt; with &lt;code&gt;scope=&amp;quot;row&amp;quot;&lt;/code&gt;. I read the form code in the repo but did not read the test.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;kati.vera (Mearra)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594686: Failure-mode taxonomy artifact for error analysis</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594686.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594686</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Fri, 23 Oct 2026 16:39:55 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594686"&gt;#3594686&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI Eval module now has failure modes: named categories such as &amp;quot;hallucinated_fact&amp;quot; that reviewers use to group the problems they find in open-coding notes. Failure modes are managed under Failure Modes in the AI Eval admin area and can be exported and imported as a shareable, versioned taxonomy. Reviewers can tag an annotation with a failure mode. The UI can then report how often each mode occurs, including an untagged bucket, so the dominant failure modes are visible.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;ai_eval.failure_mode.*&lt;/code&gt; config entities with keys &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;taxonomy_id&lt;/code&gt;, &lt;code&gt;weight&lt;/code&gt;, &lt;code&gt;status&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_eval_failure_mode&lt;/code&gt; config entity, &lt;code&gt;FailureModeTaxonomySerializer&lt;/code&gt; and &lt;code&gt;FailureTaxonomyValidator&lt;/code&gt; services, &lt;code&gt;FailureRateService&lt;/code&gt;, and &lt;code&gt;schema/failure_taxonomy.schema.json&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;FailureMode&lt;/code&gt; is a config entity (&lt;code&gt;ai_eval_failure_mode&lt;/code&gt;, config prefix &lt;code&gt;failure_mode&lt;/code&gt;). It is managed at &lt;code&gt;/admin/config/ai/ai-eval/failure-modes&lt;/code&gt; and exports &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;description&lt;/code&gt;, &lt;code&gt;taxonomy_id&lt;/code&gt;, &lt;code&gt;weight&lt;/code&gt; and &lt;code&gt;status&lt;/code&gt;. Modes sharing a &lt;code&gt;taxonomy_id&lt;/code&gt; (default &lt;code&gt;default&lt;/code&gt;) form one taxonomy. The issue proposed a suggested check or judge prompt seed field, but the entity as it stands has no such field.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;schema/failure_taxonomy.schema.json&lt;/code&gt; is a peer to the dataset schema. It requires &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;version&lt;/code&gt; (semver) and &lt;code&gt;modes&lt;/code&gt;. Each mode needs &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt;, with an optional integer &lt;code&gt;weight&lt;/code&gt;, and unknown mode properties are rejected. &lt;code&gt;FailureModeTaxonomySerializer::export()&lt;/code&gt; produces that shape. Its import upserts modes and never deletes modes missing from the payload. &lt;code&gt;FailureTaxonomyValidator&lt;/code&gt; checks a serialized taxonomy against the schema using opis &lt;code&gt;CompliantValidator&lt;/code&gt;, in the same way as &lt;code&gt;DatasetValidator&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;ai_eval_annotation&lt;/code&gt; entity gets a &lt;code&gt;failure_mode&lt;/code&gt; entity reference field. &lt;code&gt;FailureRateService&lt;/code&gt; groups annotation rows with a single &lt;code&gt;GROUP BY&lt;/code&gt; on the base table. It provides rates per eval result (&lt;code&gt;ratesForResult()&lt;/code&gt;) and per target with an optional time window (&lt;code&gt;ratesForTarget()&lt;/code&gt;), and a variant over reviewed conversations. Rate is the per-mode count divided by all annotations in scope, and untagged annotations are always included so rates sum to 1.0. This work was merged across several commits, and the trace review linkage landed under &lt;a href="https://www.drupal.org/node/3594752"&gt;#3594752&lt;/a&gt;. The repository history has no single commit for this issue, so this summary is based on the final code.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

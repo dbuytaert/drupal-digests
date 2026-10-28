@@ -1,36 +1,36 @@
-**TL;DR:** [1369 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1377 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_308 summaries · 29 new this week_
+
+- [#3585954: Replace SessionLockingStreamableHttpTransport with the SDK's session lock](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585954.md)
+- [#3585949: Allow mcp/sdk ^0.9](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585949.md)
+- [#3585946: Concurrent tool calls on one session can receive each other's elicitation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585946.md)
+
 ### Drupal Canvas
 
-_295 summaries · 9 new this week_
+_298 summaries · 12 new this week_
 
-- [#3592233: Workspaces PR 3b: core publish of a workspace holding Canvas drafts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592233.md)
-- [#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md)
-- [#3592176: Duplicating a page template silently does nothing: the GET representation is no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592176.md)
+- [#3592257: Support non-revisionable resources in Headless SDK draft mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592257.md)
+- [#3592224: Allow component definition updates across headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592224.md)
+- [#3592221: Canvas AI: Show the selected component in the AI chat input](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592221.md)
 
 ### Drupal Core
 
-_636 summaries · 6 new this week_
+_638 summaries · 8 new this week_
 
+- [#2980380: Inline error messages are not using proper theming mechanisms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2980380.md)
+- [#2350049: filter_autop() returns <br /> but should return <br> for HTML5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2350049.md)
 - [#2735997: Decimal separator and precision settings unavailable when aggregating decimal...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2735997.md)
-- [#3082239: Forbid limited length primary and unique keys, allow only in indexes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3082239.md)
-- [#3594338: Add a command to import configuration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3594338.md)
-
-### Drupal AI
-
-_305 summaries · 28 new this week_
-
-- [#3586702: Emit automator config ID tag and entity_context on chat requests](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586702.md)
-- [#3594806: Show the input and the model's answer when reviewing recorded decisions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594806.md)
-- [#3594822: Failure mode rates count each reviewer's annotation of the same question](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594822.md)
 
 ### Drupal CMS
 
-_133 summaries · 5 new this week_
+_133 summaries · 4 new this week_
 
 - [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
 - [#3591501: Add an event or param to track use of the launcher](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591501.md)
