@@ -5,6 +5,42 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592233: Workspaces PR 3b: core publish of a workspace holding Canvas drafts</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592233.md</link>
+      <guid isPermaLink="false">project/canvas#3592233</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 27 Oct 2026 22:56:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +1113/−121 · php +981 · md +128/−119 · yml +3 · txt +1 · neon +0/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/d35adef90014a35296551294315218cd35c4f00f"&gt;d35adef&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592233"&gt;#3592233&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On the &lt;code&gt;1.x-workspaces&lt;/code&gt; feature branch, publishing a workspace through core (Workspaces UI, Drush, cron or &lt;code&gt;$workspace-&amp;gt;publish()&lt;/code&gt;) now handles Canvas drafts. Every pending Canvas item is validated and access checked first. If anything is invalid, the publish is refused with a message naming the items, and nothing goes live. If everything passes, config drafts (page variants, templates, code components and similar) are saved to Live together with the content revisions. Afterwards the workspace's Canvas draft storage is cleared. A published named workspace is deleted, and the Canvas default workspace is kept. There is no Canvas UI or API change.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;WorkspacePublishValidationException&lt;/code&gt; (carries &lt;code&gt;getViolationSets()&lt;/code&gt;) thrown on pre-publish when Canvas drafts are invalid, plus the &lt;code&gt;AutoSaveWorkspacePublishSubscriber&lt;/code&gt; event subscriber.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The new &lt;code&gt;AutoSaveWorkspacePublishSubscriber&lt;/code&gt; is registered with the &lt;code&gt;event_subscriber&lt;/code&gt; tag in &lt;code&gt;canvas.services.yml&lt;/code&gt;. It listens to &lt;code&gt;WorkspacePrePublishEvent&lt;/code&gt; at priority -100, so it runs after other listeners such as content_moderation's. If an earlier listener already stopped the publish, it stages nothing. It listens to &lt;code&gt;WorkspacePostPublishEvent&lt;/code&gt; at -600, after core's association cleanup.&lt;/p&gt;
+&lt;p&gt;Pre-publish runs inside &lt;code&gt;executeInWorkspaceUnchecked()&lt;/code&gt; and walks &lt;code&gt;AutoSaveManager::getAllAutoSaveList()&lt;/code&gt;. Each item gets an &lt;code&gt;update&lt;/code&gt; access check. A Component generated from staged config is exempt, but only once &lt;code&gt;discoveryReadsStagedConfig&lt;/code&gt; exists; that exemption is a todo for MR 4. Config items are validated through typed data. Content items get &lt;code&gt;$entity-&amp;gt;validate()&lt;/code&gt; plus the recorded form violations. A Page draft with an unresolved external-edit conflict is also refused, but only when &lt;code&gt;canvas_dev_cd&lt;/code&gt; is installed. A content draft that storage rejected earlier (&lt;code&gt;getRejectedDraftError()&lt;/code&gt;) blocks the publish until it is re-saved or discarded. Core has already captured the revisions to promote by then, so it can't be staged late.&lt;/p&gt;
+&lt;p&gt;Staged config translation overrides (&lt;code&gt;StagedLanguageConfigOverride&lt;/code&gt;) are hidden from the item list. They get their own access and validation pass, and their base entity is validated from Live if it has no pending draft. If everything passes, &lt;code&gt;WorkspaceAutoSave::stageFallbackDrafts()&lt;/code&gt; saves the fallback drafts to Live. Any draft that storage rejects is added as a violation. Failures throw the new &lt;code&gt;WorkspacePublishValidationException&lt;/code&gt;, which core doesn't catch. Its message lists each item, because core's publish form and Drush only log &lt;code&gt;getMessage()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Core dispatches the pre-publish event before opening its transaction, so these Live saves are not atomic with core's revision promotion. Only a publish driven by &lt;code&gt;CanvasWorkspacePublisher&lt;/code&gt;, which is not in this change, can roll them back. A todo for MR 11 covers this. Access is checked as the current user, so Drush or cron publishes without update access are refused while the workspace holds Canvas drafts. Post-publish calls &lt;code&gt;clearWorkspaceStores()&lt;/code&gt; and then deletes any workspace other than &lt;code&gt;AutoSaveWorkspace::ID&lt;/code&gt;. A todo for MR 13 questions that delete, since core keeps a published workspace and the delete bypasses access checks. The PHPStan ignore for the previously unused &lt;code&gt;stageFallbackDrafts()&lt;/code&gt; is removed, and todos for MR 14 mark the exception classes to move.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 27, 2026 (6 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media props</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md</link>
       <guid isPermaLink="false">project/canvas#3592123</guid>
@@ -685,34 +721,6 @@ $store-&amp;gt;setStoredConversationState($conversation_id, $request_id, $agent_
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;li&gt;kunal.sachdev (Acquia)&lt;/li&gt;
 &lt;li&gt;harjot.singh@acquia.com&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592052: Site template installation fails with Canvas 1.11</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592052.md</link>
-      <guid isPermaLink="false">project/canvas#3592052</guid>
-      <pubDate>Mon, 05 Oct 2026 12:09:54 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592052"&gt;#3592052&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Installing a Drupal CMS site template (&lt;code&gt;drush si recipes/drupal_cms_starter&lt;/code&gt;) failed with Canvas 1.11.0, with the error &amp;quot;You have requested a synthetic service (&amp;quot;kernel&amp;quot;). The DIC does not know how to construct this service.&amp;quot; The reporter found that downgrading to Canvas 1.10.1 made the install work again. The issue is marked fixed. A related fix to the site template install path is in Canvas 1.12.0, but the issue thread does not confirm that it is the fix for this report.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The issue has no comments and no linked merge request, so the cause and fix are not stated there. I inferred a likely fix from the repository. Commit 64c59639 (&lt;a href="https://www.drupal.org/node/3591996"&gt;#3591996&lt;/a&gt;, first tagged in v1.12.0) changes &lt;code&gt;RecipeSubscriber&lt;/code&gt; so that site template page variant migration runs in a new &lt;code&gt;migrateSiteTemplate()&lt;/code&gt; handler. That handler is registered on &lt;code&gt;RecipeAppliedEvent&lt;/code&gt; at priority &lt;code&gt;PHP_INT_MIN&lt;/code&gt;, so it runs after all other applied subscribers. Its docblock says installing the page template component module rebuilds the container, and that running last stops later subscribers from using the invalidated container. That matches the symptom, since a rebuilt container can fail on the synthetic &lt;code&gt;kernel&lt;/code&gt; service. No commit references &lt;a href="https://www.drupal.org/node/3592052"&gt;#3592052&lt;/a&gt; directly, so treat the link as likely, not confirmed.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If site template installs fail on Canvas 1.11.0, either update to Canvas 1.12.0 or later, or pin the version the reporter confirmed works: &lt;code&gt;composer require drupal/canvas:1.10.1&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 9, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

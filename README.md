@@ -1,4 +1,4 @@
-**TL;DR:** [1368 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1369 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_294 summaries · 8 new this week_
+_295 summaries · 9 new this week_
 
+- [#3592233: Workspaces PR 3b: core publish of a workspace holding Canvas drafts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592233.md)
 - [#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md)
 - [#3592176: Duplicating a page template silently does nothing: the GET representation is no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592176.md)
-- [#3592122: Canvas AI: get_component_details and get_component_context omit item type and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592122.md)
 
 ### Drupal Core
 
