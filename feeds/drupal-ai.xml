@@ -5,6 +5,169 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3585956: ResourceContentCache reuses the first caller's cache-context variation for every later caller</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585956.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585956</guid>
+      <category>Site owners</category>
+      <pubDate>Thu, 29 Oct 2026 16:04:24 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +189/−76 · php +167/−56 · md +14/−18 · yml +8/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/69467c23b599b97210a2bb5260d335cfa46e1429"&gt;69467c2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585956"&gt;#3585956&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;MCP resource content cached for one user could be returned to other users. A resource that varied by a cache context such as &lt;code&gt;user&lt;/code&gt; kept serving the first caller's content to everyone with view access until the entry expired. Access checks still ran on every call, so the leak only affected users who were allowed to read the resource. Each caller now gets the cached variation for their own context values.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Cached MCP resource content could be served to a different user than the one it was generated for, when the content varied by cache context (e.g. &lt;code&gt;user&lt;/code&gt;) and both users had view access.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The old &lt;code&gt;ResourceContentCache::generate()&lt;/code&gt; stored the first caller's resolved context keys (for example &lt;code&gt;[user]=10&lt;/code&gt;) in a pointer entry at &lt;code&gt;mcp_resource:{uri}&lt;/code&gt;. It reused that suffix for every later lookup. Render caching avoids this by storing context tokens and resolving them again on each request.&lt;/p&gt;
+&lt;p&gt;The class now delegates storage to core's &lt;code&gt;VariationCacheInterface&lt;/code&gt;, the store &lt;code&gt;RenderCache&lt;/code&gt; uses. It is wired as a new service, &lt;code&gt;mcp_server.variation_cache.resource&lt;/code&gt;, created from &lt;code&gt;variation_cache_factory&lt;/code&gt; over the &lt;code&gt;default&lt;/code&gt; bin. The &lt;code&gt;mcp_server.resource_content_cache&lt;/code&gt; service takes only that service as its argument, so the constructor no longer takes &lt;code&gt;cache.default&lt;/code&gt; and &lt;code&gt;cache_contexts_manager&lt;/code&gt;. Cache keys are &lt;code&gt;['mcp_resource', hash('sha256', $expandedUri)]&lt;/code&gt;. The URI is hashed because it is client-controlled and the variation cache joins keys and context keys with &lt;code&gt;:&lt;/code&gt;, so a raw URI could spell another caller's cache ID. The access result's cacheability is passed as the initial cacheability to both &lt;code&gt;get()&lt;/code&gt; and &lt;code&gt;set()&lt;/code&gt;, and it is merged into the DTO metadata.&lt;/p&gt;
+&lt;p&gt;Behavior that stays the same: the access callback runs on every call and is never cached, and a &lt;code&gt;NULL&lt;/code&gt; from the content callback raises &lt;code&gt;ResourceNotFoundException&lt;/code&gt;. Content with max-age 0 is not stored. A new kernel test, &lt;code&gt;ResourceContentCacheTest&lt;/code&gt;, covers two users reading one resource, the URI-spoofing case, and max-age 0.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Previously cached resource content sits under the old &lt;code&gt;mcp_resource:{uri}&lt;/code&gt; pointer keys, which the new code does not read, so it is simply ignored. Clear caches if you want those stale entries removed. Code that constructs &lt;code&gt;ResourceContentCache&lt;/code&gt; directly must pass a &lt;code&gt;VariationCacheInterface&lt;/code&gt; instead of the cache backend and contexts manager. The class is &lt;code&gt;final&lt;/code&gt; and used through the &lt;code&gt;mcp_server.resource_content_cache&lt;/code&gt; service.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 28, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 29, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585953: Created content timestamp uses mcp server start time</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585953.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585953</guid>
+      <pubDate>Thu, 29 Oct 2026 15:32:12 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +173/−2 · php +160 · yml +9 · md +4/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/7d981c7267778c727397de31f1d746fce0b82550"&gt;7d981c7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585953"&gt;#3585953&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When the MCP server runs over STDIO (&lt;code&gt;drush mcp:server&lt;/code&gt;), content edits made by an AI client were stamped with the time the client connected, not the time of the edit. This affected entity changed times, revision creation times and comment created times. Each STDIO message now gets the current time as its request time, so timestamps are correct for the whole session. HTTP transport was never affected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;drush mcp:server&lt;/code&gt; is one long-lived PHP process, so Drupal's request time, read from the initial request's &lt;code&gt;REQUEST_TIME&lt;/code&gt;, never advanced. The fix adds &lt;code&gt;Drupal\mcp_server\EventSubscriber\StdioRequestTimeSubscriber&lt;/code&gt;, registered as &lt;code&gt;mcp_server.stdio_request_time_subscriber&lt;/code&gt; with &lt;code&gt;@request_stack&lt;/code&gt;. It subscribes to the MCP SDK's &lt;code&gt;Mcp\Event\RequestEvent&lt;/code&gt; at priority 1000, so other listeners already see the new time.&lt;/p&gt;
+&lt;p&gt;When &lt;code&gt;PHP_SAPI === 'cli'&lt;/code&gt;, it sets &lt;code&gt;REQUEST_TIME&lt;/code&gt; and &lt;code&gt;REQUEST_TIME_FLOAT&lt;/code&gt; on the current request's &lt;code&gt;server&lt;/code&gt; bag. It also sets them in &lt;code&gt;$_SERVER&lt;/code&gt;, because core's time service falls back to &lt;code&gt;$_SERVER&lt;/code&gt; when there is no request. Under any other SAPI it does nothing, since each HTTP message is already its own request. A kernel test, &lt;code&gt;StdioRequestTimeTest&lt;/code&gt;, backdates the request time and checks that both &lt;code&gt;initialize&lt;/code&gt; and &lt;code&gt;ping&lt;/code&gt; messages move it forward.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 29, 2026 (7 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;mortona2k&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3585955: Concurrent requests on one session get 503 "MCP session lock timeout" after a lost lock race</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585955.md</link>
+      <guid isPermaLink="false">project/mcp_server#3585955</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 29 Oct 2026 15:14:37 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +271/−9 · php +267/−6 · md +3/−3 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/commit/65bce4785a13ae97248929e90b2247141b8cdbeb"&gt;65bce47&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/mcp_server/-/work_items/3585955"&gt;#3585955&lt;/a&gt; · 1 contributor · 11 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When an MCP client sent several requests at once on the same session (for example &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;resources/list&lt;/code&gt; and &lt;code&gt;tools/list&lt;/code&gt;), some of them could fail immediately with a 503 &amp;quot;MCP session lock timeout&amp;quot; even though no real timeout had happened. Requests that lose the race for the session lock now keep waiting, up to 30 seconds in total, and only get a 503 if the lock really stays busy that long. The reporter's test went from 2 failures in 90 requests to 270 of 270 passing.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;LockBackendSessionLock&lt;/code&gt; takes the &lt;code&gt;datetime.time&lt;/code&gt; service as a new third constructor argument.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;LockBackendInterface::wait()&lt;/code&gt; returns as soon as the lock looks free. With three or more concurrent requests, two waiters can see it free, one takes it, and the other's single follow-up &lt;code&gt;acquire()&lt;/code&gt; fails at once. &lt;code&gt;LockBackendSessionLock::acquire()&lt;/code&gt; now loops on &lt;code&gt;acquire()&lt;/code&gt; against one deadline of &lt;code&gt;WAIT_SECONDS&lt;/code&gt; (30), computed from &lt;code&gt;TimeInterface::getCurrentMicroTime()&lt;/code&gt;. Each &lt;code&gt;wait()&lt;/code&gt; gets only the remaining time, rounded up to whole seconds. A &lt;code&gt;TRUE&lt;/code&gt; return from &lt;code&gt;wait()&lt;/code&gt; means the lock stayed held for the whole delay, so it throws &lt;code&gt;SessionLockTimeoutException&lt;/code&gt;, which the SDK answers with a 503. A &lt;code&gt;FALSE&lt;/code&gt; return means the lock looked free, so the loop retries &lt;code&gt;acquire()&lt;/code&gt;. Retrying &lt;code&gt;acquire()&lt;/code&gt; once more was rejected because it only moves the race. Restarting a full 30 s &lt;code&gt;wait()&lt;/code&gt; each time was rejected because it could hold a worker without limit.&lt;/p&gt;
+&lt;p&gt;The loop lives in &lt;code&gt;LockBackendSessionLock&lt;/code&gt;, the &lt;code&gt;SessionLockInterface&lt;/code&gt; adapter the SDK calls for every locked request. The issue says an earlier patch with a separate &lt;code&gt;SessionLock&lt;/code&gt; class was dropped in favor of this. The service definition gains &lt;code&gt;@datetime.time&lt;/code&gt; as a third argument. The commit adds unit tests (&lt;code&gt;LockBackendSessionLockRaceTest&lt;/code&gt;, with &lt;code&gt;FakeClock&lt;/code&gt; and &lt;code&gt;ContendedLockBackend&lt;/code&gt; helpers) covering a free lock, lost races, a shared budget and a long hold. The kernel test constructors were updated for the new argument.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Rebuild caches after updating, because the &lt;code&gt;mcp_server.session_lock&lt;/code&gt; service definition gained an argument. Code that constructs &lt;code&gt;LockBackendSessionLock&lt;/code&gt; directly must pass the time service as the third argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new LockBackendSessionLock($lock, $database, $this-&amp;gt;container-&amp;gt;get('datetime.time'))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 29, 2026 (2 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;roborn (Frontkom)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586769: Full chat thread pool deletes the conversation in slot 0 on every new thread and carries over previous conversation context</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586769.md</link>
+      <guid isPermaLink="false">project/ai#3586769</guid>
+      <pubDate>Thu, 29 Oct 2026 14:32:15 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +149/−21 · php +149/−21&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/0a8127b62547d4b2652f11c71ed4e96db95acce0"&gt;0a8127b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586769"&gt;#3586769&lt;/a&gt; · 1 contributor · 10 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;For AI assistants using the &lt;code&gt;private_tempstore_pool&lt;/code&gt; chat history mode, once a user had 11 open threads (for example by refreshing the chatbot page instead of using Clear History), every chat request deleted their conversation in slot 0. Old conversation context could also leak into the new thread. Now a full pool evicts the least recently used thread only when a new thread is actually needed, and the evicted thread's stored contexts are cleared too.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiAssistantApiRunner::setAssistant()&lt;/code&gt; used to call &lt;code&gt;generateUniqueKey()&lt;/code&gt; immediately. Access checks, &lt;code&gt;AiAssistantApiProcessor::initializeRunner()&lt;/code&gt; and &lt;code&gt;ResetSession&lt;/code&gt; all call &lt;code&gt;setAssistant()&lt;/code&gt; before the client's own thread id is set. With a full pool, each of those requests evicted slot 0. The eager generation is removed. The runner now reads its thread id through &lt;code&gt;getThreadsKey()&lt;/code&gt; everywhere it previously used &lt;code&gt;$this-&amp;gt;threadId&lt;/code&gt; (message history, output contexts, structured results, assistant message building, action instances), so a key is only generated when one is needed.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;generateUniqueKey()&lt;/code&gt;, a full pool now evicts the slot whose last message has the oldest timestamp, instead of always &lt;code&gt;assistant_thread_{uid}_0&lt;/code&gt;. Slots with no messages count as timestamp 0. The evicted key is also removed from the runner's temp store (&lt;code&gt;getTempStore()-&amp;gt;delete($evicted_key)&lt;/code&gt;), so &lt;code&gt;output_contexts&lt;/code&gt; and &lt;code&gt;structured_results&lt;/code&gt; from the previous conversation no longer carry over. A new kernel test, &lt;code&gt;AiAssistantApiRunnerThreadPoolTest&lt;/code&gt;, covers both behaviors.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 1, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 29, 2026 (28 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;abhisekmazumdar (Dropsolid)&lt;/li&gt;
+&lt;li&gt;merilainen (Mearra (formerly known as Wunder))&lt;/li&gt;
+&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3585954: Replace SessionLockingStreamableHttpTransport with the SDK's session lock</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585954.md</link>
       <guid isPermaLink="false">project/mcp_server#3585954</guid>
@@ -611,165 +774,6 @@
 &lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
 &lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
 &lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586466: Consumer include/exclude config stores context item entity IDs instead of UUIDs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586466.md</link>
-      <guid isPermaLink="false">project/ai_context#3586466</guid>
-      <category>Site owners</category>
-      <pubDate>Sat, 24 Oct 2026 21:38:11 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; ersion::v1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586466"&gt;#3586466&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI Context consumer &amp;quot;Always include&amp;quot; and &amp;quot;Never include&amp;quot; overrides are now stored as context item UUIDs instead of local numeric entity IDs. Before, exporting config and importing it into another environment could attach the wrong context item, or none, because the numeric IDs differed between databases. The exported &lt;code&gt;ai_context.consumers.yml&lt;/code&gt; now also lists the referenced items under &lt;code&gt;dependencies.content&lt;/code&gt; (for example &lt;code&gt;ai_context_item:ai_context_item:&amp;lt;uuid&amp;gt;&lt;/code&gt;), so config import can use Drupal's missing-content dependency workflow. A post-update converts existing sites, so run database updates and re-export config.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;0008&lt;/code&gt; converts numeric IDs in &lt;code&gt;ai_context.consumers&lt;/code&gt; to UUIDs and backfills &lt;code&gt;dependencies.content&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;ai_context.consumers&lt;/code&gt; &lt;code&gt;always_include&lt;/code&gt;/&lt;code&gt;never_include&lt;/code&gt; now hold context item UUIDs, with a new optional &lt;code&gt;dependencies.content&lt;/code&gt; key.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Config now stores UUIDs, while runtime selection still works with local entity IDs. &lt;code&gt;AiContextSelectionFactory&lt;/code&gt; resolves stored identifiers (UUIDs or leftover numeric IDs) to local IDs when building an &lt;code&gt;AiContextSelection&lt;/code&gt;, and &lt;code&gt;AiContextSubscriptionBudgetCalculator&lt;/code&gt; does the same. The shared logic is in the &lt;code&gt;@internal&lt;/code&gt; &lt;code&gt;AiContextItemIdentifierResolverTrait&lt;/code&gt;. Input order is kept and the first occurrence wins. &lt;code&gt;AiContextSelector::select()&lt;/code&gt; called directly still accepts UUIDs or numeric IDs. &lt;code&gt;AiContextConsumerStoredConfig&lt;/code&gt; and &lt;code&gt;AiContextConsumerResolvedConfig&lt;/code&gt; return the stored values as-is, so callers may see UUIDs or leftover numeric IDs.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextConsumerForm&lt;/code&gt; saves UUIDs, still recognizes leftover numeric IDs when showing inclusion state (never wins over always, including mixed UUID and numeric entries), and rewrites them to UUIDs on save. On save it computes &lt;code&gt;dependencies.content&lt;/code&gt; from &lt;code&gt;getConfigDependencyName()&lt;/code&gt; of the referenced items and merges it into the existing &lt;code&gt;dependencies&lt;/code&gt; map, so other keys such as &lt;code&gt;module&lt;/code&gt; survive. An empty list removes only &lt;code&gt;content&lt;/code&gt;. The previous carry-over of entries for deleted items was removed, so unknown identifiers are no longer dropped on save. The &lt;code&gt;ai_context.consumers&lt;/code&gt; schema gains an optional &lt;code&gt;dependencies&lt;/code&gt; key of type &lt;code&gt;config_dependencies&lt;/code&gt;, and the &lt;code&gt;always_include&lt;/code&gt; and &lt;code&gt;never_include&lt;/code&gt; labels now say UUIDs. The &lt;code&gt;GetRelevantAiContextItems&lt;/code&gt; function call parameter is relabeled &amp;quot;Always include UUIDs&amp;quot; and accepts UUIDs or leftover numeric IDs.&lt;/p&gt;
-&lt;p&gt;Post-update &lt;code&gt;ai_context_post_update_0008_convert_consumer_context_item_ids_to_uuids()&lt;/code&gt; converts numeric IDs to UUIDs where the item still exists, deduplicates the lists, and backfills &lt;code&gt;dependencies.content&lt;/code&gt;. Numeric IDs for items that no longer exist stay in the list. Per the issue, leftover &lt;code&gt;ai_context.agents&lt;/code&gt; config is not converted and still holds IDs.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates (&lt;code&gt;drush updb&lt;/code&gt;) so post-update &lt;code&gt;0008&lt;/code&gt; converts stored numeric IDs to UUIDs and adds &lt;code&gt;dependencies.content&lt;/code&gt;, then re-export config. Custom code that builds &lt;code&gt;always_include&lt;/code&gt; or &lt;code&gt;never_include&lt;/code&gt; lists can pass either UUIDs or numeric IDs; numeric IDs remain accepted until the next consumer form save or post-update.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 31, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;jibran (Morpht)&lt;/li&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586545: Store Tag and Taxonomy scope values as entity UUIDs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586545.md</link>
-      <guid isPermaLink="false">project/ai_context#3586545</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 24 Oct 2026 21:32:48 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Critical task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586545"&gt;#3586545&lt;/a&gt; · 1 contributor · 22 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In AI Context, the Context Tags and Taxonomy Terms scopes now store the term's UUID instead of its serial term ID. Before this, default content and recipes could not carry these scope values across installs. Terms got new IDs on import, so items and consumer subscriptions pointed at the wrong term or at nothing. Recipes can now ship &lt;code&gt;scope_id: tag&lt;/code&gt; with a UUID &lt;code&gt;value&lt;/code&gt;, and the term YAML no longer needs a pinned &lt;code&gt;tid&lt;/code&gt;. A post-update converts existing stored IDs. Unknown or deleted IDs are left as they are and stay unmatched.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids&lt;/code&gt; rewrites tids to UUIDs in the item scope field tables, the scope index and consumer &lt;code&gt;scope_subscriptions&lt;/code&gt; config.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;scope_subscriptions&lt;/code&gt; for &lt;code&gt;tag&lt;/code&gt; and &lt;code&gt;taxonomy&lt;/code&gt; in &lt;code&gt;ai_context.consumers&lt;/code&gt; and &lt;code&gt;ai_context.agents&lt;/code&gt; now hold term UUIDs.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; is removed. Tag and Taxonomy scope value IDs, in &lt;code&gt;scope_subscriptions&lt;/code&gt; and item scope values, are now term UUIDs instead of numeric tids.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Runtime matching was already string equality on &lt;code&gt;scope.value&lt;/code&gt;, so the change is in what gets stored and how it is resolved. The new &lt;code&gt;AiContextTaxonomyTermUuidTrait&lt;/code&gt; is used by &lt;code&gt;AiContextScopeTag&lt;/code&gt; and &lt;code&gt;AiContextScopeTaxonomy&lt;/code&gt;. It loads terms by stored value and converts autocomplete term IDs to UUIDs on save. &lt;code&gt;getValues()&lt;/code&gt; keys options by UUID. Form defaults, label lookup, cacheable-metadata dependencies, stale-value detection and delete cleanup (&lt;code&gt;getStaleTermValuesForEntityDelete()&lt;/code&gt;) all resolve by UUID. &lt;code&gt;AiContextScopeTaxonomy&lt;/code&gt; also adds the &lt;code&gt;taxonomy_term_list&lt;/code&gt; cache tag, because a stored UUID can start resolving after its term is imported. Detected request-entity values and &lt;code&gt;getMatchingIndexedValues()&lt;/code&gt; now use term UUIDs.&lt;/p&gt;
-&lt;p&gt;Tag stale-value detection still keeps a leftover numeric tid until the post-update converts it, provided its tag is still offered.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids()&lt;/code&gt; collects numeric values from &lt;code&gt;ai_context_item__scope&lt;/code&gt;, &lt;code&gt;ai_context_item_revision__scope&lt;/code&gt;, the scope index table, and &lt;code&gt;scope_subscriptions&lt;/code&gt; in &lt;code&gt;ai_context.consumers&lt;/code&gt; and &lt;code&gt;ai_context.agents&lt;/code&gt;. It maps each tid to a UUID per scope: terms in the &lt;code&gt;tags&lt;/code&gt; vocabulary map to &lt;code&gt;tag&lt;/code&gt;, and all other terms map to &lt;code&gt;taxonomy&lt;/code&gt;. A tid that points at the other scope's vocabulary is left for stale cleanup. The update rewrites the field tables, the index (dropping rows that would collide on the primary key) and the consumer config. It can be re-run if it stops partway.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; is removed. Callers can use &lt;code&gt;getScopeValues('tag')&lt;/code&gt;, which the removed method wrapped. The scope diff builder, docs and &lt;code&gt;AiContextSelection&lt;/code&gt; examples were updated to UUIDs. New test fixtures for a tagged item and a portable tag term cover the default-content round trip.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates so &lt;code&gt;ai_context_post_update_0013_convert_tag_taxonomy_scope_values_to_uuids&lt;/code&gt; converts stored tids.&lt;/p&gt;
-&lt;p&gt;Custom code, recipes and exported config that pass serial term IDs for the &lt;code&gt;tag&lt;/code&gt; or &lt;code&gt;taxonomy&lt;/code&gt; scopes need to pass the term UUID instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;scope:
-  - scope_id: tag
-    value: 7a1e8432-3616-438e-a411-76c93afba733
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Term YAML in recipes should no longer set &lt;code&gt;tid&lt;/code&gt;. Replace calls to the removed &lt;code&gt;AiContextItem::getContextTagIds()&lt;/code&gt; with &lt;code&gt;getScopeValues('tag')&lt;/code&gt;, which now returns UUIDs.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586639: Status badge contrast (WCAG 1.4.3): Unavailable fails on row hover</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586639.md</link>
-      <guid isPermaLink="false">project/ai_context#3586639</guid>
-      <category>Front-end developers</category>
-      <pubDate>Sat, 24 Oct 2026 18:20:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586639"&gt;#3586639&lt;/a&gt; · 1 contributor · 10 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The status badges in the AI Context listing and on the item page no longer change contrast when the row behind them is hovered or striped. An accessibility audit found the Unavailable badge dropped to 4.23:1 on row hover, below the WCAG 2.2 AA minimum of 4.5:1. With the fix it measures about 4.53:1 in every row state, in light and dark mode, by the issue's own calculation. The Disabled badge still fails AA on its own (about 4.18:1 before any hover). That comes from Gin's danger colours and was left for an upstream Gin issue.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects front-end developers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Status badge CSS in &lt;code&gt;css/ai_context.css&lt;/code&gt; and &lt;code&gt;css/ai_context_item.css&lt;/code&gt; now sets &lt;code&gt;background-color&lt;/code&gt; and &lt;code&gt;background-image&lt;/code&gt; instead of the &lt;code&gt;background&lt;/code&gt; shorthand; themes overriding the badge &lt;code&gt;background&lt;/code&gt; may need to adjust.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The badge colours come from Gin variables such as &lt;code&gt;--gin-status-warning-bg&lt;/code&gt;, which are semi-transparent. Gin's row hover tint therefore showed through and lowered contrast. Changing CCC's literal fallback values would have had no effect on a Gin site, since Gin defines the variables. The fix keeps Gin's palette and gives each badge an opaque base instead. The base class sets &lt;code&gt;background-color: var(--gin-bg-layer, #fff)&lt;/code&gt;. Each status modifier then paints its colour with &lt;code&gt;background-image: linear-gradient(var(--gin-status-*-bg, …), var(--gin-status-*-bg, …))&lt;/code&gt;. A gradient is used because &lt;code&gt;background-image&lt;/code&gt; can layer a flat colour over the opaque base colour. &lt;code&gt;--gin-bg-layer&lt;/code&gt; follows the theme, so it covers dark mode too. The change applies to &lt;code&gt;.ai-context-status*&lt;/code&gt; in &lt;code&gt;css/ai_context.css&lt;/code&gt; and to &lt;code&gt;.ai-context-item-entity__status*&lt;/code&gt; in &lt;code&gt;css/ai_context_item.css&lt;/code&gt;. Text colours are unchanged.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;davidbp (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;kati.vera (Mearra)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586541: Make duplicate consumer_id rows resolve consistently and map validator errors to the right row</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586541.md</link>
-      <guid isPermaLink="false">project/ai_context#3586541</guid>
-      <pubDate>Sat, 24 Oct 2026 18:17:51 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586541"&gt;#3586541&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;If a duplicated &lt;code&gt;consumer_id&lt;/code&gt; row gets into &lt;code&gt;ai_context.consumers&lt;/code&gt; (through &lt;code&gt;drush config:set&lt;/code&gt;, custom code, or a database edit, since the UI cannot create one), AI Context now treats the first row as the real one everywhere. Before, the consumers listing showed the last row while runtime used the first, so the listing could show push off while content was still pushed. Saving any consumer no longer fails because of an unrelated duplicate. The editor drops the later repeats and shows a warning. Removing a consumer now deletes every row with that ID.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The first row wins in the consumers listing (&lt;code&gt;AiContextConsumersForm&lt;/code&gt;), runtime resolution, the consumer editor and the validator message. This matches &lt;code&gt;AiContextSelectionFactory::loadConsumerConfig()&lt;/code&gt; and update 10028, which already used the first match.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextConsumerConfigValidator&lt;/code&gt; reports the duplicate violation on the later row. The message now reads &lt;code&gt;Duplicate consumer ID &amp;quot;%s&amp;quot;. Row %s already uses it and is the row that takes effect.&lt;/code&gt; A third repeat is measured against the first row.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextConsumerForm&lt;/code&gt; removes later repeats from the whole consumer list on save, keeping each ID's first row. After a successful save it logs a warning to the &lt;code&gt;ai_context&lt;/code&gt; channel and shows a status warning naming the de-duplicated IDs. A second save shows no warning. The remove form deletes every row with the ID, following &lt;code&gt;AiContextScopeCleanupService::removeConfigListRow()&lt;/code&gt;. &lt;code&gt;docs/developers/consumer_api.md&lt;/code&gt; now documents that &lt;code&gt;consumer_id&lt;/code&gt; is unique, which row wins, de-duplication on save, and full removal.&lt;/p&gt;
-&lt;p&gt;A non-duplicate violation on an unrelated row, such as &lt;code&gt;max_tokens&lt;/code&gt; below the schema minimum, still blocks every consumer save. The issue lists this as out of scope. I read the merged code in the repo but did not have a diff for this issue.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 19, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

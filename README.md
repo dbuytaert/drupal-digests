@@ -1,4 +1,4 @@
-**TL;DR:** [1377 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1381 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_308 summaries · 29 new this week_
+_312 summaries · 32 new this week_
 
-- [#3585954: Replace SessionLockingStreamableHttpTransport with the SDK's session lock](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585954.md)
-- [#3585949: Allow mcp/sdk ^0.9](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585949.md)
-- [#3585946: Concurrent tool calls on one session can receive each other's elicitation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585946.md)
+- [#3585956: ResourceContentCache reuses the first caller's cache-context variation for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585956.md)
+- [#3585953: Created content timestamp uses mcp server start time](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585953.md)
+- [#3585955: Concurrent requests on one session get 503 "MCP session lock timeout" after a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585955.md)
 
 ### Drupal Canvas
 
-_298 summaries · 11 new this week_
+_298 summaries · 10 new this week_
 
 - [#3592257: Support non-revisionable resources in Headless SDK draft mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592257.md)
 - [#3592224: Allow component definition updates across headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592224.md)
