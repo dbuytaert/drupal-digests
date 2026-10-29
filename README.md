@@ -14,7 +14,7 @@ _308 summaries · 29 new this week_
 
 ### Drupal Canvas
 
-_298 summaries · 12 new this week_
+_298 summaries · 11 new this week_
 
 - [#3592257: Support non-revisionable resources in Headless SDK draft mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592257.md)
 - [#3592224: Allow component definition updates across headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592224.md)
