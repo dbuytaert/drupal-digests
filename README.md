@@ -1,4 +1,4 @@
-**TL;DR:** [1382 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1393 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,23 +6,23 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_313 summaries · 32 new this week_
+_323 summaries · 37 new this week_
 
-- [#3578168: Streamed chatbot agent response](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3578168.md)
-- [#3585956: ResourceContentCache reuses the first caller's cache-context variation for...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585956.md)
-- [#3585953: Created content timestamp uses mcp server start time](https://github.com/dbuytaert/drupal-digests/blob/main/issues/mcp-server/3585953.md)
+- [#3594827: Uninstall deletes every .json file under the results path](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594827.md)
+- [#3594821: Operators can probe server paths and import JSON from any readable directory](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594821.md)
+- [#3583098: Make the runner's input errors actionable for agents, and let it be autowired](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583098.md)
 
 ### Drupal Canvas
 
-_298 summaries · 9 new this week_
+_299 summaries · 9 new this week_
 
+- [#3592212: Config import blocked by in-use page-template components after upgrading Canvas...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592212.md)
 - [#3592257: Support non-revisionable resources in Headless SDK draft mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592257.md)
 - [#3592224: Allow component definition updates across headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592224.md)
-- [#3592221: Canvas AI: Show the selected component in the AI chat input](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592221.md)
 
 ### Drupal Core
 
-_638 summaries · 8 new this week_
+_638 summaries · 7 new this week_
 
 - [#2980380: Inline error messages are not using proper theming mechanisms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2980380.md)
 - [#2350049: filter_autop() returns <br /> but should return <br> for HTML5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2350049.md)
@@ -30,7 +30,7 @@ _638 summaries · 8 new this week_
 
 ### Drupal CMS
 
-_133 summaries · 4 new this week_
+_133 summaries · 1 new this week_
 
 - [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
 - [#3591501: Add an event or param to track use of the launcher](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591501.md)
