@@ -1,4 +1,4 @@
-**TL;DR:** [1393 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1397 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_323 summaries · 37 new this week_
+_327 summaries · 41 new this week_
 
-- [#3594827: Uninstall deletes every .json file under the results path](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594827.md)
-- [#3594821: Operators can probe server paths and import JSON from any readable directory](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594821.md)
-- [#3583098: Make the runner's input errors actionable for agents, and let it be autowired](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583098.md)
+- [#3582994: The AI connector silently drops unrecognized input names](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582994.md)
+- [#3583027: tool:info should print declared input examples in the usage line](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583027.md)
+- [#3583053: MapAdapter discards default values of nested properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583053.md)
 
 ### Drupal Canvas
 
