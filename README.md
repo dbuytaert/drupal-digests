@@ -1,4 +1,4 @@
-**TL;DR:** [1399 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1413 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_329 summaries · 43 new this week_
+_343 summaries · 57 new this week_
 
-- [#3594833: Saving a new rubric without a scoring rule shows a raw schema error](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594833.md)
-- [#3594832: Answers recorded while a new entity is saved have no entity link or text, and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594832.md)
-- [#3582994: The AI connector silently drops unrecognized input names](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582994.md)
+- [#3594817: The judge prompt fence can be closed with an upper-case tag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594817.md)
+- [#3594816: Judge validation counts a judge error as a fail verdict](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594816.md)
+- [#3594815: A "%" in a judge prompt template stops the run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594815.md)
 
 ### Drupal Canvas
 
