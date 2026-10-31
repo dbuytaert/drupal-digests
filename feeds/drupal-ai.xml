@@ -5,6 +5,99 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586593: Entity Types scope loads the request entity without a view access check</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586593.md</link>
+      <guid isPermaLink="false">project/ai_context#3586593</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 31 Oct 2026 21:10:25 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +1422/−41 · php +1343/−26 · md +78/−15 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/671cae1fcc573e1eeb8a802c6ce3085462473f40"&gt;671cae1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586593"&gt;#3586593&lt;/a&gt; · 1 contributor · 41 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Entity Types scope no longer reveals whether a hidden entity exists or which bundle it belongs to. Before, a user with the &lt;code&gt;access published ai context&lt;/code&gt; permission could pass an entity type and ID to an agent tool or AI request and see whether a bundle-scoped context item was selected. That worked even for an unpublished node or term they could not view. Now an entity the user cannot view is treated like an ID that does not exist. There is a side effect to check on your site. Editors who can edit an entity but not view it (for example, another author's draft) no longer get Entity Types or Taxonomy Terms matching on that form. Background runs as Anonymous (cron, queues, Drush) also lose bundle-scoped items unless that account can view the entity. A bundle hint sent for an unsaved entity, such as a node add form, still works.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Minor information disclosure: a user with &lt;code&gt;access published ai context&lt;/code&gt; could learn whether an entity ID exists and its bundle through the Entity Types scope. Existence and bundle only, no field data.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiContextRequestInfoResolver::getEntityTypeFromEntity()&lt;/code&gt; used to load the request entity by ID with no access check. It now calls &lt;code&gt;loadContentEntity()&lt;/code&gt;, which already checked &lt;code&gt;access('view')&lt;/code&gt;, and returns NULL when the entity is missing or not viewable. The &lt;code&gt;getEntityType()&lt;/code&gt; fallback to the caller-supplied bundle hint is unchanged. The resolver now keeps the access result (&lt;code&gt;getContentEntityAccessResult()&lt;/code&gt;, allowed or denied). It runs on the revision or translation the route upcasts, not the default revision.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextSelector&lt;/code&gt; adds that access result's cacheability to every selection result, including a denied one. This applies even when the Entity Types and Taxonomy Terms scopes are disabled, so a custom scope cannot reuse another account's result. When access depends on ownership (for example, &lt;strong&gt;View own unpublished content&lt;/strong&gt;), the result varies by &lt;code&gt;user&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Because access now decides the match, the resolver takes &lt;code&gt;@current_user&lt;/code&gt; as a new constructor argument. The &lt;code&gt;ai_context.request_info_resolver&lt;/code&gt; service definition is updated, and any code that instantiates the final class directly must pass an &lt;code&gt;AccountInterface&lt;/code&gt; as the fifth argument. The entity and &lt;code&gt;getEntityType()&lt;/code&gt; memos reset when the current request (held as a &lt;code&gt;WeakReference&lt;/code&gt;) or the account ID changes. An account switch in a queue worker or a nested request therefore re-checks access. &lt;code&gt;applyRequestInfo()&lt;/code&gt; also clears a route entity saved for an earlier request, so a later caller-supplied entity is applied. Without that, the earlier route entity would hide it. The docs and a new kernel test class, &lt;code&gt;AiContextEntityBundleAccessTest&lt;/code&gt;, cover these cases. Existing Entity Types tests now set up a current user with &lt;code&gt;access content&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you construct &lt;code&gt;AiContextRequestInfoResolver&lt;/code&gt; yourself, for example in tests, pass the current user as the new last argument:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;new AiContextRequestInfoResolver(
+  $routeMatch,
+  $requestStack,
+  $entityTypeManager,
+  $entityTypeBundleInfo,
+  $container-&amp;gt;get('current_user'),
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If editors rely on Entity Types or Taxonomy Terms matching on edit forms, make sure their role can view the content it edits.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 31, 2026 (24 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586551: Keep consumer overrides during any module uninstall, including automators on automator chain fields</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586551.md</link>
+      <guid isPermaLink="false">project/ai_context#3586551</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sat, 31 Oct 2026 20:00:40 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +840/−131 · php +704/−87 · md +123/−43 · yml +13 · json +0/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/d3f7d5acf64944bb1ea2d71bfc9e207a4fa19685"&gt;d3f7d5a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586551"&gt;#3586551&lt;/a&gt; · 1 contributor · 44 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Saved per-consumer context overrides (&lt;code&gt;ai_context.consumers&lt;/code&gt; rows for agents and automators) are now kept whenever a module is uninstalled. Before, some overrides were silently lost while their siblings survived. This happened when several modules were uninstalled in one run with a cross-module dependency, and when an automator was attached to a field on an &lt;code&gt;automator_chain&lt;/code&gt; bundle and &lt;code&gt;ai_automators&lt;/code&gt; was uninstalled. Kept rows show in the consumers listing as &lt;strong&gt;Off (type unavailable)&lt;/strong&gt;, or &lt;strong&gt;Off (stale)&lt;/strong&gt; if the consumer type is still installed (for example when only a module an automator depends on is uninstalled). An admin can remove them with &lt;strong&gt;Remove configuration&lt;/strong&gt;. Reinstalling a module that recreates the host entity with the same ID makes the saved override apply again. Deleting a single agent or automator while its module stays installed still removes its row immediately.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;@internal&lt;/code&gt; service &lt;code&gt;ai_context.removed_consumer_rows&lt;/code&gt; (tagged &lt;code&gt;persist&lt;/code&gt;); &lt;code&gt;AiContextScopeCleanupService&lt;/code&gt; gains &lt;code&gt;restoreRemovedConsumerRows()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The earlier approach kept a &lt;code&gt;drupal_static&lt;/code&gt; list filled by &lt;code&gt;hook_module_preuninstall()&lt;/code&gt; and compared it with the deleted entity's type provider. It missed cases where the provider differs from the module being uninstalled, or where the delete happens before the module is listed. Core deletes host entities at two points. &lt;code&gt;ConfigManager::uninstall()&lt;/code&gt; flags config entities with &lt;code&gt;isUninstalling()&lt;/code&gt;. Before that, &lt;code&gt;ModuleInstaller::uninstall()&lt;/code&gt; deletes bundles, and the resulting &lt;code&gt;FieldConfig&lt;/code&gt; dependents are deleted with a plain &lt;code&gt;delete()&lt;/code&gt; and no flag.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ai_context_entity_delete()&lt;/code&gt; now returns early when the host is a &lt;code&gt;ConfigEntityInterface&lt;/code&gt; with &lt;code&gt;isUninstalling()&lt;/code&gt; TRUE. For all other host deletes the row is removed as before, but &lt;code&gt;AiContextScopeCleanupService::removeDeletedConsumerConfig()&lt;/code&gt; first records it in &lt;code&gt;AiContextRemovedConsumerRows&lt;/code&gt;. That service is &lt;code&gt;@internal&lt;/code&gt;, tagged &lt;code&gt;persist&lt;/code&gt; so it survives container rebuilds during an uninstall, and has no constructor dependencies, since a persisted instance would keep the old container's services. It keeps only the first row per consumer ID, matching how duplicate IDs resolve elsewhere.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ai_context_modules_uninstalled()&lt;/code&gt; calls &lt;code&gt;restoreRemovedConsumerRows()&lt;/code&gt;, which appends recorded rows to &lt;code&gt;ai_context.consumers&lt;/code&gt; unless a row with that ID is already present, and clears the list. It runs before the stale-scope scrub so restored rows are scrubbed too. It also runs during config sync, where only the scrub is skipped. It does nothing when &lt;code&gt;ai_context&lt;/code&gt; itself is uninstalled. &lt;code&gt;ai_context_module_preuninstall()&lt;/code&gt; and &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; are removed. Accepted edge case: a row removed earlier in the same request, before an uninstall, is also restored. &lt;code&gt;docs/developers/hooks.md&lt;/code&gt; and &lt;code&gt;consumer_api.md&lt;/code&gt; are updated, and &lt;code&gt;consumer_api.md&lt;/code&gt; now defines &amp;quot;host entity&amp;quot;. Kernel tests and a new &lt;code&gt;ai_context_test_automator_dependent&lt;/code&gt; test module cover the cases.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that implemented or documented reliance on &lt;code&gt;hook_module_preuninstall()&lt;/code&gt; or &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; from this module should drop it. Both are removed, and &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; was &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 31, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;lbesenyei (Brainsum)&lt;/li&gt;
+&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
+&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3594817: The judge prompt fence can be closed with an upper-case tag</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594817.md</link>
       <guid isPermaLink="false">project/ai_eval#3594817</guid>
@@ -709,93 +802,6 @@ catch (RunDatasetException $e) {
 &lt;ul&gt;
 &lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
 &lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583053: MapAdapter discards default values of nested properties</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583053.md</link>
-      <guid isPermaLink="false">project/tool#3583053</guid>
-      <pubDate>Sat, 31 Oct 2026 02:40:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +418/−5 · php +418/−5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/4eaacb0d7e852cd69e28315158dc31eedb646b9e"&gt;4eaacb0&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583053"&gt;#3583053&lt;/a&gt; · 1 contributor · 18 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Map inputs in the Tool module's configuration forms now show their nested properties' declared default values. Before, the property fields of a map input rendered empty. Each field now shows the stored value if there is one, otherwise the property's declared default. This applies at every level of a nested map. Entity properties inside a map also show the right entity when the value is an entity ID.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;MapAdapter::formElement()&lt;/code&gt; now reads the map's current value and calls &lt;code&gt;setValue()&lt;/code&gt; on each property's typed data before building its element. It uses the stored value when the key exists, including a stored &lt;code&gt;FALSE&lt;/code&gt;. Otherwise it uses the property's declared default. A property stored as &lt;code&gt;NULL&lt;/code&gt; stays empty, so a cleared value does not bring the default back. A nested map stored as &lt;code&gt;NULL&lt;/code&gt; is built like an empty map, so its own properties show their defaults. A value the property cannot hold throws &lt;code&gt;\InvalidArgumentException&lt;/code&gt;, which is caught and the value dropped.&lt;/p&gt;
-&lt;p&gt;Core &lt;code&gt;MapDataDefinition&lt;/code&gt; properties have no default of their own, so &lt;code&gt;EffectiveDataDefinition::copyPropertyDefinitions()&lt;/code&gt; now copies the default of each &lt;code&gt;InputDefinitionInterface&lt;/code&gt; property into a new &lt;code&gt;EffectiveDataDefinition::DEFAULT_VALUE_SETTING&lt;/code&gt; (&lt;code&gt;tool_default_value&lt;/code&gt;) setting on the rebuilt definition. Output definitions do not get it. &lt;code&gt;EffectiveDataDefinition&lt;/code&gt; is &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;EntityAdapter&lt;/code&gt; gets a private &lt;code&gt;getEntity()&lt;/code&gt; helper. A map property's stored value or default is often an entity ID rather than an entity object, so the helper loads the content entity by ID. It returns &lt;code&gt;NULL&lt;/code&gt; for config entity types, IDs that do not load, other value shapes, and definitions with no fixed entity type. The helper result feeds both the target type and &lt;code&gt;#default_value&lt;/code&gt; of the autocomplete. New kernel tests cover &lt;code&gt;MapAdapter&lt;/code&gt; defaults and &lt;code&gt;EntityAdapter&lt;/code&gt; ID handling.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;&amp;quot;&amp;quot;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;&amp;quot;&amp;quot;&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583059: Config entities do not cross a handle boundary</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583059.md</link>
-      <guid isPermaLink="false">project/tool#3583059</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sat, 31 Oct 2026 02:30:25 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +441/−30 · php +427/−29 · md +14/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/1c8757e127fd735f401519a73a0a94c0d9efa4f0"&gt;1c8757e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583059"&gt;#3583059&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Tools can now take and return config entities, such as user roles, through invokers that ask for entity handles, for example an MCP server or the AI connector. Before, the input schema had no type, so a model didn't know what to send. Sending a machine name failed validation. Config entity outputs came out as empty objects. Now these entities cross the boundary as their machine name (for example &lt;code&gt;editor&lt;/code&gt;) and the schema says &lt;code&gt;string&lt;/code&gt;. An unknown machine name fails the input with a clear error. Content entities still use handles, and invokers without &lt;code&gt;EntitiesAsHandles&lt;/code&gt; see no change.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;EntityHandleTransformer&lt;/code&gt; gains public &lt;code&gt;isConfigEntityDefinition()&lt;/code&gt;, &lt;code&gt;resolveConfigInput()&lt;/code&gt; and &lt;code&gt;transformConfigOutput()&lt;/code&gt;. New &lt;code&gt;MachineNameNotFoundException&lt;/code&gt; implements &lt;code&gt;HandleExceptionInterface&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;When the invoker has &lt;code&gt;InvokerCapability::EntitiesAsHandles&lt;/code&gt;, &lt;code&gt;EntityHandleTransformer::isConfigEntityDefinition()&lt;/code&gt; detects an &lt;code&gt;entity:TYPE&lt;/code&gt; definition whose entity class implements &lt;code&gt;ConfigEntityInterface&lt;/code&gt;. &lt;code&gt;transformInputDefinition()&lt;/code&gt; and &lt;code&gt;transformOutputDefinition()&lt;/code&gt; turn it into a &lt;code&gt;string&lt;/code&gt; definition, with &amp;quot;(pass the machine name of the TYPE)&amp;quot; appended to the description for inputs. The bare &lt;code&gt;entity&lt;/code&gt; data type is not covered, because the entity type is needed to load by ID.&lt;/p&gt;
-&lt;p&gt;On input, &lt;code&gt;EntityHandleTransformSubscriber&lt;/code&gt; checks for a config entity definition before the content entity case. It calls &lt;code&gt;resolveConfigInput()&lt;/code&gt;, which loads the entity through the type's storage. Non-string values pass through untouched. On output, &lt;code&gt;transformConfigOutput()&lt;/code&gt; replaces a config entity with its ID and a hint. The batch path handles lists, either &lt;code&gt;isMultiple()&lt;/code&gt; outputs or &lt;code&gt;ListOutputDefinition&lt;/code&gt; items. It replaces each config entity with its ID and adds one hint per list, such as &amp;quot;Output &lt;code&gt;roles&lt;/code&gt; contains 2 user_role machine name(s)&amp;quot;.&lt;/p&gt;
-&lt;p&gt;An unknown machine name throws the new &lt;code&gt;Drupal\tool\Handle\MachineNameNotFoundException&lt;/code&gt;. It is &lt;code&gt;final&lt;/code&gt;, extends &lt;code&gt;\RuntimeException&lt;/code&gt; and implements &lt;code&gt;HandleExceptionInterface&lt;/code&gt;. It is separate from &lt;code&gt;HandleNotFoundException&lt;/code&gt;, so a wrong value does not get the advice about handle expiry and ownership. The input violation names the input property. The commit adds a &lt;code&gt;config_entity_tool&lt;/code&gt; test tool in &lt;code&gt;tool_test&lt;/code&gt; and updates the handle docs.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code that catches &lt;code&gt;HandleExceptionInterface&lt;/code&gt; already covers the new &lt;code&gt;MachineNameNotFoundException&lt;/code&gt;. Code that catches &lt;code&gt;HandleNotFoundException&lt;/code&gt; specifically will not see unknown machine names, and needs to catch the new class or the interface.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 25, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

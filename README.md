@@ -1,4 +1,4 @@
-**TL;DR:** [1413 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1415 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_343 summaries · 57 new this week_
+_345 summaries · 55 new this week_
 
+- [#3586593: Entity Types scope loads the request entity without a view access check](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586593.md)
+- [#3586551: Keep consumer overrides during any module uninstall, including automators on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586551.md)
 - [#3594817: The judge prompt fence can be closed with an upper-case tag](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594817.md)
-- [#3594816: Judge validation counts a judge error as a fail verdict](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594816.md)
-- [#3594815: A "%" in a judge prompt template stops the run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594815.md)
 
 ### Drupal Canvas
 
