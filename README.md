@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_345 summaries · 55 new this week_
+_345 summaries · 50 new this week_
 
 - [#3586593: Entity Types scope loads the request entity without a view access check](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586593.md)
 - [#3586551: Keep consumer overrides during any module uninstall, including automators on...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586551.md)
