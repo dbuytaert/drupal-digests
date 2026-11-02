@@ -1,4 +1,4 @@
-**TL;DR:** [1417 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1465 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_347 summaries · 43 new this week_
+_395 summaries · 91 new this week_
 
-- [#3586616: Unpublished context item translations can be delivered to AI prompts](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586616.md)
-- [#3589001: Accessibility skills misstate how #states hides fields, table scope and #type...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589001.md)
-- [#3586593: Entity Types scope loads the request entity without a view access check](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586593.md)
+- [#3620031: Adopt the three-tier protocol: block Restricted images, warn on Moderate ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620031.md)
+- [#3586825: Forward/Backward-Port: Add automator ID tag and entity_context to chat requests...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586825.md)
+- [#3564627: Tool for views exec](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3564627.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _638 summaries · 7 new this week_
 
 ### Drupal CMS
 
-_133 summaries · 1 new this week_
+_133 summaries · 0 new this week_
 
 - [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
 - [#3591501: Add an event or param to track use of the launcher](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591501.md)
