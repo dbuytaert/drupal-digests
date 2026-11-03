@@ -1,4 +1,4 @@
-**TL;DR:** [1465 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1494 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,23 +6,23 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_395 summaries · 91 new this week_
+_421 summaries · 116 new this week_
 
+- [#3586603: Scope cleanup can leave an item published with an emptied hard-filter scope](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586603.md)
+- [#3594867: Gold labeling still serves legacy tool steps whose output is only "assistant:"](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594867.md)
 - [#3620031: Adopt the three-tier protocol: block Restricted images, warn on Moderate ](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620031.md)
-- [#3586825: Forward/Backward-Port: Add automator ID tag and entity_context to chat requests...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586825.md)
-- [#3564627: Tool for views exec](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3564627.md)
 
 ### Drupal Canvas
 
-_299 summaries · 9 new this week_
+_302 summaries · 10 new this week_
 
-- [#3592212: Config import blocked by in-use page-template components after upgrading Canvas...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592212.md)
-- [#3592257: Support non-revisionable resources in Headless SDK draft mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592257.md)
-- [#3592224: Allow component definition updates across headless frontends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592224.md)
+- [#3592279: Editor does not scroll to the top of the page preview on load](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592279.md)
+- [#3592277: Reuse the session's CSRF token instead of fetching it before every mutation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592277.md)
+- [#3592276: Make preview drag and drop target the position under the cursor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592276.md)
 
 ### Drupal Core
 
-_638 summaries · 7 new this week_
+_638 summaries · 4 new this week_
 
 - [#2980380: Inline error messages are not using proper theming mechanisms](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2980380.md)
 - [#2350049: filter_autop() returns <br /> but should return <br> for HTML5](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2350049.md)
@@ -51,7 +51,7 @@ vendor/bin/rector process web/modules/custom \
 ```
 
 ### Latest rules
-_211 rules · 2 new this week_
+_211 rules · 1 new this week_
 
 - [Replace Schema::ensureNotNullPrimaryKey() with validatePrimaryKeySchema()](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/replace-schema-ensurenotnullprimarykey-with-3082239.php)
 - [Rename hook_system_info_alter implementations to hook_extension_info_alter](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules/rename-hook-system-info-alter-implementations-to-hook-3623862.php)

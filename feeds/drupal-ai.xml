@@ -5,6 +5,82 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586603: Scope cleanup can leave an item published with an emptied hard-filter scope</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586603.md</link>
+      <guid isPermaLink="false">project/ai_context#3586603</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 02 Nov 2026 23:22:37 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 22 files, +3487/−58 · php +3228/−41 · md +241/−17 · yml +18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/d3d7bc40e6cbd0df5f55e0038c99a7640a383e36"&gt;d3d7bc4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586603"&gt;#3586603&lt;/a&gt; · 1 contributor · 21 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Scope cleanup no longer leaves an item published with an emptied scope. Before, deleting a role (or language, term, bundle, referenced entity, or uninstalling a module) could remove the last value limiting a context item, so an item limited to the &amp;quot;Reviewer&amp;quot; role was suddenly delivered to every user, with no log or message. Now cleanup unpublishes such an item (state Archived on the &lt;code&gt;ai_context_editorial&lt;/code&gt; workflow), saves a new revision explaining which value was removed, logs a warning per item, and shows the acting user one warning with a count and a link to the item list. After deleting roles, languages, terms or bundles, or uninstalling modules, check the context item list for newly unpublished or archived items. Items that stay published: Global items, items that keep at least one value, and items that only lose Context Tags (ranking only). Sites that already ran post-update 0006 on 1.0.0-beta5 or 1.0.0-rc1 do not run it again, so items it emptied earlier stay published and need manual review.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;ai_context.scope_cleanup&lt;/code&gt; service gains new constructor arguments (logger, messenger, current user, time, database, notice service); only relevant to code that instantiates it directly.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextItem::canUnpublishWithModerationState()&lt;/code&gt; (&lt;code&gt;@internal&lt;/code&gt;) and a persisted &lt;code&gt;ai_context.scope_cleanup_notice&lt;/code&gt; service (&lt;code&gt;@internal&lt;/code&gt;) hold cleanup counts for one warning per request.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change is in &lt;code&gt;AiContextScopeCleanupService&lt;/code&gt;. When &lt;code&gt;removeScopeValuesFromItems()&lt;/code&gt; empties a scope, or &lt;code&gt;removeEntityItemReference()&lt;/code&gt; removes the last Specific Entities reference, &lt;code&gt;widensWhenEmptied()&lt;/code&gt; decides whether the item would reach more requests. The rule: any stored-value scope except Context Tags (&lt;code&gt;RANKING_ONLY_SCOPES&lt;/code&gt;) counts as a hard filter, custom stored-value scopes included, and there is no public policy API in 1.0. Global items are never unpublished. A subcontext item with no stored inherit flag is unpublished when it would resolve to a Global parent, even if the emptied value was a tag.&lt;/p&gt;
+&lt;p&gt;Unpublishing uses &lt;code&gt;setUnpublishedWithModerationState()&lt;/code&gt; on every published translation, saved in one database transaction. &lt;code&gt;publish_on&lt;/code&gt; (and &lt;code&gt;publish_state&lt;/code&gt; when present) is cleared on every translation so Scheduler cannot republish it. The save is a new revision with a log message, the current user as author, and the request time. Saves that do not unpublish use &lt;code&gt;setSyncing(TRUE)&lt;/code&gt; so content moderation does not add a revision that copies the old log message. If a moderated workflow has no unpublished default-revision state (&lt;code&gt;AiContextItem::canUnpublishWithModerationState()&lt;/code&gt;), the item is not saved: the stale value stays (it matches no request), an error is logged once per scope, and the warning gets an extra sentence. Already unpublished items get the stale value removed with no revision, log or message, unless they have a &lt;code&gt;publish_on&lt;/code&gt; date, in which case it is cancelled in a new revision.&lt;/p&gt;
+&lt;p&gt;Counts live in the new &lt;code&gt;ai_context.scope_cleanup_notice&lt;/code&gt; service, tagged &lt;code&gt;persist&lt;/code&gt; so one warning with totals survives the container rebuild during a module uninstall. The messenger warning is skipped for the anonymous user (cron, Drush) and deferred until the surrounding transaction commits on entity delete. Post-update 0006 uses the same rule. Docs for scopes, services and custom scopes were updated, and kernel tests were added including &lt;code&gt;AiContextScopeCleanupForeignValuesTest&lt;/code&gt; (one case per trigger) and a new &lt;code&gt;ai_context_test_item_save_fail&lt;/code&gt; test module.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Site owners: after &lt;code&gt;drush updatedb&lt;/code&gt; (post-update 0006), after deleting roles, languages, terms, vocabularies or bundles, or after module uninstalls, review the context item list for newly unpublished or archived items and re-check their scope before republishing. On sites that already ran 0006 on 1.0.0-beta5 or 1.0.0-rc1, review published items that have no Roles, Languages, Site Sections, Entity Types, Taxonomy Terms or Specific Entities value. Custom workflows need an unpublished state with Published cleared and Default revision selected, or cleanup will not save the item and logs an error. Custom stored-value scope authors: cleanup now treats your scope as a hard filter.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026 (15 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594867: Gold labeling still serves legacy tool steps whose output is only "assistant:"</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594867.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594867</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 02 Nov 2026 17:43:10 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +200/−14 · php +194/−13 · md +6/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/97e5972a76d4fdbb1cf0eb8a60021891c3fdfb20"&gt;97e5972&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594867"&gt;#3594867&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In ai_eval 1.1.x, traces imported from AI Observability in the legacy text format could show an agent's tool step as a reply of just &amp;quot;assistant:&amp;quot;. These steps were wrongly treated as final answers. They appeared on the gold labeling screen and counted toward coverage, agreement and judge validation. They are now excluded. Promoting such a step is refused, and so is promoting an embeddings call, which has no text answer to test. The trace card explains why. &amp;quot;Promote all&amp;quot; now picks the real final answer of an agent run. On the compare page, a difference that reads the same on both sides, such as a changed dataset hash, now shows once (&amp;quot;Dataset content: changed&amp;quot;) instead of &amp;quot;A: changed; B: changed&amp;quot;. Labels already saved on tool steps stay but are no longer counted.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;TraceBrowser::isRoleLabelOnly()&lt;/code&gt;, &lt;code&gt;PromotionService::STATUS_TOOL_STEP&lt;/code&gt; and &lt;code&gt;PromotionService::STATUS_NO_ANSWER&lt;/code&gt; outcome statuses.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;TraceBrowser::isFinalAnswer()&lt;/code&gt; now also requires that the reply is not role-label-only. The new &lt;code&gt;TraceBrowser::isRoleLabelOnly()&lt;/code&gt; trims &lt;code&gt;response_text&lt;/code&gt; and strips a leading &lt;code&gt;assistant:&lt;/code&gt; (case-insensitive). If nothing is left, the reply is a tool step. &lt;code&gt;GoldSetAgreement&lt;/code&gt; and &lt;code&gt;HumanLabelSource&lt;/code&gt; inherit the fix through &lt;code&gt;isFinalAnswer()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PromotionService::promotionIntegrityFlag()&lt;/code&gt; returns two new flags. &lt;code&gt;no_answer&lt;/code&gt; (&lt;code&gt;STATUS_NO_ANSWER&lt;/code&gt;) applies when &lt;code&gt;response_kind&lt;/code&gt; is set, as for embeddings. &lt;code&gt;tool_step&lt;/code&gt; (&lt;code&gt;STATUS_TOOL_STEP&lt;/code&gt;) applies when the reply is role-label-only and there are no &lt;code&gt;response_tools&lt;/code&gt;. Both count as refused in the promotion report. For agent runs, the &amp;quot;Promote all&amp;quot; selection of the last chat now calls &lt;code&gt;TraceBrowser::isFinalAnswer()&lt;/code&gt; instead of its own text and tools check. As a result, a trailing &amp;quot;assistant:&amp;quot; step is skipped and an earlier real answer is chosen.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PromoteFragment&lt;/code&gt; gains &lt;code&gt;toolStepNotice()&lt;/code&gt; and &lt;code&gt;noAnswerNotice()&lt;/code&gt;. &lt;code&gt;TraceReviewFragment&lt;/code&gt; renders them as a &lt;code&gt;refusal_notice&lt;/code&gt; warning with &amp;quot;This trace cannot be promoted.&amp;quot; In &lt;code&gt;ResultsCompareController&lt;/code&gt;, the two readable values are compared as strings. When they match, a single value is shown, otherwise the &amp;quot;A: @a; B: @b&amp;quot; form is kept. The user guide and changelog are updated. Existing tests that expected embeddings to promote with an empty answer now expect a refusal.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No update steps are needed. Embeddings calls can no longer be promoted, so any workflow that relied on promoting them with an empty AI response will now see them refused.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3620031: Adopt the three-tier protocol: block Restricted images, warn on Moderate </title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3620031.md</link>
       <guid isPermaLink="false">node/3620031</guid>
@@ -48,6 +124,300 @@ Respond with exactly one token — XSAFE, XWARN, or XBLOCK — and nothing else.
 &lt;ul&gt;
 &lt;li&gt;Opened: August 31, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 2, 2026 (2 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594862: Compare page lists raw snapshot keys, sha256 hashes and JSON as the differences</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594862.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594862</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594862"&gt;#3594862&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This one commit on &lt;code&gt;1.1.x&lt;/code&gt; covers &lt;a href="https://www.drupal.org/node/3594862"&gt;#3594862&lt;/a&gt; and seven related fixes (&lt;a href="https://www.drupal.org/node/3594855"&gt;#3594855&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594861"&gt;#3594861&lt;/a&gt;). The compare page now lists differences with plain names such as &amp;quot;Dataset content&amp;quot; or &amp;quot;Judge model&amp;quot;. Dataset and rubric hashes show as &amp;quot;changed&amp;quot; or &amp;quot;same&amp;quot;, and the raw keys and values sit in a closed &amp;quot;Technical details&amp;quot; section. Grader ids become grader labels, and the heading reads &amp;quot;1 difference&amp;quot; in the singular. Result screens show the gate a run recorded, or &amp;quot;Gate not recorded&amp;quot;, rather than a made-up 4.0 threshold, and they show test labels with the id as a tooltip. Hard and soft gate wording now says the type only changes the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;, still adding up to 100%. Annotate progress counts labeled answers against the latest run. Calibration screens now warn when a saved fit will not apply because the rubric wording changed, and they say when a save replaced an earlier inactive fit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ResultsCompareController::__construct()&lt;/code&gt; gains an optional trailing &lt;code&gt;?PluginManagerInterface $graderManager&lt;/code&gt; argument (wired to &lt;code&gt;ai_eval.grader_manager&lt;/code&gt;). &lt;code&gt;FailureRateService&lt;/code&gt; rows gain a &lt;code&gt;verdict&lt;/code&gt; key.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;GateTypeWording&lt;/code&gt; helper class in &lt;code&gt;Drupal\ai_eval\Form&lt;/code&gt; supplies gate type labels and descriptions shared by the target and guided forms.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Compare page: &lt;code&gt;ResultsCompareController&lt;/code&gt; gets &lt;code&gt;differenceLabel()&lt;/code&gt; (a &lt;code&gt;match&lt;/code&gt; from snapshot key to translatable label, unknown keys keep the raw key) and &lt;code&gt;readableValue()&lt;/code&gt;. &lt;code&gt;readableValue()&lt;/code&gt; collapses &lt;code&gt;dataset_sha256&lt;/code&gt; and &lt;code&gt;rubric_sha256&lt;/code&gt; to changed, same, recorded or not recorded, with per-rubric-reference states. It maps &lt;code&gt;metric&lt;/code&gt; through &lt;code&gt;GateMetric::label()&lt;/code&gt;, &lt;code&gt;gate&lt;/code&gt; to Hard or Soft, and grader ids in &lt;code&gt;grader_ids&lt;/code&gt;, &lt;code&gt;must_pass&lt;/code&gt;, &lt;code&gt;judge_prompt_versions&lt;/code&gt; and &lt;code&gt;judge_models&lt;/code&gt; to plugin labels from the injected grader manager. Raw values are rendered in a &lt;code&gt;details&lt;/code&gt; element (&lt;code&gt;#open&lt;/code&gt; FALSE) titled &amp;quot;Technical details&amp;quot;. &lt;code&gt;RunComparability&lt;/code&gt; is unchanged. The heading uses &lt;code&gt;formatPlural()&lt;/code&gt;. When the two runs belong to different tests, the warning uses test labels with the id in a &lt;code&gt;title&lt;/code&gt; attribute and adds cache tags.&lt;/p&gt;
+&lt;p&gt;Gate display: &lt;code&gt;EvalResultsController::recordedGate()&lt;/code&gt; builds the &lt;code&gt;GateThreshold&lt;/code&gt; from the run's validated snapshot (&lt;code&gt;metric&lt;/code&gt; and &lt;code&gt;threshold&lt;/code&gt;), then falls back to the live test, then returns NULL. A NULL gate drops the threshold and the gate comparison from the aria label, and the detail page shows &amp;quot;Gate not recorded&amp;quot;. Metric names show as labels instead of ids. The overview also loads targets once up front, so tables and the pending-optimization list can show target labels with cache tags. A new &lt;code&gt;GateTypeWording&lt;/code&gt; class feeds the options and description in &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Annotation and calibration: &lt;code&gt;FailureRateService::decorate()&lt;/code&gt; merges tagged rows by failure mode and splits rows with no failure mode by &lt;code&gt;verdict&lt;/code&gt; (&lt;code&gt;pass&lt;/code&gt;, &lt;code&gt;fail&lt;/code&gt;, &lt;code&gt;defer&lt;/code&gt;). Rows now carry a &lt;code&gt;verdict&lt;/code&gt; key, and the old &amp;quot;(untagged)&amp;quot; label is gone. &lt;code&gt;WorkflowStateService&lt;/code&gt; drops the fixed suggested target of 100. Step 2 progress is canonical annotations on the latest result over its &lt;code&gt;question_count&lt;/code&gt;, and the ribbon label is plural-aware (&amp;quot;N of M answers labeled&amp;quot;). &lt;code&gt;CalibrationSaveTrait::saveAndReport()&lt;/code&gt; counts inactive earlier curves for the same provider, model and fingerprint before saving, and reports the replacement afterwards. &lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; compares the group fingerprint to &lt;code&gt;currentFingerprint()&lt;/code&gt; to warn, and to qualify the readiness text, when the judge no longer asks that question.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you construct &lt;code&gt;ResultsCompareController&lt;/code&gt; directly or subclass it, the new last constructor argument is optional (&lt;code&gt;?PluginManagerInterface $graderManager = NULL&lt;/code&gt;). Without it, grader ids are shown as they are. Code or tests that match the old &amp;quot;(untagged)&amp;quot; failure-rate label must now expect &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; or &amp;quot;Deferred&amp;quot;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594861: Results screens show test, judge and gate metric ids instead of their names</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594861.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594861</guid>
+      <category>Front-end developers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594861"&gt;#3594861&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Eval results screens now show names instead of machine ids. The overview (Recent Runs, Target Health, pending optimizations), the result detail Run Summary and the compare warning show the test label, with the id in a &lt;code&gt;title&lt;/code&gt; tooltip. The Judge trust badges show short judge names such as &amp;quot;Accuracy&amp;quot;. The detail Gate cell shows &amp;quot;Pass rate&amp;quot; or &amp;quot;Average score&amp;quot; instead of &lt;code&gt;pass_rate&lt;/code&gt;. The same 1.1.x commit also shipped several related results and calibration changes. The detail page and overview show the gate the run actually recorded, or &amp;quot;Gate not recorded&amp;quot; instead of an invented 4.0. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;. Annotate progress counts against the latest run's answers. Gate type wording now says that hard and soft only change the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;. Calibration screens warn when saving replaced an inactive fit, or when the judge no longer asks the question a fit was made on. The compare page uses plain labels for differences and moves raw values into a closed &amp;quot;Technical details&amp;quot; section.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Results pages now render target names in a &lt;code&gt;span&lt;/code&gt; or link with a &lt;code&gt;title&lt;/code&gt; attribute holding the id, and the compare page has a new &lt;code&gt;.ai-eval-readable-differences&lt;/code&gt; list plus a closed Technical details section.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;On the overview, &lt;code&gt;EvalResultsController&lt;/code&gt; now loads the page's pending, latest and paged results first, then calls &lt;code&gt;loadMultiple()&lt;/code&gt; once on &lt;code&gt;ai_eval_target&lt;/code&gt; for all target ids. It uses those entities for the labels and adds &lt;code&gt;ai_eval_target_list&lt;/code&gt; plus each target's cache tags to &lt;code&gt;#cache&lt;/code&gt;. The detail page adds the same tags next to its existing &lt;code&gt;max-age&lt;/code&gt; 0. When a target has been deleted, the id is shown as the text with no &lt;code&gt;title&lt;/code&gt;. Judge badges pass &lt;code&gt;graderShortLabel($id)&lt;/code&gt; as the text while the validation link keeps the real id. The compare page's different-test warning loads both targets and builds &lt;code&gt;&amp;lt;span title=&amp;quot;id&amp;quot;&amp;gt;label&amp;lt;/span&amp;gt;&lt;/code&gt; markup. &lt;code&gt;ResultsCompareController&lt;/code&gt; gets an optional &lt;code&gt;$graderManager&lt;/code&gt; constructor argument (&lt;code&gt;ai_eval.grader_manager&lt;/code&gt;). It uses that argument to turn grader ids into plugin labels, and a &lt;code&gt;differenceLabel()&lt;/code&gt; map to give difference keys plain names. Hashes show as &amp;quot;same&amp;quot;, &amp;quot;changed&amp;quot; or &amp;quot;recorded&amp;quot;, and raw values stay in the closed details element.&lt;/p&gt;
+&lt;p&gt;The new private &lt;code&gt;recordedGate()&lt;/code&gt; resolves the gate from the result's validated &lt;code&gt;config_json&lt;/code&gt; snapshot (&lt;code&gt;metric&lt;/code&gt; and &lt;code&gt;threshold&lt;/code&gt;). If the snapshot has no usable gate, it falls back to the live target's threshold. If neither exists it returns NULL, which gives &amp;quot;Gate not recorded&amp;quot; and drops the threshold from the Target Health score cell. The detail Gate cell prints &lt;code&gt;GateMetric::label()&lt;/code&gt;. &lt;code&gt;FailureRateService&lt;/code&gt; now groups by &lt;code&gt;verdict&lt;/code&gt; as well as &lt;code&gt;failure_mode&lt;/code&gt;. &lt;code&gt;decorate()&lt;/code&gt; merges tagged verdicts back into one row per mode and splits only the rows without a mode by verdict, so the shares still sum to 100%. &lt;code&gt;WorkflowStateService&lt;/code&gt; now reads &lt;code&gt;question_count&lt;/code&gt; from the latest result and counts canonical annotations on it for Annotate progress. The suggested total of 100 is removed. A new &lt;code&gt;GateTypeWording&lt;/code&gt; class supplies the gate type options and description for &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. &lt;code&gt;CalibrationSaveTrait&lt;/code&gt; counts inactive curves for the same provider, model and fingerprint before saving and reports when one was replaced. &lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; compares the group fingerprint with &lt;code&gt;currentFingerprint()&lt;/code&gt; to warn about stale rubric wording. Docs and &lt;code&gt;CHANGELOG&lt;/code&gt; are updated. The issue text proposes an &lt;code&gt;EntityLabels::target()&lt;/code&gt; helper. The portion of the diff I could read does not add one, and the controllers call &lt;code&gt;$target-&amp;gt;label()&lt;/code&gt; directly.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594860: "Can fit: Yes" for reviewed answers the judge no longer asks about</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594860.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594860</guid>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594860"&gt;#3594860&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This commit is a bundle of AI Eval 1.1.x UI fixes. The headline issue, &lt;a href="https://www.drupal.org/node/3594860"&gt;#3594860&lt;/a&gt;, is the calibration &amp;quot;Fit from reviews&amp;quot; form. A reviewed group fitted on earlier rubric wording used to read a plain &amp;quot;Can fit: Yes&amp;quot;, even though the judge would not apply that fit. The cell now says the judge does not ask this question now, and saving such a group shows a warning. The group stays selectable. The same commit also shows the gate a run actually used, or &amp;quot;Gate not recorded&amp;quot;, instead of an invented 4.0. It shows test and grader names instead of ids on the results screens. The compare page uses plain-language differences. Failure-rate rows without a failure mode are split into Passed, Failed with no failure mode, and Deferred. The Annotate progress bar counts the answers of the latest run. The hard and soft gate wording now says it only changes the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Calibration form: &lt;code&gt;CalibrationFromReviewsForm::readinessText()&lt;/code&gt; compares the group's fingerprint with &lt;code&gt;currentFingerprint()&lt;/code&gt; and, for a ready group that differs, returns &amp;quot;Yes, but the judge does not ask this question now, so it will not apply this fit&amp;quot;. &lt;code&gt;submitForm()&lt;/code&gt; adds a warning after a save when the fingerprint differs. The shared &lt;code&gt;saveAndReport()&lt;/code&gt; is not changed for this. The warning text says the fit can apply again only if the rubric is restored, the fit is active, and it uses the judge's provider and model.&lt;/p&gt;
+&lt;p&gt;Gate shown for a run: &lt;code&gt;EvalResultsController::recordedGate()&lt;/code&gt; reads the run's validated config snapshot (metric and threshold) first. It falls back to the live test's threshold, then to NULL. The results list and detail pages no longer default to 4.0. They show &amp;quot;Gate not recorded&amp;quot; on the detail page and omit the threshold comparison in the list. The metric is shown by label, for example &amp;quot;Pass rate&amp;quot;, not &lt;code&gt;pass_rate&lt;/code&gt;. The controller now loads the target entities once, shows the test label with the id as a &lt;code&gt;title&lt;/code&gt; attribute, adds cache tags, and uses &lt;code&gt;graderShortLabel()&lt;/code&gt; for judge trust badges. &lt;code&gt;ResultsCompareController&lt;/code&gt; gets an optional &lt;code&gt;ai_eval.grader_manager&lt;/code&gt; constructor argument. It maps snapshot keys to labels (&lt;code&gt;differenceLabel()&lt;/code&gt;), shows hashes only as &amp;quot;same&amp;quot;, &amp;quot;changed&amp;quot; or &amp;quot;recorded&amp;quot; (&lt;code&gt;readableValue()&lt;/code&gt;), and moves raw key and value pairs into a closed &amp;quot;Technical details&amp;quot; element.&lt;/p&gt;
+&lt;p&gt;Failure rates and Annotate progress: &lt;code&gt;FailureRateService&lt;/code&gt; now selects &lt;code&gt;verdict&lt;/code&gt; as well. Rows with a failure mode merge back into one bucket per mode. Rows without a mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot;, &amp;quot;Deferred&amp;quot; or &amp;quot;No verdict&amp;quot; (replacing &lt;code&gt;(untagged)&lt;/code&gt;), so the shares still sum to 100%. Each row gains a &lt;code&gt;verdict&lt;/code&gt; key. &lt;code&gt;WorkflowStateService&lt;/code&gt; drops the fixed suggested total of 100 annotations. Progress is now the canonical annotation count on the latest result against that result's &lt;code&gt;question_count&lt;/code&gt;, and the label is &amp;quot;N of M answers labeled&amp;quot;. Gate wording is centralized in the new &lt;code&gt;Drupal\ai_eval\Form\GateTypeWording&lt;/code&gt;, used by &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. A new message after saving a calibration says when it replaced earlier fits that were not active (&lt;a href="https://www.drupal.org/node/3594859"&gt;#3594859&lt;/a&gt;). The commit also updates &lt;code&gt;CHANGELOG.md&lt;/code&gt; and the user guides.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594859: Saving a calibration silently deletes the earlier fit that was not active</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594859.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594859</guid>
+      <category>Front-end developers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594859"&gt;#3594859&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;One commit in &lt;code&gt;ai_eval&lt;/code&gt; 1.1.x fixes eight small UI problems found in a user-guide walkthrough, including &lt;a href="https://www.drupal.org/node/3594859"&gt;#3594859&lt;/a&gt;. Saving a calibration now says when it replaced an earlier fit that was not active, because that fit is deleted. Results screens show the gate a run actually used, taken from the run's recorded settings. Runs with no recorded gate show &amp;quot;Gate not recorded&amp;quot; in place of an invented 4.0 threshold. Test names appear as labels instead of ids. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;. Annotate progress counts the answers of the latest run. The compare page uses plain labels for differences. The hard and soft gate options now say that the type only changes the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;. A calibration whose question the decision rubric judge no longer asks now gets a warning that the judge will not apply it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; The gate type option labels in the target and guided test forms now describe the &lt;code&gt;drush ai-eval:run&lt;/code&gt; exit code. The stored values &lt;code&gt;hard&lt;/code&gt; and &lt;code&gt;soft&lt;/code&gt; are unchanged.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Failure-rate rows are labeled &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; or &amp;quot;Deferred&amp;quot; instead of &amp;quot;(untagged)&amp;quot;. The results, compare and gate-type screens show different text and markup.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue's fix is in &lt;code&gt;CalibrationSaveTrait::saveAndReport()&lt;/code&gt;. It counts the pair's inactive curves via &lt;code&gt;$this-&amp;gt;store-&amp;gt;curvesFor()&lt;/code&gt; before saving. After a successful save it adds a separate &lt;code&gt;formatPlural()&lt;/code&gt; message (&amp;quot;It replaced the earlier fit that was not active.&amp;quot; / &amp;quot;It replaced @count earlier fits that were not active.&amp;quot;). The message is a warning when the new fit is inactive and a status message otherwise. &lt;code&gt;CalibrationStore::replace()&lt;/code&gt; and the interface are unchanged. The count is read outside the store's lock, as the issue acknowledges.&lt;/p&gt;
+&lt;p&gt;The same commit covers the other items:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;EvalResultsController::recordedGate()&lt;/code&gt; resolves the gate from the run's validated config snapshot (&lt;code&gt;decodeValidatedSnapshot()&lt;/code&gt;), then falls back to the live target's threshold. If neither exists it returns NULL. The overview and detail pages then drop the threshold and verdict comparison, and the detail page shows &amp;quot;Gate not recorded&amp;quot;. The metric is shown through &lt;code&gt;GateMetric::label()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;The results controller now loads the target entities once and adds their cache tags plus &lt;code&gt;ai_eval_target_list&lt;/code&gt;. Target labels replace ids, with the id kept as a &lt;code&gt;title&lt;/code&gt; attribute. Judge trust badges use &lt;code&gt;graderShortLabel()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ResultsCompareController&lt;/code&gt; gets an optional &lt;code&gt;graderManager&lt;/code&gt; constructor argument (&lt;code&gt;ai_eval.grader_manager&lt;/code&gt;). It adds &lt;code&gt;differenceLabel()&lt;/code&gt; and &lt;code&gt;readableValue()&lt;/code&gt;, so hashes show as &amp;quot;same&amp;quot;, &amp;quot;changed&amp;quot; or &amp;quot;recorded&amp;quot; and grader ids show as labels. Raw values move into a closed &amp;quot;Technical details&amp;quot; &lt;code&gt;details&lt;/code&gt; element.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;FailureRateService&lt;/code&gt; now also groups by &lt;code&gt;verdict&lt;/code&gt;. Rows with no failure mode are labeled by verdict, tagged verdicts are merged back into their mode, and the rates still sum to 1. Each row gains a &lt;code&gt;verdict&lt;/code&gt; key.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WorkflowStateService&lt;/code&gt; computes Annotate progress as canonical annotations on the latest result against its &lt;code&gt;question_count&lt;/code&gt;. The fixed suggested total of 100 is removed.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;GateTypeWording&lt;/code&gt; is a new helper shared by &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. It supplies the gate option labels, a description and the review text.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; compares the group's fingerprint with &lt;code&gt;currentFingerprint()&lt;/code&gt; to show the warning and a &amp;quot;Yes, but the judge does not ask this question now...&amp;quot; readiness text.&lt;/li&gt;
+&lt;li&gt;The docs and CHANGELOG are updated to match.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594858: Failure rates table counts passed answers under "(untagged)"</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594858.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594858</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594858"&gt;#3594858&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The failure-rates table in AI Eval used one &amp;quot;(untagged)&amp;quot; row for every answer with no failure mode. That row included passed answers, so &amp;quot;(untagged) 60%&amp;quot; looked like 60% of answers had failed in an unnamed way. That row is now split by verdict into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;. The labels are translatable, rows with a zero count are hidden, and the rows still add up to 100%. Rows for named failure modes are unchanged. The same commit also ships several other 1.1.x results and calibration changes, listed in the changelog, such as the recorded gate on results screens, plain compare-page labels and Annotate progress counted against the latest run.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;FailureRateService&lt;/code&gt; rate rows gain a &lt;code&gt;verdict&lt;/code&gt; key. Rows with no failure mode are now split into three rows, so code that keys rows by &lt;code&gt;failure_mode&lt;/code&gt; alone must account for it. Their &lt;code&gt;label&lt;/code&gt; changes from &lt;code&gt;(untagged)&lt;/code&gt; to &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; or &amp;quot;Deferred&amp;quot;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;FailureRateService::aggregate()&lt;/code&gt; now selects and groups by &lt;code&gt;verdict&lt;/code&gt; as well as &lt;code&gt;failure_mode&lt;/code&gt;. &lt;code&gt;decorate()&lt;/code&gt; then folds tagged rows back into one bucket per mode, so mode rows keep their old counts. Rows with no mode are bucketed per verdict. The denominator is unchanged, which keeps the sum at 100%. &lt;code&gt;ratesForReviewedTraces()&lt;/code&gt; also selects &lt;code&gt;verdict&lt;/code&gt; from &lt;code&gt;ai_eval_review_label&lt;/code&gt; and keeps it beside the mode for the earliest label per &lt;code&gt;trace_key&lt;/code&gt;. Both paths go through &lt;code&gt;decorate()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Each rate row gains a &lt;code&gt;verdict&lt;/code&gt; key. It is NULL for rows that carry a mode and one of &lt;code&gt;pass&lt;/code&gt;, &lt;code&gt;fail&lt;/code&gt; or &lt;code&gt;defer&lt;/code&gt; for the no-mode rows. For those rows &lt;code&gt;failure_mode&lt;/code&gt; stays NULL and &lt;code&gt;label&lt;/code&gt; comes from &lt;code&gt;TranslatableMarkup&lt;/code&gt;: &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; or &amp;quot;Deferred&amp;quot;. A fallback &amp;quot;No verdict&amp;quot; label covers any other value. Callers that index rows by &lt;code&gt;failure_mode&lt;/code&gt; alone can no longer tell the three no-mode rows apart and need to check &lt;code&gt;verdict&lt;/code&gt;. The &lt;code&gt;FailureRateTable&lt;/code&gt; docblock was updated, and the render code needed no change. &lt;code&gt;docs/user/usage/failure-modes.md&lt;/code&gt; and the changelog describe the new rows.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that reads &lt;code&gt;FailureRateService&lt;/code&gt; rows and looks for the &lt;code&gt;(untagged)&lt;/code&gt; label, or indexes rows by &lt;code&gt;failure_mode&lt;/code&gt; alone, should use the new &lt;code&gt;verdict&lt;/code&gt; key to tell the three no-mode rows apart. Rows with a mode have &lt;code&gt;verdict&lt;/code&gt; set to NULL.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594857: Annotate step shows "0 of 100 suggested" for a test that has 8 answers</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594857.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594857</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594857"&gt;#3594857&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Annotate step (step 2 of the error-analysis workflow) used to show progress against a fixed target of 100, so a test with 8 answers read &amp;quot;0 of 100 suggested&amp;quot; even after every answer was labeled. It now counts labeled answers on the latest run and reads, for example, &amp;quot;12 of 20 answers labeled&amp;quot;. Step 2 is Done only when the latest run is fully labeled, so running the test again takes it back to &amp;quot;Start here&amp;quot;. Deferred answers count as labeled. The same commit also changes several related screens in &lt;code&gt;ai_eval&lt;/code&gt; (1.1.x). Results screens show the gate a run actually used, or &amp;quot;Gate not recorded&amp;quot;, instead of an invented 4.0 threshold, and they show test names instead of ids. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;. The compare page uses plain labels. Gate type wording now says it only changes the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;. Calibration screens warn when a fit will not apply because the rubric wording changed, and when a saved fit replaced an inactive one.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; The annotate step's &lt;code&gt;progress&lt;/code&gt; array from &lt;code&gt;WorkflowStateService&lt;/code&gt; no longer has a &lt;code&gt;suggested&lt;/code&gt; key, and &lt;code&gt;progress&lt;/code&gt; is NULL when the latest result has no questions. &lt;code&gt;FailureRateService&lt;/code&gt; rows gain a &lt;code&gt;verdict&lt;/code&gt; key and the &lt;code&gt;(untagged)&lt;/code&gt; label is replaced.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Annotate progress: &lt;code&gt;WorkflowStateService&lt;/code&gt; drops &lt;code&gt;ANNOTATION_TARGET&lt;/code&gt; and the &lt;code&gt;suggested&lt;/code&gt; flag. &lt;code&gt;latestResult()&lt;/code&gt; now also selects &lt;code&gt;question_count&lt;/code&gt;. &lt;code&gt;done&lt;/code&gt; is the number of canonical annotations (via &lt;code&gt;AnnotationStore::joinCanonical()&lt;/code&gt;) on the latest result's &lt;code&gt;result_id&lt;/code&gt;, and &lt;code&gt;total&lt;/code&gt; is its &lt;code&gt;question_count&lt;/code&gt;. The target-wide &lt;code&gt;$labeled&lt;/code&gt; count is kept for the grouping floor, rates and promote steps. &lt;code&gt;WorkflowRibbon&lt;/code&gt; builds the label with &lt;code&gt;PluralTranslatableMarkup&lt;/code&gt; (&amp;quot;@done of 1 answer labeled&amp;quot; / &amp;quot;@done of @total answers labeled&amp;quot;).&lt;/p&gt;
+&lt;p&gt;Gate display: &lt;code&gt;EvalResultsController::recordedGate()&lt;/code&gt; resolves the gate from the run's validated config snapshot (&lt;code&gt;decodeValidatedSnapshot()&lt;/code&gt;) when it has a known metric and a numeric threshold. Otherwise it falls back to the live target's threshold, and returns NULL if neither exists. The detail page then prints &amp;quot;Gate not recorded&amp;quot;, and the dashboard drops the &amp;quot;/ threshold&amp;quot; text and the gate wording from the score aria label. The results pages also load target entities once, show &lt;code&gt;label()&lt;/code&gt; with the id as a &lt;code&gt;title&lt;/code&gt; attribute, and add target cache tags.&lt;/p&gt;
+&lt;p&gt;Failure rates: &lt;code&gt;FailureRateService&lt;/code&gt; now selects and groups by &lt;code&gt;verdict&lt;/code&gt;. In &lt;code&gt;decorate()&lt;/code&gt;, rows with a failure mode are merged per mode, and rows without one are bucketed by verdict (&amp;quot;Passed&amp;quot;, &amp;quot;Deferred&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot;), so the shares still sum to 100%. &lt;code&gt;ratesForReviewedTraces()&lt;/code&gt; follows the same rule.&lt;/p&gt;
+&lt;p&gt;Compare page: &lt;code&gt;ResultsCompareController&lt;/code&gt; gains an optional &lt;code&gt;graderManager&lt;/code&gt; constructor argument (&lt;code&gt;ai_eval.grader_manager&lt;/code&gt;). It maps snapshot keys to labels, hides hash values (shown as &amp;quot;same&amp;quot; or &amp;quot;changed&amp;quot;), and moves raw values into a closed &amp;quot;Technical details&amp;quot; element. Gate wording is centralised in the new &lt;code&gt;GateTypeWording&lt;/code&gt; class, used by &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Calibration: &lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; warns when the group's rubric fingerprint differs from &lt;code&gt;currentFingerprint()&lt;/code&gt;. &lt;code&gt;CalibrationSaveTrait::saveAndReport()&lt;/code&gt; counts inactive curves for the same provider, model and fingerprint before saving, and reports when a save replaced them.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that reads the annotate step from &lt;code&gt;WorkflowStateService::stepsForTarget()&lt;/code&gt; should stop reading &lt;code&gt;progress['suggested']&lt;/code&gt;. It should also handle &lt;code&gt;progress&lt;/code&gt; being NULL when the latest result has no questions. &lt;code&gt;done&lt;/code&gt; and &lt;code&gt;total&lt;/code&gt; keep their keys, but &lt;code&gt;total&lt;/code&gt; is now the latest result's &lt;code&gt;question_count&lt;/code&gt; instead of 100.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594856: "Hard (fails run)" and "Soft (warning only)" promise more than the gate type does</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594856.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594856</guid>
+      <category>Front-end developers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594856"&gt;#3594856&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In AI Eval's two test forms (the guided form and the classic target form), the &amp;quot;Gate type&amp;quot; options used to say a hard gate &amp;quot;fails the run&amp;quot; and a soft gate is &amp;quot;warning only&amp;quot;. No screen treats them differently. The only effect is the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;: a hard miss exits with 1, and a soft miss is named in the output without changing the exit code. Both forms and the guided Review line now say this, and the user docs match. The same commit also ships several related fixes to the results and calibration screens (&lt;a href="https://www.drupal.org/node/3594855"&gt;#3594855&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594857"&gt;#3594857&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594862"&gt;#3594862&lt;/a&gt;). Results now show the gate a run actually recorded, or &amp;quot;Gate not recorded&amp;quot;, instead of an invented 4.0 threshold. Test and judge names are shown as labels instead of ids. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;. Annotate progress counts the answers of the latest run. The compare page uses plain labels for differences. Calibration screens warn when a saved fit will not apply because the rubric wording changed, and when a save replaced an earlier inactive fit.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Results compare page markup changed: differences list gets the &lt;code&gt;ai-eval-readable-differences&lt;/code&gt; class, and raw values move into a closed 'Technical details' element.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The gate wording lives in one new class, &lt;code&gt;Drupal\ai_eval\Form\GateTypeWording&lt;/code&gt;. Its &lt;code&gt;options()&lt;/code&gt;, &lt;code&gt;description()&lt;/code&gt; and &lt;code&gt;review()&lt;/code&gt; methods are called by &lt;code&gt;EvalTargetForm&lt;/code&gt;, &lt;code&gt;GuidedTestForm&lt;/code&gt; and the guided Review line (&lt;code&gt;gateSummary()&lt;/code&gt;), so the strings cannot drift between forms. The stored values stay &lt;code&gt;hard&lt;/code&gt; and &lt;code&gt;soft&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In the bundled changes, &lt;code&gt;EvalResultsController::recordedGate()&lt;/code&gt; reads the gate metric and threshold from the run's validated config snapshot first. It falls back to the live target's &lt;code&gt;threshold&lt;/code&gt; and &lt;code&gt;metric&lt;/code&gt; only when the snapshot has none. If neither exists, the detail page shows &amp;quot;Gate not recorded&amp;quot; and the dashboard drops the &amp;quot;/ threshold&amp;quot; text and the gate wording in the score aria label. The results dashboard and detail pages load targets in one &lt;code&gt;loadMultiple()&lt;/code&gt; call and show &lt;code&gt;label()&lt;/code&gt; with the id as a &lt;code&gt;title&lt;/code&gt; attribute. They also add target cache tags.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;FailureRateService&lt;/code&gt; now selects &lt;code&gt;verdict&lt;/code&gt; as well. It merges rows that have a failure mode back into one bucket per mode and splits only rows with no mode by verdict. Each row carries a new &lt;code&gt;verdict&lt;/code&gt; key, and the &lt;code&gt;(untagged)&lt;/code&gt; label is gone. &lt;code&gt;WorkflowStateService&lt;/code&gt; counts Annotate progress as canonical annotations on the latest result against its &lt;code&gt;question_count&lt;/code&gt;, which replaces the fixed suggested total of 100. &lt;code&gt;ResultsCompareController&lt;/code&gt; takes a new optional &lt;code&gt;graderManager&lt;/code&gt; constructor argument and maps snapshot keys to readable labels. Hashes show as same or changed, and raw values go into a closed &amp;quot;Technical details&amp;quot; details element. &lt;code&gt;CalibrationSaveTrait::saveAndReport()&lt;/code&gt; and &lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; add the messages for a replaced inactive fit and for a fit that does not match the current rubric fingerprint.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594855: Results screens show the live test's gate (or "4.0") instead of the run's gate</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594855.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594855</guid>
+      <category>Front-end developers</category>
+      <pubDate>Mon, 02 Nov 2026 11:01:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 31 files, +912/−168 · php +893/−159 · md +19/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/c56185585ab568b955bd6349ec7c65cbb050851e"&gt;c561855&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594855"&gt;#3594855&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Eval results overview and result detail page now show the gate a run actually used. Before, they read the gate from the live test. A deleted test or a changed gate produced a threshold the run never had, often &amp;quot;4.0&amp;quot; with &lt;code&gt;avg_score&lt;/code&gt;. The gate now comes from the settings recorded with the run. If the run has no usable record, the page uses the live test. If neither exists, the detail page says &amp;quot;Gate not recorded&amp;quot; and the overview shows the score with no &amp;quot;/ threshold&amp;quot;. The same commit makes several related screen and wording fixes. The results screens show test names instead of ids (the id is kept as a hover title). The compare page uses plain labels for differences, with raw values in a closed &amp;quot;Technical details&amp;quot; section. Failure-rate rows without a failure mode are split into &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot; and &amp;quot;Deferred&amp;quot;, and the shares still add up to 100%. Annotate progress counts the answers of the latest run. Calibration shows a message when a save replaced an earlier inactive fit. It also warns when the judge's rubric wording has changed, so the judge will not apply that fit. The hard and soft gate wording now says it only changes the exit code of &lt;code&gt;drush ai-eval:run&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Results overview, detail and compare screens render different text: test labels with ids as hover titles, &amp;quot;Gate not recorded&amp;quot;, and a closed &amp;quot;Technical details&amp;quot; section on the compare page. Any custom theme or test that matches the old strings, such as &amp;quot;(untagged)&amp;quot; or &amp;quot;@done of @total suggested&amp;quot;, needs updating.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EvalResultsController&lt;/code&gt; gets a private &lt;code&gt;recordedGate()&lt;/code&gt; helper, used by both the overview Target Health loop and &lt;code&gt;detail()&lt;/code&gt;. It calls &lt;code&gt;ResultEnvelopeBuilder::decodeValidatedSnapshot()&lt;/code&gt; on &lt;code&gt;config_json&lt;/code&gt;. It accepts the snapshot's &lt;code&gt;metric&lt;/code&gt; and &lt;code&gt;threshold&lt;/code&gt; only when the metric parses with &lt;code&gt;GateMetric::tryFrom()&lt;/code&gt; and the threshold is numeric. Otherwise it falls back to the live target's &lt;code&gt;threshold&lt;/code&gt; and &lt;code&gt;metric&lt;/code&gt;, and returns NULL if neither is available. With a NULL gate, the score cell template drops the &amp;quot;/ threshold&amp;quot; part and the aria label drops the gate comparison. The detail Gate cell prints &amp;quot;Gate not recorded&amp;quot;. The detail page also prints the metric's label (for example &amp;quot;Pass rate&amp;quot;) instead of the raw &lt;code&gt;pass_rate&lt;/code&gt;. The overview now runs its pending-optimization and paged-results queries earlier and calls &lt;code&gt;loadMultiple()&lt;/code&gt; once, so all three sections can show target labels. Cache tags for the loaded targets and &lt;code&gt;ai_eval_target_list&lt;/code&gt; were added to the results, annotate and compare pages.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ResultsCompareController&lt;/code&gt; gets an optional &lt;code&gt;ai_eval.grader_manager&lt;/code&gt; constructor argument. It adds &lt;code&gt;differenceLabel()&lt;/code&gt; and &lt;code&gt;readableValue()&lt;/code&gt;: hashes show as &amp;quot;same&amp;quot;, &amp;quot;changed&amp;quot; or &amp;quot;recorded&amp;quot;, grader ids show as grader labels, and gate metric and type are readable. The raw key and value pairs go into a closed &lt;code&gt;details&lt;/code&gt; element titled &amp;quot;Technical details&amp;quot;. &lt;code&gt;FailureRateService&lt;/code&gt; now also groups by &lt;code&gt;verdict&lt;/code&gt;. &lt;code&gt;decorate()&lt;/code&gt; merges tagged verdicts back into their mode and splits only the rows with no failure mode by verdict, with labels &amp;quot;Passed&amp;quot;, &amp;quot;Failed, no failure mode&amp;quot;, &amp;quot;Deferred&amp;quot; or &amp;quot;No verdict&amp;quot;. Result rows carry a new &lt;code&gt;verdict&lt;/code&gt; key.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;WorkflowStateService&lt;/code&gt; drops the fixed suggested total of 100 for the Annotate step. Progress is now the canonical annotations on the latest result over that result's &lt;code&gt;question_count&lt;/code&gt;, and is NULL when there is no result. A new &lt;code&gt;Drupal\ai_eval\Form\GateTypeWording&lt;/code&gt; class holds the shared gate-type labels and description for &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. &lt;code&gt;CalibrationSaveTrait::saveAndReport()&lt;/code&gt; counts inactive curves for the same provider, model and fingerprint before saving, and reports how many were replaced. &lt;code&gt;CalibrationFromReviewsForm&lt;/code&gt; compares the group's fingerprint with &lt;code&gt;currentFingerprint()&lt;/code&gt;. When they differ, it warns on save and changes the readiness text.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
@@ -322,485 +692,70 @@ Respond with exactly one token — XSAFE, XWARN, or XBLOCK — and nothing else.
 </description>
     </item>
     <item>
-      <title>#3586618: Drupal tokens in context item text are replaced on the agent path only</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586618.md</link>
-      <guid isPermaLink="false">project/ai_context#3586618</guid>
-      <category>Site owners</category>
-      <pubDate>Mon, 02 Nov 2026 07:08:17 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +1343/−31 · php +1158/−18 · md +178/−13 · yml +7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/c5f438e6d4c655c279871f9445d16f6b241170e2"&gt;c5f438e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586618"&gt;#3586618&lt;/a&gt; · 1 contributor · 22 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Drupal tokens in context item text are no longer replaced when context reaches the AI. Before this change, AI Agents ran token replacement over the whole system prompt, so an item containing &lt;code&gt;[user:mail]&lt;/code&gt; sent the email of whoever ran the agent to the AI provider, and &lt;code&gt;[user:uuid]&lt;/code&gt; stopped the agent run with an error. The same happened in the List, Load and Get Relevant tool output when a site used them as default information tools. CCC now writes tokens with a space on both sides of the colon, for example &lt;code&gt;[user : mail]&lt;/code&gt;, on the agent path, the generic chat path, the three tools and the public selection API. Sites that used tokens in item text on purpose must write the real values into the text. Items that document token patterns (for example &lt;code&gt;[node:title]&lt;/code&gt; for URL aliases) now show them with spaces, so authors may want to tell the agent to remove the spaces when writing a token into a field. The &lt;strong&gt;Context prefix&lt;/strong&gt; setting is not changed, so &lt;code&gt;[site:name]&lt;/code&gt; there is still replaced on the agent path.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Personal data leak: &lt;code&gt;[user:mail]&lt;/code&gt; in context item text was replaced by AI Agents with the running user's email and sent to the AI provider. Item text is now neutralized on every path.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Context prefix is still token-replaced on the agent path; Content and Context prefix field help texts now say how tokens are treated.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;A new &lt;code&gt;@internal&lt;/code&gt; service &lt;code&gt;ai_context.token_neutralizer&lt;/code&gt; (&lt;code&gt;AiContextTokenNeutralizer&lt;/code&gt;) uses &lt;code&gt;Token::scan()&lt;/code&gt; and rewrites each match to &lt;code&gt;[type : name]&lt;/code&gt;, so a later scan no longer matches. It handles every type from &lt;code&gt;Token::getInfo()&lt;/code&gt;. It also handles undeclared types that look like token types (for example ECA's &lt;code&gt;[current_user:mail]&lt;/code&gt;) when the first part of the name has no whitespace, &lt;code&gt;/&lt;/code&gt; or &lt;code&gt;@&lt;/code&gt;. Root-level data paths such as &lt;code&gt;[current_user.mail.value]&lt;/code&gt; are broken when the part before the first dot is a declared type or &lt;code&gt;current_user&lt;/code&gt;. Root-level matches without a colon, such as &lt;code&gt;[2]&lt;/code&gt; or &lt;code&gt;[optional]&lt;/code&gt;, are left alone. It rescans up to three times, because ECA's &lt;code&gt;scan()&lt;/code&gt; can hide root-level tokens behind a literal &lt;code&gt;[_eca_root_token:x]&lt;/code&gt;. Side effects: &lt;code&gt;items[i:j]&lt;/code&gt;, some IPv6 forms like &lt;code&gt;[fd12:3456::1]&lt;/code&gt;, and dotted Markdown links like &lt;code&gt;[node.js](...)&lt;/code&gt; also get the spaces.&lt;/p&gt;
-&lt;p&gt;It is applied in three places. &lt;code&gt;AiContextRenderer&lt;/code&gt; neutralizes the assembled text, so the token budget is checked on the neutralized text and tokens spanning fields are caught. &lt;code&gt;AiContextSelector&lt;/code&gt; neutralizes the final text after &lt;code&gt;TEXT_RENDERED&lt;/code&gt; subscribers run, and the &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;purpose&lt;/code&gt; and &lt;code&gt;content_snippet&lt;/code&gt; in the selected-item data. &lt;code&gt;ListAiContextItems&lt;/code&gt; neutralizes its own output, because it does not use the renderer. The renderer and selector constructors take the neutralizer as a new last argument, and the service definitions are updated.&lt;/p&gt;
-&lt;p&gt;Documented limits: each output is neutralized separately, so deliberately split tokens across joined outputs can still be replaced. Sites that decorate &lt;code&gt;ai_context.selection_factory&lt;/code&gt; must return the inner factory text. Sites that replace it must break tokens in their own output. To read item text as written, load the &lt;code&gt;ai_context_item&lt;/code&gt; entity.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;The output of &lt;code&gt;getRenderedContext()&lt;/code&gt;, &lt;code&gt;getResult()&lt;/code&gt;, &lt;code&gt;getResultFromSelection()&lt;/code&gt;, &lt;code&gt;AiContextSelectionResult::getSelectedItems()&lt;/code&gt; and &lt;code&gt;TEXT_RENDERED&lt;/code&gt; text now has tokens neutralized, for example &lt;code&gt;[user:mail]&lt;/code&gt; becomes &lt;code&gt;[user : mail]&lt;/code&gt;. To read item text with its tokens as written, load the context item entity and read its fields. If you replace &lt;code&gt;ai_context.selection_factory&lt;/code&gt;, put a space on both sides of the colon of Drupal tokens in the text you return, because &lt;code&gt;ai_context.token_neutralizer&lt;/code&gt; is internal. If you decorate it, return the inner factory text and do not add item text from other sources.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 2, 2026 (14 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;lbesenyei (Brainsum)&lt;/li&gt;
-&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586616: Unpublished context item translations can be delivered to AI prompts</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586616.md</link>
-      <guid isPermaLink="false">project/ai_context#3586616</guid>
-      <pubDate>Mon, 02 Nov 2026 05:22:14 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 13 files, +684/−72 · php +627/−55 · md +53/−17 · json +4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/af8ece49d98c186419cef6132f02265a62364e74"&gt;af8ece4&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586616"&gt;#3586616&lt;/a&gt; · 1 contributor · 26 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On multilingual sites, AI Context no longer sends an unpublished translation (Draft or Archived) of a context item to AI prompts or tool output. The published default-language text is used instead, and the item is left out when that is not published either. This applies to every user, including administrators. Non-admin users also now get a published translation of a draft source item, and context push no longer fails for them when a selected item has an unpublished translation in the request language. Sites with moderated translations, where translations often start as Draft, were most exposed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Status is stored per translation, but &lt;code&gt;AiContextLanguageService::translateItem()&lt;/code&gt; returned a requested translation whenever it existed. The List, Load and selector paths checked &lt;code&gt;access('view')&lt;/code&gt; on the default translation before the language switch. As a result, an Archived translation could be shown to a user who only had the published-context permission. A draft source with a published translation was dropped. The selector threw an &lt;code&gt;AccessException&lt;/code&gt;. The parent text sent in the conditional subcontext prompt used the translated parent, so it was exposed too.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;translateItem()&lt;/code&gt; now works from &lt;code&gt;getUntranslated()&lt;/code&gt;. It returns the requested translation only if &lt;code&gt;isPublished()&lt;/code&gt;, and otherwise returns the default translation. &lt;code&gt;translateItems()&lt;/code&gt; now filters. It keeps an item only if the chosen translation is published and &lt;code&gt;access('view')&lt;/code&gt; passes on that translation. &lt;code&gt;isPublished()&lt;/code&gt; is checked first on purpose, because the boolean &lt;code&gt;access()&lt;/code&gt; call drops cacheability. That is safe only for published translations, since the per-user owner access result applies to unpublished ones.&lt;/p&gt;
-&lt;p&gt;The per-item &lt;code&gt;access('view')&lt;/code&gt; loops on the default translation were removed from &lt;code&gt;AiContextSelector&lt;/code&gt; (&lt;code&gt;loadPublishedItemsByIds()&lt;/code&gt; and the chunk loader), &lt;code&gt;ListAiContextItems&lt;/code&gt; and &lt;code&gt;LoadAiContextItemById&lt;/code&gt;, because all delivery paths already call &lt;code&gt;translateItems()&lt;/code&gt;. List and Load now return &lt;code&gt;No context items are available.&lt;/code&gt; and &lt;code&gt;None of the requested context items are available.&lt;/code&gt; when nothing survives. Subcontext children passed through &lt;code&gt;translateItems()&lt;/code&gt; are also dropped when their delivered translation is unpublished or not viewable. The issue says a follow-up, &lt;a href="https://www.drupal.org/node/3586617"&gt;#3586617&lt;/a&gt;, replaces this boolean check for children with one that keeps access cacheability. Docs under &lt;code&gt;docs/&lt;/code&gt; were updated, and new kernel tests cover the reader, admin, conditional-prompt and EchoAI agent cases.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 2, 2026 (14 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3589001: Accessibility skills misstate how #states hides fields, table scope and #type item_list</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589001.md</link>
-      <guid isPermaLink="false">project/ai_best_practices#3589001</guid>
-      <pubDate>Sun, 01 Nov 2026 10:40:35 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +45/−34 · md +43/−32 · yml +1/−1 · json +1/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/commit/3e3e9af9e8a7058ecfcb976228a95e22445099cc"&gt;3e3e9af&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_best_practices/-/work_items/3589001"&gt;#3589001&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The accessibility skills in AI Best Practices contained three claims that don't match Drupal core, and they are now corrected. &lt;code&gt;#states&lt;/code&gt; is client-side only, which is the real reason to use &lt;code&gt;#access&lt;/code&gt; for permission-based hiding. &lt;code&gt;#type =&amp;gt; 'table'&lt;/code&gt; does not add &lt;code&gt;scope&lt;/code&gt; attributes by itself. &lt;code&gt;item_list&lt;/code&gt; is a theme hook, so lists need &lt;code&gt;#theme =&amp;gt; 'item_list'&lt;/code&gt;, because &lt;code&gt;#type =&amp;gt; 'item_list'&lt;/code&gt; renders nothing. The recommended practices stay the same. Only the stated reasons and the example code changed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The edits are in the &lt;code&gt;drupal-accessibility&lt;/code&gt; dispatcher &lt;code&gt;SKILL.md&lt;/code&gt;, &lt;code&gt;drupal-a11y-fapi&lt;/code&gt; (including its &lt;code&gt;SYNC.md&lt;/code&gt;), &lt;code&gt;drupal-a11y-dom&lt;/code&gt;, and the fapi evals.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;#states&lt;/code&gt;: the old text said it leaves hidden fields in the accessibility tree. The issue points out that the &lt;code&gt;state:visible&lt;/code&gt; handler in &lt;code&gt;core/misc/states.js&lt;/code&gt; toggles the field's wrapper with jQuery, which sets &lt;code&gt;display: none&lt;/code&gt;, so the element does leave the accessibility tree. The text now says &lt;code&gt;#states&lt;/code&gt; acts only in the browser. The element is still in the HTML and its value is still submitted and processed. &lt;code&gt;#access =&amp;gt; FALSE&lt;/code&gt; keeps it out of the output, and &lt;code&gt;FormBuilder::handleInputElement()&lt;/code&gt; ignores input for it. The text also says CSS that hides only visually, such as &lt;code&gt;.visually-hidden&lt;/code&gt;, leaves the element exposed to assistive technology.&lt;/p&gt;
-&lt;p&gt;Tables: the text no longer claims core generates &lt;code&gt;&amp;lt;th scope=&amp;quot;col&amp;quot;&amp;gt;&lt;/code&gt; or &lt;code&gt;&amp;lt;th scope=&amp;quot;row&amp;quot;&amp;gt;&lt;/code&gt;. The issue reports that the &lt;code&gt;table.html.twig&lt;/code&gt; templates and &lt;code&gt;ThemePreprocess::preprocessTable()&lt;/code&gt; add no &lt;code&gt;scope&lt;/code&gt;. The skills now show setting it per cell, for example &lt;code&gt;['data' =&amp;gt; $label, 'header' =&amp;gt; TRUE, 'scope' =&amp;gt; 'row']&lt;/code&gt;, since extra cell keys become attributes.&lt;/p&gt;
-&lt;p&gt;Lists: the skill now says to use &lt;code&gt;#theme =&amp;gt; 'item_list'&lt;/code&gt; with &lt;code&gt;#items&lt;/code&gt;, and notes that &lt;code&gt;#type =&amp;gt; 'item_list'&lt;/code&gt; renders nothing. The canonical-source notes in the front matter are updated to match.&lt;/p&gt;
-&lt;p&gt;Evals: the fapi evals keep their checks. Only the S11 description and one B06 expectation changed, replacing the accessibility-tree wording with &amp;quot;server-side&amp;quot; and &amp;quot;not rendered and its input is ignored&amp;quot;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 1, 2026 (27 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;hansrossel (KOBA)&lt;/li&gt;
-&lt;li&gt;ronaldtebrake (Open Social)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586593: Entity Types scope loads the request entity without a view access check</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586593.md</link>
-      <guid isPermaLink="false">project/ai_context#3586593</guid>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 21:10:25 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +1422/−41 · php +1343/−26 · md +78/−15 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/671cae1fcc573e1eeb8a802c6ce3085462473f40"&gt;671cae1&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586593"&gt;#3586593&lt;/a&gt; · 1 contributor · 41 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Entity Types scope no longer reveals whether a hidden entity exists or which bundle it belongs to. Before, a user with the &lt;code&gt;access published ai context&lt;/code&gt; permission could pass an entity type and ID to an agent tool or AI request and see whether a bundle-scoped context item was selected. That worked even for an unpublished node or term they could not view. Now an entity the user cannot view is treated like an ID that does not exist. There is a side effect to check on your site. Editors who can edit an entity but not view it (for example, another author's draft) no longer get Entity Types or Taxonomy Terms matching on that form. Background runs as Anonymous (cron, queues, Drush) also lose bundle-scoped items unless that account can view the entity. A bundle hint sent for an unsaved entity, such as a node add form, still works.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Minor information disclosure: a user with &lt;code&gt;access published ai context&lt;/code&gt; could learn whether an entity ID exists and its bundle through the Entity Types scope. Existence and bundle only, no field data.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;AiContextRequestInfoResolver::getEntityTypeFromEntity()&lt;/code&gt; used to load the request entity by ID with no access check. It now calls &lt;code&gt;loadContentEntity()&lt;/code&gt;, which already checked &lt;code&gt;access('view')&lt;/code&gt;, and returns NULL when the entity is missing or not viewable. The &lt;code&gt;getEntityType()&lt;/code&gt; fallback to the caller-supplied bundle hint is unchanged. The resolver now keeps the access result (&lt;code&gt;getContentEntityAccessResult()&lt;/code&gt;, allowed or denied). It runs on the revision or translation the route upcasts, not the default revision.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextSelector&lt;/code&gt; adds that access result's cacheability to every selection result, including a denied one. This applies even when the Entity Types and Taxonomy Terms scopes are disabled, so a custom scope cannot reuse another account's result. When access depends on ownership (for example, &lt;strong&gt;View own unpublished content&lt;/strong&gt;), the result varies by &lt;code&gt;user&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Because access now decides the match, the resolver takes &lt;code&gt;@current_user&lt;/code&gt; as a new constructor argument. The &lt;code&gt;ai_context.request_info_resolver&lt;/code&gt; service definition is updated, and any code that instantiates the final class directly must pass an &lt;code&gt;AccountInterface&lt;/code&gt; as the fifth argument. The entity and &lt;code&gt;getEntityType()&lt;/code&gt; memos reset when the current request (held as a &lt;code&gt;WeakReference&lt;/code&gt;) or the account ID changes. An account switch in a queue worker or a nested request therefore re-checks access. &lt;code&gt;applyRequestInfo()&lt;/code&gt; also clears a route entity saved for an earlier request, so a later caller-supplied entity is applied. Without that, the earlier route entity would hide it. The docs and a new kernel test class, &lt;code&gt;AiContextEntityBundleAccessTest&lt;/code&gt;, cover these cases. Existing Entity Types tests now set up a current user with &lt;code&gt;access content&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you construct &lt;code&gt;AiContextRequestInfoResolver&lt;/code&gt; yourself, for example in tests, pass the current user as the new last argument:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;new AiContextRequestInfoResolver(
-  $routeMatch,
-  $requestStack,
-  $entityTypeManager,
-  $entityTypeBundleInfo,
-  $container-&amp;gt;get('current_user'),
-);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If editors rely on Entity Types or Taxonomy Terms matching on edit forms, make sure their role can view the content it edits.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (24 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586551: Keep consumer overrides during any module uninstall, including automators on automator chain fields</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586551.md</link>
-      <guid isPermaLink="false">project/ai_context#3586551</guid>
+      <title>#3594852: Fix plurals ("1 tests", "1 labeled answers") and raw machine names in the admin UI text</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594852.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594852</guid>
       <category>Module maintainers</category>
-      <pubDate>Sat, 31 Oct 2026 20:00:40 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 20 files, +840/−131 · php +704/−87 · md +123/−43 · yml +13 · json +0/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/d3f7d5acf64944bb1ea2d71bfc9e207a4fa19685"&gt;d3f7d5a&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586551"&gt;#3586551&lt;/a&gt; · 1 contributor · 44 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Saved per-consumer context overrides (&lt;code&gt;ai_context.consumers&lt;/code&gt; rows for agents and automators) are now kept whenever a module is uninstalled. Before, some overrides were silently lost while their siblings survived. This happened when several modules were uninstalled in one run with a cross-module dependency, and when an automator was attached to a field on an &lt;code&gt;automator_chain&lt;/code&gt; bundle and &lt;code&gt;ai_automators&lt;/code&gt; was uninstalled. Kept rows show in the consumers listing as &lt;strong&gt;Off (type unavailable)&lt;/strong&gt;, or &lt;strong&gt;Off (stale)&lt;/strong&gt; if the consumer type is still installed (for example when only a module an automator depends on is uninstalled). An admin can remove them with &lt;strong&gt;Remove configuration&lt;/strong&gt;. Reinstalling a module that recreates the host entity with the same ID makes the saved override apply again. Deleting a single agent or automator while its module stays installed still removes its row immediately.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;@internal&lt;/code&gt; service &lt;code&gt;ai_context.removed_consumer_rows&lt;/code&gt; (tagged &lt;code&gt;persist&lt;/code&gt;); &lt;code&gt;AiContextScopeCleanupService&lt;/code&gt; gains &lt;code&gt;restoreRemovedConsumerRows()&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The earlier approach kept a &lt;code&gt;drupal_static&lt;/code&gt; list filled by &lt;code&gt;hook_module_preuninstall()&lt;/code&gt; and compared it with the deleted entity's type provider. It missed cases where the provider differs from the module being uninstalled, or where the delete happens before the module is listed. Core deletes host entities at two points. &lt;code&gt;ConfigManager::uninstall()&lt;/code&gt; flags config entities with &lt;code&gt;isUninstalling()&lt;/code&gt;. Before that, &lt;code&gt;ModuleInstaller::uninstall()&lt;/code&gt; deletes bundles, and the resulting &lt;code&gt;FieldConfig&lt;/code&gt; dependents are deleted with a plain &lt;code&gt;delete()&lt;/code&gt; and no flag.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ai_context_entity_delete()&lt;/code&gt; now returns early when the host is a &lt;code&gt;ConfigEntityInterface&lt;/code&gt; with &lt;code&gt;isUninstalling()&lt;/code&gt; TRUE. For all other host deletes the row is removed as before, but &lt;code&gt;AiContextScopeCleanupService::removeDeletedConsumerConfig()&lt;/code&gt; first records it in &lt;code&gt;AiContextRemovedConsumerRows&lt;/code&gt;. That service is &lt;code&gt;@internal&lt;/code&gt;, tagged &lt;code&gt;persist&lt;/code&gt; so it survives container rebuilds during an uninstall, and has no constructor dependencies, since a persisted instance would keep the old container's services. It keeps only the first row per consumer ID, matching how duplicate IDs resolve elsewhere.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ai_context_modules_uninstalled()&lt;/code&gt; calls &lt;code&gt;restoreRemovedConsumerRows()&lt;/code&gt;, which appends recorded rows to &lt;code&gt;ai_context.consumers&lt;/code&gt; unless a row with that ID is already present, and clears the list. It runs before the stale-scope scrub so restored rows are scrubbed too. It also runs during config sync, where only the scrub is skipped. It does nothing when &lt;code&gt;ai_context&lt;/code&gt; itself is uninstalled. &lt;code&gt;ai_context_module_preuninstall()&lt;/code&gt; and &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; are removed. Accepted edge case: a row removed earlier in the same request, before an uninstall, is also restored. &lt;code&gt;docs/developers/hooks.md&lt;/code&gt; and &lt;code&gt;consumer_api.md&lt;/code&gt; are updated, and &lt;code&gt;consumer_api.md&lt;/code&gt; now defines &amp;quot;host entity&amp;quot;. Kernel tests and a new &lt;code&gt;ai_context_test_automator_dependent&lt;/code&gt; test module cover the cases.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Code that implemented or documented reliance on &lt;code&gt;hook_module_preuninstall()&lt;/code&gt; or &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; from this module should drop it. Both are removed, and &lt;code&gt;ai_context_uninstalling_modules()&lt;/code&gt; was &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;li&gt;lbesenyei (Brainsum)&lt;/li&gt;
-&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
-&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594817: The judge prompt fence can be closed with an upper-case tag</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594817.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594817</guid>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
+      <pubDate>Mon, 02 Nov 2026 08:11:58 GMT</pubDate>
       <description>&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594817"&gt;#3594817&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 58 files, +1118/−90 · php +1011/−89 · js +77 · yml +16 · md +14/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/499dc1e3b49ce10df0c85bcf3a2f416997fd7121"&gt;499dc1e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594852"&gt;#3594852&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The judge prompt in AI Eval wraps the question, criteria and the evaluated answer in XML-style tags. Before this fix, only the exact lower-case closing tags were neutralised. An answer containing &lt;code&gt;&amp;lt;/AGENT_RESPONSE&amp;gt;&lt;/code&gt; or a closing tag with extra spaces could close the answer section early, so any text after it might read to the judge as instructions. Closing fence tags are now escaped in any letter case and with spacing or attributes. The reporter did not test whether a judge model actually follows such text, so this is a hardening measure. Updating is enough; the 1.1.x changelog and judge documentation were updated to describe it.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Low-priority prompt-injection hardening: an answer could close the judge prompt's &lt;code&gt;&amp;lt;agent_response&amp;gt;&lt;/code&gt;, &lt;code&gt;&amp;lt;question&amp;gt;&lt;/code&gt; or &lt;code&gt;&amp;lt;criteria&amp;gt;&lt;/code&gt; fence with &lt;code&gt;&amp;lt;/AGENT_RESPONSE&amp;gt;&lt;/code&gt; or &lt;code&gt;&amp;lt;/agent_response &amp;gt;&lt;/code&gt;. Those variants are now escaped.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;LlmJudgeBase::escapePromptValue()&lt;/code&gt; replaced its three-pair &lt;code&gt;str_replace()&lt;/code&gt; with a case-insensitive &lt;code&gt;preg_replace()&lt;/code&gt;. It matches &lt;code&gt;&amp;lt;&lt;/code&gt; followed by &lt;code&gt;/&lt;/code&gt;, optional whitespace, then &lt;code&gt;question&lt;/code&gt;, &lt;code&gt;criteria&lt;/code&gt; or &lt;code&gt;agent_response&lt;/code&gt;, and anything up to the closing &lt;code&gt;&amp;gt;&lt;/code&gt;. It prefixes a backslash after the &lt;code&gt;&amp;lt;&lt;/code&gt;, so &lt;code&gt;&amp;lt;/AGENT_RESPONSE&amp;gt;&lt;/code&gt; becomes &lt;code&gt;&amp;lt;\/AGENT_RESPONSE&amp;gt;&lt;/code&gt;. The inner text is otherwise untouched, so the judge still sees the original content. The method also changed from &lt;code&gt;private&lt;/code&gt; to &lt;code&gt;public static&lt;/code&gt;. The issue proposed a pattern allowing only whitespace inside the tag, and the merged pattern also covers attributes. The commit also contains the other 1.1.x judge-trust changes (&lt;a href="https://www.drupal.org/node/3594812"&gt;#3594812&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594813"&gt;#3594813&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594814"&gt;#3594814&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594815"&gt;#3594815&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594816"&gt;#3594816&lt;/a&gt;). They are not part of this fix, and I did not read the &lt;code&gt;LlmJudgeBase.php&lt;/code&gt; hunks for them beyond the escape function.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594816: Judge validation counts a judge error as a fail verdict</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594816.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594816</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594816"&gt;#3594816&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Judge validation used to count a labeled answer the judge never scored (a provider error, a rate limit, or a judge with no model) as a judge fail. That inflated the true negative rate on fail-labeled rows and added false negatives on pass-labeled rows. Such answers are now left out of the confusion matrix and the rates, and shown as &lt;strong&gt;Not scored&lt;/strong&gt; on the validation report, history, Judges page and &lt;code&gt;drush ai-eval:judges&lt;/code&gt;. Any not-scored labeled answer blocks the Trusted state. Run database updates and validate again any judge that had provider errors, because earlier stored counts cannot be repaired. The same commit also ships related trust changes: a minimum of 10 distinct pass and 10 distinct fail labels (new &lt;strong&gt;Not enough labels&lt;/strong&gt; state), and stricter threshold handling.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds nullable &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;endpoint_only&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt; and &lt;code&gt;fail_items&lt;/code&gt; columns to &lt;code&gt;ai_eval_judge_validation&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Pass thresholds now accept at most two decimals (form step changed from 0.1 to 0.01).&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;JudgeValidationReport&lt;/code&gt; gains optional trailing &lt;code&gt;$notScored&lt;/code&gt;, &lt;code&gt;$passItems&lt;/code&gt;, &lt;code&gt;$failItems&lt;/code&gt;, &lt;code&gt;$endpointOnly&lt;/code&gt; constructor arguments; &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt;, &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt; and &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt; gain methods that custom implementations must add.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;JudgeValidationReport::trustBlocker()&lt;/code&gt;, &lt;code&gt;passLabels()&lt;/code&gt;, &lt;code&gt;failLabels()&lt;/code&gt;, &lt;code&gt;trustState()&lt;/code&gt; and a new &lt;code&gt;not_enough_labels&lt;/code&gt; trust state.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;JudgeValidator::validate()&lt;/code&gt;, a labeled row with a NULL &lt;code&gt;graderScore&lt;/code&gt; now increments &lt;code&gt;$notScored&lt;/code&gt; and is skipped before TP/FP/FN/TN. The correlation and calibration arrays already skipped NULL scores. &lt;code&gt;RepeatedVerdicts::group()&lt;/code&gt; now records verdicts only for scored repeats, so an item with no scored repeat has an empty verdict list. The error profile, stability and judge comparison skip those items, and the comparison reports them as not scored (&lt;code&gt;notScoredA&lt;/code&gt;/&lt;code&gt;notScoredB&lt;/code&gt; on &lt;code&gt;JudgeComparisonResult&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;JudgeValidationReport::trustBlocker()&lt;/code&gt; returns the first blocker in order: &lt;code&gt;BLOCKER_NOT_SCORED&lt;/code&gt; (any &lt;code&gt;notScored &amp;gt; 0&lt;/code&gt;), &lt;code&gt;BLOCKER_FEW_LABELS&lt;/code&gt; (fewer than &lt;code&gt;MIN_LABELS_PER_CLASS&lt;/code&gt; = 10 distinct scored pass or fail items), then &lt;code&gt;BLOCKER_RATES&lt;/code&gt; (TPR or TNR under 0.90). &lt;code&gt;isTrusted()&lt;/code&gt; is now true only when there is no blocker. The &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt;, &lt;code&gt;fail_items&lt;/code&gt; and &lt;code&gt;endpoint_only&lt;/code&gt; values are stored on &lt;code&gt;ai_eval_judge_validation&lt;/code&gt;, NULL meaning not recorded for older rows. &lt;code&gt;drush ai-eval:validate-judge&lt;/code&gt; prints a specific warning for each blocker and exits 3 when the fixture has too few labels.&lt;/p&gt;
-&lt;p&gt;The commit also bundles other changes tracked in separate issues, listed in the CHANGELOG: the corrected pass rate requires validation at the run's threshold (&lt;a href="https://www.drupal.org/node/3594814"&gt;#3594814&lt;/a&gt;), the label minimum (&lt;a href="https://www.drupal.org/node/3594813"&gt;#3594813&lt;/a&gt;), stale trust after a prompt edit (&lt;a href="https://www.drupal.org/node/3594812"&gt;#3594812&lt;/a&gt;), fence-tag escaping (&lt;a href="https://www.drupal.org/node/3594817"&gt;#3594817&lt;/a&gt;) and &lt;code&gt;%&lt;/code&gt; handling in prompt templates (&lt;a href="https://www.drupal.org/node/3594815"&gt;#3594815&lt;/a&gt;). Scores are now compared with &lt;code&gt;ScoreScale::passes()&lt;/code&gt; so validation and run scoring use the same two-decimal rounding.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates (&lt;code&gt;ai_eval_update_10050&lt;/code&gt;). Existing validation rows get NULL for the new columns. Validate again any judge that had provider errors.&lt;/p&gt;
-&lt;p&gt;Custom code that constructs &lt;code&gt;JudgeValidationReport&lt;/code&gt; can pass the new optional trailing arguments &lt;code&gt;$notScored&lt;/code&gt;, &lt;code&gt;$passItems&lt;/code&gt;, &lt;code&gt;$failItems&lt;/code&gt; and &lt;code&gt;$endpointOnly&lt;/code&gt;. Custom implementations or mocks of &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt; (four new methods), &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt; and &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt; (new &lt;code&gt;thresholdMismatch()&lt;/code&gt;) must add them. A CI gate on the exit code of &lt;code&gt;drush ai-eval:validate-judge&lt;/code&gt; can start failing with code 3 if the fixture has fewer than 10 distinct scored pass or fail items.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594815: A "%" in a judge prompt template stops the run</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594815.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594815</guid>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594815"&gt;#3594815&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A &amp;quot;%&amp;quot; in a judge's prompt template (for example &amp;quot;score 100% of the facts&amp;quot;) no longer stops the whole run. The Edit prompt tab now refuses a template that does not have exactly four &lt;code&gt;%s&lt;/code&gt; placeholders, and tells you to write &lt;code&gt;%%&lt;/code&gt; for a literal percent sign. A template saved earlier that no longer fits now makes each answer it scores an error with a clear reason, not a failed run. A template that leaves out the answer placeholder also scores nothing and reports an error, where before the judge was asked without the answer. The same commit also bundles several related judge trust changes (&lt;a href="https://www.drupal.org/node/3594812"&gt;#3594812&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594813"&gt;#3594813&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594814"&gt;#3594814&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594816"&gt;#3594816&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594817"&gt;#3594817&lt;/a&gt;), which are listed in the changelog.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; The commit also ships &lt;code&gt;ai_eval_update_10050&lt;/code&gt;, adding nullable &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;endpoint_only&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt; and &lt;code&gt;fail_items&lt;/code&gt; columns to &lt;code&gt;ai_eval_judge_validation&lt;/code&gt; (from the bundled trust changes, not this issue's fix).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;LlmJudgeBase::grade()&lt;/code&gt; used to call &lt;code&gt;sprintf($template, ...)&lt;/code&gt; outside its &lt;code&gt;try&lt;/code&gt;, so an &lt;code&gt;ArgumentCountError&lt;/code&gt; from a stray &lt;code&gt;%&lt;/code&gt; escaped and ended the browser or Drush run. The call now sits inside the &lt;code&gt;try&lt;/code&gt;, preceded by a new public static &lt;code&gt;LlmJudgeBase::templateCheck()&lt;/code&gt;. It formats the template with four marker strings and returns &lt;code&gt;throws&lt;/code&gt; (formatting failed) and &lt;code&gt;missing&lt;/code&gt; (slot numbers whose marker is absent from the output). If it throws, or slot 4 (the answer) is missing, &lt;code&gt;grade()&lt;/code&gt; returns an errored result with a &lt;code&gt;judge error:&lt;/code&gt; message and does not call the model. Missing slots 1 to 3 are not blocked at run time.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;JudgePromptEditForm::validateForm()&lt;/code&gt; uses the same &lt;code&gt;templateCheck()&lt;/code&gt;. It rejects a template that throws, and one that leaves out any of the four placeholders, naming the omitted slots. The field description now mentions &lt;code&gt;%%&lt;/code&gt;, and the save message tells the user to validate the judge again. &lt;code&gt;LlmJudgeBase&lt;/code&gt; also gains &lt;code&gt;hasResolvedPrompt()&lt;/code&gt;, which reports whether the latest attempt resolved a prompt and version, including errored attempts. &lt;code&gt;escapePromptValue()&lt;/code&gt; became public static and now escapes closing &lt;code&gt;question&lt;/code&gt;, &lt;code&gt;criteria&lt;/code&gt; and &lt;code&gt;agent_response&lt;/code&gt; fence tags in any letter case, with spaces or attributes.&lt;/p&gt;
-&lt;p&gt;The commit is large (85 files) and bundles other work. The partial diff I could read shows judge trust gating: a minimum of 10 distinct pass and 10 fail labels, a new &lt;code&gt;not_enough_labels&lt;/code&gt; state, not-scored answers blocking trust, and a threshold-matched corrected pass rate. The prompt-version staleness behaviour, &lt;code&gt;ScoreScale::passes()&lt;/code&gt; rounding and the two-decimal threshold validation in the settings, target and guided-test forms also appear in the diff. I did not read the omitted files, including &lt;code&gt;JudgeTrustReason&lt;/code&gt;, &lt;code&gt;ValidationCompare&lt;/code&gt; and the store implementation.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Review any saved judge prompt overrides. A literal percent sign must be written as &lt;code&gt;%%&lt;/code&gt;, and the template needs exactly four &lt;code&gt;%s&lt;/code&gt; placeholders (dimension, question, expectations, answer). Re-saving an override on the judge's Edit prompt tab runs the new check. Also run &lt;code&gt;drush updatedb&lt;/code&gt;, because the commit adds &lt;code&gt;ai_eval_update_10050&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594814: Corrected pass rate ignores the judge's validation threshold</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594814.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594814</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594814"&gt;#3594814&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The corrected pass rate on a result page now appears only when the judge was validated at the same question pass threshold the run used. Before, a judge validated at 3.0 could correct a run scored at 3.5 with no warning, which gave a number nobody had measured. When the thresholds differ, or the result did not record its threshold, the Corrected Pass Rate row reads &amp;quot;Not available&amp;quot; with both thresholds, and the EEE export leaves the corrected value out. The fix is to validate the judge again at the threshold the run used. Existing results can change to Not available after the update. A validation where the judge only ever scored 0 or 5 is exempt, since every threshold in between gives the same verdict. Older validations need a rerun to record that evidence. The same commit also ships several related judge-trust fixes (&lt;a href="https://www.drupal.org/node/3594812"&gt;#3594812&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594813"&gt;#3594813&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594815"&gt;#3594815&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594816"&gt;#3594816&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594817"&gt;#3594817&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds nullable &lt;code&gt;endpoint_only&lt;/code&gt;, &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt; and &lt;code&gt;fail_items&lt;/code&gt; columns to &lt;code&gt;ai_eval_judge_validation&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Question pass thresholds (site settings, target form, guided test form) now accept at most two decimals; the number step changed from 0.1 to 0.01.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;CorrectedPassRateInterface::forResult()&lt;/code&gt; and &lt;code&gt;bootstrapForResult()&lt;/code&gt; take an optional &lt;code&gt;$runThreshold&lt;/code&gt;; omitting it returns NULL (no correction). New &lt;code&gt;thresholdMismatch()&lt;/code&gt; method on &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt; and &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt;, so custom implementations and mocks must add it.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ScoreScale::passes()&lt;/code&gt;, &lt;code&gt;ScoreScale::sameThreshold()&lt;/code&gt; and &lt;code&gt;ScoreScale::thresholdMismatch()&lt;/code&gt; give one shared pass decision and threshold comparison.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;CorrectedPassRate::forResult()&lt;/code&gt; and &lt;code&gt;bootstrapForResult()&lt;/code&gt; now require a recorded &lt;code&gt;$runThreshold&lt;/code&gt; and a compatible validation threshold. The compatibility check is &lt;code&gt;ScoreScale::thresholdMismatch()&lt;/code&gt;. Thresholds match when they agree at two decimals, and a positive threshold that rounds to zero never matches zero. Otherwise, a validation flagged &lt;code&gt;endpoint_only&lt;/code&gt; fits any run threshold above 0 and up to 5. The evidence is measured from the scores (new &lt;code&gt;endpoint_only&lt;/code&gt; column), not inferred from a judge's name or declared range. Legacy rows have NULL there, so they get no exemption.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;thresholdMismatch()&lt;/code&gt; method on &lt;code&gt;CorrectedPassRate&lt;/code&gt; returns the two thresholds for an otherwise eligible judge. &lt;code&gt;EvalResultsController&lt;/code&gt; reads the run threshold from &lt;code&gt;question_pass_threshold&lt;/code&gt; in the dataset snapshot. When no correction is produced, it renders the &amp;quot;Not available&amp;quot; message, with a separate wording when the run recorded no threshold.&lt;/p&gt;
-&lt;p&gt;To make &amp;quot;same threshold&amp;quot; mean the same thing in both places, validation and run scoring now share &lt;code&gt;ScoreScale::passes()&lt;/code&gt;, which compares the score rounded to two decimals. &lt;code&gt;LabeledExample::graderPassesAt()&lt;/code&gt; and the result page's low-score check both use it. Before, a score of 3.496 at threshold 3.5 failed validation but passed a run. The threshold inputs on the settings, target and guided test forms now use step 0.01 and reject more than two decimals. The validation controller applies the same rule. Docs in &lt;code&gt;scoring.md&lt;/code&gt;, &lt;code&gt;judges.md&lt;/code&gt; and the EEE export docs, plus the CHANGELOG, were updated.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates: &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds the nullable &lt;code&gt;endpoint_only&lt;/code&gt; column (and the other new validation columns). Existing validation rows keep NULL there, so they get no endpoint-only exemption. Validate such judges again at the threshold your tests use to get a corrected pass rate.&lt;/p&gt;
-&lt;p&gt;Custom code that implements or mocks &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt; or &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt; must add &lt;code&gt;thresholdMismatch()&lt;/code&gt;. Callers must pass the run's threshold, or no correction is returned:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$corrected = $correctedPassRate-&amp;gt;forResult($graderIds, $p, $ciLow, $ciHigh, $runThreshold);
-$bootstrap = $correctedPassRate-&amp;gt;bootstrapForResult($graderIds, $scoresJson, $seed, $runThreshold);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594813: A judge can be trusted on two labeled examples</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594813.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594813</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594813"&gt;#3594813&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A judge is now Trusted only if it was scored on at least 10 distinct pass labels and 10 distinct fail labels, in addition to TPR and TNR of at least 0.90. Before, one pass and one fail label could both agree and earn the Trusted badge. A validation below the floor now shows a new &lt;strong&gt;Not enough labels&lt;/strong&gt; state (with the counts) on the Judges page, the target list, result pages and in Drush. A repeated score of the same answer counts once. Existing validations below the floor read Not enough labels after the update. The &lt;code&gt;drush ai-eval:validate-judge&lt;/code&gt; command exits with code 3 when the fixture is under the floor, so a CI gate built on it can start failing until you add labels. The floor is fixed at 10 per class. The &lt;code&gt;gold_target_n&lt;/code&gt; setting is documented as a labeling target, not the minimum. Docs note that a 70/30 split of a small set rarely reaches the minimum.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds nullable &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;endpoint_only&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt; and &lt;code&gt;fail_items&lt;/code&gt; columns to &lt;code&gt;ai_eval_judge_validation&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;JudgeValidationReport&lt;/code&gt; gains optional trailing constructor arguments (&lt;code&gt;$notScored&lt;/code&gt;, &lt;code&gt;$passItems&lt;/code&gt;, &lt;code&gt;$failItems&lt;/code&gt;, &lt;code&gt;$endpointOnly&lt;/code&gt;). &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt;, &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt; and &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt; gain methods that custom implementations and mocks must add.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New trust state &lt;code&gt;not_enough_labels&lt;/code&gt; (&lt;code&gt;JudgeValidationStoreInterface::STATE_NOT_ENOUGH_LABELS&lt;/code&gt;) and &lt;code&gt;JudgeValidationReport::MIN_LABELS_PER_CLASS&lt;/code&gt; (10), &lt;code&gt;trustBlocker()&lt;/code&gt;, &lt;code&gt;passLabels()&lt;/code&gt;, &lt;code&gt;failLabels()&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The rule lives in &lt;code&gt;JudgeValidationReport::trustBlocker()&lt;/code&gt;, which returns the first blocker in precedence order: not-scored answers, fewer than &lt;code&gt;MIN_LABELS_PER_CLASS&lt;/code&gt; labels in either class, then the existing rate check against &lt;code&gt;TRUST_THRESHOLD&lt;/code&gt;. &lt;code&gt;isTrusted()&lt;/code&gt; is now &lt;code&gt;trustBlocker() === NULL&lt;/code&gt;, and the new &lt;code&gt;trustState()&lt;/code&gt; maps a few-labels blocker to &lt;code&gt;not_enough_labels&lt;/code&gt;. The chosen rule is a fixed floor of 10 per class, not the &lt;code&gt;gold_target_n&lt;/code&gt; floor or the bootstrap confidence interval option the issue proposed.&lt;/p&gt;
-&lt;p&gt;Label counts come from new &lt;code&gt;pass_items&lt;/code&gt; and &lt;code&gt;fail_items&lt;/code&gt; columns (distinct scored items, so repeats count once). Older rows have NULL there, and &lt;code&gt;passLabels()&lt;/code&gt; and &lt;code&gt;failLabels()&lt;/code&gt; fall back to &lt;code&gt;tp + fn&lt;/code&gt; and &lt;code&gt;fp + tn&lt;/code&gt;, which include repeats. The update hook adds the columns as nullable and does not recompute. The new state is wired through &lt;code&gt;JudgeTrustBadge&lt;/code&gt;, &lt;code&gt;JudgeTrustMark&lt;/code&gt;, &lt;code&gt;EvalTargetListBuilder&lt;/code&gt; (counted among the not-trusted states and ranked in &lt;code&gt;TRUST_SEVERITY&lt;/code&gt;), the Judges table legend and CSS class &lt;code&gt;ai-eval-trust--not_enough_labels&lt;/code&gt;. The Drush command prints a specific warning with the pass and fail counts.&lt;/p&gt;
-&lt;p&gt;The same commit also ships sibling changes from the issues listed in the CHANGELOG: not-scored answers blocking trust (&lt;a href="https://www.drupal.org/node/3594816"&gt;#3594816&lt;/a&gt;), a corrected pass rate that requires validation at the run's threshold (&lt;a href="https://www.drupal.org/node/3594814"&gt;#3594814&lt;/a&gt;), stale trust after a prompt edit (&lt;a href="https://www.drupal.org/node/3594812"&gt;#3594812&lt;/a&gt;), fence-tag escaping (&lt;a href="https://www.drupal.org/node/3594817"&gt;#3594817&lt;/a&gt;) and prompt template &lt;code&gt;%&lt;/code&gt; handling (&lt;a href="https://www.drupal.org/node/3594815"&gt;#3594815&lt;/a&gt;). Pass thresholds now accept at most two decimals. The diff was partly truncated, so those parts are described from the CHANGELOG and the visible hunks.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates so &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds the new columns. Existing validations below 10 pass or 10 fail labels then read Not enough labels. Older rows lack distinct-label counts and use judgment counts, which include repeats. Validate again on more labels to record exact counts. A CI gate on &lt;code&gt;drush ai-eval:validate-judge&lt;/code&gt; can start exiting with code 3 until the fixture has at least 10 distinct scored pass items and 10 fail items.&lt;/p&gt;
-&lt;p&gt;Custom implementations of &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt;, &lt;code&gt;JudgeGateTrustInterface&lt;/code&gt; and &lt;code&gt;CorrectedPassRateInterface&lt;/code&gt;, and mocks of them, must add the new methods (&lt;code&gt;thresholdMismatch()&lt;/code&gt; among them). &lt;code&gt;JudgeValidationReport&lt;/code&gt; has new optional trailing constructor arguments, so existing calls keep working.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594812: A judge stays trusted after its prompt is edited</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594812.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594812</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Sat, 31 Oct 2026 14:09:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 85 files, +2438/−224 · php +2301/−210 · md +134/−14 · css +2 · yml +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/2fa03ac6191e528d7f193cd328c71039fac7cf61"&gt;2fa03ac&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594812"&gt;#3594812&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A judge validated on one prompt used to keep showing Trusted after you edited its template or guidance, and a gate with &lt;code&gt;refuse_unvalidated_judges&lt;/code&gt; still accepted it. Now the judge shows Validation out of date, with a reason naming the validated and current prompt versions. This applies on the Judges page, result pages and the test list. A judge validated on the default prompt also goes out of date once any override is saved. Judges validated from a CLI fixture measure no prompt, so they go out of date as soon as the judge has an override. Validate again in the browser to clear it. The same release commit also adds other judge-trust rules (minimum labels, unscored answers, threshold matching for the corrected pass rate).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10050&lt;/code&gt; adds nullable &lt;code&gt;not_scored&lt;/code&gt;, &lt;code&gt;pass_items&lt;/code&gt;, &lt;code&gt;fail_items&lt;/code&gt; and &lt;code&gt;endpoint_only&lt;/code&gt; columns to &lt;code&gt;ai_eval_judge_validation&lt;/code&gt;. The commit bundles several related judge-trust changes.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Pass thresholds in the settings, target and guided test forms now accept at most two decimals (step 0.01).&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt; gains &lt;code&gt;validatedVersionMatches()&lt;/code&gt; and &lt;code&gt;activePromptVersion()&lt;/code&gt; (plus other methods from the same commit); custom implementations and mocks must add them.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;JudgeValidationStore::trustStateForRow()&lt;/code&gt; now returns &lt;code&gt;STATE_STALE&lt;/code&gt; for an otherwise trusted row when &lt;code&gt;validatedVersionMatches()&lt;/code&gt; is FALSE, in the same place as the existing model-mismatch check. &lt;code&gt;validatedVersionMatches()&lt;/code&gt; compares the row's &lt;code&gt;config_version&lt;/code&gt; (NULL means the default template) with &lt;code&gt;activePromptVersion()&lt;/code&gt;, which reads &lt;code&gt;JudgeConfigStore::activeOverride()&lt;/code&gt;. The store service now receives &lt;code&gt;@ai_eval.judge_config_store&lt;/code&gt;. If no config store is injected, the match is unknown (NULL) and the state is unchanged. Saving only the model or domain tags does not bump the prompt version, so only the existing model rule applies there.&lt;/p&gt;
-&lt;p&gt;The reason text comes from the new &lt;code&gt;JudgeTrustReason::forRow()&lt;/code&gt;. The Judges page shows the version column as &lt;code&gt;v1 (now v2)&lt;/code&gt;. &lt;code&gt;drush ai-eval:validate-judge&lt;/code&gt; prints a note when the judge has an override, because a fixture validation records no &lt;code&gt;config_version&lt;/code&gt;. Trust is evaluated when a page opens, so results stored earlier also lose their Trusted mark and corrected rate after a prompt edit. The docs (&lt;code&gt;judges.md&lt;/code&gt;) and CHANGELOG were updated.&lt;/p&gt;
-&lt;p&gt;The commit is a combined release commit: it also introduces the &lt;code&gt;not_enough_labels&lt;/code&gt; state (fewer than 10 distinct pass or fail labels), &lt;code&gt;not_scored&lt;/code&gt; handling, threshold-matched corrected pass rates, and fence-tag and &lt;code&gt;%&lt;/code&gt; template fixes, tracked in separate issues (&lt;a href="https://www.drupal.org/node/3594813"&gt;#3594813&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594814"&gt;#3594814&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594815"&gt;#3594815&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594816"&gt;#3594816&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594817"&gt;#3594817&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates (&lt;code&gt;ai_eval_update_10050&lt;/code&gt;). After editing a judge's template or guidance, validate the judge again in the browser. CLI fixture validations record no prompt version, so they also read Validation out of date once an override exists. Custom implementations or mocks of &lt;code&gt;JudgeValidationStoreInterface&lt;/code&gt; must add &lt;code&gt;validatedVersionMatches(object $row): ?bool&lt;/code&gt; and &lt;code&gt;activePromptVersion(string $graderId): ?int&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594834: Trace import shows a structured ai_observability span as one user message holding raw JSON</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594834.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594834</guid>
-      <category>Module maintainers</category>
-      <pubDate>Sat, 31 Oct 2026 12:57:04 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 34 files, +2626/−156 · php +2075/−154 · json +478 · md +58/−2 · css +14 · txt +1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d49d3a8185e2436e06f691e4d889b8c60f3e11af"&gt;d49d3a8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594834"&gt;#3594834&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Trace import in ai_eval now handles the structured JSON that ai_observability writes by default. Before, a structured span showed up in trace review as one user message full of raw JSON, and tool calls were lost. Messages now appear as separate messages, tool calls show on the review card, and the reply is the reply text. Spans that ai_observability cut or summarized are flagged and cannot be promoted, and neither can traces with tool calls or tool results in their input, because replay cannot send those yet. The importer also no longer drops every document after a stray closing brace in a trace file. It reports how many parts were skipped, and warns when the rest of a file was not read because of an unclosed brace. The warnings appear on the import page and in &lt;code&gt;drush ai-eval:import-traces&lt;/code&gt;. Plain role-line input is read more reliably too: text before the first role line is kept, Windows line endings work, and &lt;code&gt;developer&lt;/code&gt; is shown as &lt;code&gt;system&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;AI Eval's admin screens and Drush output now use correct singular wording when a count is 1 (for example &amp;quot;1 test: Name&amp;quot;, &amp;quot;1 labeled answer&amp;quot;, &amp;quot;1 question&amp;quot;, &amp;quot;1 pair&amp;quot;). Entity types and bundles show their labels (for example &amp;quot;Content / Article&amp;quot;) in place of machine names like &lt;code&gt;node&lt;/code&gt;, and the trace review notices say &amp;quot;AI Observability&amp;quot; and note that the 1024 character limit applies &amp;quot;unless the site changed it&amp;quot;. The same commit also shipped several related form fixes. Pressing Enter in a rubric text field no longer saves the rubric. Rubric phrases are added with an &amp;quot;Add phrase&amp;quot; button. Question row buttons have accessible names that include the question id. The gate threshold follows the selected metric. A new note explains the manual provider__model entry when no chat models are listed. The &amp;quot;stopped at N answers&amp;quot; notice no longer shows when recording went past the limit.&lt;/p&gt;
 &lt;h2&gt;Impact&lt;/h2&gt;
 &lt;p&gt;Affects module maintainers.&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\ai_eval\Service\TracePayloadParser&lt;/code&gt; with &lt;code&gt;parseInput()&lt;/code&gt;, &lt;code&gt;parseOutput()&lt;/code&gt;, &lt;code&gt;parsePlain()&lt;/code&gt; and &lt;code&gt;hasCutSignature()&lt;/code&gt;, and &lt;code&gt;TraceImporter::splitDocumentsWithReport()&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\ai_eval\Render\EntityLabels&lt;/code&gt; helper (&lt;code&gt;type()&lt;/code&gt;, &lt;code&gt;bundle()&lt;/code&gt;), new &lt;code&gt;GateMetric::browserSettings()&lt;/code&gt;, and new route &lt;code&gt;ai_eval.rubric.phrase_row&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The new &lt;code&gt;TracePayloadParser&lt;/code&gt; replaces &lt;code&gt;OtelTraceSource::parseMessages()&lt;/code&gt;. &lt;code&gt;parseInput()&lt;/code&gt; treats input starting with &lt;code&gt;{&amp;quot;messages&amp;quot;:[&lt;/code&gt; as structured. It keeps each message's role and text, each assistant message's tool calls (id, name, arguments as a string) and each tool message's &lt;code&gt;tool_id&lt;/code&gt;. Anything else goes through &lt;code&gt;parsePlain()&lt;/code&gt;. &lt;code&gt;parseOutput()&lt;/code&gt; uses &lt;code&gt;normalized.text&lt;/code&gt; and &lt;code&gt;normalized.tools&lt;/code&gt; when the output is a chat &lt;code&gt;normalized&lt;/code&gt; object. Other outputs, such as embeddings, are returned unchanged.&lt;/p&gt;
-&lt;p&gt;Cut detection does not depend on the 1024 default. &lt;code&gt;hasCutSignature()&lt;/code&gt; looks for the &lt;code&gt;[...]&lt;/code&gt; marker at the midpoint position where ai_observability's truncation puts it, for strings of at least 32 characters. When a payload is cut, only complete leading message objects from the retained head are recovered. Flags (&lt;code&gt;input_cap&lt;/code&gt;, &lt;code&gt;output_cap&lt;/code&gt;, &lt;code&gt;omitted&lt;/code&gt;, &lt;code&gt;shortened&lt;/code&gt;) land in &lt;code&gt;payload_flags&lt;/code&gt; on the normalized trace, set &lt;code&gt;truncated&lt;/code&gt;, and drive the review card notices. &lt;code&gt;OtlpSpanMapper&lt;/code&gt; also uses these checks when setting the stored &lt;code&gt;truncated&lt;/code&gt; column. Normalized traces gain &lt;code&gt;raw_input&lt;/code&gt;, &lt;code&gt;input_format&lt;/code&gt;, &lt;code&gt;response_tools&lt;/code&gt;, &lt;code&gt;response_incomplete&lt;/code&gt; and &lt;code&gt;payload_flags&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;PromotionService&lt;/code&gt; has a new &lt;code&gt;STATUS_TOOL_TURNS&lt;/code&gt; (&lt;code&gt;tool_turns&lt;/code&gt;) refusal. It applies to structured input containing tool role messages, tool calls or call ids. Promoted questions now store &lt;code&gt;metadata.raw_input&lt;/code&gt; (up to 8000 characters) and, for tool-only replies, &lt;code&gt;metadata.ai_response_tools&lt;/code&gt; as a JSON string. Both are strings so questions stay editable. The &lt;code&gt;streamed_uncaptured&lt;/code&gt; check no longer fires when the reply has tool calls or was cut.&lt;/p&gt;
-&lt;p&gt;On the document side, &lt;code&gt;TraceImporter::splitDocumentsWithReport()&lt;/code&gt; scans depth-zero objects with a string-aware matcher. Stray text, stray &lt;code&gt;}&lt;/code&gt; and closed non-OTLP objects are skipped and logged with a byte offset. An unclosed object or string stops the read, since later objects could be nested payload data. &lt;code&gt;ImportResult&lt;/code&gt; gains &lt;code&gt;skippedDocuments&lt;/code&gt; and &lt;code&gt;unreadTails&lt;/code&gt;. &lt;code&gt;splitDocuments()&lt;/code&gt; still exists and delegates to the new method.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Spans already imported keep their stored &lt;code&gt;truncated&lt;/code&gt; value, so re-import them to get the new cut and summarized flags. Parsing of messages and replies happens when a trace is read. Observed tool calls do not fill &lt;strong&gt;Expected tools&lt;/strong&gt; during promotion.&lt;/p&gt;
+&lt;p&gt;Plurals use &lt;code&gt;formatPlural()&lt;/code&gt; or &lt;code&gt;PluralTranslatableMarkup&lt;/code&gt; in &lt;code&gt;EvalDatasetListBuilder&lt;/code&gt;, &lt;code&gt;JudgeTrustReason&lt;/code&gt;, &lt;code&gt;ConfusionMatrix&lt;/code&gt;, &lt;code&gt;JudgeComparisonView&lt;/code&gt;, &lt;code&gt;LengthCheck&lt;/code&gt;, &lt;code&gt;StabilityCheck&lt;/code&gt;, &lt;code&gt;TelemetryText&lt;/code&gt;, &lt;code&gt;PowerAdvisory&lt;/code&gt;, &lt;code&gt;ResolutionCheck&lt;/code&gt;, &lt;code&gt;ResultSummaryBand&lt;/code&gt;, &lt;code&gt;CalibrationSaveTrait&lt;/code&gt; and &lt;code&gt;JudgeComparisonForm&lt;/code&gt;. Drush and report strings built with &lt;code&gt;sprintf&lt;/code&gt; (&lt;code&gt;EvalRunCommand&lt;/code&gt;, &lt;code&gt;EvalImportEnvelopeCommand&lt;/code&gt;, &lt;code&gt;EvalValidateJudgeCommand&lt;/code&gt;, &lt;code&gt;JudgeValidationReport&lt;/code&gt;, &lt;code&gt;TraceImporter&lt;/code&gt;) choose the singular format inline with a ternary.&lt;/p&gt;
+&lt;p&gt;A new &lt;code&gt;Render\EntityLabels&lt;/code&gt; helper resolves the entity type label and bundle label through &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt;. It falls back to the stored id when the definition no longer exists. It is used in &lt;code&gt;DecisionAutomatorOptionsTrait&lt;/code&gt;, &lt;code&gt;RecordedAnswerTrait&lt;/code&gt; and &lt;code&gt;AiAutomatorsWorkflowRunner::listWorkflows()&lt;/code&gt;. In &lt;code&gt;DecisionReviewForm&lt;/code&gt;, the &amp;quot;stopped at&amp;quot; paragraph is now rendered only when &lt;code&gt;$recorded === $limit&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Other changes in the same commit: &lt;code&gt;js/gate-threshold.js&lt;/code&gt; is attached through the &lt;code&gt;admin&lt;/code&gt; library. It uses &lt;code&gt;drupalSettings.aiEval.gateMetrics&lt;/code&gt; from the new &lt;code&gt;GateMetric::browserSettings()&lt;/code&gt;. When the metric changes, it resets the threshold if the field is empty, equals the previous metric's default, or exceeds the new metric's maximum. For rubrics, a capture-phase keydown handler stops Enter from submitting. In a phrase input, Enter clicks the new &amp;quot;Add phrase&amp;quot; button and focuses the added input. The button fetches a blank input from the new &lt;code&gt;RubricController::phraseRow()&lt;/code&gt; route &lt;code&gt;ai_eval.rubric.phrase_row&lt;/code&gt;. In &lt;code&gt;DatasetQuestionList&lt;/code&gt;, the move, edit, delete, enable and disable buttons get &lt;code&gt;aria-label&lt;/code&gt; and &lt;code&gt;title&lt;/code&gt; values containing the question id. &lt;code&gt;ProviderModelOptionsTrait&lt;/code&gt; gains &lt;code&gt;noChatModelsNotice()&lt;/code&gt; and &lt;code&gt;manualModelDescription()&lt;/code&gt;, now used by both &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. The notice links to &lt;code&gt;ai.admin_providers&lt;/code&gt; only for users with &lt;code&gt;administer ai providers&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The 1024 character wording is changed in &lt;code&gt;TraceReviewFragment&lt;/code&gt; and &lt;code&gt;docs/user/usage/traces.md&lt;/code&gt;. The text still says 1024 and does not read the real configured limit.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;Opened: October 30, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 31, 2026&lt;/li&gt;
+&lt;li&gt;Opened: November 1, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594851: Say so when no chat provider is set up, instead of a blank Provider / Model text box</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594851.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594851</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 02 Nov 2026 08:11:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 58 files, +1118/−90 · php +1011/−89 · js +77 · yml +16 · md +14/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/499dc1e3b49ce10df0c85bcf3a2f416997fd7121"&gt;499dc1e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594851"&gt;#3594851&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In AI Eval, the guided test form and the classic test target form now say so when the AI module lists no chat models. Before, both showed a bare &amp;quot;Provider / Model&amp;quot; text box. The format only appeared in an error after submit. Now a warning says no chat models are available and that one possible cause is a missing provider or key. Users with the &lt;code&gt;administer ai providers&lt;/code&gt; permission get a link to the AI provider settings. Other users are told to ask an administrator. The text field stays as a fallback, with a description that says to type &lt;code&gt;provider__model&lt;/code&gt;, for example &lt;code&gt;openai__gpt-4o-mini&lt;/code&gt;. When models are listed, the select and its description are unchanged. The same commit also bundles several unrelated fixes, such as singular and plural wording, named row buttons, and Enter no longer saving a rubric.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ProviderModelOptionsTrait&lt;/code&gt; gains &lt;code&gt;noChatModelsNotice()&lt;/code&gt; and &lt;code&gt;manualModelDescription()&lt;/code&gt;, now also used by &lt;code&gt;GuidedTestForm&lt;/code&gt; and &lt;code&gt;EvalTargetForm&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;GuidedTestForm&lt;/code&gt; and &lt;code&gt;EvalTargetForm&lt;/code&gt; now use &lt;code&gt;ProviderModelOptionsTrait::providerModelOptions()&lt;/code&gt; in place of their own try/catch blocks. Because of this, the guided form now reports a load failure as a warning with the exception message and a log entry, as the classic form already did. The trait tracks &lt;code&gt;providerModelLoadFailed&lt;/code&gt;. &lt;code&gt;noChatModelsNotice()&lt;/code&gt; returns a render element that is hidden (&lt;code&gt;#access&lt;/code&gt;) when the failure message was already shown, so the user does not see two warnings. It checks &lt;code&gt;administer ai providers&lt;/code&gt; to decide whether to render a &lt;code&gt;Link&lt;/code&gt; to &lt;code&gt;ai.admin_providers&lt;/code&gt;. It adds the &lt;code&gt;user.permissions&lt;/code&gt; cache context. &lt;code&gt;manualModelDescription()&lt;/code&gt; supplies the text field description. The classic form keeps its original select description only when options exist. The &lt;code&gt;provider__model&lt;/code&gt; validation after submit is unchanged.&lt;/p&gt;
+&lt;p&gt;New tests are &lt;code&gt;NoChatModelsTest&lt;/code&gt;, which covers the link with and without the permission and the format error on submit, and &lt;code&gt;ChatModelsAvailableTest&lt;/code&gt;, which uses the &lt;code&gt;ai_test&lt;/code&gt; provider to check that the select and old description are kept.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 1, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
