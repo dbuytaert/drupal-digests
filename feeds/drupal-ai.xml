@@ -5,6 +5,163 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3594659: Multimodal evaluation: support file inputs (images, documents) in datasets</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594659.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594659</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 03 Nov 2026 13:01:45 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 37 files, +1896/−43 · php +1814/−34 · md +53/−5 · yml +19/−3 · txt +9 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/8912f1ef89d66e32c4d29c832687d78c6aa97274"&gt;8912f1e&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594659"&gt;#3594659&lt;/a&gt; · 1 contributor · 5 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;AI Eval dataset questions can now include images (png, jpeg, webp, gif). Chat targets, config agent targets and AI Prompt workflow targets send the images to the model. LLM judges receive the same images when grading. You add images with a new &lt;strong&gt;Upload images&lt;/strong&gt; field in the question editor, or by listing filename and image reference pairs under &lt;strong&gt;Files&lt;/strong&gt;. A model or judge that cannot read images does not get a zero: the question is skipped, or the judge returns no score, and the reason is shown. Other workflow runners and code-defined agents skip image questions. The results page shows thumbnails of a question's images and any skip reason. Limits are 5 MB per image and 5 images per question.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Uploaded question images become managed files under &lt;code&gt;private://ai_eval/question-files/&lt;/code&gt; (or &lt;code&gt;public://&lt;/code&gt; when private storage is not configured).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New services &lt;code&gt;ai_eval.question_image_resolver&lt;/code&gt; (&lt;code&gt;QuestionImageResolver&lt;/code&gt;) and &lt;code&gt;ai_eval.question_image_upload&lt;/code&gt; (&lt;code&gt;QuestionImageUpload&lt;/code&gt;); &lt;code&gt;WorkflowRunOptions&lt;/code&gt; carries an &lt;code&gt;images&lt;/code&gt; list to workflow runners.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The per-question &lt;code&gt;files&lt;/code&gt; key already existed in the dataset schema but the runner ignored it. A new &lt;code&gt;QuestionImageResolver&lt;/code&gt; service turns &lt;code&gt;files&lt;/code&gt; entries into images and attaches them to the last user &lt;code&gt;ChatMessage&lt;/code&gt;. It accepts &lt;code&gt;public://&lt;/code&gt; and &lt;code&gt;private://&lt;/code&gt; URIs and &lt;code&gt;data:image/...;base64,&lt;/code&gt; URLs with a matching MIME type. For FileSource YAML datasets, &lt;code&gt;FileSource&lt;/code&gt; also rewrites paths relative to the YAML file, and the resolved path, symlinks included, must stay inside that folder. Remote URLs are refused. Non-image string values are carried but never sent.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;EvalRunner&lt;/code&gt; resolves images before invoking the target. It skips the row (unscored, with &lt;code&gt;skip_reason&lt;/code&gt;) when the model cannot read images, when the workflow runner is not &lt;code&gt;ai_prompt&lt;/code&gt;, or when a code-defined agent is used. For config agents (&lt;code&gt;AiAgentEntityWrapper&lt;/code&gt;) it checks the agent's provider and model, falling back to the &lt;code&gt;chat_with_tools&lt;/code&gt; default. If the model cannot be resolved, it sends the images anyway and records an &lt;code&gt;image_warning&lt;/code&gt;. &lt;code&gt;AiPromptWorkflowRunner&lt;/code&gt; attaches &lt;code&gt;$options-&amp;gt;images&lt;/code&gt; to the rendered prompt. The &lt;code&gt;LlmJudge&lt;/code&gt; base class receives the same resolved bytes through a &lt;code&gt;_question_images&lt;/code&gt; entry in the grader context, so judges see what the target saw. A judge without vision support returns a null score with an explanation.&lt;/p&gt;
+&lt;p&gt;Uploads go through &lt;code&gt;QuestionImageUpload&lt;/code&gt;, which stores managed files and tracks usage. The question editor saves inside a database transaction and deletes the new files on failure. A new &lt;code&gt;QuestionFileUsageHooks&lt;/code&gt; releases file usage when a question is deleted. Run identity records each image's name, SHA-256, MIME type and byte count in a &lt;code&gt;files&lt;/code&gt; entry, not the contents. Results pages limit inline previews to 256 KB each and 2 MB per page, and show the name and size when a preview is too large. &lt;code&gt;LabeledExample&lt;/code&gt; gained a &lt;code&gt;files&lt;/code&gt; map. &lt;code&gt;HumanLabelSource&lt;/code&gt; reloads a question's files from the source dataset only when &lt;code&gt;PromotionService::sourceDataset()&lt;/code&gt; reports an exact match with the run. Otherwise that review is left out of judge validation, and &lt;code&gt;inexactAnnotationCount()&lt;/code&gt; feeds a message on the validation page. Text-only reviews stay usable after the dataset changes or is deleted.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom classes that construct &lt;code&gt;AiPromptWorkflowRunner&lt;/code&gt; need the extra constructor argument, which is optional on the class:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;arguments: ['@entity_type.manager', '@?ai.provider', '@ai_eval.chat_invoker', '@ai_eval.rate_limit_handler', '@datetime.time', '@ai_eval.question_image_resolver']
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;EvalRunner&lt;/code&gt;, &lt;code&gt;EvalResultsController&lt;/code&gt;, &lt;code&gt;FileSource&lt;/code&gt;, &lt;code&gt;HumanLabelSource&lt;/code&gt; and &lt;code&gt;LlmJudge&lt;/code&gt; also take the new service or &lt;code&gt;@ai_eval.promotion_service&lt;/code&gt;. Constructor changes only matter if you subclass or re-register them.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (4 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594869: ai_eval_droost: move to Droost 2 and Tool API, and fix two false passes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594869.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594869</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 03 Nov 2026 11:58:33 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 19 files, +1006/−243 · php +924/−172 · md +65/−63 · yml +9/−6 · json +5/−2 · txt +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/4be97e8f71247d6bb27796a46e1c56c7c4fd84ee"&gt;4be97e8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594869"&gt;#3594869&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;ai_eval_droost&lt;/code&gt; submodule now grades built Drupal state through Droost 2 and Tool API instead of the old MCP Server plugins. On a Droost 2 site the old code could not reach any tool. Droost 1 support is dropped. Two false passes are fixed: a Canvas read with no item list used to count as an empty tree, so &lt;code&gt;component_present&lt;/code&gt; with &lt;code&gt;count: 0&lt;/code&gt; passed. A failed View configuration read used to leave unfiltered assertions free to run and pass. Both now fail with a reason. View specs can only be graded from Drush (&lt;code&gt;drush aer&lt;/code&gt;), because Droost 2 refuses build tools in a web request. Canvas and View row reads from the admin UI use the logged-in user's access. A site that updates ai_eval while still on Droost 1 keeps working, and the status page reports the missing requirement.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;ai_eval_droost&lt;/code&gt; now requires &lt;code&gt;drupal/droost&lt;/code&gt; 2.0.0 or later and &lt;code&gt;drupal/tool&lt;/code&gt; (1.0.0-beta12 or later); Droost 1 and MCP Server are no longer supported.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;DroostOracle&lt;/code&gt; constructor now takes the gateway, entity type manager, logger and an optional SAPI string; new &lt;code&gt;DroostToolGatewayInterface&lt;/code&gt;; &lt;code&gt;DroostOracleInterface::ALLOWED_TOOLS&lt;/code&gt; shrunk to six tools.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_eval_droost.tool_gateway&lt;/code&gt; service (&lt;code&gt;ToolApiGateway&lt;/code&gt;, implementing &lt;code&gt;DroostToolGatewayInterface&lt;/code&gt;) and a runtime requirements check on the status page.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Tools now run through a new &lt;code&gt;ToolApiGateway&lt;/code&gt; (service &lt;code&gt;ai_eval_droost.tool_gateway&lt;/code&gt;) behind &lt;code&gt;DroostToolGatewayInterface&lt;/code&gt;, because Tool API's runner classes are final and tests need their own interface. The gateway takes &lt;code&gt;@?tool.runner&lt;/code&gt;, so the container still compiles without Tool API. It calls &lt;code&gt;ToolRunner::run()&lt;/code&gt; and returns a &lt;code&gt;{success, message, data, category}&lt;/code&gt; envelope. The &lt;code&gt;data&lt;/code&gt; value comes from the result's &lt;code&gt;data&lt;/code&gt; context value, and messages are reduced to plain text. A missing tool, Tool API input and access failures, and exceptions all come back as envelopes rather than throwing.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;DroostOracle&lt;/code&gt; keeps its fixed allowlist, now cut to &lt;code&gt;droost_views_get&lt;/code&gt;, &lt;code&gt;droost_views_execute&lt;/code&gt;, &lt;code&gt;droost_canvas_tree_get&lt;/code&gt;, &lt;code&gt;droost_canvas_tree_validate&lt;/code&gt; and &lt;code&gt;droost_entity_load&lt;/code&gt;. Under the &lt;code&gt;cli&lt;/code&gt; and &lt;code&gt;phpdbg&lt;/code&gt; SAPIs it loads user 1 and passes it as the account, as &lt;code&gt;drush droost:tool&lt;/code&gt; does. Otherwise it passes no account, so Tool API uses the current user. It rewrites failure messages: a missing tool names its providing module (&lt;code&gt;droost_build&lt;/code&gt; or &lt;code&gt;droost_canvas&lt;/code&gt;), access denials say which account was used, and a build-tool refusal gets &amp;quot;Grade this spec from Drush (drush aer).&amp;quot; appended. A &lt;code&gt;data&lt;/code&gt; value that is not an array is a failure.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;AssertionRunner&lt;/code&gt;, a new &lt;code&gt;failTarget()&lt;/code&gt; helper emits one failure per assertion, keeping each assertion's id and tier. It is used when &lt;code&gt;droost_views_get&lt;/code&gt; fails and when &lt;code&gt;droost_canvas_tree_get&lt;/code&gt; succeeds without an &lt;code&gt;items&lt;/code&gt; array. Malformed-assertion failures are still reported. A new &lt;code&gt;DroostRequirements&lt;/code&gt; hook (&lt;code&gt;runtime_requirements&lt;/code&gt;) errors when Droost or Tool API is missing or Droost is older than 2.0.0, and warns when the Droost version cannot be determined, as in a dev checkout. Tests added: a rewritten unit test using &lt;code&gt;FakeGateway&lt;/code&gt;, new false-pass tests, and a kernel &lt;code&gt;ToolApiGatewayTest&lt;/code&gt; against real Droost 2. &lt;code&gt;verify_live.php&lt;/code&gt; now resolves its expected node ids from the dataset UUIDs, and CI runs the &lt;code&gt;ai_eval_droost&lt;/code&gt; group.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Install the new dependencies before updating the submodule:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;composer require drupal/droost:^2.0 drupal/tool:^1.0@beta
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Enable &lt;code&gt;droost_build&lt;/code&gt; for View specs and &lt;code&gt;droost_canvas&lt;/code&gt; for Canvas specs. Run View specs from Drush (&lt;code&gt;drush aer&lt;/code&gt;). Custom code that constructs &lt;code&gt;DroostOracle&lt;/code&gt; directly must pass the new arguments: the gateway, &lt;code&gt;@entity_type.manager&lt;/code&gt; and the logger.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594873: Agent tests send a wrapped task instead of the chat messages the site sends</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594873.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594873</guid>
+      <pubDate>Tue, 03 Nov 2026 11:23:31 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +349/−23 · php +329/−16 · md +20/−7&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d81430c559572e7dd6ee5bdcde133d0f268aba95"&gt;d81430c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594873"&gt;#3594873&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Agent tests in ai_eval now give config agents the question as separate chat messages with their roles, as the AI Assistant does on the site. Before, the question was flattened into one text and wrapped as a task (&amp;quot;Task Title… Task Description…&amp;quot;), and HTML in it was stripped. Scores for agent tests can change, including for single-turn questions, so thresholds and baselines may need re-checking. Code-defined agents that read only the Task still get the flattened transcript.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EvalRunner::invokeAgent()&lt;/code&gt; now takes the normalized &lt;code&gt;ChatMessage[]&lt;/code&gt; that &lt;code&gt;runQuestionBody()&lt;/code&gt; already builds, in addition to the flattened transcript. It keeps &lt;code&gt;setTask(new Task($message))&lt;/code&gt;, because code-defined agents read only the Task, and also calls &lt;code&gt;setChatInput(new ChatInput($conversationTail))&lt;/code&gt;. Config agents build their history from the chat input, so they get the original turns with roles. The agent's own system prompt, or an optimizer's &lt;code&gt;agent_prompt_override&lt;/code&gt; candidate, stays in force.&lt;/p&gt;
+&lt;p&gt;Dataset &lt;code&gt;system&lt;/code&gt; entries are dropped. The filter was extracted from the chat path into a private &lt;code&gt;withoutQuestionSystemMessages()&lt;/code&gt; and is shared by chat and agent modes. It logs the drop once, outside the rate-limit retry closure.&lt;/p&gt;
+&lt;p&gt;A new kernel test, &lt;code&gt;EvalRunnerAgentChatInputTest&lt;/code&gt;, uses a real config agent with a scripted provider. It covers three-turn roles with the caller prefix, single-turn HTML without a Task wrapper, system-entry removal with the override prompt, and a tool loop that keeps the original turns once. The CHANGELOG gets an &amp;quot;Unreleased / Fixed&amp;quot; entry. &lt;code&gt;docs/user/usage/datasets.md&lt;/code&gt; and &lt;code&gt;schema/README.md&lt;/code&gt; no longer say agent mode flattens.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;No code changes are needed. Re-run agent tests and re-baseline scores and thresholds, since input to config agents differs from earlier versions.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 3, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586573: Add setting to add CCC to main menu</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586573.md</link>
+      <guid isPermaLink="false">project/ai_context#3586573</guid>
+      <category>Site owners</category>
+      <pubDate>Tue, 03 Nov 2026 03:47:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 22 files, +1103/−6 · php +1018/−2 · md +43 · yml +29/−1 · css +12/−3 · json +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/1a45fa2515ee312eb33c0e5331c0fdb7f8bcd64e"&gt;1a45fa2&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586573"&gt;#3586573&lt;/a&gt; · 1 contributor · 44 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Context Control Center can now optionally appear as its own item in the main admin menu instead of only under Configuration &amp;gt; AI. It is off by default. On the General settings page, above &amp;quot;Show overview page&amp;quot;, a new &amp;quot;Add to main menu&amp;quot; checkbox turns it on, and a &amp;quot;Menu item title&amp;quot; field (default &amp;quot;Context&amp;quot;) appears when it is checked. The item uses a stack icon and links to the existing CCC redirect, so it opens the overview page when that is enabled and the context items list otherwise. With Navigation (Drupal CMS) it shows in the sidebar after Media; with Toolbar only it shows at the top level after Content. Existing sites get the new settings from a post-update, and the item stays off until an admin enables it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;ai_context_post_update_0016_add_main_menu_settings&lt;/code&gt; adds the two keys to existing sites; the item stays off.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;ai_context.settings&lt;/code&gt; keys &lt;code&gt;main_menu_enabled&lt;/code&gt; (default &lt;code&gt;false&lt;/code&gt;) and &lt;code&gt;main_menu_title&lt;/code&gt; (default &lt;code&gt;Context&lt;/code&gt;), both optional in schema; title has NotBlank, max 255 and no &lt;code&gt;&amp;lt;&lt;/code&gt; or &lt;code&gt;&amp;gt;&lt;/code&gt; constraints.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The link is provided by a menu link deriver, &lt;code&gt;AiContextMainMenuLinkDeriver&lt;/code&gt;, declared as plugin &lt;code&gt;ai_context.main_menu_item&lt;/code&gt; in &lt;code&gt;ai_context.links.menu.yml&lt;/code&gt; (class &lt;code&gt;MenuLinkDefault&lt;/code&gt;). It returns nothing unless &lt;code&gt;main_menu_enabled&lt;/code&gt; is on. With the &lt;code&gt;navigation&lt;/code&gt; module installed the link goes in the &lt;code&gt;content&lt;/code&gt; menu (weight 10); otherwise it goes in &lt;code&gt;admin&lt;/code&gt; under &lt;code&gt;system.admin&lt;/code&gt; (weight -9). When both are installed it appears in Navigation only. The title is stripped of tags and falls back to a translatable &amp;quot;Context&amp;quot; when it is empty or equals the default; a custom title is not translated. The existing &lt;code&gt;ai_context.main_menu_link&lt;/code&gt; under Configuration is kept, and its plugin ID is retained so overrides and styling still apply.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextSettingsConfigSubscriber&lt;/code&gt; now takes &lt;code&gt;router.builder&lt;/code&gt; and calls &lt;code&gt;setRebuildNeeded()&lt;/code&gt; when the toggle changes, or when the title changes while the toggle is on. Core rebuilds menu links on a router rebuild, so no &lt;code&gt;drush cr&lt;/code&gt; is needed. The settings form calls &lt;code&gt;rebuildIfNeeded()&lt;/code&gt; in submit so the redirect shows the change. &lt;code&gt;ai_context_toolbar_alter()&lt;/code&gt; adds the &lt;code&gt;config:system.menu.admin&lt;/code&gt; cache tag to the Toolbar tray, so a user whose tray was empty does not keep a cached empty tray after the item is enabled.&lt;/p&gt;
+&lt;p&gt;Validation: the schema marks both keys &lt;code&gt;requiredKey: false&lt;/code&gt;, so older exports still import. The title carries NotBlank, Length (255) and a Regex that rejects &lt;code&gt;&amp;lt;&lt;/code&gt; and &lt;code&gt;&amp;gt;&lt;/code&gt;, because Navigation inserts the title into an HTML tooltip. The form only requires the title while the toggle is on. While it is off, a blank title keeps the saved one, tags are stripped, and a still-invalid title becomes &amp;quot;Context&amp;quot;. The form reads defaults from the editable config, not the overridden config, so &lt;code&gt;settings.php&lt;/code&gt; overrides are not written back on save. CSS adds the icon for the new link's toolbar classes and an &lt;code&gt;.ai-context-settings-nested&lt;/code&gt; indent.&lt;/p&gt;
+&lt;p&gt;The diff also changes &lt;code&gt;AiContextScopeBase::buildValueForm()&lt;/code&gt; to run option labels through &lt;code&gt;Html::escape&lt;/code&gt;, so a role label containing markup no longer breaks the value form. This is unrelated to the menu setting.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates (&lt;code&gt;drush updb&lt;/code&gt;). &lt;code&gt;ai_context_post_update_0016_add_main_menu_settings&lt;/code&gt; adds &lt;code&gt;main_menu_enabled: false&lt;/code&gt; and &lt;code&gt;main_menu_title: Context&lt;/code&gt; to &lt;code&gt;ai_context.settings&lt;/code&gt; if missing. Existing values are left alone. Export the config afterwards to keep it complete. To show the item, enable &amp;quot;Add to main menu&amp;quot; at &lt;code&gt;/admin/config/ai/context/settings/general&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586603: Scope cleanup can leave an item published with an emptied hard-filter scope</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586603.md</link>
       <guid isPermaLink="false">project/ai_context#3586603</guid>
@@ -611,151 +768,6 @@ Respond with exactly one token — XSAFE, XWARN, or XBLOCK — and nothing else.
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3556021: [Tool] Create tools to save/update/delete SDC components</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3556021.md</link>
-      <guid isPermaLink="false">project/tool#3556021</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 02 Nov 2026 09:10:05 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 10 files, +1271/−0 · php +1256 · yml +15&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3556021"&gt;#3556021&lt;/a&gt; · 5 contributors · 23 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This adds a Tool module, &lt;code&gt;tool_sdc&lt;/code&gt;, that lets Tool API callers such as AI agents build Single Directory Components (SDC) in a theme or module. The tools list existing components, read component files, write the &lt;code&gt;.component.yml&lt;/code&gt; definition, the &lt;code&gt;.twig&lt;/code&gt; template and css, js, scss or json files, and delete files. The tools write directly into theme or module directories on the filesystem. For that reason they sit behind two new permissions, and the write permission is marked as restricted. Only grant it on local or development environments. The issue is marked fixed, but no commits had landed when this was summarized. A late comment says the Tool project's tools are moving to the Tool Belt module (see &lt;a href="https://www.drupal.org/node/3557721"&gt;#3557721&lt;/a&gt;), so the final home of this code may differ.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;read filesystem components&lt;/code&gt; permission and a new restricted &lt;code&gt;write filesystem components&lt;/code&gt; permission.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;tool_sdc&lt;/code&gt; submodule in the Tool project with seven tool plugins (&lt;code&gt;list_components&lt;/code&gt;, &lt;code&gt;list_component_files&lt;/code&gt;, &lt;code&gt;read_component_file&lt;/code&gt;, &lt;code&gt;write_sdc_definition&lt;/code&gt;, &lt;code&gt;write_sdc_twig&lt;/code&gt;, &lt;code&gt;write_sdc_file&lt;/code&gt;, &lt;code&gt;delete_component_file&lt;/code&gt;) and an &lt;code&gt;SdcToolBase&lt;/code&gt; base class.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;This is based on the MR !57 diff, which is a proposal and not merged code. A new &lt;code&gt;tool_sdc&lt;/code&gt; module depends on &lt;code&gt;tool:tool&lt;/code&gt;. Its tools are &lt;code&gt;#[Tool]&lt;/code&gt; plugins in &lt;code&gt;Drupal\tool_sdc\Plugin\tool\Tool&lt;/code&gt;, all extending &lt;code&gt;SdcToolBase&lt;/code&gt;. The base class injects &lt;code&gt;module_handler&lt;/code&gt;, &lt;code&gt;theme_handler&lt;/code&gt;, &lt;code&gt;file_system&lt;/code&gt;, &lt;code&gt;plugin.manager.sdc&lt;/code&gt; and &lt;code&gt;app.root&lt;/code&gt;. It resolves the extension path and builds the path &lt;code&gt;&amp;lt;extension&amp;gt;/components/&amp;lt;component_name&amp;gt;&lt;/code&gt;. Write tools call &lt;code&gt;ComponentPluginManager::clearCachedDefinitions()&lt;/code&gt; after changing files.&lt;/p&gt;
-&lt;p&gt;Each tool takes &lt;code&gt;component_name&lt;/code&gt; (regex-constrained), &lt;code&gt;extension_type&lt;/code&gt; (&lt;code&gt;theme&lt;/code&gt; or &lt;code&gt;module&lt;/code&gt;) and &lt;code&gt;extension_name&lt;/code&gt;. Path safety comes from &lt;code&gt;sanitizeFilePath()&lt;/code&gt;, &lt;code&gt;sanitizeFileName()&lt;/code&gt;, &lt;code&gt;getComponentDirectory()&lt;/code&gt; and &lt;code&gt;validateFilePath()&lt;/code&gt;. These reject &lt;code&gt;..&lt;/code&gt; and null bytes and check that the resolved path stays inside the component directory. &lt;code&gt;write_sdc_definition&lt;/code&gt; only checks that the YAML parses with &lt;code&gt;Yaml::parse()&lt;/code&gt;. It does not check it against the SDC schema. &lt;code&gt;write_sdc_twig&lt;/code&gt; checks syntax by tokenizing with the &lt;code&gt;twig&lt;/code&gt; service.&lt;/p&gt;
-&lt;p&gt;File type allowlists: &lt;code&gt;write_sdc_file&lt;/code&gt; accepts &lt;code&gt;css&lt;/code&gt;, &lt;code&gt;js&lt;/code&gt;, &lt;code&gt;scss&lt;/code&gt; and &lt;code&gt;json&lt;/code&gt;. &lt;code&gt;read_component_file&lt;/code&gt; accepts those plus &lt;code&gt;twig&lt;/code&gt;, &lt;code&gt;yml&lt;/code&gt; and &lt;code&gt;yaml&lt;/code&gt;. &lt;code&gt;delete_component_file&lt;/code&gt; refuses &lt;code&gt;twig&lt;/code&gt;, &lt;code&gt;yml&lt;/code&gt; and &lt;code&gt;yaml&lt;/code&gt;, so a component itself has to be removed by hand. Access is decided in &lt;code&gt;SdcToolBase::checkAccess()&lt;/code&gt;. Tools whose operation is &lt;code&gt;ToolOperation::Read&lt;/code&gt; need &lt;code&gt;read filesystem components&lt;/code&gt;. All others need &lt;code&gt;write filesystem components&lt;/code&gt;, which is declared with &lt;code&gt;restrict access: true&lt;/code&gt;. The &lt;code&gt;copy_sdc_file&lt;/code&gt; tool from the original proposal was dropped.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 4, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3554737: [Tool] Create Date/Time Formatter tool</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3554737.md</link>
-      <guid isPermaLink="false">project/tool#3554737</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 09:10:05 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +458/−0 · php +451 · yml +7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3554737"&gt;#3554737&lt;/a&gt; · 4 contributors · 8 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool project gets a &amp;quot;Format Date/Time&amp;quot; tool that converts a timestamp, a date string or a relative expression such as &amp;quot;+1 day&amp;quot; into a formatted string. You can choose the output format, timezone and language. It can also return a relative time difference instead of an absolute date. It ships in a new &lt;code&gt;tool_utilities&lt;/code&gt; submodule for generic utility tools and needs no access check, so anyone can run it. The merge request was marked RTBC after testing, but the diff was still unmerged when this was written.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;date_time_formatter&lt;/code&gt; tool plugin (&lt;code&gt;Drupal\tool_utilities\Plugin\tool\Tool\DateTimeFormatter&lt;/code&gt;) in a new &lt;code&gt;tool_utilities&lt;/code&gt; submodule.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The tool is a &lt;code&gt;ToolBase&lt;/code&gt; plugin with id &lt;code&gt;date_time_formatter&lt;/code&gt; and the &lt;code&gt;Read&lt;/code&gt; operation. Its inputs are &lt;code&gt;input_value&lt;/code&gt; (required), &lt;code&gt;input_format&lt;/code&gt;, &lt;code&gt;output_format&lt;/code&gt; (default &lt;code&gt;Y-m-d H:i:s&lt;/code&gt;), &lt;code&gt;timezone&lt;/code&gt;, &lt;code&gt;locale&lt;/code&gt; and &lt;code&gt;relative&lt;/code&gt; (default FALSE). It has one output, &lt;code&gt;formatted_date&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Input parsing happens in &lt;code&gt;parseInput()&lt;/code&gt;. A numeric value is treated as a Unix timestamp. Otherwise &lt;code&gt;\DateTime::createFromFormat()&lt;/code&gt; is used when &lt;code&gt;input_format&lt;/code&gt; is given, and &lt;code&gt;new \DateTime()&lt;/code&gt; is used when it is not. The &lt;code&gt;timezone&lt;/code&gt; value is applied when parsing the string as well as when formatting the output. Any parse failure, including an invalid timezone, returns &lt;code&gt;ExecutableResult::failure()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;relative&lt;/code&gt; is set, the tool calls &lt;code&gt;DateFormatterInterface::formatTimeDiffSince()&lt;/code&gt;, passing &lt;code&gt;locale&lt;/code&gt; as &lt;code&gt;langcode&lt;/code&gt;. Otherwise it calls &lt;code&gt;DateFormatterInterface::format()&lt;/code&gt;. If &lt;code&gt;output_format&lt;/code&gt; matches the ID of a &lt;code&gt;date_format&lt;/code&gt; config entity such as &lt;code&gt;short&lt;/code&gt; or &lt;code&gt;medium&lt;/code&gt;, that entity is used. If not, the string is used as a custom PHP date format. &lt;code&gt;checkAccess()&lt;/code&gt; always returns allowed.&lt;/p&gt;
-&lt;p&gt;The MR also adds a &lt;code&gt;tool_utilities.info.yml&lt;/code&gt;. It requires Drupal &lt;code&gt;^10.3 || ^11&lt;/code&gt; and depends on &lt;code&gt;tool:tool&lt;/code&gt;. A unit test, &lt;code&gt;DateTimeFormatterTest&lt;/code&gt;, covers timestamp, string, timezone, relative and date format entity inputs. It uses a mocked &lt;code&gt;date.formatter&lt;/code&gt; service, so it does not check real timezone or locale output.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 28, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594852: Fix plurals ("1 tests", "1 labeled answers") and raw machine names in the admin UI text</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594852.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594852</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 08:11:58 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 58 files, +1118/−90 · php +1011/−89 · js +77 · yml +16 · md +14/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/499dc1e3b49ce10df0c85bcf3a2f416997fd7121"&gt;499dc1e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594852"&gt;#3594852&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI Eval's admin screens and Drush output now use correct singular wording when a count is 1 (for example &amp;quot;1 test: Name&amp;quot;, &amp;quot;1 labeled answer&amp;quot;, &amp;quot;1 question&amp;quot;, &amp;quot;1 pair&amp;quot;). Entity types and bundles show their labels (for example &amp;quot;Content / Article&amp;quot;) in place of machine names like &lt;code&gt;node&lt;/code&gt;, and the trace review notices say &amp;quot;AI Observability&amp;quot; and note that the 1024 character limit applies &amp;quot;unless the site changed it&amp;quot;. The same commit also shipped several related form fixes. Pressing Enter in a rubric text field no longer saves the rubric. Rubric phrases are added with an &amp;quot;Add phrase&amp;quot; button. Question row buttons have accessible names that include the question id. The gate threshold follows the selected metric. A new note explains the manual provider__model entry when no chat models are listed. The &amp;quot;stopped at N answers&amp;quot; notice no longer shows when recording went past the limit.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\ai_eval\Render\EntityLabels&lt;/code&gt; helper (&lt;code&gt;type()&lt;/code&gt;, &lt;code&gt;bundle()&lt;/code&gt;), new &lt;code&gt;GateMetric::browserSettings()&lt;/code&gt;, and new route &lt;code&gt;ai_eval.rubric.phrase_row&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Plurals use &lt;code&gt;formatPlural()&lt;/code&gt; or &lt;code&gt;PluralTranslatableMarkup&lt;/code&gt; in &lt;code&gt;EvalDatasetListBuilder&lt;/code&gt;, &lt;code&gt;JudgeTrustReason&lt;/code&gt;, &lt;code&gt;ConfusionMatrix&lt;/code&gt;, &lt;code&gt;JudgeComparisonView&lt;/code&gt;, &lt;code&gt;LengthCheck&lt;/code&gt;, &lt;code&gt;StabilityCheck&lt;/code&gt;, &lt;code&gt;TelemetryText&lt;/code&gt;, &lt;code&gt;PowerAdvisory&lt;/code&gt;, &lt;code&gt;ResolutionCheck&lt;/code&gt;, &lt;code&gt;ResultSummaryBand&lt;/code&gt;, &lt;code&gt;CalibrationSaveTrait&lt;/code&gt; and &lt;code&gt;JudgeComparisonForm&lt;/code&gt;. Drush and report strings built with &lt;code&gt;sprintf&lt;/code&gt; (&lt;code&gt;EvalRunCommand&lt;/code&gt;, &lt;code&gt;EvalImportEnvelopeCommand&lt;/code&gt;, &lt;code&gt;EvalValidateJudgeCommand&lt;/code&gt;, &lt;code&gt;JudgeValidationReport&lt;/code&gt;, &lt;code&gt;TraceImporter&lt;/code&gt;) choose the singular format inline with a ternary.&lt;/p&gt;
-&lt;p&gt;A new &lt;code&gt;Render\EntityLabels&lt;/code&gt; helper resolves the entity type label and bundle label through &lt;code&gt;EntityTypeManagerInterface&lt;/code&gt;. It falls back to the stored id when the definition no longer exists. It is used in &lt;code&gt;DecisionAutomatorOptionsTrait&lt;/code&gt;, &lt;code&gt;RecordedAnswerTrait&lt;/code&gt; and &lt;code&gt;AiAutomatorsWorkflowRunner::listWorkflows()&lt;/code&gt;. In &lt;code&gt;DecisionReviewForm&lt;/code&gt;, the &amp;quot;stopped at&amp;quot; paragraph is now rendered only when &lt;code&gt;$recorded === $limit&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Other changes in the same commit: &lt;code&gt;js/gate-threshold.js&lt;/code&gt; is attached through the &lt;code&gt;admin&lt;/code&gt; library. It uses &lt;code&gt;drupalSettings.aiEval.gateMetrics&lt;/code&gt; from the new &lt;code&gt;GateMetric::browserSettings()&lt;/code&gt;. When the metric changes, it resets the threshold if the field is empty, equals the previous metric's default, or exceeds the new metric's maximum. For rubrics, a capture-phase keydown handler stops Enter from submitting. In a phrase input, Enter clicks the new &amp;quot;Add phrase&amp;quot; button and focuses the added input. The button fetches a blank input from the new &lt;code&gt;RubricController::phraseRow()&lt;/code&gt; route &lt;code&gt;ai_eval.rubric.phrase_row&lt;/code&gt;. In &lt;code&gt;DatasetQuestionList&lt;/code&gt;, the move, edit, delete, enable and disable buttons get &lt;code&gt;aria-label&lt;/code&gt; and &lt;code&gt;title&lt;/code&gt; values containing the question id. &lt;code&gt;ProviderModelOptionsTrait&lt;/code&gt; gains &lt;code&gt;noChatModelsNotice()&lt;/code&gt; and &lt;code&gt;manualModelDescription()&lt;/code&gt;, now used by both &lt;code&gt;EvalTargetForm&lt;/code&gt; and &lt;code&gt;GuidedTestForm&lt;/code&gt;. The notice links to &lt;code&gt;ai.admin_providers&lt;/code&gt; only for users with &lt;code&gt;administer ai providers&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The 1024 character wording is changed in &lt;code&gt;TraceReviewFragment&lt;/code&gt; and &lt;code&gt;docs/user/usage/traces.md&lt;/code&gt;. The text still says 1024 and does not read the real configured limit.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594851: Say so when no chat provider is set up, instead of a blank Provider / Model text box</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594851.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594851</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 08:11:58 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 58 files, +1118/−90 · php +1011/−89 · js +77 · yml +16 · md +14/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/499dc1e3b49ce10df0c85bcf3a2f416997fd7121"&gt;499dc1e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594851"&gt;#3594851&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In AI Eval, the guided test form and the classic test target form now say so when the AI module lists no chat models. Before, both showed a bare &amp;quot;Provider / Model&amp;quot; text box. The format only appeared in an error after submit. Now a warning says no chat models are available and that one possible cause is a missing provider or key. Users with the &lt;code&gt;administer ai providers&lt;/code&gt; permission get a link to the AI provider settings. Other users are told to ask an administrator. The text field stays as a fallback, with a description that says to type &lt;code&gt;provider__model&lt;/code&gt;, for example &lt;code&gt;openai__gpt-4o-mini&lt;/code&gt;. When models are listed, the select and its description are unchanged. The same commit also bundles several unrelated fixes, such as singular and plural wording, named row buttons, and Enter no longer saving a rubric.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ProviderModelOptionsTrait&lt;/code&gt; gains &lt;code&gt;noChatModelsNotice()&lt;/code&gt; and &lt;code&gt;manualModelDescription()&lt;/code&gt;, now also used by &lt;code&gt;GuidedTestForm&lt;/code&gt; and &lt;code&gt;EvalTargetForm&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;GuidedTestForm&lt;/code&gt; and &lt;code&gt;EvalTargetForm&lt;/code&gt; now use &lt;code&gt;ProviderModelOptionsTrait::providerModelOptions()&lt;/code&gt; in place of their own try/catch blocks. Because of this, the guided form now reports a load failure as a warning with the exception message and a log entry, as the classic form already did. The trait tracks &lt;code&gt;providerModelLoadFailed&lt;/code&gt;. &lt;code&gt;noChatModelsNotice()&lt;/code&gt; returns a render element that is hidden (&lt;code&gt;#access&lt;/code&gt;) when the failure message was already shown, so the user does not see two warnings. It checks &lt;code&gt;administer ai providers&lt;/code&gt; to decide whether to render a &lt;code&gt;Link&lt;/code&gt; to &lt;code&gt;ai.admin_providers&lt;/code&gt;. It adds the &lt;code&gt;user.permissions&lt;/code&gt; cache context. &lt;code&gt;manualModelDescription()&lt;/code&gt; supplies the text field description. The classic form keeps its original select description only when options exist. The &lt;code&gt;provider__model&lt;/code&gt; validation after submit is unchanged.&lt;/p&gt;
-&lt;p&gt;New tests are &lt;code&gt;NoChatModelsTest&lt;/code&gt;, which covers the link with and without the permission and the format error on submit, and &lt;code&gt;ChatModelsAvailableTest&lt;/code&gt;, which uses the &lt;code&gt;ai_test&lt;/code&gt; provider to check that the select and old description are kept.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 1, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
