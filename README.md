@@ -1,8 +1,24 @@
-**TL;DR:** [1504 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1511 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Canvas
+
+_305 summaries · 11 new this week_
+
+- [#3592275: Add a permission so non-admin users can view component folders](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592275.md)
+- [#3592281: Editor preview can start at the wrong position after page height changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592281.md)
+- [#3592282: Fix Brand Kit color test flakiness caused by folder menu focus restoration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592282.md)
+
+### Drupal AI
+
+_430 summaries · 125 new this week_
+
+- [#3586617: Filter subcontext children by view access and hard scope](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586617.md)
+- [#3583039: A failed result's output values are unreachable through getOutputValue()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583039.md)
+- [#3583097: Rebuilt input violations pass the cause where the constraint goes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583097.md)
 
 ### Drupal Core
 
@@ -11,22 +27,6 @@ _642 summaries · 6 new this week_
 - [#3619507: Remove CSS weights from system.libraries.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md)
 - [#3633064: Update masterminds/html5 to 2.12.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633064.md)
 - [#3425412: [November 2026] Bump PHPStan rule level to 3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3425412.md)
-
-### Drupal AI
-
-_425 summaries · 120 new this week_
-
-- [#3594659: Multimodal evaluation: support file inputs (images, documents) in datasets](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594659.md)
-- [#3594869: ai_eval_droost: move to Droost 2 and Tool API, and fix two false passes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594869.md)
-- [#3594873: Agent tests send a wrapped task instead of the chat messages the site sends](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594873.md)
-
-### Drupal Canvas
-
-_303 summaries · 9 new this week_
-
-- [#3592282: Fix Brand Kit color test flakiness caused by folder menu focus restoration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592282.md)
-- [#3592279: Editor does not scroll to the top of the page preview on load](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592279.md)
-- [#3592277: Reuse the session's CSRF token instead of fetching it before every mutation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592277.md)
 
 ### Drupal CMS
 

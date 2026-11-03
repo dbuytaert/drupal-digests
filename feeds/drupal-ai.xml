@@ -5,6 +5,221 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586617: Filter subcontext children by view access and hard scope</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586617.md</link>
+      <guid isPermaLink="false">project/ai_context#3586617</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 03 Nov 2026 20:32:53 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +868/−16 · php +821/−6 · md +43/−8 · yml +2 · sh +2/−2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/f7c59f44c28f41802b57b633956cba17421e73ea"&gt;f7c59f4&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586617"&gt;#3586617&lt;/a&gt; · 1 contributor · 16 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Subcontext children are now checked before they are delivered with a selected parent. Previously a child with its own scope, for example Roles = Editor, was delivered to every account that received the parent. Children the current user cannot view, or whose delivered translation is not published, were also delivered. This affected the selector path, the Load tool, and the conditional decision prompt sent to the AI provider. Children that fail the checks are now dropped, and they are no longer sent to the provider. Sites that relied on a custom-scope child reaching users outside its scope must change that child's scope.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Closes an access leak where subcontext children with their own scope, denied view access, or unpublished delivered translations were delivered with the parent and sent to the AI provider.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextSubcontextResolver::resolve()&lt;/code&gt; accepts optional &lt;code&gt;$langcode&lt;/code&gt; and &lt;code&gt;$cacheability&lt;/code&gt; arguments.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The cause was that &lt;code&gt;AiContextSubcontextResolver::batchLoadChildren()&lt;/code&gt; uses &lt;code&gt;accessCheck(TRUE)&lt;/code&gt;, which does nothing for this entity type because context items have no query access handler. The published query also matches a child when any translation is published. The fix adds a private &lt;code&gt;filterDeliverableChildren()&lt;/code&gt; step in &lt;code&gt;resolve()&lt;/code&gt;, run before any conditional AI decision. For each child it takes the translation the caller will deliver (&lt;code&gt;AiContextLanguageService::translateItem()&lt;/code&gt;). It drops the child if that translation is unpublished, then if &lt;code&gt;access('view')&lt;/code&gt; is not allowed. The publication check comes first because administrators, accounts with the unpublished-view permission, and owners pass the view check on a draft. A loop is used instead of &lt;code&gt;translateItems()&lt;/code&gt; because that method checks access as a boolean and would lose the access cacheability.&lt;/p&gt;
+&lt;p&gt;Children with their own scope (&lt;code&gt;inheritsParentScope()&lt;/code&gt; is FALSE) are then passed through &lt;code&gt;AiContextScopeResolverInterface::filterByRequestContext()&lt;/code&gt;. Children that inherit the parent scope are not re-filtered, because the parent was already selected, including through Always include or Load. A child in the Always include list skips hard filters but still needs view access. The Load tool has no Always include list, so it hard-filters every own-scope child.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;resolve()&lt;/code&gt; gains optional &lt;code&gt;?string $langcode&lt;/code&gt; and &lt;code&gt;?CacheableMetadata $cacheability&lt;/code&gt; parameters. When &lt;code&gt;$langcode&lt;/code&gt; is NULL it is detected. &lt;code&gt;AiContextSelector&lt;/code&gt; passes the detected language and its cache metadata, so child access results merge into the selection result. &lt;code&gt;LoadAiContextItemById&lt;/code&gt; passes its language. The language is added to the conditional decision cache key, so decisions differ per language. The service definition gains &lt;code&gt;@ai_context.scope_resolver&lt;/code&gt; and &lt;code&gt;@ai_context.language_service&lt;/code&gt; constructor arguments. Docs in &lt;code&gt;docs/features/subcontext.md&lt;/code&gt; were updated.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you construct &lt;code&gt;AiContextSubcontextResolver&lt;/code&gt; manually (the service definition is updated), pass two new constructor arguments after the provider config resolver: &lt;code&gt;AiContextScopeResolverInterface $scopeResolver&lt;/code&gt; and &lt;code&gt;AiContextLanguageService $languageService&lt;/code&gt;. Callers of &lt;code&gt;resolve()&lt;/code&gt; can optionally pass a language code and a &lt;code&gt;CacheableMetadata&lt;/code&gt; accumulator:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$resolver-&amp;gt;resolve($parents, $always_include, $never_include, $task, $langcode, $cache_metadata);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (15 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583039: A failed result's output values are unreachable through getOutputValue()</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583039.md</link>
+      <guid isPermaLink="false">project/tool#3583039</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 03 Nov 2026 20:17:23 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +280/−30 · php +264/−18 · md +16/−12&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/784162ceec399d22ba24ec0dfa57b611497e865f"&gt;784162c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583039"&gt;#3583039&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a tool returns &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; with values, those values can now be read through &lt;code&gt;$tool-&amp;gt;getOutputValue()&lt;/code&gt; and &lt;code&gt;getOutputValues()&lt;/code&gt;. Before, only a success published outputs. A caller using the documented accessor after a failure got a &lt;code&gt;ContextException&lt;/code&gt;, and the values were reachable only through &lt;code&gt;getResult()-&amp;gt;getContextValues()&lt;/code&gt;. A failure can still be partial: a required output it does not carry stays unset, and &lt;code&gt;getOutputValue()&lt;/code&gt; still throws for that one. &lt;code&gt;drush tool:run&lt;/code&gt; now prints the outputs a failed tool carried.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; After &lt;code&gt;execute()&lt;/code&gt;, a failed result's declared values are published as outputs, readable via &lt;code&gt;getOutputValue()&lt;/code&gt;; &lt;code&gt;getOutputValues()&lt;/code&gt; skips unset outputs on a failed result instead of throwing.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ToolBase::execute()&lt;/code&gt; no longer returns early from its catch blocks. After any path, it resets &lt;code&gt;$this-&amp;gt;outputs&lt;/code&gt; and copies result context values whose keys are declared in &lt;code&gt;output_definitions&lt;/code&gt;, for failures as well as successes. On a success, a &lt;code&gt;setOutputValue()&lt;/code&gt; exception still propagates. On a failure, a value its output cannot store (for example a string for a list output) is logged with &lt;code&gt;Error::logException()&lt;/code&gt; and left out, so the tool's own failure message is not hidden by an exception. A &lt;code&gt;@todo&lt;/code&gt; notes that the formatted result still carries such a value (work item 3583124). &lt;code&gt;failOnOutputViolations()&lt;/code&gt; still runs only on success. When it converts a success into a Runtime failure, it now also clears the outputs, so rejected values are not readable.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;TypedOutputsTrait::getOutputValues()&lt;/code&gt; checks whether the tool is a &lt;code&gt;ToolInterface&lt;/code&gt; with a result whose status is false. If so, it catches the &lt;code&gt;ContextException&lt;/code&gt; for an unset required output and omits that key. In every other case it still throws. The &lt;code&gt;TypedOutputsInterface&lt;/code&gt; docblocks now say that a failure's outputs may be partial. &lt;code&gt;ToolRunCommand&lt;/code&gt; drops its comment saying a failed tool carries no output values. It already reads &lt;code&gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt;, so a failure's values now appear in its output. The agent docs and the drush docs were updated to match. Kernel and drush tests were added, using a new &lt;code&gt;partial_failure_tool&lt;/code&gt; test plugin.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Callers that guarded output reads with &lt;code&gt;if ($tool-&amp;gt;getResultStatus())&lt;/code&gt; because a failure would throw can now read a failure's outputs. They should expect a required output to be missing on a failure. Use &lt;code&gt;getOutputValues()&lt;/code&gt;, which skips unset outputs on a failure, or catch &lt;code&gt;ContextException&lt;/code&gt; around &lt;code&gt;getOutputValue()&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583097: Rebuilt input violations pass the cause where the constraint goes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583097.md</link>
+      <guid isPermaLink="false">project/tool#3583097</guid>
+      <pubDate>Tue, 03 Nov 2026 19:48:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +198/−6 · php +198/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/ec33b0485efbd28e316ec24caa2cc281e70e0b82"&gt;ec33b04&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583097"&gt;#3583097&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Violations returned by a tool's &lt;code&gt;validateInputs()&lt;/code&gt; now keep their constraint. A required input with no value reports a &lt;code&gt;NotNull&lt;/code&gt; constraint, so callers can tell it apart from a &lt;code&gt;Choice&lt;/code&gt; or other failure by calling &lt;code&gt;getConstraint()&lt;/code&gt;. A kernel test now covers this for top-level inputs, list items and map properties.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The issue described a bug in the code that rebuilds violations to put the input name on the property path. It passed &lt;code&gt;getCause()&lt;/code&gt; where &lt;code&gt;ConstraintViolation::__construct()&lt;/code&gt; expects the constraint, so &lt;code&gt;getConstraint()&lt;/code&gt; returned NULL. The commit message and the new test's docblock say the constructor argument fix for &lt;code&gt;validateInputValues()&lt;/code&gt; and the list item and map walkers landed with &lt;a href="https://www.drupal.org/node/3583065"&gt;#3583065&lt;/a&gt;. The diff for this commit therefore contains only the remaining gap in &lt;code&gt;TypedInputsTrait::validateInputValues()&lt;/code&gt;. The special-case violation for a required input with a NULL value, which replaces the typed-data detail with an instruction, now passes &lt;code&gt;new NotNull()&lt;/code&gt; as the constraint argument. It still carries the entity type check code from &lt;a href="https://www.drupal.org/node/3583083"&gt;#3583083&lt;/a&gt; for single entity inputs.&lt;/p&gt;
+&lt;p&gt;The commit adds &lt;code&gt;RebuiltViolationConstraintTest&lt;/code&gt;, a kernel test that goes through &lt;code&gt;validateInputs()&lt;/code&gt;. It checks the constraint class and the property path (for example &lt;code&gt;subject.1&lt;/code&gt;, &lt;code&gt;subject.status&lt;/code&gt;, &lt;code&gt;subject.rows.1.status&lt;/code&gt;) for &lt;code&gt;NotNull&lt;/code&gt; and &lt;code&gt;Choice&lt;/code&gt; failures. It also checks that two failures on one tool report different constraint classes.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (25 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586646: Document the entity_context keys as public API and how to pull context from background jobs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586646.md</link>
+      <guid isPermaLink="false">project/ai_context#3586646</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 03 Nov 2026 19:02:29 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +125/−0 · md +115 · php +10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/9418fb5a5aa19eaaebe3974eaed49194da46bdd8"&gt;9418fb5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586646"&gt;#3586646&lt;/a&gt; · 1 contributor · 21 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The 1.0.0 docs for AI Context now state which request metadata keys are stable public API. They also explain how a queue worker, cron hook or Drush command can pull context. Integrators such as Content Studio can depend on this behavior. The docs also say that pull ignores the push gates and writes no usage record. They say that usage records list items selected before the token budget is applied. This is a documentation and docblock change only. No behavior changed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; The &lt;code&gt;entity_context&lt;/code&gt; request metadata keys (entity type, entity ID, bundle, path, plus the top-level &lt;code&gt;path&lt;/code&gt; fallback) are now documented as public API.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;docs/developers/api-stability.md&lt;/code&gt; gets a &amp;quot;Request metadata keys&amp;quot; section. It lists the accepted &lt;code&gt;entity_context&lt;/code&gt; keys: &lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;entity_type_id&lt;/code&gt; or &lt;code&gt;type&lt;/code&gt;; &lt;code&gt;entity_id&lt;/code&gt; or &lt;code&gt;id&lt;/code&gt;; &lt;code&gt;bundle&lt;/code&gt;; and &lt;code&gt;path&lt;/code&gt;, with a top-level &lt;code&gt;path&lt;/code&gt; fallback. The keys are set with &lt;code&gt;InputBase::setRequestMetadataValue()&lt;/code&gt;. Setting &lt;code&gt;entity_context&lt;/code&gt; again replaces the whole array. A numeric entity ID is cast to &lt;code&gt;int&lt;/code&gt;, and a UUID or other string ID is ignored. Bundle and path are untrusted string-matching hints that never load an entity or grant access. Adding an alias is not a break. Removing one or tightening a rule is. The reader class &lt;code&gt;AiContextProviderRequestContextFactory&lt;/code&gt; stays &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;docs/developers/consumer_api.md&lt;/code&gt; gets a &amp;quot;Background jobs and queue workers&amp;quot; section built around &lt;code&gt;ai_context.selection_factory&lt;/code&gt; and &lt;code&gt;fromConsumer()&lt;/code&gt;. It documents these points:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Item queries use &lt;code&gt;accessCheck(TRUE)&lt;/code&gt;, so the account running the job decides what is selected. Cron runs as anonymous and usually selects nothing.&lt;/li&gt;
+&lt;li&gt;Only saved entities can be passed through the public pull API.&lt;/li&gt;
+&lt;li&gt;Entity context persists on the current request across pulls.&lt;/li&gt;
+&lt;li&gt;Conditional subcontext (&lt;code&gt;conditional_subcontext_enabled&lt;/code&gt;, &lt;code&gt;conditional_max_parents&lt;/code&gt;) can make its own AI calls, and it is a site-wide setting.&lt;/li&gt;
+&lt;li&gt;Pull writes no usage record.&lt;/li&gt;
+&lt;li&gt;Pull does not enforce &lt;code&gt;push_enabled&lt;/code&gt;, the type kill switch or &lt;code&gt;isAvailable()&lt;/code&gt;. Callers can use &lt;code&gt;isPushAllowed()&lt;/code&gt; if they want those honored.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The &lt;code&gt;AiContextSelectionFactoryInterface::fromConsumer()&lt;/code&gt; docblock now says the same about the push gates and usage records, and points to &lt;a href="https://www.drupal.org/node/3586600"&gt;#3586600&lt;/a&gt; for planned pull usage records. &lt;code&gt;docs/features/usage_tracking.md&lt;/code&gt; says usage records show items selected before rendering, including ones the token budget shortened or dropped. &lt;a href="https://www.drupal.org/node/3586645"&gt;#3586645&lt;/a&gt; tracks that.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Contrib code that reads context from a background job can use the documented pull pattern:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$factory = \Drupal::service('ai_context.selection_factory');
+$selection = $factory-&amp;gt;fromConsumer('my_type:my_instance', $task, 'node', $nid);
+$context = $factory-&amp;gt;getResultFromSelection($selection)-&amp;gt;getRenderedText();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Run the job as an account that holds &lt;strong&gt;Use Published AI Context in AI Features&lt;/strong&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (12 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;dietric@gmail.com&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586649: Uninstalling Dynamic Entity Reference deletes Specific Entities values and removes the item restriction</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586649.md</link>
+      <guid isPermaLink="false">project/ai_context#3586649</guid>
+      <category>Module maintainers</category>
+      <pubDate>Tue, 03 Nov 2026 18:05:19 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +1581/−14 · php +1467/−1 · md +100/−13 · yml +13 · json +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/8a075d50b99b9dc4102fdf7f23061bea9c857115"&gt;8a075d5&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586649"&gt;#3586649&lt;/a&gt; · 1 contributor · 41 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Uninstalling Dynamic Entity Reference (DER) used to silently delete every Specific Entities value on AI Context items, in all revisions. Reinstalling DER did not bring the values back. Items that had been limited to specific entities then matched everywhere. The uninstall is now blocked while any context item has Specific Entities values on its current revision or on a pending draft. The message lists up to five affected items. Old revisions do not block the uninstall. Instead, after a successful uninstall each old revision that held values gets a revision log note listing the entities it referenced (type, ID, label), so you can re-enter the values by hand. Values are not restored automatically. The docs, including the Specific Entities section of &lt;code&gt;scopes.md&lt;/code&gt;, are corrected.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextDynamicEntityReferenceSetup&lt;/code&gt; gains &lt;code&gt;getItemIdsWithValues()&lt;/code&gt;, &lt;code&gt;countItemsWithValues()&lt;/code&gt;, &lt;code&gt;getInstalledFieldName()&lt;/code&gt;, &lt;code&gt;prepareRevisionLogNotes()&lt;/code&gt;, &lt;code&gt;writePendingRevisionLogNotes()&lt;/code&gt;, &lt;code&gt;recoverConfirmedRevisionLogNotes()&lt;/code&gt;, &lt;code&gt;collectRevisionLogNotes()&lt;/code&gt; and &lt;code&gt;writeRevisionLogNotes()&lt;/code&gt;. The module also adds &lt;code&gt;hook_module_preuninstall()&lt;/code&gt; handling for &lt;code&gt;dynamic_entity_reference&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;entity_items&lt;/code&gt; is a base field provided by &lt;code&gt;dynamic_entity_reference&lt;/code&gt;, so core drops its storage on uninstall. &lt;code&gt;AiContextUninstallValidator&lt;/code&gt; now handles &lt;code&gt;dynamic_entity_reference&lt;/code&gt;. It calls &lt;code&gt;AiContextDynamicEntityReferenceSetup::getItemIdsWithValues()&lt;/code&gt;, which combines default revisions, latest revisions, and pending drafts of any translation. It returns reasons as &lt;code&gt;TranslatableMarkup&lt;/code&gt; so core's template does not double-escape labels. If the check throws, it returns &lt;code&gt;NULL&lt;/code&gt;, the validator blocks the uninstall, and the error is logged. The legacy &lt;code&gt;target_entities&lt;/code&gt; field name is supported via &lt;code&gt;getInstalledFieldName()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Old revisions are handled in two phases. &lt;code&gt;ai_context_module_preuninstall()&lt;/code&gt; calls &lt;code&gt;prepareRevisionLogNotes()&lt;/code&gt;, which stores notes in State under &lt;code&gt;ai_context.dynamic_entity_reference_uninstall_prepared_notes&lt;/code&gt;. Nothing is written yet, because the uninstall might still fail. &lt;code&gt;ai_context_modules_uninstalled()&lt;/code&gt; runs only after success. It calls &lt;code&gt;writePendingRevisionLogNotes()&lt;/code&gt;, which promotes the prepared notes to &lt;code&gt;ai_context.dynamic_entity_reference_uninstall_notes&lt;/code&gt; and appends them to the revision log. It uses a direct database update, so presave hooks such as scope cleanup and moderation do not run. It then resets the entity cache and invalidates the item cache tags. This also runs during config sync.&lt;/p&gt;
+&lt;p&gt;If the write fails, the error is logged, the confirmed notes stay in State, and the other uninstall hooks still run. &lt;code&gt;ai_context_cron()&lt;/code&gt; retries confirmed notes through &lt;code&gt;recoverConfirmedRevisionLogNotes()&lt;/code&gt;. A later DER uninstall writes any confirmed notes before it captures new ones, and stops if that write fails. Unconfirmed prepared notes are never written by cron. &lt;code&gt;ai_context_uninstall()&lt;/code&gt; deletes both State keys. The Revisions overview form now wraps the log in &lt;code&gt;nl2br()&lt;/code&gt; so multi-line notes display. A test module, &lt;code&gt;ai_context_der_uninstall_test&lt;/code&gt;, simulates load and write failures. The diff I read omits the kernel test file.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Before uninstalling Dynamic Entity Reference, clear the Specific Entities values on any context item that uses them. Check pending drafts too. Otherwise the uninstall page, Drush and config import will refuse to remove the module. After the uninstall, old revisions that held values have a revision log note listing the referenced entities. Re-enter the values from those notes if you need them. Run cron before uninstalling DER a second time after reinstalling it, so Drupal purges the deleted field storage.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 3, 2026 (12 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3594659: Multimodal evaluation: support file inputs (images, documents) in datasets</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594659.md</link>
       <guid isPermaLink="false">project/ai_eval#3594659</guid>
@@ -575,199 +790,6 @@ Respond with exactly one token — XSAFE, XWARN, or XBLOCK — and nothing else.
 &lt;ul&gt;
 &lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 2, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586825: Forward/Backward-Port: Add automator ID tag and entity_context to chat requests (1.4.x &amp; 2.0.x)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586825.md</link>
-      <guid isPermaLink="false">project/ai#3586825</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 10:29:10 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 28 files, +2871/−10 · php +2685/−10 · md +186&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/cbe279c628de8e7d0d6b7dae2e5377927b99948b"&gt;cbe279c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586825"&gt;#3586825&lt;/a&gt; · 1 contributor · 16 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Chat requests that AI Automators send to a provider now identify which automator made them. Each request gets an &lt;code&gt;ai_automator:id:{config entity ID}&lt;/code&gt; tag and an &lt;code&gt;entity_context&lt;/code&gt; metadata array describing the entity and field. Several automators on the same field (for example separate Field Widget Action buttons) previously produced requests with identical tags, so event subscribers could not tell them apart. This was ported to 2.0.x/2.x and backported to 1.4.x after landing on 1.x and 1.5.x (&lt;a href="https://www.drupal.org/node/3586702"&gt;#3586702&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; On 1.4.x the &lt;code&gt;InputBase&lt;/code&gt; request metadata methods (&lt;code&gt;getAllRequestMetadata()&lt;/code&gt;, &lt;code&gt;setAllRequestMetadata()&lt;/code&gt;, &lt;code&gt;getRequestMetadataValue()&lt;/code&gt;, &lt;code&gt;setRequestMetadataValue()&lt;/code&gt;) are added, and &lt;code&gt;ProviderProxy&lt;/code&gt; seeds pre and post event metadata from the input. Code that rebuilds the automator config array in &lt;code&gt;AutomatorConfigEvent&lt;/code&gt; subscribers on 1.4.x must keep the &lt;code&gt;id&lt;/code&gt; key.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; Automator chat requests carry a new &lt;code&gt;ai_automator:id:{automator config entity ID}&lt;/code&gt; tag and &lt;code&gt;entity_context&lt;/code&gt; request metadata (&lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;entity_id&lt;/code&gt;, &lt;code&gt;uuid&lt;/code&gt;, &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;field_name&lt;/code&gt;, &lt;code&gt;automator_id&lt;/code&gt;). New protected &lt;code&gt;RuleBase::buildEntityContext()&lt;/code&gt; and &lt;code&gt;RuleBase::attachEntityContext()&lt;/code&gt; helpers.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;RuleBase::getTags()&lt;/code&gt; now adds &lt;code&gt;ai_automator:id:{id}&lt;/code&gt; when the automator config carries a string ID. &lt;code&gt;RuleBase::runRawChatMessage()&lt;/code&gt; and the rich-text image description path in &lt;code&gt;RichTextImageDescriptionTrait&lt;/code&gt; call the new &lt;code&gt;attachEntityContext()&lt;/code&gt; on the final input, after &lt;code&gt;applyGuardrailsToInput()&lt;/code&gt;, because that helper can return a clone. &lt;code&gt;buildEntityContext()&lt;/code&gt; returns &lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;entity_id&lt;/code&gt;, &lt;code&gt;uuid&lt;/code&gt;, &lt;code&gt;bundle&lt;/code&gt;, &lt;code&gt;field_name&lt;/code&gt; and &lt;code&gt;automator_id&lt;/code&gt;. &lt;code&gt;entity_id&lt;/code&gt; is &lt;code&gt;NULL&lt;/code&gt; for new (unsaved) entities, so presave requests are identified by &lt;code&gt;uuid&lt;/code&gt;. The metadata is read with &lt;code&gt;$event-&amp;gt;getMetadata('entity_context')&lt;/code&gt;. Rules that build their own &lt;code&gt;ChatInput&lt;/code&gt; (Chart, VideoToText, &lt;code&gt;LlmVideo*&lt;/code&gt;, Field Widget Action refine chat) still send untagged requests, as the added docs state.&lt;/p&gt;
-&lt;p&gt;On 2.0.x/2.x the automator ID, field name and plugin ID are not stored settings. &lt;code&gt;AiAutomatorEntityModifier::withRuntimeContext()&lt;/code&gt; clones each automator type and adds &lt;code&gt;automator_id&lt;/code&gt;, &lt;code&gt;field_name&lt;/code&gt; and &lt;code&gt;rule&lt;/code&gt; to its settings, so nothing leaks into exported config. These runtime settings are set after the stored ones, so a stray stored setting with the same key cannot override them. &lt;code&gt;RunAutomatorAction&lt;/code&gt; sets the same three keys, and the tag and metadata read &lt;code&gt;automator_id&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;On 1.4.x the ID lives in the &lt;code&gt;id&lt;/code&gt; key of the runtime automator config instead. &lt;code&gt;AiAutomatorEntityModifier::entityHasConfig()&lt;/code&gt; and &lt;code&gt;RunAutomatorAction&lt;/code&gt; set it from the config entity ID, after the &lt;code&gt;plugin_config&lt;/code&gt; keys are unprefixed. &lt;code&gt;RuleBase::attachEntityContext()&lt;/code&gt; there is guarded with &lt;code&gt;method_exists($input, 'setRequestMetadataValue')&lt;/code&gt;. The 1.4.x commit also adds request metadata to &lt;code&gt;InputBase&lt;/code&gt;. &lt;code&gt;ProviderProxy&lt;/code&gt; seeds the &lt;code&gt;PreGenerateResponseEvent&lt;/code&gt; metadata from the input and passes the post event metadata to streamed responses. It also re-applies the input's system prompt to the provider after the pre-generate event, so event subscribers can change it.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Subscribers can target one automator by tag:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;public function onPreGenerate(PreGenerateResponseEvent $event): void {
-  if (!in_array('ai_automator:id:node.article.field_summary.default', $event-&amp;gt;getTags(), TRUE)) {
-    return;
-  }
-  $context = $event-&amp;gt;getMetadata('entity_context');
-  // $context['entity_id'] is NULL on presave; fall back to uuid or bundle.
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Custom rules that build their own &lt;code&gt;ChatInput&lt;/code&gt; should call &lt;code&gt;$this-&amp;gt;attachEntityContext($input, $entity, $automatorConfig);&lt;/code&gt; and pass &lt;code&gt;$this-&amp;gt;getTags(...)&lt;/code&gt; to &lt;code&gt;chat()&lt;/code&gt;. On 2.x, code calling a rule outside &lt;code&gt;AiAutomatorEntityModifier&lt;/code&gt; or &lt;code&gt;RunAutomatorAction&lt;/code&gt; must add &lt;code&gt;automator_id&lt;/code&gt;, &lt;code&gt;field_name&lt;/code&gt; and &lt;code&gt;rule&lt;/code&gt; to the settings itself. On 1.4.x, &lt;code&gt;AutomatorConfigEvent&lt;/code&gt; subscribers that rebuild the config array must keep its &lt;code&gt;id&lt;/code&gt; key, or the ID tag and &lt;code&gt;automator_id&lt;/code&gt; are dropped.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 26, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 2, 2026 (6 days and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
-&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3564627: Tool for views exec</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3564627.md</link>
-      <guid isPermaLink="false">project/tool#3564627</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 09:10:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +147/−0 · php +140 · yml +7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3564627"&gt;#3564627&lt;/a&gt; · 2 contributors · 7 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 2 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The merge request adds a tool that runs a View and returns its rendered output, so tool consumers such as AI agents can call a View by machine name, display ID and arguments. It ships as a new &lt;code&gt;Tool - Views&lt;/code&gt; module. Access follows the chosen View display's own access rules. The MR was still a draft proposal when summarized, and a comment suggested moving the work to the Tool Belt project.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;tool_views&lt;/code&gt; module with a &lt;code&gt;views_execute&lt;/code&gt; Tool plugin (&lt;code&gt;Drupal\tool_views\Plugin\tool\Tool\ViewsExecute&lt;/code&gt;) taking &lt;code&gt;view_name&lt;/code&gt;, &lt;code&gt;display_id&lt;/code&gt; and &lt;code&gt;arguments&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The MR adds a &lt;code&gt;tool_views&lt;/code&gt; module (it depends on &lt;code&gt;tool:tool&lt;/code&gt;) containing the &lt;code&gt;ViewsExecute&lt;/code&gt; plugin, declared with &lt;code&gt;#[Tool(id: 'views_execute', operation: ToolOperation::Trigger)]&lt;/code&gt;. Inputs are &lt;code&gt;view_name&lt;/code&gt; (string), &lt;code&gt;display_id&lt;/code&gt; (string, default &lt;code&gt;default&lt;/code&gt;) and &lt;code&gt;arguments&lt;/code&gt; (map, optional). &lt;code&gt;doExecute()&lt;/code&gt; loads the View with &lt;code&gt;Views::getView()&lt;/code&gt; and calls &lt;code&gt;setDisplay()&lt;/code&gt;. It fails with an &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; if either the View or the display is missing. Otherwise it calls &lt;code&gt;setArguments()&lt;/code&gt;, &lt;code&gt;execute()&lt;/code&gt; and &lt;code&gt;render()&lt;/code&gt;. A render array result is turned into a string with the &lt;code&gt;renderer&lt;/code&gt; service's &lt;code&gt;renderRoot()&lt;/code&gt;. An empty result becomes the placeholder &lt;code&gt;[No output returned by view]&lt;/code&gt;. The output is a &lt;code&gt;results&lt;/code&gt; map with a single &lt;code&gt;output&lt;/code&gt; string.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;checkAccess()&lt;/code&gt; returns forbidden when the View or display does not exist. Otherwise it delegates to &lt;code&gt;$view-&amp;gt;display_handler-&amp;gt;access($account)&lt;/code&gt; and wraps a non-&lt;code&gt;AccessResultInterface&lt;/code&gt; result as allowed or forbidden. The &lt;code&gt;.info.yml&lt;/code&gt; description mentions tools for creating, modifying and removing views, but only execution is implemented in this diff.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 22, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3563382: EntityFieldValues tool doesn't return image field metadata (alt, title, width, height)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3563382.md</link>
-      <guid isPermaLink="false">project/tool#3563382</guid>
-      <pubDate>Mon, 02 Nov 2026 09:10:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +10/−2 · php +10/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3563382"&gt;#3563382&lt;/a&gt; · 4 contributors · 9 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;entity_field_values&lt;/code&gt; tool now returns more data for entity reference fields that carry extra properties, such as a media entity's image field. Before, you only got the &lt;code&gt;target_id&lt;/code&gt; and basic entity info. Now &lt;code&gt;alt&lt;/code&gt;, &lt;code&gt;title&lt;/code&gt;, &lt;code&gt;width&lt;/code&gt; and &lt;code&gt;height&lt;/code&gt; come back too. This helps agents and other consumers that need image metadata from the tool's output. The merge request is a proposal and no commit had landed when this was written.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The problem was in &lt;code&gt;getFieldItemValue()&lt;/code&gt; in &lt;code&gt;src/Plugin/tool/Tool/EntityFieldValues.php&lt;/code&gt;. It returned early on any field with a &lt;code&gt;target_id&lt;/code&gt; property, so it only returned &lt;code&gt;target_id&lt;/code&gt; and an &lt;code&gt;entity&lt;/code&gt; array (&lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;type&lt;/code&gt;). In the MR, that branch builds a &lt;code&gt;$result&lt;/code&gt; array with the same two keys. It then loops over all field item properties and adds each one that is not computed and is not &lt;code&gt;target_id&lt;/code&gt;, keyed by property name, using &lt;code&gt;$property-&amp;gt;getValue()&lt;/code&gt;. The result is returned afterwards.&lt;/p&gt;
-&lt;p&gt;The issue's proposed code skipped &lt;code&gt;NULL&lt;/code&gt; and empty-string values. After review, the MR includes every non-computed property, empty values too, because no reason to filter them was found. The module maintainer questioned whether a field-type-agnostic approach would be better. He suggested the &lt;code&gt;isset($properties['target_id'])&lt;/code&gt; block might be removable, but said that may not be possible. That question was not settled in the thread, and the diff keeps the &lt;code&gt;target_id&lt;/code&gt; branch.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: December 16, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3553442: [Tools] Create ConfigSet tool</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3553442.md</link>
-      <guid isPermaLink="false">project/tool#3553442</guid>
-      <category>Module maintainers</category>
-      <pubDate>Mon, 02 Nov 2026 09:10:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 1 file, +136/−0 · php +136&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3553442"&gt;#3553442&lt;/a&gt; · 4 contributors · 8 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 4 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Adds a &amp;quot;Set Configuration&amp;quot; tool that lets a tool caller, such as an MCP client or AI agent, change one value in an existing configuration object. The caller gives a config name (e.g. &lt;code&gt;system.site&lt;/code&gt;), a key (e.g. &lt;code&gt;slogan&lt;/code&gt;) and a value. The tool returns the old and new values. In the issue, it was tested by asking Claude Desktop over MCP to change the site name and slogan. Near the end of the thread a maintainer proposed moving the issue to the Tool Belt module, since tools are being moved out of Tool API. The MR has not been committed to this project.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;config_set&lt;/code&gt; Tool plugin (&lt;code&gt;Drupal\tool_system\Plugin\tool\Tool\ConfigSet&lt;/code&gt;) in the &lt;code&gt;tool_system&lt;/code&gt; module.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The MR adds a single final class, &lt;code&gt;ConfigSet&lt;/code&gt;, as a &lt;code&gt;#[Tool]&lt;/code&gt; plugin with id &lt;code&gt;config_set&lt;/code&gt;. Its inputs are &lt;code&gt;config_name&lt;/code&gt; (string), &lt;code&gt;key&lt;/code&gt; (string) and &lt;code&gt;value&lt;/code&gt; (any). It has one output, &lt;code&gt;updated_config&lt;/code&gt; (any).&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;doExecute()&lt;/code&gt; loads the object with &lt;code&gt;ConfigFactoryInterface::getEditable()&lt;/code&gt;. If &lt;code&gt;isNew()&lt;/code&gt; is true, it returns &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; instead of creating a new config object. Otherwise it reads the old value with &lt;code&gt;get($key)&lt;/code&gt;, then calls &lt;code&gt;set()&lt;/code&gt; and &lt;code&gt;save()&lt;/code&gt;. It returns a success message plus &lt;code&gt;updated_config&lt;/code&gt; containing &lt;code&gt;config_name&lt;/code&gt;, &lt;code&gt;key&lt;/code&gt;, &lt;code&gt;old_value&lt;/code&gt; and &lt;code&gt;new_value&lt;/code&gt;. Any &lt;code&gt;\Exception&lt;/code&gt; is caught and returned as a failure result. Non-scalar values are JSON-encoded in the message only.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;checkAccess()&lt;/code&gt; returns &lt;code&gt;AccessResult::allowedIfHasPermission($account, 'administer site configuration')&lt;/code&gt;. The tool does not validate the key or value against the config schema in the code shown. The &lt;code&gt;set()&lt;/code&gt;/&lt;code&gt;save()&lt;/code&gt; call is the only write step.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3553440: [Tools] Create ConfigGet tool</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3553440.md</link>
-      <guid isPermaLink="false">project/tool#3553440</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 02 Nov 2026 09:10:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +128/−0 · php +123 · yml +5&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3553440"&gt;#3553440&lt;/a&gt; · 5 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Tool module's &lt;code&gt;tool_system&lt;/code&gt; submodule gets a new &amp;quot;Get Configuration&amp;quot; tool. It lets a caller, such as an AI agent over MCP, read a configuration object from Drupal, either in full or a single key like the site name from &lt;code&gt;system.site&lt;/code&gt;. Access needs the new &lt;code&gt;use config_get tool&lt;/code&gt; permission. That permission exposes any configuration, so grant it only to trusted roles. The merge request was marked as looking good but had not been committed when this summary was written.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;use config_get tool&lt;/code&gt; permission in &lt;code&gt;tool_system&lt;/code&gt;, which allows reading any configuration.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;config_get&lt;/code&gt; Tool plugin (&lt;code&gt;ConfigGet&lt;/code&gt;) in &lt;code&gt;tool_system&lt;/code&gt; for reading configuration objects or single keys.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The change adds &lt;code&gt;Drupal\tool_system\Plugin\tool\Tool\ConfigGet&lt;/code&gt;, a &lt;code&gt;ToolOperation::Read&lt;/code&gt; tool with id &lt;code&gt;config_get&lt;/code&gt;. Inputs are &lt;code&gt;config_name&lt;/code&gt; (required string) and &lt;code&gt;key&lt;/code&gt; (optional string). The single output is &lt;code&gt;config_value&lt;/code&gt; of type &lt;code&gt;any&lt;/code&gt;. The issue text lists &lt;code&gt;key&lt;/code&gt; without saying it is optional, but the MR makes it optional: an empty &lt;code&gt;key&lt;/code&gt; returns all data for the object.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;doExecute()&lt;/code&gt; loads the object through &lt;code&gt;config.factory&lt;/code&gt;. It returns &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; if &lt;code&gt;isNew()&lt;/code&gt; is true, meaning the object does not exist. Otherwise it returns &lt;code&gt;$config-&amp;gt;get($key)&lt;/code&gt; or &lt;code&gt;$config-&amp;gt;get()&lt;/code&gt;. A code comment says &lt;code&gt;get()&lt;/code&gt; is used instead of &lt;code&gt;getRawData()&lt;/code&gt; so that overrides are included. Any &lt;code&gt;\Exception&lt;/code&gt; is caught and returned as a failure result. &lt;code&gt;checkAccess()&lt;/code&gt; uses &lt;code&gt;AccessResult::allowedIfHasPermission($account, 'use config_get tool')&lt;/code&gt;. The permission is defined in the &lt;code&gt;tool_system&lt;/code&gt; permissions YAML with the description &amp;quot;Allows users to fetch any configuration from Drupal.&amp;quot;&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 20, 2025&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
