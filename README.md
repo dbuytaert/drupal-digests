@@ -1,4 +1,4 @@
-**TL;DR:** [1518 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1526 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_435 summaries · 130 new this week_
+_443 summaries · 135 new this week_
 
-- [#3594875: Question editor: pick the caller account from a list, and say what "Caller...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594875.md)
-- [#3586836: Remove AI CKEditor submodule in 1.6.0 and require drupal/ai_ckeditor via...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586836.md)
-- [#3594804: Run core: advance runs outside the results page, safely and as the account that...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594804.md)
+- [#3589013: The drupal-ai subcommand skills-list crashes with a TypeError](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589013.md)
+- [#3583099: Describe a value object's schema outside a tool call](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583099.md)
+- [#3583116: Pass the invoker to method-tool `access` callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583116.md)
 
 ### Drupal Core
 
-_643 summaries · 7 new this week_
+_643 summaries · 5 new this week_
 
 - [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
 - [#3619507: Remove CSS weights from system.libraries.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md)
@@ -22,7 +22,7 @@ _643 summaries · 7 new this week_
 
 ### Drupal Canvas
 
-_306 summaries · 11 new this week_
+_306 summaries · 8 new this week_
 
 - [#3592234: Workspaces MR 4: component generation outside the workspace](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592234.md)
 - [#3592275: Add a permission so non-admin users can view component folders](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592275.md)
