@@ -1,4 +1,4 @@
-**TL;DR:** [1511 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1512 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -14,7 +14,7 @@ _305 summaries · 11 new this week_
 
 ### Drupal AI
 
-_430 summaries · 125 new this week_
+_431 summaries · 126 new this week_
 
 - [#3586617: Filter subcontext children by view access and hard scope](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586617.md)
 - [#3583039: A failed result's output values are unreachable through getOutputValue()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583039.md)
