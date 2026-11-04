@@ -1,32 +1,32 @@
-**TL;DR:** [1512 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1518 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_305 summaries · 11 new this week_
-
-- [#3592275: Add a permission so non-admin users can view component folders](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592275.md)
-- [#3592281: Editor preview can start at the wrong position after page height changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592281.md)
-- [#3592282: Fix Brand Kit color test flakiness caused by folder menu focus restoration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592282.md)
-
 ### Drupal AI
 
-_431 summaries · 126 new this week_
+_435 summaries · 130 new this week_
 
-- [#3586617: Filter subcontext children by view access and hard scope](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586617.md)
-- [#3583039: A failed result's output values are unreachable through getOutputValue()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583039.md)
-- [#3583097: Rebuilt input violations pass the cause where the constraint goes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583097.md)
+- [#3594875: Question editor: pick the caller account from a list, and say what "Caller...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594875.md)
+- [#3586836: Remove AI CKEditor submodule in 1.6.0 and require drupal/ai_ckeditor via...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586836.md)
+- [#3594804: Run core: advance runs outside the results page, safely and as the account that...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594804.md)
 
 ### Drupal Core
 
-_642 summaries · 6 new this week_
+_643 summaries · 7 new this week_
 
+- [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
 - [#3619507: Remove CSS weights from system.libraries.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md)
 - [#3633064: Update masterminds/html5 to 2.12.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633064.md)
-- [#3425412: [November 2026] Bump PHPStan rule level to 3](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3425412.md)
+
+### Drupal Canvas
+
+_306 summaries · 11 new this week_
+
+- [#3592234: Workspaces MR 4: component generation outside the workspace](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592234.md)
+- [#3592275: Add a permission so non-admin users can view component folders](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592275.md)
+- [#3592281: Editor preview can start at the wrong position after page height changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592281.md)
 
 ### Drupal CMS
 

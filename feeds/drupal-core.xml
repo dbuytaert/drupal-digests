@@ -5,6 +5,69 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md</link>
+      <guid isPermaLink="false">node/3278431</guid>
+      <category>Module maintainers</category>
+      <pubDate>Wed, 04 Nov 2026 13:07:35 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 12.0.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 910 files, +5738/−16962 · php +5738/−16962&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/780eb17c51a18e14c8b47229f22b45fcef377d41"&gt;780eb17&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3278431"&gt;#3278431&lt;/a&gt; · 19 contributors · 104 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 62&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 1 of 19 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Drupal core (&lt;code&gt;main&lt;/code&gt;, also cherry-picked to 12.0.x) now uses PHP 8 constructor property promotion across existing code. Injected services and values are declared once in the constructor signature (&lt;code&gt;protected FooInterface $foo,&lt;/code&gt;) instead of as separate property declarations plus assignments. Site owners have nothing to do. The change affects module developers only if they call core constructors with named arguments, because some parameter names changed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Many core constructor parameters were renamed from snake_case to camelCase to match their promoted properties (e.g. &lt;code&gt;$csrf_token&lt;/code&gt; to &lt;code&gt;$csrfToken&lt;/code&gt;), which only breaks callers using named arguments; see change record 3635267.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The change was produced by running Rector's &lt;code&gt;ClassPropertyAssignToConstructorPromotionRector&lt;/code&gt; with &lt;code&gt;INLINE_PUBLIC&lt;/code&gt; enabled, so untyped public and protected properties are also promoted. The Rector output was then run through PHP CS Fixer and &lt;code&gt;phpcbf&lt;/code&gt; to put each promoted constructor on multiple lines with a trailing comma. A few tests that assert on line numbers were fixed by hand, and the PHPStan baseline was regenerated. The shipped diff covers hundreds of files, including &lt;code&gt;core/lib/Drupal/Component&lt;/code&gt;, &lt;code&gt;core/lib/Drupal/Core&lt;/code&gt; and the &lt;code&gt;composer&lt;/code&gt; scaffold and package code. Visible examples are &lt;code&gt;AccessManager&lt;/code&gt;, the Ajax commands, the action plugins and the scaffold operations such as &lt;code&gt;AppendOp&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Property names, visibility and property types do not change. Existing untyped properties stay untyped, for example &lt;code&gt;protected $reason&lt;/code&gt;. What changes is that constructor parameters which were snake_case now take the camelCase property name. For example &lt;code&gt;$csrf_token&lt;/code&gt; becomes &lt;code&gt;$csrfToken&lt;/code&gt; in &lt;code&gt;CsrfAccessCheck&lt;/code&gt; and &lt;code&gt;$request_stack&lt;/code&gt; becomes &lt;code&gt;$requestStack&lt;/code&gt; in &lt;code&gt;Time&lt;/code&gt;. Where the property and parameter already matched, nothing is renamed. The &lt;code&gt;@var&lt;/code&gt; property docblocks were dropped with the properties. The constructor &lt;code&gt;@param&lt;/code&gt; docblocks were kept, with the parameter names updated. Removing those docblocks is tracked separately in &lt;a href="https://www.drupal.org/node/3565152"&gt;#3565152&lt;/a&gt;. Follow-ups for adding type declarations and &lt;code&gt;readonly&lt;/code&gt; to promoted parameters are in &lt;a href="https://www.drupal.org/node/3635274"&gt;#3635274&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Participants decided not to support named arguments for constructors, so the renames were not given a deprecation layer. Where a constructor mixed promoted and plain parameters, such as plugin constructors that call &lt;code&gt;parent::__construct()&lt;/code&gt;, only the matching parameters were promoted. The rest are still assigned in the body.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Only code that calls core constructors with named arguments is affected. Switch to the new camelCase parameter names, or use positional arguments. For example, &lt;code&gt;CsrfAccessCheck&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+new CsrfAccessCheck(csrf_token: $token);
+// After
+new CsrfAccessCheck(csrfToken: $token);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Subclasses that override a constructor and call &lt;code&gt;parent::__construct()&lt;/code&gt; positionally are unaffected.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: May 3, 2022&lt;/li&gt;
+&lt;li&gt;Committed: November 4, 2026 (4 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mondrake&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;shadcn (Chapter Three (acquired by Kanopi Studios))&lt;/li&gt;
+&lt;li&gt;catch (Third and Grove)&lt;/li&gt;
+&lt;li&gt;mstrelan&lt;/li&gt;
+&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
+&lt;li&gt;xjm (xjm)&lt;/li&gt;
+&lt;li&gt;markdorison (Chromatic)&lt;/li&gt;
+&lt;li&gt;donquixote&lt;/li&gt;
+&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;li&gt;godotislate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The approach was settled over several years. Early threads established that renaming snake_case constructor arguments would not be treated as a BC break, since named arguments are not supported for constructors. They also agreed on multiline promoted signatures. mstrelan then built the final approach, running Rector and PHP CS Fixer from a separate directory to get around a PHPStan/Rector version conflict that had stopped earlier refresh attempts. The Rector setup came from longwave (the &lt;code&gt;INLINE_PUBLIC&lt;/code&gt; option) and mondrake (a refreshed config). catch wrote the change record and opened the follow-up issues.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3619507: Remove CSS weights from system.libraries.yml</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md</link>
       <guid isPermaLink="false">node/3619507</guid>
@@ -1000,56 +1063,6 @@ handlers: [
 &lt;li&gt;ankondrat4&lt;/li&gt;
 &lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3627629: Remove search module coverage from robots.txt</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3627629.md</link>
-      <guid isPermaLink="false">node/3627629</guid>
-      <category>Site owners</category>
-      <pubDate>Thu, 15 Oct 2026 07:59:10 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +0/−8 · txt +0/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/761ab93c75c1c65ca8137870c470ac1682bd8daa"&gt;761ab93&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3627629"&gt;#3627629&lt;/a&gt; · 5 contributors · 12 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The default &lt;code&gt;robots.txt&lt;/code&gt; shipped with Drupal 12 no longer blocks crawlers from search result pages. Those rules were added in 11.4.0 for core Search, which has been removed from Drupal 12. Sites that move to the contributed Search module and want to keep crawlers out of search results must add the rules back to their own &lt;code&gt;robots.txt&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Default &lt;code&gt;robots.txt&lt;/code&gt; no longer contains &lt;code&gt;Disallow&lt;/code&gt; rules for &lt;code&gt;/search/&lt;/code&gt;, &lt;code&gt;/search?&lt;/code&gt;, &lt;code&gt;/index.php/search/&lt;/code&gt; and &lt;code&gt;/index.php/search?&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The commit deletes four &lt;code&gt;Disallow&lt;/code&gt; lines from the default &lt;code&gt;robots.txt&lt;/code&gt; template: &lt;code&gt;/search/&lt;/code&gt;, &lt;code&gt;/search?&lt;/code&gt;, &lt;code&gt;/index.php/search/&lt;/code&gt; and &lt;code&gt;/index.php/search?&lt;/code&gt;. The diff has two identical hunks. I did not check which files they apply to. The rules came from &lt;a href="https://www.drupal.org/node/3550083"&gt;#3550083&lt;/a&gt; and were already released in 11.4.0, so this is a reversal of a released change. The thread says a change record and a release note snippet were added for it, and the change record is https://www.drupal.org/node/3627873. It was committed to &lt;code&gt;main&lt;/code&gt; and 12.0.x.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Existing sites keep their current &lt;code&gt;robots.txt&lt;/code&gt;, because Drupal does not overwrite it. A site using the contributed Search module should add these lines back to its &lt;code&gt;robots.txt&lt;/code&gt;:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;Disallow: /search/
-Disallow: /search?
-Disallow: /index.php/search/
-Disallow: /index.php/search?
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 2, 2026&lt;/li&gt;
-&lt;li&gt;Committed: October 15, 2026 (12 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;gábor hojtsy (Acquia)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;xjm (xjm)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
