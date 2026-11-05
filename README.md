@@ -1,4 +1,4 @@
-**TL;DR:** [1526 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1530 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_443 summaries · 135 new this week_
+_447 summaries · 139 new this week_
 
-- [#3589013: The drupal-ai subcommand skills-list crashes with a TypeError](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-best-practices/3589013.md)
-- [#3583099: Describe a value object's schema outside a tool call](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583099.md)
-- [#3583116: Pass the invoker to method-tool `access` callbacks](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583116.md)
+- [#3583054: Cast form values once at extraction instead of returning raw form strings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583054.md)
+- [#3594871: Let the groundedness and accuracy judges see what an agent's tools returned](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594871.md)
+- [#3594837: A plain-format trace reply starts with "assistant: "](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594837.md)
 
 ### Drupal Core
 
