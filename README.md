@@ -1,4 +1,4 @@
-**TL;DR:** [1540 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1545 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,27 +6,27 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_455 summaries · 142 new this week_
+_458 summaries · 135 new this week_
 
-- [#3594880: FlowDrop: editing a workflow in FlowDrop's editor silently makes it unusable...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594880.md)
-- [#3616124: Saving the anonymous user (uid 0) revokes access tokens for any consumer with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3616124.md)
-- [#3586785: HostnameFilter HTML-encodes & and > in Markdown output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586785.md)
+- [#3594883: Set follow-up questions in the question editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594883.md)
+- [#3586677: HostnameFilter handling of HTML in JSON](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586677.md)
+- [#3594881: Ask follow-up questions in one AI Answers conversation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594881.md)
 
 ### Drupal Canvas
 
-_308 summaries · 10 new this week_
+_309 summaries · 10 new this week_
 
+- [#3592265: Improve headless component sync compatibility with page templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592265.md)
 - [#3530051: Update `ComponentAudit::getConfigEntityDependenciesUsingComponent()` to support...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3530051.md)
 - [#3592235: Workspaces PR 5: editor read path and Live writes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592235.md)
-- [#3592234: Workspaces MR 4: component generation outside the workspace](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592234.md)
 
 ### Drupal Core
 
-_643 summaries · 5 new this week_
+_644 summaries · 6 new this week_
 
+- [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
 - [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
 - [#3619507: Remove CSS weights from system.libraries.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md)
-- [#3633064: Update masterminds/html5 to 2.12.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633064.md)
 
 ### Drupal CMS
 

@@ -5,6 +5,66 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3619733: Deprecate .module file extension</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md</link>
+      <guid isPermaLink="false">node/3619733</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 06 Nov 2026 09:21:26 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 42 files, +267/−24 · php +257/−24 · yml +10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/3fb1c69d36927265f30e4dbc418828f5b884b73f"&gt;3fb1c69&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3619733"&gt;#3619733&lt;/a&gt; · 10 contributors · 63 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 10 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Procedural &lt;code&gt;.module&lt;/code&gt; files are now deprecated, and so are &lt;code&gt;.profile&lt;/code&gt; files. Drupal emits one deprecation notice per file, naming the file. This tells module and profile maintainers to move any remaining code into classes: hooks into hook classes, other functions into services or other classes. The deprecation applies to the files, not to modules as an extension type. The notice is only emitted on &lt;code&gt;main&lt;/code&gt; and 12.0.x. It was not backported to 11.5.x, although the deprecation text says 11.5.0 and the change record (https://www.drupal.org/node/3619765) is published. Core's own &lt;code&gt;.module&lt;/code&gt; files are converted. The ones that still hold deprecated legacy functions are marked with the attribute to stay quiet.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Code in &lt;code&gt;.module&lt;/code&gt; and &lt;code&gt;.profile&lt;/code&gt; files is deprecated in drupal:11.5.0 and must be converted before drupal:13.0.0. The deprecation notice is emitted only on &lt;code&gt;main&lt;/code&gt; and 12.0.x, not on 11.x.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;#[ExtensionFileIsConverted]&lt;/code&gt; is now also honoured in &lt;code&gt;.module&lt;/code&gt; and &lt;code&gt;.profile&lt;/code&gt; files. Put it on the first function in the file to suppress the deprecation notice.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;HookCollectorPass&lt;/code&gt; already scanned &lt;code&gt;.module&lt;/code&gt; and &lt;code&gt;.profile&lt;/code&gt; files for procedural hook implementations. It now records every such file it finds in a new &lt;code&gt;deprecatedFiles&lt;/code&gt; property. In &lt;code&gt;writeToContainer()&lt;/code&gt; it emits &lt;code&gt;Code in {name}.{ext} is deprecated in drupal:11.5.0 and must be converted before drupal:13.0.0. Use classes instead. See https://www.drupal.org/node/3619765&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;A file is removed from that list, so no notice is emitted, in two cases. First, if a function in it carries &lt;code&gt;#[ExtensionFileIsConverted]&lt;/code&gt;. Second, if every function in it carries &lt;code&gt;#[LegacyHook]&lt;/code&gt; or &lt;code&gt;#[LegacyRequirementsHook]&lt;/code&gt; (so a file holding only legacy hook wrappers produces no notice). The result is cached under a new &lt;code&gt;@skip_extension_file_deprecation&lt;/code&gt; key.&lt;/p&gt;
+&lt;p&gt;The procedural scan used to be skipped entirely when &lt;code&gt;$skip_procedural&lt;/code&gt; was set or &lt;code&gt;#[ProceduralHookScanStop]&lt;/code&gt; was hit. Deprecation detection needs to see every function in the file, so the scan now always runs. When either skip condition applies, it only stops adding hooks to the hook map and keeps looking for non-legacy functions. The cached structure changed from a flat list to &lt;code&gt;['hooks' =&amp;gt; [...], '@skip_extension_file_deprecation' =&amp;gt; TRUE]&lt;/code&gt;. The file-cache keys were bumped (&lt;code&gt;hook_implementations:1&lt;/code&gt;, &lt;code&gt;procedural_hook_implementations:1:...&lt;/code&gt;) so old entries are not reused.&lt;/p&gt;
+&lt;p&gt;The attribute can only target a function. A &lt;code&gt;.module&lt;/code&gt; file that contains no functions therefore needs a dummy function to carry it, as discussed in the thread. The &lt;code&gt;.theme&lt;/code&gt; collector got the same treatment and its message text was aligned with the module wording (&lt;code&gt;Code in ... is deprecated ... must be converted before drupal:13.0.0&lt;/code&gt;). Core &lt;code&gt;.module&lt;/code&gt; files that still hold deprecated legacy functions (for example &lt;code&gt;text_summary()&lt;/code&gt;, &lt;code&gt;filter_formats()&lt;/code&gt;, &lt;code&gt;views_add_contextual_links()&lt;/code&gt;) got &lt;code&gt;#[ExtensionFileIsConverted]&lt;/code&gt;. Legacy test modules and profiles that intentionally keep procedural code now expect the deprecation in their tests. The related theme change is &lt;a href="https://www.drupal.org/node/3581218"&gt;#3581218&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To silence the notice while a &lt;code&gt;.module&lt;/code&gt; file must remain (for example to support older core), add the attribute to the first function in the file, as core did:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\Core\Hook\Attribute\ExtensionFileIsConverted;
+
+#[ExtensionFileIsConverted]
+function text_summary($text, $format = NULL, $size = NULL) {
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Per the attribute docs, use it only for legacy support. If your minimum supported core is 11.3.0 or later, convert the file's contents to classes and remove the &lt;code&gt;.module&lt;/code&gt; file. See https://www.drupal.org/node/3619765.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: August 28, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 6, 2026 (2 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;larowlan (PreviousNext)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;xjm (xjm)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;ressa (Ardea)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;The issue first landed on &lt;code&gt;main&lt;/code&gt; and 12.0.x. alexpott then tried an 11.x backport and hit conflicts, including &lt;code&gt;hook_hook_info()&lt;/code&gt; implementations in system and views and a missing earlier theme change. After discussion with nicxvan, berdir, catch and xjm, the group agreed not to backport it. berdir noted that the deprecation noise would hit contrib sooner on 11.x. The issue was left marked as an 11.5.0 release highlight because the change record is already published and the attribute already exists in 11.5.x. Earlier, alexpott found that the first scan-stop or skip-procedural function suppressed the deprecation. His added tests exposed this, and nicxvan changed the scan to continue past those functions.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md</link>
       <guid isPermaLink="false">node/3278431</guid>
@@ -1019,51 +1079,6 @@ handlers: [
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;During review, berdir pointed out that Paragraphs lets admins delete the leftover content from the bundle delete form. longwave suggested keeping the &amp;quot;additional reasons&amp;quot; method separate from counting content entities, and joachim adopted that split in the final design. Deleting the content itself was left for a follow-up. quietone's usability review led to removing the trailing period from the form title, and she wrote a second change record with screenshots. joachim explained why the Cancel button stays alongside the modal's close control: without JS the form is a standalone page with no modal close control.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3114467: 'Negate' form value for condition plugins should be cast to boolean in validation.</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3114467.md</link>
-      <guid isPermaLink="false">node/3114467</guid>
-      <pubDate>Fri, 16 Oct 2026 11:38:51 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +128/−53 · php +128/−53&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/65625decc4afd53058d8c158ec80842ec69c875b"&gt;65625de&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3114467"&gt;#3114467&lt;/a&gt; · 24 contributors · 63 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 40&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 24 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;negate&amp;quot; option on condition plugins (for example &amp;quot;Show for the listed pages&amp;quot;) is now saved as a true boolean instead of &lt;code&gt;0&lt;/code&gt;/&lt;code&gt;1&lt;/code&gt; from a checkbox. Config entities that use condition plugins outside the block UI, such as Google Tag containers when the moderation dashboard is enabled, could previously end up with a wrongly typed value and stop showing. Those forms no longer need to cast the value themselves.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ConditionPluginBase::validateConfigurationForm()&lt;/code&gt; was an empty method. It now calls &lt;code&gt;$form_state-&amp;gt;setValue('negate', (bool) $form_state-&amp;gt;getValue('negate'))&lt;/code&gt;, so the value is cast before &lt;code&gt;submitConfigurationForm()&lt;/code&gt; copies it into &lt;code&gt;$this-&amp;gt;configuration['negate']&lt;/code&gt;. The config schema declares &lt;code&gt;negate&lt;/code&gt; as boolean, but checkbox form elements submit &lt;code&gt;0&lt;/code&gt;/&lt;code&gt;1&lt;/code&gt;. Core's &lt;code&gt;BlockForm::validateVisibility()&lt;/code&gt; already did this cast for blocks only; other forms embedding condition plugins had to repeat it. The diff does not remove the &lt;code&gt;BlockForm&lt;/code&gt; cast, though the issue suggested it could go.&lt;/p&gt;
-&lt;p&gt;The change landed after a first commit was reverted from &lt;code&gt;main&lt;/code&gt;, because its unit test broke pipelines under newer PHPUnit mocking. The shipped version adds &lt;code&gt;ConditionPluginBaseTest&lt;/code&gt;, a data-provider unit test that uses a small concrete &lt;code&gt;TestConditionPluginBase&lt;/code&gt; class instead of a mock builder. It checks that &lt;code&gt;0&lt;/code&gt;, &lt;code&gt;1&lt;/code&gt;, &lt;code&gt;'0'&lt;/code&gt;, &lt;code&gt;'1'&lt;/code&gt;, &lt;code&gt;''&lt;/code&gt;, &lt;code&gt;FALSE&lt;/code&gt; and &lt;code&gt;TRUE&lt;/code&gt; all end up as strict booleans. Related: &lt;a href="https://www.drupal.org/node/2815829"&gt;#2815829&lt;/a&gt; casts config values by schema at a lower level on form submit, but the thread found it did not fix this case.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites that applied a local patch for this issue can remove it after updating core. Config entities already saved with a non-boolean &lt;code&gt;negate&lt;/code&gt; (for example a Google Tag container) need to be re-saved through their form so the value is stored as a boolean. This is based on comments in the thread, not on the diff.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: February 18, 2020&lt;/li&gt;
-&lt;li&gt;First commit: July 10, 2026 (6 years later)&lt;/li&gt;
-&lt;li&gt;Last commit: October 16, 2026 (3 months and 3 commits later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;godotislate&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;li&gt;eddie_c (Oxfam International)&lt;/li&gt;
-&lt;li&gt;ankondrat4&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>
