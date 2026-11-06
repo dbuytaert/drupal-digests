@@ -5,6 +5,190 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3594879: A FlowDrop workflow built in the FlowDrop editor does not appear in the target form</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594879.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594879</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 06 Nov 2026 05:34:05 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 26 files, +836/−23 · php +644/−17 · md +192/−6&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d93957c0b4247a5c511fe36e2f302536b73ebe39"&gt;d93957c&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594879"&gt;#3594879&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;A workflow built in FlowDrop's editor used to be missing from the ai_eval target form, with only a generic &amp;quot;no available workflows&amp;quot; message. The cause is that the editor stores no orchestrator, so FlowDrop runs it in the background, and ai_eval can't wait for the answer. The target form now lists the workflows an engine can't run, with a reason. For FlowDrop the reason includes the Drush command that sets a synchronous orchestrator. The FlowDrop engine now has a proper label and checks the question port, fixed inputs, output path and an ignored provider or model when you save a target. Question port choices read &amp;quot;Title (name)&amp;quot;, and a single allowed port is preselected. Steps on the results page show the canvas title with the node id. The README, the ai-eval skill and a new &lt;code&gt;ai-eval-flowdrop&lt;/code&gt; skill document the extra FlowDrop modules a workflow needs and how to set the orchestrator.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;WorkflowRunnerDetailsInterface::unavailableWorkflows()&lt;/code&gt; returns hidden workflows keyed by id with a &lt;code&gt;label&lt;/code&gt; and &lt;code&gt;reason&lt;/code&gt;. &lt;code&gt;WorkflowStep&lt;/code&gt; gets an optional &lt;code&gt;label&lt;/code&gt; constructor argument.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;WorkflowRunnerDetailsInterface&lt;/code&gt; (the optional interface, unreleased) gains &lt;code&gt;unavailableWorkflows()&lt;/code&gt;. It returns &lt;code&gt;[id =&amp;gt; ['label' =&amp;gt; ..., 'reason' =&amp;gt; ...]]&lt;/code&gt; and must never include anything &lt;code&gt;listWorkflows()&lt;/code&gt; returns. &lt;code&gt;EvalTargetForm&lt;/code&gt; calls it when the runner implements the interface. With listed workflows present it renders a closed &lt;code&gt;details&lt;/code&gt; element titled &amp;quot;Not listed (N)&amp;quot; below the Workflow select. With none, it adds the list to the notice (&amp;quot;No workflow from this engine can run yet.&amp;quot;). Labels and reasons are cast to strings and passed through &lt;code&gt;@&lt;/code&gt; placeholders, so engine text is escaped. If a saved target's workflow is hidden, the notice includes the reason.&lt;/p&gt;
+&lt;p&gt;Runners report what their lists already skip. AI Prompt reports a missing prompt type or a type with no variables. AI Automators reports automators whose &lt;code&gt;load()&lt;/code&gt; throws a refusal. Search API reports disabled indexes or indexes without an enabled server. AI Answers returns &lt;code&gt;[]&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;FlowDropWorkflowRunner&lt;/code&gt; now implements &lt;code&gt;WorkflowRunnerDetailsInterface&lt;/code&gt;. &lt;code&gt;label()&lt;/code&gt; returns &amp;quot;FlowDrop&amp;quot;. &lt;code&gt;unavailableWorkflows()&lt;/code&gt; returns asynchronous workflows with the Drush &lt;code&gt;config:set ... metadata.orchestrator_settings.type flowdrop_runtime:synchronous&lt;/code&gt; reason. &lt;code&gt;questionPorts()&lt;/code&gt; goes through the new &lt;code&gt;FlowDropRunReader::questionPorts()&lt;/code&gt;, which uses FlowDrop's &lt;code&gt;SchemaFragmentChecker::checkValue()&lt;/code&gt; on the declared type, so FlowDrop's own rules apply. An enum is only checked per question at launch. &lt;code&gt;validateTarget()&lt;/code&gt; and &lt;code&gt;run()&lt;/code&gt; share &lt;code&gt;bindingErrors()&lt;/code&gt;. It checks that the question port is declared (and typed for text at save time), that fixed inputs are declared and don't include the question port, that the output path starts with a declared output name, and that no provider or model is set (FlowDrop ignores them). &lt;code&gt;run()&lt;/code&gt; now loads the workflow through &lt;code&gt;runnableWorkflow()&lt;/code&gt;, which throws the same asynchronous reason text.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;WorkflowStep&lt;/code&gt; has a new optional &lt;code&gt;label&lt;/code&gt;. &lt;code&gt;FlowDropRunReader&lt;/code&gt; sets it only when the canvas title differs from the node id. &lt;code&gt;WorkflowRecordMapper&lt;/code&gt; stores it as a capped &lt;code&gt;label&lt;/code&gt; key only when present. The workflow panel shows &lt;code&gt;Label (node_id)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In the form, question port options become &amp;quot;Title (name)&amp;quot; when they differ. A sole allowed port is used as the default and pinned after an AJAX reset.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Custom workflow runners that implement &lt;code&gt;WorkflowRunnerDetailsInterface&lt;/code&gt; must add the new method. Return &lt;code&gt;[]&lt;/code&gt; if nothing is hidden:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function unavailableWorkflows(): array {
+  return [];
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To explain a hidden workflow, return &lt;code&gt;['workflow_id' =&amp;gt; ['label' =&amp;gt; $label, 'reason' =&amp;gt; $reason]]&lt;/code&gt;. The workflow must not also appear in &lt;code&gt;listWorkflows()&lt;/code&gt;. To show a node label on the results page, pass &lt;code&gt;label:&lt;/code&gt; when building a &lt;code&gt;WorkflowStep&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 6, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 6, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594878: Set up a workflow target in the target form</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594878.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594878</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 05 Nov 2026 21:49:04 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 23 files, +1985/−123 · php +1895/−90 · md +90/−33&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/4420b860568c6e90794b6df6c9ca740678f8976d"&gt;4420b86&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594878"&gt;#3594878&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Workflow targets can now be created and edited in the AI Eval target form instead of only through YAML import. When at least one workflow runner is installed, the add form offers a Workflow mode. You pick the engine, then the workflow, then the input that receives the question. The lists refresh in place as you change the engine or workflow. You can also enter fixed inputs as YAML and set an output path. Chat provider and model settings now apply in workflow mode too, which AI Prompt needs. The form checks the engine, workflow, question port and fixed inputs on save, and shows a message if a runner fails to list its workflows or ports. Existing agent and chat targets cannot be switched to Workflow. Config YAML is still the export and import format.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New optional &lt;code&gt;Drupal\ai_eval\Workflow\WorkflowRunnerDetailsInterface&lt;/code&gt; (&lt;code&gt;label()&lt;/code&gt;, &lt;code&gt;questionPorts()&lt;/code&gt;, &lt;code&gt;validateTarget()&lt;/code&gt;) and &lt;code&gt;WorkflowRunnerCollector::label()&lt;/code&gt;. &lt;code&gt;WorkflowRunnerInterface&lt;/code&gt; is unchanged.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EvalTargetForm&lt;/code&gt; gains engine, workflow and question port selects with htmx redraws. A workflow with no declared ports gets a text field for the port. Per the shipped docs, the redraws go through the form's own route and permission, so no separate fragment routes were added. On save the form writes the workflow keys, keeps the stored &lt;code&gt;workflow_snapshot&lt;/code&gt; (the form has no field for it), and returns form errors before the entity throws. Those errors cover an uninstalled engine, an unlisted workflow (a new check), an undeclared or disallowed question port, fixed inputs that name an undeclared port, and fixed inputs that name the question port.&lt;/p&gt;
+&lt;p&gt;The new optional &lt;code&gt;WorkflowRunnerDetailsInterface&lt;/code&gt; sits next to &lt;code&gt;WorkflowRunnerInterface&lt;/code&gt;. &lt;code&gt;label()&lt;/code&gt; gives the engine name. &lt;code&gt;questionPorts($workflowId)&lt;/code&gt; returns the ports that can take the question, &lt;code&gt;NULL&lt;/code&gt; for any declared port, or an empty list for none. &lt;code&gt;validateTarget()&lt;/code&gt; takes the workflow id, question port, fixed inputs, output path, provider id and model id. It returns errors keyed by &lt;code&gt;workflow_input_port&lt;/code&gt;, &lt;code&gt;workflow_inputs&lt;/code&gt;, &lt;code&gt;workflow_output_path&lt;/code&gt; or &lt;code&gt;provider_model&lt;/code&gt;. A runner that implements only &lt;code&gt;WorkflowRunnerInterface&lt;/code&gt; still works: &lt;code&gt;WorkflowRunnerCollector::label()&lt;/code&gt; falls back to the engine id, and every declared port is allowed.&lt;/p&gt;
+&lt;p&gt;All four shipped runners implement the interface. AI Answers allows only &lt;code&gt;question&lt;/code&gt;. Search API allows only &lt;code&gt;keys&lt;/code&gt;. AI Automators allows every declared port except &lt;code&gt;text_format&lt;/code&gt;. AI Prompt allows only declared variables that have a single-brace placeholder in the prompt. To keep save-time and run-time checks the same, each runner's &lt;code&gt;run()&lt;/code&gt; checks were moved into shared private helpers (for example &lt;code&gt;validateInputs()&lt;/code&gt; and &lt;code&gt;validateModel()&lt;/code&gt;). &lt;code&gt;PromptRenderer::validateValues()&lt;/code&gt; and &lt;code&gt;UnsavedEntityBuilder::validateTextFormat()&lt;/code&gt; were extracted for the same reason. AI Automators now rejects a non-empty output path at save time. AI Prompt requires both a provider and a model. The docs in &lt;code&gt;docs/user/usage/targets.md&lt;/code&gt; and &lt;code&gt;docs/user/developers/index.md&lt;/code&gt; were updated.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Optional for custom workflow runners. Implement &lt;code&gt;Drupal\ai_eval\Workflow\WorkflowRunnerDetailsInterface&lt;/code&gt; alongside &lt;code&gt;WorkflowRunnerInterface&lt;/code&gt; to get a label and question port filtering in the target form:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;final class MyRunner implements WorkflowRunnerInterface, WorkflowRunnerDetailsInterface {
+  public function label(): \Stringable {
+    return new TranslatableMarkup('My engine');
+  }
+  public function questionPorts(string $workflowId): ?array {
+    return ['question'];
+  }
+  public function validateTarget(string $workflowId, string $questionPort, array $fixedInputs, ?string $outputPath, ?string $providerId, ?string $modelId): array {
+    return [];
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Runners that do not implement it keep working: the form shows the engine id and allows any declared port.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 5, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594876: Add a FlowDrop runner for workflow mode</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594876.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594876</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Thu, 05 Nov 2026 21:13:27 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 16 files, +1978/−14 · php +1765/−12 · md +169/−2 · yml +40 · txt +2 · json +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/14d4f8bd5e4c7d6221e2f0cf1338704fe6a942c3"&gt;14d4f8b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594876"&gt;#3594876&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;AI Eval gets a fifth workflow-mode runner, in the new &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; submodule. With it, a target with &lt;code&gt;workflow_engine: flowdrop&lt;/code&gt; runs a synchronous FlowDrop workflow once per question. The workflow's declared output is graded as the answer. Each FlowDrop job shows up as a step on the result page, and each individual tool invocation is available to tool-use checks and judges. Asynchronous workflows are not listed or run, because ai_eval waits for each answer. Paused, failed or cancelled runs supply no answer. The workflow really runs and its writes are saved, so use a test copy of the site for workflows that write.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; needs &lt;code&gt;drupal/flowdrop&lt;/code&gt; ^2.7.2 (added to &lt;code&gt;require-dev&lt;/code&gt; and &lt;code&gt;suggest&lt;/code&gt;) and its &lt;code&gt;flowdrop_workflow_executor&lt;/code&gt; module.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; submodule with an &lt;code&gt;ai_eval.workflow_runner&lt;/code&gt; service (id &lt;code&gt;flowdrop&lt;/code&gt;) and &lt;code&gt;ToolCallRecord::fromParts()&lt;/code&gt; for engines whose tool calls are plain arrays.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;FlowDropWorkflowRunner&lt;/code&gt; (id &lt;code&gt;flowdrop&lt;/code&gt;) is tagged &lt;code&gt;ai_eval.workflow_runner&lt;/code&gt;. It checks that the caller has &lt;code&gt;execute flowdrop_workflow&lt;/code&gt; and a &lt;code&gt;view own&lt;/code&gt; or &lt;code&gt;view any&lt;/code&gt; &lt;code&gt;flowdrop_pipeline&lt;/code&gt; permission. It refuses a missing or asynchronous workflow with &lt;code&gt;WorkflowLaunchRefusedException&lt;/code&gt;, then launches through &lt;code&gt;flowdrop_workflow_executor.launcher&lt;/code&gt; with &lt;code&gt;LaunchOptions(wait: TRUE)&lt;/code&gt; and never relaunches. &lt;code&gt;listWorkflows()&lt;/code&gt; only lists workflows whose resolved orchestrator is not asynchronous. Model calls are recorded through &lt;code&gt;ai_eval.model_call_recorder&lt;/code&gt; while the workflow runs.&lt;/p&gt;
+&lt;p&gt;All reads of FlowDrop internals sit in one adapter, &lt;code&gt;FlowDropRunReader&lt;/code&gt;, which reloads the pipeline through FlowDrop's storage registry. Declared outputs come from the last completed graph job of each node, passed to &lt;code&gt;WorkflowSchemaResolverInterface::extractOutputs()&lt;/code&gt;. Without &lt;code&gt;workflow_output_path&lt;/code&gt;, one declared output is used. With several, the single output marked &lt;code&gt;turn: reply&lt;/code&gt; wins, otherwise the named-output map is encoded as JSON. A missing output is reported as an error, not as an empty answer. Booleans become &lt;code&gt;true&lt;/code&gt; or &lt;code&gt;false&lt;/code&gt;, and structures become JSON.&lt;/p&gt;
+&lt;p&gt;Steps are ordered by &lt;code&gt;execution_order&lt;/code&gt; metadata, then start time and job id, with skipped jobs last. Kinds come from the node type's executor plugin: &lt;code&gt;reason&lt;/code&gt; is &lt;code&gt;ai&lt;/code&gt;, &lt;code&gt;tool_invoke&lt;/code&gt; is &lt;code&gt;tool&lt;/code&gt;, &lt;code&gt;flowdrop_workflow&lt;/code&gt; and &lt;code&gt;workflow_executor&lt;/code&gt; are &lt;code&gt;subflow&lt;/code&gt;, a list of known logic nodes is &lt;code&gt;deterministic&lt;/code&gt;, and anything else is &lt;code&gt;other&lt;/code&gt;. The attempt is &lt;code&gt;retry_count + 1&lt;/code&gt;. Previews are redacted and capped at 500 characters. Jobs marked &lt;code&gt;tool_invocation&lt;/code&gt; become tool-call records and nest under the consumer job named in &lt;code&gt;invoked_by&lt;/code&gt;. The batch &lt;code&gt;tool_invoke&lt;/code&gt; job is a step but not a call record. Child pipelines are matched to subflow jobs by exact parent pipeline id, in order. If the counts differ, the children have no parent execution id and a note is added. Following child pipelines stops after eight levels.&lt;/p&gt;
+&lt;p&gt;To share the redaction and caps, &lt;code&gt;ToolCallRecord::fromFunctionCall()&lt;/code&gt; now delegates to a new public &lt;code&gt;ToolCallRecord::fromParts()&lt;/code&gt;, and &lt;code&gt;redactOutput()&lt;/code&gt; became public. A unit test checks the two paths give identical records. The README says that with FlowDrop 2.7.2 a launched workflow's tools reach &lt;code&gt;tool_invoke&lt;/code&gt; only on the stategraph orchestrator. It also says FlowDrop 3.0.0 moves the optional job lookup methods, so the supported range is stated as ^2.7.2.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To use it, install FlowDrop and enable the submodule:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;composer require 'drupal/flowdrop:^2.7.2'
+drush en ai_eval_flowdrop
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Then configure a workflow target in YAML, for example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-yaml"&gt;mode: workflow
+workflow_engine: flowdrop
+workflow_id: answer_question
+workflow_input_port: question
+workflow_output_path: ''
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 4, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 5, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3583056: Validate the declared constraints on list and map outputs</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583056.md</link>
+      <guid isPermaLink="false">project/tool#3583056</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 05 Nov 2026 19:51:33 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +382/−100 · php +382/−100&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/a6ff1196f2eb269f87f86f962a19f77fdd421151"&gt;a6ff119&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583056"&gt;#3583056&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Constraints declared on list and map outputs, such as &lt;code&gt;Count&lt;/code&gt; with &lt;code&gt;min&lt;/code&gt; or &lt;code&gt;max&lt;/code&gt;, are now enforced when a tool's outputs are validated. Before, they were advertised but never checked. This also covers outputs declared with the deprecated &lt;code&gt;multiple: TRUE&lt;/code&gt;, which the shim converts to a list. Tool authors may see new output violations where a list or map has the wrong number of items or properties. A required list or map with no &lt;code&gt;Count&lt;/code&gt; still accepts an empty value.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ValueViolationsTrait::validateDeclaredConstraints()&lt;/code&gt; now accepts input or output definitions, so &lt;code&gt;TypedOutputsTrait&lt;/code&gt; can use it too.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;validateOutputValue()&lt;/code&gt; in &lt;code&gt;TypedOutputsTrait&lt;/code&gt; now calls &lt;code&gt;validateDeclaredConstraints()&lt;/code&gt; after it has walked the items of a list or the properties of a map. Only the author-declared constraints run, not the typed-data defaults, so an empty required collection stays valid unless &lt;code&gt;Count&lt;/code&gt; says otherwise. Each declared constraint is validated against its own freshly created data as a non-root call. This stops core's validator from descending into members and reporting each member fault twice. The prototype reset guard (&lt;a href="https://www.drupal.org/node/3616328"&gt;#3616328&lt;/a&gt;) applies. A misdeclared constraint, for example &lt;code&gt;Count&lt;/code&gt; with no options, throws, as it does on the input side (&lt;a href="https://www.drupal.org/node/3583048"&gt;#3583048&lt;/a&gt;). For maps, an exception from a constraint is dropped only if the property walk already reported a violation, so the walk's violation rejects the value.&lt;/p&gt;
+&lt;p&gt;The helper moved from &lt;code&gt;TypedInputsTrait&lt;/code&gt; to &lt;code&gt;ValueViolationsTrait&lt;/code&gt;. Its &lt;code&gt;$definition&lt;/code&gt; parameter is now typed &lt;code&gt;InputDefinitionInterface|OutputDefinitionInterface&lt;/code&gt;, so inputs and outputs share it. New kernel tests in &lt;code&gt;TypedOutputsTest&lt;/code&gt; cover lists, maps, a map without properties, a converted &lt;code&gt;multiple&lt;/code&gt; output, empty values, and an invalid declaration. The map test is skipped on core below 11, which recurses into map properties and entity fields on a non-root validation with explicit constraints (&lt;a href="https://www.drupal.org/node/3583093"&gt;#3583093&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 5, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3583054: Cast form values once at extraction instead of returning raw form strings</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583054.md</link>
       <guid isPermaLink="false">project/tool#3583054</guid>
@@ -656,184 +840,6 @@ public function invokerAccess(array $values, AccountInterface $account, ?Invoker
 &lt;ul&gt;
 &lt;li&gt;Opened: June 18, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 3, 2026 (4 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586617: Filter subcontext children by view access and hard scope</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586617.md</link>
-      <guid isPermaLink="false">project/ai_context#3586617</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 03 Nov 2026 20:32:53 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +868/−16 · php +821/−6 · md +43/−8 · yml +2 · sh +2/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/f7c59f44c28f41802b57b633956cba17421e73ea"&gt;f7c59f4&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586617"&gt;#3586617&lt;/a&gt; · 1 contributor · 16 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Subcontext children are now checked before they are delivered with a selected parent. Previously a child with its own scope, for example Roles = Editor, was delivered to every account that received the parent. Children the current user cannot view, or whose delivered translation is not published, were also delivered. This affected the selector path, the Load tool, and the conditional decision prompt sent to the AI provider. Children that fail the checks are now dropped, and they are no longer sent to the provider. Sites that relied on a custom-scope child reaching users outside its scope must change that child's scope.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Closes an access leak where subcontext children with their own scope, denied view access, or unpublished delivered translations were delivered with the parent and sent to the AI provider.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextSubcontextResolver::resolve()&lt;/code&gt; accepts optional &lt;code&gt;$langcode&lt;/code&gt; and &lt;code&gt;$cacheability&lt;/code&gt; arguments.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The cause was that &lt;code&gt;AiContextSubcontextResolver::batchLoadChildren()&lt;/code&gt; uses &lt;code&gt;accessCheck(TRUE)&lt;/code&gt;, which does nothing for this entity type because context items have no query access handler. The published query also matches a child when any translation is published. The fix adds a private &lt;code&gt;filterDeliverableChildren()&lt;/code&gt; step in &lt;code&gt;resolve()&lt;/code&gt;, run before any conditional AI decision. For each child it takes the translation the caller will deliver (&lt;code&gt;AiContextLanguageService::translateItem()&lt;/code&gt;). It drops the child if that translation is unpublished, then if &lt;code&gt;access('view')&lt;/code&gt; is not allowed. The publication check comes first because administrators, accounts with the unpublished-view permission, and owners pass the view check on a draft. A loop is used instead of &lt;code&gt;translateItems()&lt;/code&gt; because that method checks access as a boolean and would lose the access cacheability.&lt;/p&gt;
-&lt;p&gt;Children with their own scope (&lt;code&gt;inheritsParentScope()&lt;/code&gt; is FALSE) are then passed through &lt;code&gt;AiContextScopeResolverInterface::filterByRequestContext()&lt;/code&gt;. Children that inherit the parent scope are not re-filtered, because the parent was already selected, including through Always include or Load. A child in the Always include list skips hard filters but still needs view access. The Load tool has no Always include list, so it hard-filters every own-scope child.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;resolve()&lt;/code&gt; gains optional &lt;code&gt;?string $langcode&lt;/code&gt; and &lt;code&gt;?CacheableMetadata $cacheability&lt;/code&gt; parameters. When &lt;code&gt;$langcode&lt;/code&gt; is NULL it is detected. &lt;code&gt;AiContextSelector&lt;/code&gt; passes the detected language and its cache metadata, so child access results merge into the selection result. &lt;code&gt;LoadAiContextItemById&lt;/code&gt; passes its language. The language is added to the conditional decision cache key, so decisions differ per language. The service definition gains &lt;code&gt;@ai_context.scope_resolver&lt;/code&gt; and &lt;code&gt;@ai_context.language_service&lt;/code&gt; constructor arguments. Docs in &lt;code&gt;docs/features/subcontext.md&lt;/code&gt; were updated.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If you construct &lt;code&gt;AiContextSubcontextResolver&lt;/code&gt; manually (the service definition is updated), pass two new constructor arguments after the provider config resolver: &lt;code&gt;AiContextScopeResolverInterface $scopeResolver&lt;/code&gt; and &lt;code&gt;AiContextLanguageService $languageService&lt;/code&gt;. Callers of &lt;code&gt;resolve()&lt;/code&gt; can optionally pass a language code and a &lt;code&gt;CacheableMetadata&lt;/code&gt; accumulator:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$resolver-&amp;gt;resolve($parents, $always_include, $never_include, $task, $langcode, $cache_metadata);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 3, 2026 (15 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583039: A failed result's output values are unreachable through getOutputValue()</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583039.md</link>
-      <guid isPermaLink="false">project/tool#3583039</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 03 Nov 2026 20:17:23 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 11 files, +280/−30 · php +264/−18 · md +16/−12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/784162ceec399d22ba24ec0dfa57b611497e865f"&gt;784162c&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583039"&gt;#3583039&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a tool returns &lt;code&gt;ExecutableResult::failure()&lt;/code&gt; with values, those values can now be read through &lt;code&gt;$tool-&amp;gt;getOutputValue()&lt;/code&gt; and &lt;code&gt;getOutputValues()&lt;/code&gt;. Before, only a success published outputs. A caller using the documented accessor after a failure got a &lt;code&gt;ContextException&lt;/code&gt;, and the values were reachable only through &lt;code&gt;getResult()-&amp;gt;getContextValues()&lt;/code&gt;. A failure can still be partial: a required output it does not carry stays unset, and &lt;code&gt;getOutputValue()&lt;/code&gt; still throws for that one. &lt;code&gt;drush tool:run&lt;/code&gt; now prints the outputs a failed tool carried.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; After &lt;code&gt;execute()&lt;/code&gt;, a failed result's declared values are published as outputs, readable via &lt;code&gt;getOutputValue()&lt;/code&gt;; &lt;code&gt;getOutputValues()&lt;/code&gt; skips unset outputs on a failed result instead of throwing.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ToolBase::execute()&lt;/code&gt; no longer returns early from its catch blocks. After any path, it resets &lt;code&gt;$this-&amp;gt;outputs&lt;/code&gt; and copies result context values whose keys are declared in &lt;code&gt;output_definitions&lt;/code&gt;, for failures as well as successes. On a success, a &lt;code&gt;setOutputValue()&lt;/code&gt; exception still propagates. On a failure, a value its output cannot store (for example a string for a list output) is logged with &lt;code&gt;Error::logException()&lt;/code&gt; and left out, so the tool's own failure message is not hidden by an exception. A &lt;code&gt;@todo&lt;/code&gt; notes that the formatted result still carries such a value (work item 3583124). &lt;code&gt;failOnOutputViolations()&lt;/code&gt; still runs only on success. When it converts a success into a Runtime failure, it now also clears the outputs, so rejected values are not readable.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;TypedOutputsTrait::getOutputValues()&lt;/code&gt; checks whether the tool is a &lt;code&gt;ToolInterface&lt;/code&gt; with a result whose status is false. If so, it catches the &lt;code&gt;ContextException&lt;/code&gt; for an unset required output and omits that key. In every other case it still throws. The &lt;code&gt;TypedOutputsInterface&lt;/code&gt; docblocks now say that a failure's outputs may be partial. &lt;code&gt;ToolRunCommand&lt;/code&gt; drops its comment saying a failed tool carries no output values. It already reads &lt;code&gt;getFormattedResult()-&amp;gt;getContextValues()&lt;/code&gt;, so a failure's values now appear in its output. The agent docs and the drush docs were updated to match. Kernel and drush tests were added, using a new &lt;code&gt;partial_failure_tool&lt;/code&gt; test plugin.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Callers that guarded output reads with &lt;code&gt;if ($tool-&amp;gt;getResultStatus())&lt;/code&gt; because a failure would throw can now read a failure's outputs. They should expect a required output to be missing on a failure. Use &lt;code&gt;getOutputValues()&lt;/code&gt;, which skips unset outputs on a failure, or catch &lt;code&gt;ContextException&lt;/code&gt; around &lt;code&gt;getOutputValue()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 3, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583097: Rebuilt input violations pass the cause where the constraint goes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583097.md</link>
-      <guid isPermaLink="false">project/tool#3583097</guid>
-      <pubDate>Tue, 03 Nov 2026 19:48:54 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.0.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 2 files, +198/−6 · php +198/−6&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/ec33b0485efbd28e316ec24caa2cc281e70e0b82"&gt;ec33b04&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583097"&gt;#3583097&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Violations returned by a tool's &lt;code&gt;validateInputs()&lt;/code&gt; now keep their constraint. A required input with no value reports a &lt;code&gt;NotNull&lt;/code&gt; constraint, so callers can tell it apart from a &lt;code&gt;Choice&lt;/code&gt; or other failure by calling &lt;code&gt;getConstraint()&lt;/code&gt;. A kernel test now covers this for top-level inputs, list items and map properties.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The issue described a bug in the code that rebuilds violations to put the input name on the property path. It passed &lt;code&gt;getCause()&lt;/code&gt; where &lt;code&gt;ConstraintViolation::__construct()&lt;/code&gt; expects the constraint, so &lt;code&gt;getConstraint()&lt;/code&gt; returned NULL. The commit message and the new test's docblock say the constructor argument fix for &lt;code&gt;validateInputValues()&lt;/code&gt; and the list item and map walkers landed with &lt;a href="https://www.drupal.org/node/3583065"&gt;#3583065&lt;/a&gt;. The diff for this commit therefore contains only the remaining gap in &lt;code&gt;TypedInputsTrait::validateInputValues()&lt;/code&gt;. The special-case violation for a required input with a NULL value, which replaces the typed-data detail with an instruction, now passes &lt;code&gt;new NotNull()&lt;/code&gt; as the constraint argument. It still carries the entity type check code from &lt;a href="https://www.drupal.org/node/3583083"&gt;#3583083&lt;/a&gt; for single entity inputs.&lt;/p&gt;
-&lt;p&gt;The commit adds &lt;code&gt;RebuiltViolationConstraintTest&lt;/code&gt;, a kernel test that goes through &lt;code&gt;validateInputs()&lt;/code&gt;. It checks the constraint class and the property path (for example &lt;code&gt;subject.1&lt;/code&gt;, &lt;code&gt;subject.status&lt;/code&gt;, &lt;code&gt;subject.rows.1.status&lt;/code&gt;) for &lt;code&gt;NotNull&lt;/code&gt; and &lt;code&gt;Choice&lt;/code&gt; failures. It also checks that two failures on one tool report different constraint classes.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 3, 2026 (25 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586646: Document the entity_context keys as public API and how to pull context from background jobs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586646.md</link>
-      <guid isPermaLink="false">project/ai_context#3586646</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 03 Nov 2026 19:02:29 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +125/−0 · md +115 · php +10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/9418fb5a5aa19eaaebe3974eaed49194da46bdd8"&gt;9418fb5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586646"&gt;#3586646&lt;/a&gt; · 1 contributor · 21 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The 1.0.0 docs for AI Context now state which request metadata keys are stable public API. They also explain how a queue worker, cron hook or Drush command can pull context. Integrators such as Content Studio can depend on this behavior. The docs also say that pull ignores the push gates and writes no usage record. They say that usage records list items selected before the token budget is applied. This is a documentation and docblock change only. No behavior changed.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; The &lt;code&gt;entity_context&lt;/code&gt; request metadata keys (entity type, entity ID, bundle, path, plus the top-level &lt;code&gt;path&lt;/code&gt; fallback) are now documented as public API.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;docs/developers/api-stability.md&lt;/code&gt; gets a &amp;quot;Request metadata keys&amp;quot; section. It lists the accepted &lt;code&gt;entity_context&lt;/code&gt; keys: &lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;entity_type_id&lt;/code&gt; or &lt;code&gt;type&lt;/code&gt;; &lt;code&gt;entity_id&lt;/code&gt; or &lt;code&gt;id&lt;/code&gt;; &lt;code&gt;bundle&lt;/code&gt;; and &lt;code&gt;path&lt;/code&gt;, with a top-level &lt;code&gt;path&lt;/code&gt; fallback. The keys are set with &lt;code&gt;InputBase::setRequestMetadataValue()&lt;/code&gt;. Setting &lt;code&gt;entity_context&lt;/code&gt; again replaces the whole array. A numeric entity ID is cast to &lt;code&gt;int&lt;/code&gt;, and a UUID or other string ID is ignored. Bundle and path are untrusted string-matching hints that never load an entity or grant access. Adding an alias is not a break. Removing one or tightening a rule is. The reader class &lt;code&gt;AiContextProviderRequestContextFactory&lt;/code&gt; stays &lt;code&gt;@internal&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;docs/developers/consumer_api.md&lt;/code&gt; gets a &amp;quot;Background jobs and queue workers&amp;quot; section built around &lt;code&gt;ai_context.selection_factory&lt;/code&gt; and &lt;code&gt;fromConsumer()&lt;/code&gt;. It documents these points:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Item queries use &lt;code&gt;accessCheck(TRUE)&lt;/code&gt;, so the account running the job decides what is selected. Cron runs as anonymous and usually selects nothing.&lt;/li&gt;
-&lt;li&gt;Only saved entities can be passed through the public pull API.&lt;/li&gt;
-&lt;li&gt;Entity context persists on the current request across pulls.&lt;/li&gt;
-&lt;li&gt;Conditional subcontext (&lt;code&gt;conditional_subcontext_enabled&lt;/code&gt;, &lt;code&gt;conditional_max_parents&lt;/code&gt;) can make its own AI calls, and it is a site-wide setting.&lt;/li&gt;
-&lt;li&gt;Pull writes no usage record.&lt;/li&gt;
-&lt;li&gt;Pull does not enforce &lt;code&gt;push_enabled&lt;/code&gt;, the type kill switch or &lt;code&gt;isAvailable()&lt;/code&gt;. Callers can use &lt;code&gt;isPushAllowed()&lt;/code&gt; if they want those honored.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;The &lt;code&gt;AiContextSelectionFactoryInterface::fromConsumer()&lt;/code&gt; docblock now says the same about the push gates and usage records, and points to &lt;a href="https://www.drupal.org/node/3586600"&gt;#3586600&lt;/a&gt; for planned pull usage records. &lt;code&gt;docs/features/usage_tracking.md&lt;/code&gt; says usage records show items selected before rendering, including ones the token budget shortened or dropped. &lt;a href="https://www.drupal.org/node/3586645"&gt;#3586645&lt;/a&gt; tracks that.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Contrib code that reads context from a background job can use the documented pull pattern:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$factory = \Drupal::service('ai_context.selection_factory');
-$selection = $factory-&amp;gt;fromConsumer('my_type:my_instance', $task, 'node', $nid);
-$context = $factory-&amp;gt;getResultFromSelection($selection)-&amp;gt;getRenderedText();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Run the job as an account that holds &lt;strong&gt;Use Published AI Context in AI Features&lt;/strong&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 3, 2026 (12 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
-&lt;li&gt;dietric@gmail.com&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

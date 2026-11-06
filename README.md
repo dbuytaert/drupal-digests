@@ -1,4 +1,4 @@
-**TL;DR:** [1530 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1534 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_447 summaries · 139 new this week_
+_451 summaries · 139 new this week_
 
-- [#3583054: Cast form values once at extraction instead of returning raw form strings](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583054.md)
-- [#3594871: Let the groundedness and accuracy judges see what an agent's tools returned](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594871.md)
-- [#3594837: A plain-format trace reply starts with "assistant: "](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594837.md)
+- [#3594879: A FlowDrop workflow built in the FlowDrop editor does not appear in the target...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594879.md)
+- [#3594878: Set up a workflow target in the target form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594878.md)
+- [#3594876: Add a FlowDrop runner for workflow mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594876.md)
 
 ### Drupal Core
 
