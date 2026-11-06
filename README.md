@@ -1,4 +1,4 @@
-**TL;DR:** [1534 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1540 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_451 summaries · 139 new this week_
+_455 summaries · 142 new this week_
 
-- [#3594879: A FlowDrop workflow built in the FlowDrop editor does not appear in the target...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594879.md)
-- [#3594878: Set up a workflow target in the target form](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594878.md)
-- [#3594876: Add a FlowDrop runner for workflow mode](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594876.md)
+- [#3594880: FlowDrop: editing a workflow in FlowDrop's editor silently makes it unusable...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594880.md)
+- [#3616124: Saving the anonymous user (uid 0) revokes access tokens for any consumer with...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3616124.md)
+- [#3586785: HostnameFilter HTML-encodes & and > in Markdown output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586785.md)
+
+### Drupal Canvas
+
+_308 summaries · 10 new this week_
+
+- [#3530051: Update `ComponentAudit::getConfigEntityDependenciesUsingComponent()` to support...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3530051.md)
+- [#3592235: Workspaces PR 5: editor read path and Live writes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592235.md)
+- [#3592234: Workspaces MR 4: component generation outside the workspace](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592234.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _643 summaries · 5 new this week_
 - [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
 - [#3619507: Remove CSS weights from system.libraries.yml](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619507.md)
 - [#3633064: Update masterminds/html5 to 2.12.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633064.md)
-
-### Drupal Canvas
-
-_306 summaries · 8 new this week_
-
-- [#3592234: Workspaces MR 4: component generation outside the workspace](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592234.md)
-- [#3592275: Add a permission so non-admin users can view component folders](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592275.md)
-- [#3592281: Editor preview can start at the wrong position after page height changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592281.md)
 
 ### Drupal CMS
 
