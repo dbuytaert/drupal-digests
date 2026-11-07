@@ -1,4 +1,4 @@
-**TL;DR:** [1548 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1551 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_461 summaries · 134 new this week_
+_464 summaries · 135 new this week_
 
-- [#3586620: Context items listing replaces its cache metadata instead of merging it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586620.md)
-- [#3586586: Update context items listing status filter to published and consumers listing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586586.md)
-- [#3583107: Remove interfaces that only describe final classes before rc1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583107.md)
+- [#3586687: Site Sections hard-filters on the supplied request path, but the selection's...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586687.md)
+- [#3586661: Saving or rendering context items fails when the tiktoken vocab cannot be loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586661.md)
+- [#3586678: "Last used" value of "Context usage" table acts more like "first used" when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586678.md)
 
 ### Drupal Canvas
 
