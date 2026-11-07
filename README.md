@@ -1,4 +1,4 @@
-**TL;DR:** [1545 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1548 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_458 summaries · 135 new this week_
+_461 summaries · 134 new this week_
 
-- [#3594883: Set follow-up questions in the question editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594883.md)
-- [#3586677: HostnameFilter handling of HTML in JSON](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586677.md)
-- [#3594881: Ask follow-up questions in one AI Answers conversation](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594881.md)
+- [#3586620: Context items listing replaces its cache metadata instead of merging it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586620.md)
+- [#3586586: Update context items listing status filter to published and consumers listing...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586586.md)
+- [#3583107: Remove interfaces that only describe final classes before rc1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583107.md)
 
 ### Drupal Canvas
 
