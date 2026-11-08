@@ -5,6 +5,202 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586696: Add the load_ai_context_items function call and deprecate load_ai_context_item_by_id</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586696.md</link>
+      <guid isPermaLink="false">project/ai_context#3586696</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 08 Nov 2026 07:59:42 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 16 files, +886/−268 · php +779/−249 · md +107/−19&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/65f20b7236d70a3f82cd19f3ed6adf2168bb9720"&gt;65f20b7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586696"&gt;#3586696&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Context load tool has a new ID, &lt;code&gt;ai_context:load_ai_context_items&lt;/code&gt;, because the old name &lt;code&gt;load_ai_context_item_by_id&lt;/code&gt; did not match what the tool does (it loads one or more items) or the other two tool IDs. The new tool has the same inputs, access checks and output as before. The old ID stays as a deprecated alias until 2.0.0, so existing agents keep working. The agent tool list shows it as &amp;quot;Load AI Context Item By ID (deprecated)&amp;quot;. New agents should use the new tool. Existing agent configuration is not migrated automatically. Agent prompts that name the old tool must be edited by hand.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Agent configuration that names the old plugin ID (tools, default information tools, overrides) keeps working but should be changed by hand to the new ID. No update hook migrates it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Function call plugin ID &lt;code&gt;ai_context:load_ai_context_item_by_id&lt;/code&gt; is deprecated in 1.0.0 and removed in 2.0.0. Each call triggers &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New function call plugin ID &lt;code&gt;ai_context:load_ai_context_items&lt;/code&gt; (function name &lt;code&gt;ai_context_load_ai_context_items&lt;/code&gt;, tool name &amp;quot;Load AI Context Items&amp;quot;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The load logic moved out of &lt;code&gt;LoadAiContextItemById&lt;/code&gt; into a new &lt;code&gt;@internal&lt;/code&gt; abstract base class, &lt;code&gt;AiContextLoadItemsFunctionCallBase&lt;/code&gt;. The new &lt;code&gt;LoadAiContextItems&lt;/code&gt; plugin extends it with no overrides. &lt;code&gt;LoadAiContextItemById&lt;/code&gt; also extends it, keeps its old &lt;code&gt;id&lt;/code&gt; and &lt;code&gt;function_name&lt;/code&gt;, and changes its &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;description&lt;/code&gt; to say it is deprecated and name the new ID. Its &lt;code&gt;execute()&lt;/code&gt; calls &lt;code&gt;@trigger_error(..., E_USER_DEPRECATED)&lt;/code&gt; and then &lt;code&gt;parent::execute()&lt;/code&gt;. The notice fires only when the tool runs. Listing the tools, building the agent form or creating the plugin does not trigger it. Both &lt;code&gt;#[FunctionCall]&lt;/code&gt; attributes carry the same &lt;code&gt;context_definitions&lt;/code&gt;, and the class docblock says to keep them in sync.&lt;/p&gt;
+&lt;p&gt;The docs (&lt;code&gt;docs/developers/api-stability.md&lt;/code&gt;, &lt;code&gt;function_calls.md&lt;/code&gt;, &lt;code&gt;index.md&lt;/code&gt;, &lt;code&gt;services.md&lt;/code&gt;) now use the new ID. &lt;code&gt;api-stability.md&lt;/code&gt; lists the alias under &amp;quot;Deprecated APIs&amp;quot; and has an &amp;quot;Upgrade from 1.0.0-rc1: Load tool plugin ID&amp;quot; section. That section says to change &lt;code&gt;default_information_tools&lt;/code&gt; entries and agent overrides to the new ID. It also says usage records still show the old ID for agents that have not been moved. A new kernel test, &lt;code&gt;AiContextLoadFunctionCallAliasTest&lt;/code&gt;, checks that the definitions match, the output is identical for both IDs including the permission denial, and the deprecation fires only on execute. &lt;code&gt;AiContextEchoAiSystemPromptTest&lt;/code&gt; gains a case that runs the old ID as a default information tool.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Replace the old plugin ID in agent config, using the same parameters:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;tool: ai_context:load_ai_context_item_by_id
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;becomes&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;tool: ai_context:load_ai_context_items
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This applies to the agent's tool selection and tool settings, its &lt;strong&gt;Default information tools&lt;/strong&gt;, and any AI Agents agent overrides. Agent prompts that mention &lt;code&gt;ai_context:load_ai_context_item_by_id&lt;/code&gt; or &lt;code&gt;ai_context_load_ai_context_item_by_id&lt;/code&gt; must be edited by hand to use &lt;code&gt;ai_context:load_ai_context_items&lt;/code&gt; or &lt;code&gt;ai_context_load_ai_context_items&lt;/code&gt;. To find agents that still use the old ID, check the &lt;strong&gt;Tools used&lt;/strong&gt; list on usage records.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 8, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 8, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586605: Correct the Language scope fail-open text and the conditional parent cap label</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586605.md</link>
+      <guid isPermaLink="false">project/ai_context#3586605</guid>
+      <pubDate>Sun, 08 Nov 2026 07:28:58 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 16 files, +171/−26 · php +151/−12 · md +20/−14&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/45c39ec40b0732e6999725da2ae539ac57337b88"&gt;45c39ec&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586605"&gt;#3586605&lt;/a&gt; · 1 contributor · 21 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Several help texts in AI Context described behavior the code does not have, and this fixes them. The Language scope text said an item is kept when the current language cannot be determined. That never happens, because a language is always detected. With no language prefix in the path, as in Drush, cron or queue calls, Drupal's negotiated content language is used, usually the site default. An item set only to other languages is therefore left out of those calls. The cap field &amp;quot;Max conditional parent decisions per request&amp;quot; is now labelled &amp;quot;per context resolution call&amp;quot;, because one page request or agent run can make several resolution calls. Consumer form help now also names the Roles filter as a way items are left out. Behavior does not change, but the edited strings are translatable, so existing translations of them will need updating.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;This is a text and docs change only. &lt;code&gt;AiContextLanguageService::detect()&lt;/code&gt; always returns a code, so &lt;code&gt;AiContextScopeLanguage&lt;/code&gt; never produces a neutral (NULL) result for an item that has Language values. The corrected strings are in the &lt;code&gt;AiContextScopeLanguage&lt;/code&gt; plugin description and &lt;code&gt;getItemFormDescription()&lt;/code&gt;, in the Default row and Scope Subscriptions help in &lt;code&gt;AiContextConsumerForm&lt;/code&gt;, and in the &lt;code&gt;conditional_max_parents&lt;/code&gt; title and description in &lt;code&gt;AiContextItemSettingsForm&lt;/code&gt;. The setting key, schema and &lt;code&gt;AiContextSubcontextResolver&lt;/code&gt; limit logic are untouched.&lt;/p&gt;
+&lt;p&gt;Docs updated: &lt;code&gt;docs/features/scopes.md&lt;/code&gt; (the Language example now says S also passes on a Spanish request, and explains the fallback), &lt;code&gt;docs/features/subcontext.md&lt;/code&gt;, &lt;code&gt;docs/developers/configuration.md&lt;/code&gt;, &lt;code&gt;docs/developers/debugging.md&lt;/code&gt; (&lt;code&gt;decision_cap_exhausted&lt;/code&gt;), plus &lt;code&gt;multilingual.md&lt;/code&gt; and &lt;code&gt;context_selection.md&lt;/code&gt;. These drop the claims that &amp;quot;detection happens once per request&amp;quot; and that Language &amp;quot;changes how it scores&amp;quot;. The commit adds a kernel test, &lt;code&gt;testRequestWithoutPrefixUsesNegotiatedLanguage()&lt;/code&gt;, and a second one for a non-default negotiated language. Functional tests are updated to assert the new strings.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 18, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 8, 2026 (21 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586677: Getting a "AiContextSelector: Items cut off due to token limit: 4" warning and I don't understand why...</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586677.md</link>
+      <guid isPermaLink="false">project/ai_context#3586677</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sun, 08 Nov 2026 06:51:25 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 28 files, +1103/−100 · php +1023/−92 · md +79/−8 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/8ccb88390dd6332f765c717c06253d90214db703"&gt;8ccb883&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586677"&gt;#3586677&lt;/a&gt; · 1 contributor · 34 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The token figures shown for AI Context items now match what each item costs when injected. Before, the Tokens badge, its tooltip and the consumer budget summary counted only an item's guidance text. Items are actually injected as a block with an ID, label and purpose header and indented guidance. Items that looked like they fit within &lt;strong&gt;Max tokens for injection&lt;/strong&gt; could still be cut off at render time. The &amp;quot;Items cut off due to token limit: 4&amp;quot; warning also now says what the number means: how many of the selected items did not fit, which token budget, which consumer, and the item IDs. After updating, run &lt;code&gt;drush updatedb&lt;/code&gt; and &lt;code&gt;drush cr&lt;/code&gt;. Expect higher badges, percentages and budget totals. Sites near their budget may now see &lt;strong&gt;Context budget exceeded&lt;/strong&gt;. Selection and rendering behave as before.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Update &lt;code&gt;10032&lt;/code&gt; recounts the stored &lt;code&gt;token_count&lt;/code&gt; of every &lt;code&gt;ai_context_item&lt;/code&gt; revision and translation so it covers the rendered block.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; No config schema change; the consumer budget summary note and the cut-off warning text are reworded.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextRendererInterface&lt;/code&gt; gains &lt;code&gt;estimateItemTokens()&lt;/code&gt; and &lt;code&gt;estimateBlockTokens()&lt;/code&gt;; &lt;code&gt;AiContextTokenCountBackfillScheduler&lt;/code&gt; gains &lt;code&gt;writeTokenCounts()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiContextItem::preSave()&lt;/code&gt; now stores &lt;code&gt;AiContextRendererInterface::estimateItemTokens()&lt;/code&gt; in &lt;code&gt;token_count&lt;/code&gt; instead of estimating the guidance text alone. That method calls the new &lt;code&gt;estimateBlockTokens($id, $label, $purpose, $content)&lt;/code&gt;, which builds the block with the same &lt;code&gt;buildBlockPrefix()&lt;/code&gt; and &lt;code&gt;buildBlock()&lt;/code&gt; helpers the renderer uses, so the stored figure and &lt;code&gt;render()&lt;/code&gt; stay in step. The per-item figure excludes the blank separator between blocks. The context prefix and delimiters are added after the budget is enforced.&lt;/p&gt;
+&lt;p&gt;A new item has no ID in &lt;code&gt;preSave()&lt;/code&gt;, so &lt;code&gt;postSave()&lt;/code&gt; recounts it and writes the result through the new &lt;code&gt;AiContextTokenCountBackfillScheduler::writeTokenCounts()&lt;/code&gt;. That writes straight to the column and avoids a second entity save. The recount check in the entity now also fires when the label or purpose changes. It also fires when a draft is published or an older revision is reverted to, because those carry whatever count they were saved with.&lt;/p&gt;
+&lt;p&gt;Update &lt;code&gt;10032&lt;/code&gt; recounts through &lt;code&gt;AiContextTokenCountBackfillScheduler::backfillChunk()&lt;/code&gt;, which now reads every revision and translation (from the revision data table when available) rather than only the current revision. It passes &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;label&lt;/code&gt;, &lt;code&gt;purpose&lt;/code&gt; and &lt;code&gt;content&lt;/code&gt; to &lt;code&gt;estimateBlockTokens()&lt;/code&gt;. If &lt;code&gt;AiContextTokenizerUnavailableException&lt;/code&gt; is thrown, it calls &lt;code&gt;deferRecount()&lt;/code&gt; so cron recounts later, as update &lt;code&gt;10023&lt;/code&gt; does. The scheduler now takes &lt;code&gt;@ai_context.renderer&lt;/code&gt; as a constructor argument.&lt;/p&gt;
+&lt;p&gt;The selector warning in &lt;code&gt;AiContextSelector&lt;/code&gt; now uses &lt;code&gt;@count&lt;/code&gt;, &lt;code&gt;@selected&lt;/code&gt; and &lt;code&gt;@max&lt;/code&gt;, plus &lt;code&gt;@consumer&lt;/code&gt; when &lt;code&gt;getConsumerId()&lt;/code&gt; is set. &lt;code&gt;AiContextTokenEstimator::formatListingTooltip()&lt;/code&gt; gained a &lt;code&gt;$children&lt;/code&gt; argument so a parent row says its figure already covers its subcontext items, which are listed separately. The budget summary note text in &lt;code&gt;AiContextConsumerBudgetSummaryLazyBuilder&lt;/code&gt; was reworded.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run the database update, then clear caches:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb -y
+drush cr
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Update &lt;code&gt;10032&lt;/code&gt; recounts every revision and translation in chunks. Code that decorates &lt;code&gt;ai_context.renderer&lt;/code&gt; must implement the two new methods on &lt;code&gt;AiContextRendererInterface&lt;/code&gt; (an &lt;code&gt;@internal&lt;/code&gt; interface):&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;public function estimateItemTokens(AiContextItem $item): int;
+public function estimateBlockTokens(string $id, string $label, string $purpose, string $content): int;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 26, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 8, 2026 (12 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
+&lt;li&gt;ultimike (DrupalEasy)&lt;/li&gt;
+&lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;joekrukosky (Cool Fire Inc)&lt;/li&gt;
+&lt;li&gt;lbesenyei (Brainsum)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586645: Usage records and the invocation result count items that the token budget left out</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586645.md</link>
+      <guid isPermaLink="false">project/ai_context#3586645</guid>
+      <category>Module maintainers</category>
+      <pubDate>Sun, 08 Nov 2026 06:09:36 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +655/−45 · php +604/−34 · md +51/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/4b0d01fd14404b53f35f3006d6d9ebb354ead669"&gt;4b0d01f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586645"&gt;#3586645&lt;/a&gt; · 1 contributor · 25 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;When a consumer's token budget is too small, the renderer shortens some context items and leaves others out. Before this fix, usage records and the generic-path invocation result still counted every selected item as delivered. The usage pages could then show an item as used by a consumer whose prompt never contained it. Now only items that reached the prompt are recorded and reported. A shortened item still counts as delivered, because part of it reached the model. An item the budget left out does not count.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; Generic-path invocation result &lt;code&gt;item_ids&lt;/code&gt; and &lt;code&gt;item_count&lt;/code&gt; now contain only delivered items, so they can be smaller than the selection on sites with a tight token budget.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiContextSelectionResult::getOmittedItemIds()&lt;/code&gt; and &lt;code&gt;getDeliveredItemIds()&lt;/code&gt;, plus &lt;code&gt;AiContextSelectionTextRenderedEvent::getOmittedItemIds()&lt;/code&gt;, and an &lt;code&gt;omitted_item_ids&lt;/code&gt; key in the renderer result.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiContextRenderer::render()&lt;/code&gt; now returns an &lt;code&gt;omitted_item_ids&lt;/code&gt; list next to &lt;code&gt;truncated_item_ids&lt;/code&gt;. It holds the IDs that produced no block at all: the budget had no room, or the entity could not be loaded or was unpublished. &lt;code&gt;getTruncatedItemIds()&lt;/code&gt; is unchanged and still covers both shortened and dropped items, so an ID can appear in both lists. &lt;code&gt;AiContextSelector&lt;/code&gt; passes the list into &lt;code&gt;AiContextSelectionTextRenderedEvent&lt;/code&gt; (read-only, new trailing constructor argument &lt;code&gt;omittedItemIds&lt;/code&gt;) and into &lt;code&gt;AiContextSelectionResult&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;AiContextSelectionResult::getDeliveredItemIds()&lt;/code&gt; returns &lt;code&gt;getSelectedItemIds()&lt;/code&gt; minus the omitted IDs. &lt;code&gt;AiContextBuildSystemPromptSubscriber&lt;/code&gt; (agent path) and &lt;code&gt;AiContextPreGenerateResponseSubscriber&lt;/code&gt; (generic path) use it for &lt;code&gt;recordUsage()&lt;/code&gt;. The generic path also uses it for the invocation result. &lt;code&gt;getSelectedItemIds()&lt;/code&gt; is unchanged. The renderer decides what counts as delivered, so a &lt;code&gt;TEXT_RENDERED&lt;/code&gt; subscriber that edits item text does not change the records.&lt;/p&gt;
+&lt;p&gt;The generic path still decides whether to push based on the selection, not on delivered items. If the budget leaves out every selected item but a &lt;code&gt;TEXT_RENDERED&lt;/code&gt; subscriber added text, that text is pushed with status &lt;code&gt;pushed&lt;/code&gt;, empty &lt;code&gt;item_ids&lt;/code&gt; and &lt;code&gt;item_count&lt;/code&gt; 0. In that case no usage is recorded. The docs (&lt;code&gt;api-stability.md&lt;/code&gt;, &lt;code&gt;consumer_api.md&lt;/code&gt;, &lt;code&gt;usage_tracking.md&lt;/code&gt;) are updated, with a new &amp;quot;Beta upgrade: usage and item_ids count delivered items&amp;quot; section. A new kernel test covers both push paths, using a length-based test tokenizer so budgets can actually be exceeded.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that compared &lt;code&gt;item_count&lt;/code&gt; or &lt;code&gt;item_ids&lt;/code&gt; in the invocation result against its own selection count may now see fewer items. Use &lt;code&gt;getSelectedItemIds()&lt;/code&gt; for what selection chose and &lt;code&gt;getDeliveredItemIds()&lt;/code&gt; for what reached the prompt:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$result-&amp;gt;getSelectedItemIds();   // unchanged
+$result-&amp;gt;getOmittedItemIds();    // left out completely
+$result-&amp;gt;getDeliveredItemIds();  // selected minus omitted
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 8, 2026 (17 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586648: Raise the default token budget for new sites to 20,000</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586648.md</link>
       <guid isPermaLink="false">project/ai_context#3586648</guid>
@@ -698,181 +894,6 @@ $chatInput-&amp;gt;setHostnameFilter(new HostnameFilterDto(markdownMode: TRUE));
 &lt;ul&gt;
 &lt;li&gt;Opened: November 5, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 5, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594876: Add a FlowDrop runner for workflow mode</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594876.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594876</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Thu, 05 Nov 2026 21:13:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 16 files, +1978/−14 · php +1765/−12 · md +169/−2 · yml +40 · txt +2 · json +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/14d4f8bd5e4c7d6221e2f0cf1338704fe6a942c3"&gt;14d4f8b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594876"&gt;#3594876&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;AI Eval gets a fifth workflow-mode runner, in the new &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; submodule. With it, a target with &lt;code&gt;workflow_engine: flowdrop&lt;/code&gt; runs a synchronous FlowDrop workflow once per question. The workflow's declared output is graded as the answer. Each FlowDrop job shows up as a step on the result page, and each individual tool invocation is available to tool-use checks and judges. Asynchronous workflows are not listed or run, because ai_eval waits for each answer. Paused, failed or cancelled runs supply no answer. The workflow really runs and its writes are saved, so use a test copy of the site for workflows that write.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; needs &lt;code&gt;drupal/flowdrop&lt;/code&gt; ^2.7.2 (added to &lt;code&gt;require-dev&lt;/code&gt; and &lt;code&gt;suggest&lt;/code&gt;) and its &lt;code&gt;flowdrop_workflow_executor&lt;/code&gt; module.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; submodule with an &lt;code&gt;ai_eval.workflow_runner&lt;/code&gt; service (id &lt;code&gt;flowdrop&lt;/code&gt;) and &lt;code&gt;ToolCallRecord::fromParts()&lt;/code&gt; for engines whose tool calls are plain arrays.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;FlowDropWorkflowRunner&lt;/code&gt; (id &lt;code&gt;flowdrop&lt;/code&gt;) is tagged &lt;code&gt;ai_eval.workflow_runner&lt;/code&gt;. It checks that the caller has &lt;code&gt;execute flowdrop_workflow&lt;/code&gt; and a &lt;code&gt;view own&lt;/code&gt; or &lt;code&gt;view any&lt;/code&gt; &lt;code&gt;flowdrop_pipeline&lt;/code&gt; permission. It refuses a missing or asynchronous workflow with &lt;code&gt;WorkflowLaunchRefusedException&lt;/code&gt;, then launches through &lt;code&gt;flowdrop_workflow_executor.launcher&lt;/code&gt; with &lt;code&gt;LaunchOptions(wait: TRUE)&lt;/code&gt; and never relaunches. &lt;code&gt;listWorkflows()&lt;/code&gt; only lists workflows whose resolved orchestrator is not asynchronous. Model calls are recorded through &lt;code&gt;ai_eval.model_call_recorder&lt;/code&gt; while the workflow runs.&lt;/p&gt;
-&lt;p&gt;All reads of FlowDrop internals sit in one adapter, &lt;code&gt;FlowDropRunReader&lt;/code&gt;, which reloads the pipeline through FlowDrop's storage registry. Declared outputs come from the last completed graph job of each node, passed to &lt;code&gt;WorkflowSchemaResolverInterface::extractOutputs()&lt;/code&gt;. Without &lt;code&gt;workflow_output_path&lt;/code&gt;, one declared output is used. With several, the single output marked &lt;code&gt;turn: reply&lt;/code&gt; wins, otherwise the named-output map is encoded as JSON. A missing output is reported as an error, not as an empty answer. Booleans become &lt;code&gt;true&lt;/code&gt; or &lt;code&gt;false&lt;/code&gt;, and structures become JSON.&lt;/p&gt;
-&lt;p&gt;Steps are ordered by &lt;code&gt;execution_order&lt;/code&gt; metadata, then start time and job id, with skipped jobs last. Kinds come from the node type's executor plugin: &lt;code&gt;reason&lt;/code&gt; is &lt;code&gt;ai&lt;/code&gt;, &lt;code&gt;tool_invoke&lt;/code&gt; is &lt;code&gt;tool&lt;/code&gt;, &lt;code&gt;flowdrop_workflow&lt;/code&gt; and &lt;code&gt;workflow_executor&lt;/code&gt; are &lt;code&gt;subflow&lt;/code&gt;, a list of known logic nodes is &lt;code&gt;deterministic&lt;/code&gt;, and anything else is &lt;code&gt;other&lt;/code&gt;. The attempt is &lt;code&gt;retry_count + 1&lt;/code&gt;. Previews are redacted and capped at 500 characters. Jobs marked &lt;code&gt;tool_invocation&lt;/code&gt; become tool-call records and nest under the consumer job named in &lt;code&gt;invoked_by&lt;/code&gt;. The batch &lt;code&gt;tool_invoke&lt;/code&gt; job is a step but not a call record. Child pipelines are matched to subflow jobs by exact parent pipeline id, in order. If the counts differ, the children have no parent execution id and a note is added. Following child pipelines stops after eight levels.&lt;/p&gt;
-&lt;p&gt;To share the redaction and caps, &lt;code&gt;ToolCallRecord::fromFunctionCall()&lt;/code&gt; now delegates to a new public &lt;code&gt;ToolCallRecord::fromParts()&lt;/code&gt;, and &lt;code&gt;redactOutput()&lt;/code&gt; became public. A unit test checks the two paths give identical records. The README says that with FlowDrop 2.7.2 a launched workflow's tools reach &lt;code&gt;tool_invoke&lt;/code&gt; only on the stategraph orchestrator. It also says FlowDrop 3.0.0 moves the optional job lookup methods, so the supported range is stated as ^2.7.2.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;To use it, install FlowDrop and enable the submodule:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;composer require 'drupal/flowdrop:^2.7.2'
-drush en ai_eval_flowdrop
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Then configure a workflow target in YAML, for example:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-yaml"&gt;mode: workflow
-workflow_engine: flowdrop
-workflow_id: answer_question
-workflow_input_port: question
-workflow_output_path: ''
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 4, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 5, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583056: Validate the declared constraints on list and map outputs</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583056.md</link>
-      <guid isPermaLink="false">project/tool#3583056</guid>
-      <category>Module maintainers</category>
-      <pubDate>Thu, 05 Nov 2026 19:51:33 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +382/−100 · php +382/−100&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/a6ff1196f2eb269f87f86f962a19f77fdd421151"&gt;a6ff119&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583056"&gt;#3583056&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Constraints declared on list and map outputs, such as &lt;code&gt;Count&lt;/code&gt; with &lt;code&gt;min&lt;/code&gt; or &lt;code&gt;max&lt;/code&gt;, are now enforced when a tool's outputs are validated. Before, they were advertised but never checked. This also covers outputs declared with the deprecated &lt;code&gt;multiple: TRUE&lt;/code&gt;, which the shim converts to a list. Tool authors may see new output violations where a list or map has the wrong number of items or properties. A required list or map with no &lt;code&gt;Count&lt;/code&gt; still accepts an empty value.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ValueViolationsTrait::validateDeclaredConstraints()&lt;/code&gt; now accepts input or output definitions, so &lt;code&gt;TypedOutputsTrait&lt;/code&gt; can use it too.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;validateOutputValue()&lt;/code&gt; in &lt;code&gt;TypedOutputsTrait&lt;/code&gt; now calls &lt;code&gt;validateDeclaredConstraints()&lt;/code&gt; after it has walked the items of a list or the properties of a map. Only the author-declared constraints run, not the typed-data defaults, so an empty required collection stays valid unless &lt;code&gt;Count&lt;/code&gt; says otherwise. Each declared constraint is validated against its own freshly created data as a non-root call. This stops core's validator from descending into members and reporting each member fault twice. The prototype reset guard (&lt;a href="https://www.drupal.org/node/3616328"&gt;#3616328&lt;/a&gt;) applies. A misdeclared constraint, for example &lt;code&gt;Count&lt;/code&gt; with no options, throws, as it does on the input side (&lt;a href="https://www.drupal.org/node/3583048"&gt;#3583048&lt;/a&gt;). For maps, an exception from a constraint is dropped only if the property walk already reported a violation, so the walk's violation rejects the value.&lt;/p&gt;
-&lt;p&gt;The helper moved from &lt;code&gt;TypedInputsTrait&lt;/code&gt; to &lt;code&gt;ValueViolationsTrait&lt;/code&gt;. Its &lt;code&gt;$definition&lt;/code&gt; parameter is now typed &lt;code&gt;InputDefinitionInterface|OutputDefinitionInterface&lt;/code&gt;, so inputs and outputs share it. New kernel tests in &lt;code&gt;TypedOutputsTest&lt;/code&gt; cover lists, maps, a map without properties, a converted &lt;code&gt;multiple&lt;/code&gt; output, empty values, and an invalid declaration. The map test is skipped on core below 11, which recurses into map properties and entity fields on a non-root validation with explicit constraints (&lt;a href="https://www.drupal.org/node/3583093"&gt;#3583093&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 5, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3583054: Cast form values once at extraction instead of returning raw form strings</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583054.md</link>
-      <guid isPermaLink="false">project/tool#3583054</guid>
-      <pubDate>Thu, 05 Nov 2026 19:23:09 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +282/−2 · php +282/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/a1f34bc9b82d204c5a14d7b54762185c7d5712bf"&gt;a1f34bc&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3583054"&gt;#3583054&lt;/a&gt; · 1 contributor · 11 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When a tool is run from its execute form, a field left empty now means &amp;quot;not set&amp;quot;. The tool's configured value applies, and if there is none, the input's default applies. Before this fix, an empty field was passed as an explicit empty input and skipped the configured value. The fix ships with kernel tests that check the values the tool actually receives, not the raw form values.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;ExecuteToolPluginForm&lt;/code&gt;, the shared extraction step for validation and submission now reads the typed value after &lt;code&gt;extractFormValues()&lt;/code&gt;. It calls &lt;code&gt;$this-&amp;gt;plugin-&amp;gt;setInputValue()&lt;/code&gt; only when that value is not &lt;code&gt;NULL&lt;/code&gt;. An explicit &lt;code&gt;NULL&lt;/code&gt; input would resolve straight to the default and bypass configuration. An input set before the form keeps its value.&lt;/p&gt;
-&lt;p&gt;The configure form is unaffected. Clearing a stored field there still resets it to the default, which a test covers. An unchecked checkbox still reaches the tool as &lt;code&gt;FALSE&lt;/code&gt;, so a configured &lt;code&gt;TRUE&lt;/code&gt; does not win.&lt;/p&gt;
-&lt;p&gt;The commit adds a &lt;code&gt;form_values_tool&lt;/code&gt; test plugin in &lt;code&gt;tool_test&lt;/code&gt; and a kernel test, &lt;code&gt;ToolPluginFormValuesTest&lt;/code&gt;. The test covers numeric strings becoming &lt;code&gt;int&lt;/code&gt; or &lt;code&gt;float&lt;/code&gt;, checkbox handling, empty execute fields falling back to configuration, and the configure form clearing a stored value. The type casting described in the issue title comes from the existing typed data extraction. This diff only changes the NULL handling.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 5, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;vidit.anjaria (QED42)&lt;/li&gt;
-&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
-&lt;li&gt;aherczeg&lt;/li&gt;
-&lt;li&gt;michaellander&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594871: Let the groundedness and accuracy judges see what an agent's tools returned</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594871.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594871</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Thu, 05 Nov 2026 08:17:05 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +701/−45 · php +641/−28 · md +58/−17 · txt +2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/276e198d26c6194fbf6d5292ccac74ef159c7e7e"&gt;276e198&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594871"&gt;#3594871&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;For agent tests, the Groundedness judge now sees what the agent's tools returned, not just which tools ran. It can check a stated value, such as a tuition figure, against the actual tool result instead of passing any answer that follows a search. Each call's output is capped at 4,000 characters and the whole output section at 12,000. The newest outputs are kept and omitted ones are named. The Accuracy judge still sees only call names and arguments. Outputs are not stored or exported, but a judge's stored reason may quote part of one. If the AI module's logging is on, it will log the judge prompt with the tool data. Judge prompts for these tests are longer, so they use more tokens.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; No stored config changes. Groundedness judge prompts for agent tests get longer, which raises judge token use.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;sees_tool_output&lt;/code&gt; property on the &lt;code&gt;AiEvalGrader&lt;/code&gt; attribute (requires &lt;code&gt;sees_tool_calls&lt;/code&gt;), and optional &lt;code&gt;output&lt;/code&gt; and &lt;code&gt;output_cut&lt;/code&gt; keys on tool call records.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ToolCallRecord::fromFunctionCall()&lt;/code&gt; now reads &lt;code&gt;getReadableOutput()&lt;/code&gt; when the tool implements &lt;code&gt;ExecutableFunctionCallInterface&lt;/code&gt;. It stores &lt;code&gt;output&lt;/code&gt;, cut to &lt;code&gt;OUTPUT_MAX_LENGTH&lt;/code&gt; (4000) characters, plus &lt;code&gt;output_cut&lt;/code&gt; when shortened. If the accessor throws, the record keeps its identifiers and arguments and omits the output. Redaction is name-based and runs on the first &lt;code&gt;OUTPUT_SCAN_LENGTH&lt;/code&gt; (16,000) raw characters. It does not decode JSON, so numbers and key order are preserved. JSON-style values under secret-looking keys become &lt;code&gt;&amp;quot;(redacted)&amp;quot;&lt;/code&gt;. Plain &lt;code&gt;key: value&lt;/code&gt; and &lt;code&gt;key=value&lt;/code&gt; lines whose key matches the argument secret-name rules are also redacted. A secret under an innocuous name is not caught.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiEvalGrader&lt;/code&gt; gains &lt;code&gt;sees_tool_output&lt;/code&gt; (default &lt;code&gt;FALSE&lt;/code&gt;), only meaningful with &lt;code&gt;sees_tool_calls&lt;/code&gt;. &lt;code&gt;GroundednessGrader&lt;/code&gt; sets it and &lt;code&gt;AccuracyGrader&lt;/code&gt; does not. In &lt;code&gt;LlmJudgeBase::toolCallBlock()&lt;/code&gt;, a judge with the flag gets an extra section from &lt;code&gt;toolOutputBlock()&lt;/code&gt;. Outputs are listed in execution order, each inside &lt;code&gt;[BEGIN TOOL OUTPUT n nonce]&lt;/code&gt; and &lt;code&gt;[END TOOL OUTPUT n nonce]&lt;/code&gt; fences with a fresh random nonce per prompt. A heading tells the judge the outputs are data, never instructions. Fence words inside outputs are neutralized, and records from other runners are re-capped to 4,000 characters. The 12,000 character budget counts the escaped text. It fills from the newest call backwards, and calls that do not fit are named under &amp;quot;Outputs not shown&amp;quot;. If no call has a nonempty output, the prompt is the same as before. The Groundedness scoring guidance now says that when outputs are listed, a claim is supported only by a listed output or the question. Without outputs it judges as before.&lt;/p&gt;
-&lt;p&gt;Docs and the changelog were updated, including how outputs may still surface through judge reasons and AI module logging. In workflow mode, redacted arguments are kept in a step's input preview.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Custom LLM judge plugins that should see tool results can opt in alongside the existing flag:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;#[AiEvalGrader(
-  // ...
-  sees_tool_calls: TRUE,
-  sees_tool_output: TRUE,
-)]
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Graders that read &lt;code&gt;tool_calls&lt;/code&gt; keep working. Records may now carry optional &lt;code&gt;output&lt;/code&gt; and &lt;code&gt;output_cut&lt;/code&gt; keys. Workflow runners that build &lt;code&gt;WorkflowRunResult::$toolCalls&lt;/code&gt; with &lt;code&gt;ToolCallRecord::fromFunctionCall()&lt;/code&gt; get the output captured automatically.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 3, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 5, 2026 (2 days later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

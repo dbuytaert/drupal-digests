@@ -1,4 +1,4 @@
-**TL;DR:** [1553 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1557 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_465 summaries · 120 new this week_
+_469 summaries · 123 new this week_
 
-- [#3586648: Raise the default token budget for new sites to 20,000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586648.md)
-- [#3586687: Site Sections hard-filters on the supplied request path, but the selection's...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586687.md)
-- [#3586661: Saving or rendering context items fails when the tiktoken vocab cannot be loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586661.md)
+- [#3586696: Add the load_ai_context_items function call and deprecate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586696.md)
+- [#3586605: Correct the Language scope fail-open text and the conditional parent cap label](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586605.md)
+- [#3586677: Getting a "AiContextSelector: Items cut off due to token limit: 4" warning and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586677.md)
 
 ### Drupal Core
 
