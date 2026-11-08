@@ -1,8 +1,16 @@
-**TL;DR:** [1552 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1553 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_465 summaries · 120 new this week_
+
+- [#3586648: Raise the default token budget for new sites to 20,000](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586648.md)
+- [#3586687: Site Sections hard-filters on the supplied request path, but the selection's...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586687.md)
+- [#3586661: Saving or rendering context items fails when the tiktoken vocab cannot be loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586661.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _645 summaries · 7 new this week_
 - [#3384819: Can't add class attribute to hr](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3384819.md)
 - [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
 - [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
-
-### Drupal AI
-
-_464 summaries · 119 new this week_
-
-- [#3586687: Site Sections hard-filters on the supplied request path, but the selection's...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586687.md)
-- [#3586661: Saving or rendering context items fails when the tiktoken vocab cannot be loaded](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586661.md)
-- [#3586678: "Last used" value of "Context usage" table acts more like "first used" when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586678.md)
 
 ### Drupal Canvas
 
