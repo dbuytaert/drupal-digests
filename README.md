@@ -1,8 +1,16 @@
-**TL;DR:** [1557 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1558 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_646 summaries · 8 new this week_
+
+- [#3633459: Update CKEditor to 49.1.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633459.md)
+- [#3384819: Can't add class attribute to hr](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3384819.md)
+- [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _469 summaries · 123 new this week_
 - [#3586696: Add the load_ai_context_items function call and deprecate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586696.md)
 - [#3586605: Correct the Language scope fail-open text and the conditional parent cap label](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586605.md)
 - [#3586677: Getting a "AiContextSelector: Items cut off due to token limit: 4" warning and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586677.md)
-
-### Drupal Core
-
-_645 summaries · 7 new this week_
-
-- [#3384819: Can't add class attribute to hr](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3384819.md)
-- [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
-- [#3278431: [November 2026] Use PHP 8 constructor property promotion for existing code](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3278431.md)
 
 ### Drupal Canvas
 
