@@ -1,8 +1,24 @@
-**TL;DR:** [1558 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1562 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_472 summaries · 125 new this week_
+
+- [#3586703: Diff pages show older context item revisions without the revision permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586703.md)
+- [#3586702: Usage records keep every request path with no limit on number or length](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586702.md)
+- [#3586701: Core "view any unpublished content" permission shows unpublished context items](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586701.md)
+
+### Drupal Canvas
+
+_310 summaries · 11 new this week_
+
+- [#3592222: Canvas AI: Stopped turn's message is lost when tool calls are kept in history](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592222.md)
+- [#3592265: Improve headless component sync compatibility with page templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592265.md)
+- [#3530051: Update `ComponentAudit::getConfigEntityDependenciesUsingComponent()` to support...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3530051.md)
 
 ### Drupal Core
 
@@ -11,22 +27,6 @@ _646 summaries · 8 new this week_
 - [#3633459: Update CKEditor to 49.1.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633459.md)
 - [#3384819: Can't add class attribute to hr](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3384819.md)
 - [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
-
-### Drupal AI
-
-_469 summaries · 123 new this week_
-
-- [#3586696: Add the load_ai_context_items function call and deprecate...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586696.md)
-- [#3586605: Correct the Language scope fail-open text and the conditional parent cap label](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586605.md)
-- [#3586677: Getting a "AiContextSelector: Items cut off due to token limit: 4" warning and...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586677.md)
-
-### Drupal Canvas
-
-_309 summaries · 10 new this week_
-
-- [#3592265: Improve headless component sync compatibility with page templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592265.md)
-- [#3530051: Update `ComponentAudit::getConfigEntityDependenciesUsingComponent()` to support...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3530051.md)
-- [#3592235: Workspaces PR 5: editor read path and Live writes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592235.md)
 
 ### Drupal CMS
 
