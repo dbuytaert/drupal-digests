@@ -1,4 +1,4 @@
-**TL;DR:** [1562 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1569 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,27 +6,27 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_472 summaries · 125 new this week_
+_475 summaries · 80 new this week_
 
-- [#3586703: Diff pages show older context item revisions without the revision permission](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586703.md)
-- [#3586702: Usage records keep every request path with no limit on number or length](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586702.md)
-- [#3586701: Core "view any unpublished content" permission shows unpublished context items](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586701.md)
-
-### Drupal Canvas
-
-_310 summaries · 11 new this week_
-
-- [#3592222: Canvas AI: Stopped turn's message is lost when tool calls are kept in history](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592222.md)
-- [#3592265: Improve headless component sync compatibility with page templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592265.md)
-- [#3530051: Update `ComponentAudit::getConfigEntityDependenciesUsingComponent()` to support...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3530051.md)
+- [#3582977: Pass entities between drush tool:run calls as handles](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582977.md)
+- [#3601385: --config-url: accept a drupal.org project URL and translate it to the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601385.md)
+- [#3586706: Duplicate publishes the copy for users who may not use the publish transition](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586706.md)
 
 ### Drupal Core
 
-_646 summaries · 8 new this week_
+_649 summaries · 11 new this week_
 
-- [#3633459: Update CKEditor to 49.1.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3633459.md)
-- [#3384819: Can't add class attribute to hr](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3384819.md)
-- [#3619733: Deprecate .module file extension](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3619733.md)
+- [#3578936: Navigation module and Admin theme should use the same Inter font](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578936.md)
+- [#3181762: The field name is not displayed in LinkWidget error messages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3181762.md)
+- [#3615654: Default to using the 'libraries' parameter for CSS aggregates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3615654.md)
+
+### Drupal Canvas
+
+_311 summaries · 12 new this week_
+
+- [#3592256: Add `dr canvas:audit:usage` command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md)
+- [#3592222: Canvas AI: Stopped turn's message is lost when tool calls are kept in history](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592222.md)
+- [#3592265: Improve headless component sync compatibility with page templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592265.md)
 
 ### Drupal CMS
 

@@ -5,6 +5,134 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3582977: Pass entities between drush tool:run calls as handles</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582977.md</link>
+      <guid isPermaLink="false">project/tool#3582977</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 09 Nov 2026 15:38:01 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 17 files, +1035/−89 · php +929/−72 · md +106/−17&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/commit/dedbe8a66d1660dc13c19eb33e6a3bfe42d484c0"&gt;dedbe8a&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/tool/-/work_items/3582977"&gt;#3582977&lt;/a&gt; · 1 contributor · 39 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;drush tool:run&lt;/code&gt; can now chain tools that work on content entities. An entity output prints as a &lt;code&gt;handle:&amp;lt;uuid&amp;gt;&lt;/code&gt; string with a hint naming the entity, and a content entity input accepts that string, as the AI connector and MCP bridge already do. Every call in a chain must run with the same &lt;code&gt;--uid&lt;/code&gt;, because handles are stored per account. The original proposal to hide such tools from CLI listings was not what shipped: they stay listed, and &lt;code&gt;tool:list&lt;/code&gt;, &lt;code&gt;tool:search&lt;/code&gt; and &lt;code&gt;tool:info&lt;/code&gt; flag them with &lt;code&gt;requires_handle&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;tool:run&lt;/code&gt; accepts and prints &lt;code&gt;handle:&amp;lt;uuid&amp;gt;&lt;/code&gt; strings for content entities, &lt;code&gt;--json&lt;/code&gt; output gains a &lt;code&gt;hints&lt;/code&gt; list, and &lt;code&gt;tool:list&lt;/code&gt;, &lt;code&gt;tool:search&lt;/code&gt; and &lt;code&gt;tool:info&lt;/code&gt; JSON gain &lt;code&gt;requires_handle&lt;/code&gt;. &lt;code&gt;EntityHandleTransformer&lt;/code&gt; gains &lt;code&gt;hasContentEntityInputs()&lt;/code&gt;, &lt;code&gt;hasRequiredContentEntityInputs()&lt;/code&gt; and &lt;code&gt;hasContentEntityOutputs()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;DrushInvoker::create()&lt;/code&gt; now returns &lt;code&gt;new Invoker(self::ID, InvokerCapability::EntitiesAsHandles)&lt;/code&gt;, so the existing handle transformer applies to drush runs. &lt;code&gt;tool:run&lt;/code&gt; prints the formatted result: content entities as handles, plus a &lt;code&gt;hints&lt;/code&gt; list under &lt;code&gt;--json&lt;/code&gt; or a &amp;quot;Hints:&amp;quot; block in text output, shown only when there are hints.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;EntityHandleTransformer&lt;/code&gt; gains &lt;code&gt;hasContentEntityInputs()&lt;/code&gt;, &lt;code&gt;hasRequiredContentEntityInputs()&lt;/code&gt; and &lt;code&gt;hasContentEntityOutputs()&lt;/code&gt;. They recurse into list items and map properties through a private &lt;code&gt;containsContentEntityDefinition()&lt;/code&gt;. &lt;code&gt;requires_handle&lt;/code&gt; is true only when a required content entity input exists. A tool that only returns an entity, or whose entity input is optional, can be the first call of a chain. &lt;code&gt;isConfigEntityDefinition()&lt;/code&gt; and &lt;code&gt;isContentEntityDefinition()&lt;/code&gt; now strip a bundle suffix such as &lt;code&gt;node:article&lt;/code&gt; before the entity type lookup, because &lt;code&gt;getDefinition()&lt;/code&gt; throws a &lt;code&gt;LogicException&lt;/code&gt; for such IDs.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;tool:run&lt;/code&gt; logs a warning when run as uid 0 and the tool requires or returns a content entity. Anonymous tempstore owners do not persist across drush processes, so no handle reaches another call. The old &amp;quot;drush tool:run cannot pass entities&amp;quot; advice is replaced by &lt;code&gt;entityInputAdvice()&lt;/code&gt;. It says &amp;quot;Pass the handle an earlier call returned.&amp;quot; for content entity inputs and &amp;quot;Pass the machine name of the &amp;lt;type&amp;gt;.&amp;quot; for config entity inputs, which take a machine name (&lt;a href="https://www.drupal.org/node/3583059"&gt;#3583059&lt;/a&gt;). &lt;code&gt;tool:info&lt;/code&gt; shows a &amp;quot;Requires handle&amp;quot; line and builds its example command with &lt;code&gt;--uid=UID&lt;/code&gt; and &lt;code&gt;HANDLE&lt;/code&gt; placeholders. It omits optional entity inputs and uses &lt;code&gt;MACHINE_NAME&lt;/code&gt; for config entity inputs. The skill and drush docs were updated with a &amp;quot;Chain entity tools&amp;quot; section.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Tool authors need no changes. Scripts or agents that parse &lt;code&gt;tool:list --format=json&lt;/code&gt; or &lt;code&gt;tool:search&lt;/code&gt; output get a new boolean &lt;code&gt;requires_handle&lt;/code&gt; on each tool. Handle chain example from the docs:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush tool:run tool_belt:entity_stub --uid=7 --input=entity_type_id=node --input=bundle=article --json
+drush tool:run tool_belt:field_set_value --uid=7 --json \
+  --input='{&amp;quot;entity&amp;quot;:&amp;quot;handle:…&amp;quot;,&amp;quot;field_name&amp;quot;:&amp;quot;title&amp;quot;,&amp;quot;value&amp;quot;:[{&amp;quot;value&amp;quot;:&amp;quot;Hello&amp;quot;}]}'
+drush tool:run tool_belt:entity_save --uid=7 --json --input=entity=handle:…
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 31, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 9, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kotekirkitadze (Omedia)&lt;/li&gt;
+&lt;li&gt;rduterte (Cambridge University Press &amp;amp; Assessment)&lt;/li&gt;
+&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
+&lt;li&gt;michaellander&lt;/li&gt;
+&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
+&lt;li&gt;f0ns (Webhaven)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3601385: --config-url: accept a drupal.org project URL and translate it to the git.drupalcode.org repo URL</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601385.md</link>
+      <guid isPermaLink="false">project/one_line_installer#3601385</guid>
+      <pubDate>Mon, 09 Nov 2026 09:53:54 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +275/−5 · bats +184 · sh +85/−1 · md +3/−3 · 1 +2 · yml +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/commit/5a37c56a29a2541c5a72e346de5233e4bd8b2e8a"&gt;5a37c56&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/one_line_installer/-/work_items/3601385"&gt;#3601385&lt;/a&gt; · 1 contributor · 26 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;--config-url&lt;/code&gt; now accepts a drupal.org project page URL such as &lt;code&gt;https://www.drupal.org/project/ai&lt;/code&gt; and translates it to the matching &lt;code&gt;https://git.drupalcode.org/project/ai&lt;/code&gt; repo before cloning. The installer prints a &lt;code&gt;Resolved drupal.org project ...&lt;/code&gt; line showing what it will clone. Git URLs, SSH remotes, other hosts and non-project drupal.org pages are left untouched.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A new helper, &lt;code&gt;_normalize_config_url&lt;/code&gt; in &lt;code&gt;src/lib/config/_normalize_config_url.sh&lt;/code&gt;, is called at the top of &lt;code&gt;load_config_url()&lt;/code&gt; before the clone. Other loaders such as &lt;code&gt;--config-path&lt;/code&gt; are unaffected. A &lt;code&gt;remote-configs.json&lt;/code&gt; pointer that goes through &lt;code&gt;follow_remote_config&lt;/code&gt; re-enters &lt;code&gt;load_config_url&lt;/code&gt;, so it gets the same translation.&lt;/p&gt;
+&lt;p&gt;The helper matches &lt;code&gt;http(s)://(www.|new.)?drupal.org/project/&lt;/code&gt; case-insensitively on the host. It drops any query string or fragment, then splits the rest of the path on &lt;code&gt;/&lt;/code&gt;. It skips drupal.org's own &lt;code&gt;/project/&lt;/code&gt; sections (&lt;code&gt;issues&lt;/code&gt;, &lt;code&gt;usage&lt;/code&gt;, &lt;code&gt;releases&lt;/code&gt;, &lt;code&gt;search&lt;/code&gt;), the browse listings (&lt;code&gt;project_module&lt;/code&gt;, &lt;code&gt;project_theme&lt;/code&gt;, &lt;code&gt;project_theme_engine&lt;/code&gt;, &lt;code&gt;project_distribution&lt;/code&gt;, &lt;code&gt;project_core&lt;/code&gt;) and the &lt;code&gt;modules&lt;/code&gt;/&lt;code&gt;themes&lt;/code&gt;/&lt;code&gt;distributions&lt;/code&gt; aliases. So &lt;code&gt;/project/issues/ai&lt;/code&gt; and &lt;code&gt;/project/ai/issues/12345&lt;/code&gt; both resolve to &lt;code&gt;ai&lt;/code&gt;. The first remaining segment is the machine name. If it is missing or doesn't match &lt;code&gt;^[a-z0-9_-]+$&lt;/code&gt;, the original URL is returned unchanged rather than inventing a repo URL. That means &lt;code&gt;/project/AI&lt;/code&gt;, &lt;code&gt;/project/issues&lt;/code&gt; and &lt;code&gt;/docs/...&lt;/code&gt; all pass through. A lookalike host such as &lt;code&gt;drupal.org.evil.com&lt;/code&gt; is not rewritten.&lt;/p&gt;
+&lt;p&gt;Bats tests were added for the normalizer (&lt;code&gt;_normalize_config_url&lt;/code&gt;) and for the &lt;code&gt;load_config_url&lt;/code&gt; clone. The &lt;code&gt;--config-url&lt;/code&gt; help text, man page and &lt;code&gt;AGENTS.md&lt;/code&gt; source-layout notes were updated.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Existing git URLs work unchanged. To use the new form, pass the project page URL directly:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;--config-url https://www.drupal.org/project/ai
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: July 22, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 9, 2026 (3 months later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586706: Duplicate publishes the copy for users who may not use the publish transition</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586706.md</link>
+      <guid isPermaLink="false">project/ai_context#3586706</guid>
+      <category>Site owners</category>
+      <pubDate>Mon, 09 Nov 2026 05:52:59 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +525/−109 · php +495/−98 · md +30/−11&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/5403b8792faf614db8bd97249eca0045c6517c0e"&gt;5403b87&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586706"&gt;#3586706&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The Duplicate action on AI Context items now always creates a draft copy, for every user and whether or not &amp;quot;Publish by default&amp;quot; is on. Before, a user who could not use the Publish transition could still get a published copy, which skipped editorial review. The copy is also now owned by the user who duplicated it, gets new created and changed dates, and keeps neither the original's publishing schedule nor its revision log message. A user without the &amp;quot;Create new draft&amp;quot; transition now gets a form error instead of a copy. At the global item limit, duplicating a global item now saves a draft and shows no error, because the limit is checked when the copy is published. Sites running earlier versions should look for published items with the same label or created date as another item and review them.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Editorial workflow bypass: a user without the publish transition could get a published copy through Duplicate when Publish by default was on. Needs restricted permissions (Create and Edit AI Context Item).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Duplicate now requires the &lt;code&gt;use ai_context_editorial transition create_new_draft&lt;/code&gt; permission. Users without it get a form error, even if they may publish.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The cause was in &lt;code&gt;AiContextItemDuplicateForm::buildDuplicate()&lt;/code&gt;. It set the published status and the &lt;code&gt;published&lt;/code&gt; moderation state from &lt;code&gt;default_status&lt;/code&gt;, and &lt;code&gt;validateForm()&lt;/code&gt; only ran the module persistence rules, never entity validation. So Content Moderation's &lt;code&gt;ModerationState&lt;/code&gt; constraint never checked the transition. Now &lt;code&gt;buildDuplicate()&lt;/code&gt; always produces a draft, using the new &lt;code&gt;setDuplicateState()&lt;/code&gt; to call &lt;code&gt;setUnpublished()&lt;/code&gt; and set &lt;code&gt;moderation_state&lt;/code&gt; to &lt;code&gt;draft&lt;/code&gt; on every translation. &lt;code&gt;createDuplicate()&lt;/code&gt; copies all translations, but the route only passes the one in the current content language. &lt;code&gt;validateForm()&lt;/code&gt; also calls &lt;code&gt;-&amp;gt;validate()&lt;/code&gt; on the &lt;code&gt;moderation_state&lt;/code&gt; field and turns each violation into a form error. A new item is checked as a transition from the workflow's initial state, so the user needs the Create new draft transition.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;buildDuplicate()&lt;/code&gt; also resets fields that described the original. The &lt;code&gt;RESET_FIELDS&lt;/code&gt; constant (&lt;code&gt;uid&lt;/code&gt;, &lt;code&gt;created&lt;/code&gt;, &lt;code&gt;changed&lt;/code&gt;, &lt;code&gt;publish_on&lt;/code&gt;, &lt;code&gt;publish_state&lt;/code&gt;, &lt;code&gt;unpublish_on&lt;/code&gt;, &lt;code&gt;unpublish_state&lt;/code&gt;) gets &lt;code&gt;applyDefaultValue()&lt;/code&gt; on each translation, since &lt;code&gt;created&lt;/code&gt; and &lt;code&gt;changed&lt;/code&gt; are translatable. The revision creation time and log message are reset through the entity type's revision metadata keys. The revision user is set to &lt;code&gt;NULL&lt;/code&gt; so that &lt;code&gt;AiContextItem::preSave()&lt;/code&gt; falls back to the owner. &lt;code&gt;getDefaultStatus()&lt;/code&gt; and the config factory constructor argument are removed, and &lt;code&gt;getDescription()&lt;/code&gt; always returns &amp;quot;A new draft copy will be created.&amp;quot; The description of &amp;quot;Publish by default&amp;quot; in &lt;code&gt;AiContextItemSettingsForm&lt;/code&gt; now says Duplicate always creates a draft. The docs are updated, including the removal of references to a &amp;quot;Duplicate tab&amp;quot;. Kernel tests (&lt;code&gt;AiContextItemDuplicateFormTest&lt;/code&gt;, new &lt;code&gt;AiContextItemDuplicateScheduleTest&lt;/code&gt;) and functional tests in &lt;code&gt;AiContextItemListTest&lt;/code&gt; were updated or added.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Grant &lt;code&gt;use ai_context_editorial transition create_new_draft&lt;/code&gt; (AI Context editorial workflow: Use Create new draft transition) to any role that should keep using Duplicate. Copies made before this fix keep the original's label and created date, so check for published items sharing a label or created date with another item. This check also finds legitimate copies made by users who could publish.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 8, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 9, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586703: Diff pages show older context item revisions without the revision permission</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586703.md</link>
       <guid isPermaLink="false">project/ai_context#3586703</guid>
@@ -748,148 +876,6 @@ function g(ExecutableResult|FormattedExecutableResult $result) {}
 &lt;ul&gt;
 &lt;li&gt;Opened: November 6, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594880: FlowDrop: editing a workflow in FlowDrop's editor silently makes it unusable for ai_eval again</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594880.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594880</guid>
-      <pubDate>Fri, 06 Nov 2026 10:52:38 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +83/−10 · php +67/−3 · md +16/−7&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/ac7fea9288e27d79b269b60ccc023a915474e8cb"&gt;ac7fea9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594880"&gt;#3594880&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;ai_eval_flowdrop&lt;/code&gt; submodule previously told users the Drush command that makes a FlowDrop workflow synchronous would survive later saves in FlowDrop's editor. That was wrong for saves that change a node's settings, such as a system prompt. The editor removes &lt;code&gt;metadata.orchestrator_settings&lt;/code&gt;, and ai_eval then refuses the next run. The README, the &lt;code&gt;ai-eval-flowdrop&lt;/code&gt; skill and the &amp;quot;cannot run&amp;quot; reason shown on the target form now say to run the command again after such an edit. Model steps from &lt;code&gt;flowdrop_ai_provider&lt;/code&gt; (Chat, Simple Chat and similar) are now recorded as AI steps instead of &lt;code&gt;other&lt;/code&gt;. Entity Query and the session history step are recorded as deterministic.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;FlowDropRunReader&lt;/code&gt;, the step kind is derived from the executor plugin id (&lt;code&gt;provider:base[:...]&lt;/code&gt;). The provider is now checked before the &lt;code&gt;data_*&lt;/code&gt; and &lt;code&gt;text_*&lt;/code&gt; prefix rules, because some &lt;code&gt;text_*&lt;/code&gt; executors from &lt;code&gt;flowdrop_ai_provider&lt;/code&gt; also call a model. Any &lt;code&gt;flowdrop_ai_provider&lt;/code&gt; executor maps to &lt;code&gt;WorkflowStep::KIND_AI&lt;/code&gt;, except &lt;code&gt;session_history&lt;/code&gt;, which reads memory and maps to &lt;code&gt;KIND_DETERMINISTIC&lt;/code&gt;. &lt;code&gt;entity_query&lt;/code&gt; was added to the &lt;code&gt;KINDS&lt;/code&gt; map as deterministic. Unknown providers still fall through to &lt;code&gt;KIND_OTHER&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;FlowDropWorkflowRunner::asynchronousReason()&lt;/code&gt; appends a sentence saying the FlowDrop editor removes the orchestrator setting when node settings are edited and saved. The same text appears in the exception message for refused launches. Kernel tests cover the executor id to kind mapping (including &lt;code&gt;session_history&lt;/code&gt; and an unknown provider), a real Entity Query run, and the new reason text. The docs also gain a troubleshooting row and a note on a FlowDrop 2.7.2 Prompt Template limit: printing a list variable fails with &amp;quot;Render context is empty&amp;quot;, so loop over it and print a field instead. The issue says the root cause of the setting being dropped is in FlowDrop and would be reported there.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;After editing node settings of a FlowDrop workflow in the editor, run the command again:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-bash"&gt;drush config:set flowdrop_workflow.flowdrop_workflow.WORKFLOW_ID \
-  metadata.orchestrator_settings.type flowdrop_runtime:synchronous -y
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Use &lt;code&gt;flowdrop_stategraph:stategraph&lt;/code&gt; instead for workflows that call tools.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 6, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 6, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3616124: Saving the anonymous user (uid 0) revokes access tokens for any consumer with an unset/anonymous default user</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-ai/3616124.md</link>
-      <guid isPermaLink="false">node/3616124</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 06 Nov 2026 10:00:33 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 6.1.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 6 files, +661/−40 · php +661/−40&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/simple_oauth/-/commit/721409f34f55a6500ac6b32c0681001452c56e20"&gt;721409f&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3616124"&gt;#3616124&lt;/a&gt; · 9 contributors · 38 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 3 of 9 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Saving the anonymous user (uid 0) no longer deletes OAuth tokens belonging to real users on consumers that have no default user. Saving a user who is a consumer's default user also no longer revokes other users' access tokens on that consumer. Tokens that actually authenticate as the saved user are still revoked, and refresh tokens are still kept. If you have custom code that relied on the old behavior of sweeping a default user's consumer tokens, use &lt;code&gt;collectForClient()&lt;/code&gt; instead.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ExpiredCollector::collectForAccount()&lt;/code&gt; now returns only non-refresh tokens that authenticate as the account (explicit subject, or no/deleted subject on a Consumer defaulting to it) and returns &lt;code&gt;[]&lt;/code&gt; for the anonymous account. &lt;code&gt;TokenExpiryTriggerHandler::handleUserUpdate()&lt;/code&gt; ignores the anonymous account.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;simple_oauth_user_update()&lt;/code&gt; fires on every user save, including uid 0, and called &lt;code&gt;ExpiredCollector::collectForAccount()&lt;/code&gt;. That method collected tokens by &lt;code&gt;auth_user_id&lt;/code&gt; and then every token of any Consumer whose default &lt;code&gt;user_id&lt;/code&gt; matched the account. The fix leaves the hook unchanged. &lt;code&gt;TokenExpiryTriggerHandler::handleUserUpdate()&lt;/code&gt; now returns early for anonymous users, and &lt;code&gt;collectForAccount()&lt;/code&gt; returns &lt;code&gt;[]&lt;/code&gt; for them.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;collectForAccount()&lt;/code&gt; now runs two queries. The first selects non-refresh tokens whose &lt;code&gt;auth_user_id&lt;/code&gt; is the account. The second selects non-refresh tokens of Consumers defaulting to the account that have no existing user, using &lt;code&gt;notExists('auth_user_id.entity.uid')&lt;/code&gt;. That covers tokens with no subject or a deleted subject, which fall back to the Consumer's default user. Tokens whose explicit subject is another existing user are skipped. The &lt;code&gt;QueryException&lt;/code&gt; case when loading consumers by &lt;code&gt;user_id&lt;/code&gt; now falls back to the first query's results only.&lt;/p&gt;
-&lt;p&gt;The collector queries in &lt;code&gt;collect()&lt;/code&gt;, &lt;code&gt;collectForAccount()&lt;/code&gt; and &lt;code&gt;collectForClient()&lt;/code&gt; now use &lt;code&gt;accessCheck(FALSE)&lt;/code&gt;, since they are internal and not run on behalf of a user. The issue notes this means cron deletes expired tokens owned by any account. A reviewer found no query access handler on &lt;code&gt;oauth2_token&lt;/code&gt;, so this was not filtering anything before. The anonymous skip lives in the default handler, which is a replaceable service from &lt;a href="https://www.drupal.org/node/2946882"&gt;#2946882&lt;/a&gt;; a custom handler must add its own check. Refresh tokens are not revoked on user or consumer saves, consistent with &lt;a href="https://www.drupal.org/node/3436728"&gt;#3436728&lt;/a&gt;, which rejects refresh grants for unpublished consumers.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;If custom code called &lt;code&gt;ExpiredCollector::collectForAccount()&lt;/code&gt; expecting every access token of a Consumer whose default user is the account, call &lt;code&gt;collectForClient()&lt;/code&gt; for those consumers instead:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$tokens = $collector-&amp;gt;collectForClient($consumer);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;If you replaced the &lt;code&gt;TokenExpiryTriggerHandlerInterface&lt;/code&gt; service, add your own &lt;code&gt;$user-&amp;gt;isAnonymous()&lt;/code&gt; check in &lt;code&gt;handleUserUpdate()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: August 11, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 6, 2026 (2 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;benstallings (Encore Healthcare)&lt;/li&gt;
-&lt;li&gt;scott falconer (Acquia)&lt;/li&gt;
-&lt;li&gt;pfrilling (Pare &amp;amp; Co)&lt;/li&gt;
-&lt;li&gt;mglaman (Acquia)&lt;/li&gt;
-&lt;li&gt;attilatilman (Acquia)&lt;/li&gt;
-&lt;li&gt;alex ua (Zivtech)&lt;/li&gt;
-&lt;li&gt;e0ipso (Lullabot)&lt;/li&gt;
-&lt;li&gt;bojan_dev&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Collaboration&lt;/h3&gt;
-&lt;p&gt;Scott Falconer pointed out early that a uid 0 guard alone missed the root cause: &lt;code&gt;collectForAccount()&lt;/code&gt; could revoke other users' tokens for any Consumer default user, and he extended the MR to cover that. Pfrilling then drove the review, reworking the design. A credential-change gate in the handler was tried and later dropped so the default handler only skips the anonymous account, and the refresh token purge update hook was removed. Alex UA's runtime retest with real authorization_code tokens exposed that refresh-token revocation on the consumer side could not reach real refresh tokens, which fed into that rework.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586785: HostnameFilter HTML-encodes &amp; and &gt; in Markdown output</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586785.md</link>
-      <guid isPermaLink="false">project/ai#3586785</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 06 Nov 2026 09:48:43 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +437/−16 · php +412/−16 · md +25&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/85d52a890c772cbca456edc51d09924bad979974"&gt;85d52a8&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586785"&gt;#3586785&lt;/a&gt; · 1 contributor · 17 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI module's hostname filter no longer turns &lt;code&gt;&amp;amp;&lt;/code&gt; into &lt;code&gt;&amp;amp;amp;&lt;/code&gt; and &lt;code&gt;&amp;gt;&lt;/code&gt; into &lt;code&gt;&amp;amp;gt;&lt;/code&gt; in text that has no HTML. Chat answers written in Markdown (quote blocks, code spans, tables) now come through unchanged. Plain-text mode no longer breaks Markdown links. A disallowed link is reduced to its text, and an allowed link keeps its closing parenthesis. Text that really does contain HTML tags is still filtered as before. An opt-in Markdown mode is available for consumers that render Markdown and want HTML examples inside code spans and blocks preserved.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;markdownMode&lt;/code&gt; property on &lt;code&gt;HostnameFilterDto&lt;/code&gt; and new &lt;code&gt;HostnameFilter::setMarkdownMode()&lt;/code&gt; method; &lt;code&gt;snapshotSettings()&lt;/code&gt;/&lt;code&gt;restoreSettings()&lt;/code&gt; now include &lt;code&gt;markdownMode&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The encoding came from &lt;code&gt;HostnameFilter::filterText()&lt;/code&gt; always round-tripping text through the HTML5 parser, which encodes text nodes. After the Markdown link pass, it now returns early when the new &lt;code&gt;containsHtmlMarkup()&lt;/code&gt; check finds no HTML. That check looks for &lt;code&gt;&amp;lt;&lt;/code&gt; followed by a letter, &lt;code&gt;/&lt;/code&gt;, &lt;code&gt;!&lt;/code&gt; or &lt;code&gt;?&lt;/code&gt;. It also treats invalid UTF-8 as HTML, because the HTML parser drops invalid bytes before tokenizing and so could hide a tag with an invalid byte after the &lt;code&gt;&amp;lt;&lt;/code&gt; from the check. By default any &lt;code&gt;&amp;lt;tag&lt;/code&gt; counts as markup, including inside backticks or indented code, since an HTML consumer would still act on it.&lt;/p&gt;
-&lt;p&gt;When &lt;code&gt;markdownMode&lt;/code&gt; is TRUE, &lt;code&gt;containsHtmlMarkup()&lt;/code&gt; parses the text with a League CommonMark parser, without rendering it. It reports HTML only if it finds an &lt;code&gt;HtmlBlock&lt;/code&gt;, an &lt;code&gt;HtmlInline&lt;/code&gt;, or a &lt;code&gt;Text&lt;/code&gt; node containing a tag-like sequence. Autolinks, reference destinations and code therefore skip the HTML round trip. Plain-text mode takes precedence over Markdown mode. Mixed Markdown and HTML can still be HTML-encoded.&lt;/p&gt;
-&lt;p&gt;In plain-text mode, &lt;code&gt;filterMarkdownLinks()&lt;/code&gt; now runs before the bare-URL pass, with &lt;code&gt;$allow_rewrite = FALSE&lt;/code&gt; so a disallowed link is always reduced to its text and never rewritten. It also takes &lt;code&gt;$preserve_mailto = TRUE&lt;/code&gt;, which keeps &lt;code&gt;mailto:&lt;/code&gt; links, autolinks and reference definitions as plain-text mode already did for bare URLs. The bare-URL replacement now keeps trailing punctuation when it removes a URL. &lt;code&gt;markdownMode&lt;/code&gt; is also handled by &lt;code&gt;applySettings()&lt;/code&gt;, &lt;code&gt;snapshotSettings()&lt;/code&gt; and &lt;code&gt;restoreSettings()&lt;/code&gt;. The README gains a &amp;quot;Markdown consumers&amp;quot; section.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Only enable this if your consumer renders the output as Markdown:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;use Drupal\ai\Dto\HostnameFilterDto;
-
-$chatInput-&amp;gt;setHostnameFilter(new HostnameFilterDto(markdownMode: TRUE));
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;For direct service calls, use &lt;code&gt;$hostnameFilter-&amp;gt;setMarkdownMode(TRUE)&lt;/code&gt;. The service is shared, so restore the previous settings afterwards with &lt;code&gt;snapshotSettings()&lt;/code&gt; and &lt;code&gt;restoreSettings()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 6, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mkalkbrenner (Jarltech Europe GmbH)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
-&lt;li&gt;csakiistvan (1xINTERNET)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

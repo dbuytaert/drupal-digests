@@ -5,6 +5,49 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592256: Add `dr canvas:audit:usage` command</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md</link>
+      <guid isPermaLink="false">project/canvas#3592256</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 09 Nov 2026 10:26:05 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 14 files, +926/−175 · php +817/−171 · md +57/−4 · json +52&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/23b82c3b38eefe74212097915300ef30a175e66a"&gt;23b82c3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592256"&gt;#3592256&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas now has a &lt;code&gt;dr canvas:audit:usage&lt;/code&gt; command that lists where components are used. Give it a component source plugin ID (for example &lt;code&gt;sdc&lt;/code&gt;), a component ID, or a component ID and version separated by &lt;code&gt;@&lt;/code&gt;. It reports usages in content entity revisions, config entities (such as patterns) and auto-saves. This helps when you need to find where a known-broken component or version has been placed. Use &lt;code&gt;--revisions=all|default|latest&lt;/code&gt; to narrow which content revisions are searched, and &lt;code&gt;--format=table|json&lt;/code&gt; for human or machine output. The component audit page also now lists config entity usages only under the component version their tree actually uses. Before, it listed them without regard to version.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;ConfigAuditBase::getConfigEntityDependenciesUsingAuditTarget()&lt;/code&gt; and &lt;code&gt;componentTreeUsesAuditTarget()&lt;/code&gt; accept &lt;code&gt;$version_ids&lt;/code&gt;, &lt;code&gt;getAutoSavesUsingAuditTarget()&lt;/code&gt; no longer throws for versions, and &lt;code&gt;getComponentTreeConfigEntityTypeIds()&lt;/code&gt; is now public.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;dr canvas:audit:usage&lt;/code&gt; command (requires Drupal &amp;gt;= 11.4 &lt;code&gt;dr&lt;/code&gt; CLI) with a versioned &lt;code&gt;--format=json&lt;/code&gt; report described by &lt;code&gt;docs/audit-usage.schema.json&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AuditUsageCommand&lt;/code&gt; (marked &lt;code&gt;@internal&lt;/code&gt;) is a thin wrapper over the existing &lt;code&gt;ComponentAudit&lt;/code&gt; service that powers the component audit page. It resolves the target to pairs of component and versions: a component source plugin ID expands to all components of that source, a bare component ID to all of its versions, and &lt;code&gt;ID@version&lt;/code&gt; to one version. Unknown targets, unknown &lt;code&gt;--format&lt;/code&gt; or &lt;code&gt;--revisions&lt;/code&gt; values, and a missing target with &lt;code&gt;--no-interaction&lt;/code&gt; exit with &lt;code&gt;2&lt;/code&gt;. When the target is omitted in interactive mode, it prompts for source, then component, then version.&lt;/p&gt;
+&lt;p&gt;The JSON report is an envelope with &lt;code&gt;report_version&lt;/code&gt; (&lt;code&gt;AuditUsageCommand::REPORT_VERSION&lt;/code&gt;, 1), &lt;code&gt;target&lt;/code&gt;, &lt;code&gt;revisions&lt;/code&gt; and &lt;code&gt;usages&lt;/code&gt;. Each usage has &lt;code&gt;component&lt;/code&gt;, &lt;code&gt;version&lt;/code&gt;, &lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;content&lt;/code&gt;, &lt;code&gt;config&lt;/code&gt; or &lt;code&gt;auto-save&lt;/code&gt;), &lt;code&gt;entity_type&lt;/code&gt;, &lt;code&gt;id&lt;/code&gt;, &lt;code&gt;revision&lt;/code&gt;, &lt;code&gt;default&lt;/code&gt;, &lt;code&gt;latest&lt;/code&gt; and &lt;code&gt;label&lt;/code&gt;. &lt;code&gt;revision&lt;/code&gt;, &lt;code&gt;default&lt;/code&gt; and &lt;code&gt;latest&lt;/code&gt; are null for config and auto-save usages. Auto-save labels come from the auto-saved entity. The command first searches all requested versions at once, and only repeats the search per version when that finds something.&lt;/p&gt;
+&lt;p&gt;The audit layer needed version support to make this work. Config entity dependencies come from the config dependency graph, which does not track versions. So &lt;code&gt;getConfigEntityDependenciesUsingAuditTarget()&lt;/code&gt; now takes &lt;code&gt;$version_ids&lt;/code&gt; and inspects each dependent's component tree when versions are given. &lt;code&gt;ComponentAudit::componentTreeUsesAuditTarget()&lt;/code&gt; checks &lt;code&gt;getComponentVersion()&lt;/code&gt; on each item. &lt;code&gt;ColorAudit&lt;/code&gt; throws a &lt;code&gt;LogicException&lt;/code&gt; if versions are passed, since colors have no versions. The &amp;quot;not yet implemented&amp;quot; exception in &lt;code&gt;getAutoSavesUsingAuditTarget()&lt;/code&gt; is removed. &lt;code&gt;ComponentAuditController::createConfigTable()&lt;/code&gt; now passes &lt;code&gt;[$component-&amp;gt;getLoadedVersion()]&lt;/code&gt;. The diff also adds &lt;code&gt;docs/cli.md&lt;/code&gt;, a contributor doc listing rules that every Canvas &lt;code&gt;dr&lt;/code&gt; command must follow, and kernel tests.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Callers that previously relied on &lt;code&gt;getConfigEntityDependenciesUsingAuditTarget($component, $type)&lt;/code&gt; ignoring versions are unaffected, because &lt;code&gt;$version_ids&lt;/code&gt; defaults to &lt;code&gt;[]&lt;/code&gt;. To restrict to specific versions, pass them, for example &lt;code&gt;getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$version])&lt;/code&gt;. Subclasses of &lt;code&gt;ConfigAuditBase&lt;/code&gt; must update their &lt;code&gt;componentTreeUsesAuditTarget()&lt;/code&gt; signature to &lt;code&gt;(ComponentTreeItemList $tree, ConfigEntityInterface $target, array $version_ids = []): bool&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 27, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 9, 2026 (12 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;justafish (Acquia)&lt;/li&gt;
+&lt;li&gt;wim leers (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592222: Canvas AI: Stopped turn's message is lost when tool calls are kept in history</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592222.md</link>
       <guid isPermaLink="false">project/canvas#3592222</guid>
@@ -698,46 +741,6 @@
 &lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
 &lt;li&gt;shqshqnk (Specbee)&lt;/li&gt;
 &lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592216: Workspaces PR 2: hard dependency on core Workspaces, Main workspace, install and test scaffolding</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592216.md</link>
-      <guid isPermaLink="false">project/canvas#3592216</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 26 Oct 2026 13:15:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592216"&gt;#3592216&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;This is the first MR of the Workspaces series on the &lt;code&gt;1.x-workspaces&lt;/code&gt; feature branch (planned in &lt;a href="https://www.drupal.org/node/3592187"&gt;#3592187&lt;/a&gt;). Canvas now requires core Workspaces. Installing Canvas, or updating a 1.x site, enables &lt;code&gt;workspaces&lt;/code&gt; and creates an undeletable &amp;quot;Main Canvas workspace&amp;quot; (&lt;code&gt;canvas_default&lt;/code&gt;). Auto-save still uses the 1.x key-value store at the end of this MR, so editors see no change in how drafts are saved. The MR also adds ADR 0022, the design for staging Canvas drafts in workspaces, where the whole workspace is the unit of publish and per-item publish goes away. That ADR is marked &amp;quot;Proposed&amp;quot; and describes behaviour that later MRs in the series implement.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; Core &lt;code&gt;workspaces&lt;/code&gt; module becomes a required dependency of Canvas (core floor unchanged at &lt;code&gt;^11.3&lt;/code&gt;).&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;canvas_update_11201()&lt;/code&gt; (partial) enables &lt;code&gt;workspaces&lt;/code&gt; and creates the Main workspace; &lt;code&gt;Page&lt;/code&gt; &lt;code&gt;owner&lt;/code&gt; and metatag fields become revisionable, with the update for existing sites in a later MR.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; A &lt;code&gt;canvas_default&lt;/code&gt; workspace (&amp;quot;Main Canvas workspace&amp;quot;) is created on install/update and cannot be deleted while Canvas is installed.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace&lt;/code&gt; class with &lt;code&gt;ID&lt;/code&gt; and &lt;code&gt;LABEL&lt;/code&gt; constants.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Main workspace ID and label live in the new &lt;code&gt;AutoSaveWorkspace&lt;/code&gt; class (&lt;code&gt;ID = 'canvas_default'&lt;/code&gt;). &lt;code&gt;WorkspaceAutoSaveRevisionHooks&lt;/code&gt; blocks deleting it: &lt;code&gt;workspace_access&lt;/code&gt; forbids the &lt;code&gt;delete&lt;/code&gt; operation, and &lt;code&gt;workspace_predelete&lt;/code&gt; throws a &lt;code&gt;LogicException&lt;/code&gt; for programmatic deletes. Per the issue description, the install and update code is &lt;code&gt;canvas_install()&lt;/code&gt;, &lt;code&gt;_canvas_ensure_auto_save_workspace()&lt;/code&gt; and a partial &lt;code&gt;canvas_update_11201()&lt;/code&gt;. I could not read those files in the diff I received, so I have not checked them.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;WorkspaceAutoSaveHooks::entityTypeBuild()&lt;/code&gt; assigns core's &lt;code&gt;IgnoredWorkspaceHandler&lt;/code&gt; as the &lt;code&gt;workspace&lt;/code&gt; handler on config entity types provided by &lt;code&gt;canvas&lt;/code&gt; or a &lt;code&gt;canvas_*&lt;/code&gt; module. Without it, core refuses to save those entities while a workspace is active.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;Page&lt;/code&gt; now marks the &lt;code&gt;owner&lt;/code&gt; field revisionable, and the metatag field on pages is also revisionable. A pending revision only carries revisionable fields, so this stops draft changes from skipping the draft and landing on the live page. The issue says an update for existing sites is planned as &lt;code&gt;canvas_update_11202()&lt;/code&gt; in a later MR. &lt;code&gt;ViewModeDisplayController&lt;/code&gt; now type-hints &lt;code&gt;FormController&lt;/code&gt; instead of &lt;code&gt;HtmlEntityFormController&lt;/code&gt;, because Workspaces decorates &lt;code&gt;controller.entity_form&lt;/code&gt;. &lt;code&gt;ApiConfigControllers&lt;/code&gt;, &lt;code&gt;ApiContentControllers&lt;/code&gt; and &lt;code&gt;ApiTranslationControllers&lt;/code&gt; gain a nullable &lt;code&gt;WorkspaceManagerInterface $workspaceManager&lt;/code&gt; constructor argument, autowired from &lt;code&gt;workspaces.manager&lt;/code&gt;. Per the comment in the diff, it is NULL while a 1.x site has not yet run &lt;code&gt;canvas_update_11201()&lt;/code&gt;. It is not read yet: each is marked with a &lt;code&gt;@todo Workspaces PR 5&lt;/code&gt; and PHPStan ignores.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ComponentSourceManager&lt;/code&gt; takes a new &lt;code&gt;TypedConfigManagerInterface&lt;/code&gt; and returns early from component generation when &lt;code&gt;canvas.component_source_settings.*&lt;/code&gt; has no config schema. This covers the case where Canvas and Workspaces install in one batch and Layout Builder's cache tag invalidator clears the block manager before Canvas's schema is available. The &lt;code&gt;workspace_switcher&lt;/code&gt; block is added to the excluded list in &lt;code&gt;BlockComponentDiscovery&lt;/code&gt;. &lt;code&gt;EntityFieldPropSourceMatcher&lt;/code&gt; skips fields that are explicitly internal, such as Workspaces' &lt;code&gt;workspace&lt;/code&gt; revision field, using &lt;code&gt;TypedDataHelper::isExplicitlyInternal()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Tests and docs make up the rest. The tests install &lt;code&gt;workspaces&lt;/code&gt;, add the &lt;code&gt;workspace&lt;/code&gt; cache context to expected responses, and add a &lt;code&gt;WorkspacesDependencyUpdateTest&lt;/code&gt; update-path test. The docs are ADR 0022, &lt;code&gt;docs/diagrams/workspace-autosave.md&lt;/code&gt; and a &lt;code&gt;docs/personalization.md&lt;/code&gt; update. A &lt;code&gt;@todo Workspaces PR&lt;/code&gt; convention is documented in the branch's PR-landing skill file.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Sites on Canvas 1.x updating to this branch should run database updates: per the issue, &lt;code&gt;canvas_update_11201()&lt;/code&gt; enables &lt;code&gt;workspaces&lt;/code&gt; and creates the &lt;code&gt;canvas_default&lt;/code&gt; workspace. Core Workspaces is a core module, so there is no composer change, and the core floor stays &lt;code&gt;^11.3&lt;/code&gt;. Tests that install Canvas now also need &lt;code&gt;workspaces&lt;/code&gt; and its schemas, a &lt;code&gt;canvas_default&lt;/code&gt; workspace, and the &lt;code&gt;workspace&lt;/code&gt; cache context in expected cache contexts. Controllers that read through &lt;code&gt;controller.entity_form&lt;/code&gt; should type-hint &lt;code&gt;Drupal\Core\Controller\FormController&lt;/code&gt; rather than &lt;code&gt;HtmlEntityFormController&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 19, 2026&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
