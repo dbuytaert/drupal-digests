@@ -5,6 +5,52 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md</link>
+      <guid isPermaLink="false">project/canvas#3592237</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 09 Nov 2026 16:07:36 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +1616/−1489 · php +1578/−1471 · yml +38/−18&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/45a7694bd255a6daa9f21f4296d2ab894763c83d"&gt;45a7694&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592237"&gt;#3592237&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the &lt;code&gt;1.x-workspaces&lt;/code&gt; branch, the Canvas publish endpoint now publishes the whole active workspace as one unit, through core's workspace publish, instead of publishing selected auto-save items one by one. The request must name the workspace and list the pending changes the editor reviewed. If the workspace is not the active one, or the pending list has changed since the review, the request is refused with a 409 and nothing is published. Any invalid item blocks the whole publish with a 422. Discarding a draft is now refused when the user cannot update the entity, or when another workspace has locked it.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Publishing now also requires core's &lt;code&gt;publish&lt;/code&gt; access to the active workspace, not only the Canvas publish permission. The &lt;code&gt;publishChanges&lt;/code&gt; UI flag in drupalSettings follows the same rule. Discarding an auto-save now requires entity &lt;code&gt;update&lt;/code&gt; access.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;POST /canvas/api/v0/auto-saves/publish&lt;/code&gt; now publishes the whole active workspace. The body must be &lt;code&gt;{workspace, pendingChanges}&lt;/code&gt;, where &lt;code&gt;pendingChanges&lt;/code&gt; maps auto-save key to &lt;code&gt;data_hash&lt;/code&gt;. A body without them is a 400. Per-item selection and the old 409/424 codes for unexpected/unmatched items and global assets are gone. &lt;code&gt;DELETE /canvas/api/v0/auto-saves/{entityTypeId}/{entityId}&lt;/code&gt; gains 403 and 409 responses.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;\Drupal\canvas\Workspace\CanvasWorkspacePublisher&lt;/code&gt; service (marked &lt;code&gt;@internal&lt;/code&gt;), new &lt;code&gt;ErrorCodesEnum&lt;/code&gt; cases &lt;code&gt;ActiveWorkspaceMismatch&lt;/code&gt; (10) and &lt;code&gt;PendingChangesOutdated&lt;/code&gt; (11), and a &lt;code&gt;BuildsAvatarUrlTrait&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ApiAutoSaveController::post()&lt;/code&gt; is rewritten and the per-item machinery is removed: sibling-translation expansion, global asset dependency checks, &lt;code&gt;applyAutoSaveTranslationSnapshots()&lt;/code&gt;, conflict-aware validation, the manual transaction, and &lt;code&gt;AutoSaveManager::groupContentEntityAutoSaves()&lt;/code&gt;. &lt;code&gt;post()&lt;/code&gt; returns a 400 if &lt;code&gt;workspace&lt;/code&gt; or &lt;code&gt;pendingChanges&lt;/code&gt; is missing. It throws &lt;code&gt;WorkspaceConflictException::noLongerExists()&lt;/code&gt; or &lt;code&gt;::notActive()&lt;/code&gt; (codes 9 and 10) when the named workspace is gone or is not the active one. It checks core's &lt;code&gt;publish&lt;/code&gt; access on the workspace and returns a 403 if denied. &lt;code&gt;stalePendingChangesResponse()&lt;/code&gt; then compares the reviewed &lt;code&gt;key =&amp;gt; data_hash&lt;/code&gt; map with &lt;code&gt;getPublishableAutoSaves()&lt;/code&gt;. It returns a 409 with one &lt;code&gt;PendingChangesOutdated&lt;/code&gt; (code 11) error per added, edited or discarded key.&lt;/p&gt;
+&lt;p&gt;The actual publish goes through the new &lt;code&gt;CanvasWorkspacePublisher::publish()&lt;/code&gt;. It wraps core's &lt;code&gt;$workspace-&amp;gt;publish()&lt;/code&gt; in a database transaction, covering the pre-publish subscribers that apply staged config as well as core's own revision promotion. It runs inside &lt;code&gt;executeInWorkspace()&lt;/code&gt; and counts the auto-save rows for the success message. If the publish fails, it restores the previously active workspace, because core only switches back after the callback returns. If the published workspace was deleted and is still active in the session, it switches to Live. In the controller, &lt;code&gt;WorkspacePublishValidationException&lt;/code&gt; maps to a 422 with one error per item, and any other &lt;code&gt;WorkspacePublishException&lt;/code&gt; from core or a subscriber maps to a 409 with pointer &lt;code&gt;workspace&lt;/code&gt; and no code. Other exceptions become a 500. An empty workspace returns 204 'No items to publish.'&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;ApiAutoSaveController::get()&lt;/code&gt; now adds the &lt;code&gt;workspace&lt;/code&gt; cache context. &lt;code&gt;delete()&lt;/code&gt; calls &lt;code&gt;WorkspaceAutoSave::assertNotLockedInAnotherWorkspace()&lt;/code&gt; (409, with the owner in &lt;code&gt;meta.workspace&lt;/code&gt; per &lt;code&gt;openapi.yml&lt;/code&gt;) and checks entity &lt;code&gt;update&lt;/code&gt; access after the 404 check. &lt;code&gt;CanvasController&lt;/code&gt; computes &lt;code&gt;publishChanges&lt;/code&gt; from the Canvas permission combined with core's &lt;code&gt;publish&lt;/code&gt; access to the staging workspace, and adds that access result's cacheability to the response. &lt;code&gt;buildAvatarUrl()&lt;/code&gt; moved into &lt;code&gt;BuildsAvatarUrlTrait&lt;/code&gt;. &lt;code&gt;ContentTemplate::autoSavePublish()&lt;/code&gt; is kept, because &lt;code&gt;WorkspaceAutoSave::stageFallbackDrafts()&lt;/code&gt; still calls it. &lt;code&gt;openapi.yml&lt;/code&gt; documents the new &lt;code&gt;PublishAllRequest&lt;/code&gt; schema and the extra responses. Two &lt;code&gt;@todo Workspaces MR 22&lt;/code&gt; markers note that non-default-translation rows are still hidden from the pending list and the published count.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Clients of the publish endpoint must stop sending per-item selections. The body is now:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;{
+  &amp;quot;workspace&amp;quot;: &amp;quot;spring_campaign&amp;quot;,
+  &amp;quot;pendingChanges&amp;quot;: { &amp;quot;&amp;lt;auto-save key&amp;gt;&amp;quot;: &amp;quot;&amp;lt;data_hash&amp;gt;&amp;quot; }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;pendingChanges&lt;/code&gt; is the map returned by &lt;code&gt;GET /canvas/api/v0/auto-saves/pending&lt;/code&gt;. Callers that relied on the old 409/424 item codes (&lt;code&gt;UnexpectedItemInPublishRequest&lt;/code&gt;, &lt;code&gt;UnmatchedItemInPublishRequest&lt;/code&gt;, &lt;code&gt;GlobalAssetNotPublished&lt;/code&gt;) should handle the new codes 10 and 11 and the code-less 409 from a pre-publish gate. Users publishing need core's &lt;code&gt;publish&lt;/code&gt; access to the workspace, which the tests grant through the &lt;code&gt;edit any workspace&lt;/code&gt; permission.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 9, 2026 (19 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592256: Add `dr canvas:audit:usage` command</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md</link>
       <guid isPermaLink="false">project/canvas#3592256</guid>
@@ -83,6 +129,44 @@
 &lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
 &lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
 &lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3592236: Workspaces PR 6: update path from 1.x</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592236.md</link>
+      <guid isPermaLink="false">project/canvas#3592236</guid>
+      <category>Site owners</category>
+      <pubDate>Fri, 06 Nov 2026 23:08:29 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 12 files, +897/−44 · php +896/−44 · yml +1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/b554309df76d51786480f1d903f6e2f8b3067c12"&gt;b554309&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592236"&gt;#3592236&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;This is the 1.x update path for the Workspaces work, merged to the &lt;code&gt;1.x-workspaces&lt;/code&gt; branch. A 1.x site with unpublished Canvas drafts now keeps them when updating. A new post-update moves each draft into the Main workspace. It keeps the draft's content, its last editor and its last-edit time. Drafts whose entity or language no longer exists are dropped. Form validation error rows are re-keyed so they still match the migrated drafts. The update tests for the 1.x fixtures were adjusted to expect the drafts in workspace staging, and a new update test covers the migration.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; New &lt;code&gt;canvas_post_update_0031_migrate_auto_save_to_workspace()&lt;/code&gt; moves 1.x &lt;code&gt;canvas.auto_save&lt;/code&gt; key-value drafts into the Main workspace and re-keys form violation rows with a &lt;code&gt;main:&lt;/code&gt; prefix.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;canvas_post_update_0031_migrate_auto_save_to_workspace()&lt;/code&gt; is a batched post-update that handles 25 rows per pass. Each row goes through the new &lt;code&gt;LegacyAutoSaveMigrator::migrate()&lt;/code&gt; (registered in &lt;code&gt;canvas.services.yml&lt;/code&gt;), which resolves the target entity or translation and calls &lt;code&gt;WorkspaceAutoSave::importLegacyArray()&lt;/code&gt; inside &lt;code&gt;executeInWorkspaceUnchecked()&lt;/code&gt; for the Main workspace. Content entity rows are staged as workspace revisions inside a database transaction. Config entity rows are moved as they are into &lt;code&gt;AutoSaveFallbackStore&lt;/code&gt;. If the entity already has staged content in Main (&lt;code&gt;hasWorkspaceStaging()&lt;/code&gt;), the staged draft wins and the 1.x row is dropped. Malformed rows, rows for deleted entities, and rows for deleted languages are also dropped, along with their violation row.&lt;/p&gt;
+&lt;p&gt;A 1.x row holds one translation. The importer therefore overlays it onto a copy of the stored entity, or onto the revision already tracked in Main. That way sibling translations and the real default language survive publishing. The new &lt;code&gt;legacyAttribution&lt;/code&gt; property lets &lt;code&gt;stampAutoSaveWorkspaceRevisionMetadata()&lt;/code&gt; use the 1.x editor and edit time. If the 1.x editor user no longer exists, the current user is used. Under &lt;code&gt;drush updb&lt;/code&gt; that is anonymous, and the code carries a &lt;code&gt;@todo&lt;/code&gt; for it.&lt;/p&gt;
+&lt;p&gt;Once all rows are migrated, the post-update re-keys the form violation stores (&lt;code&gt;FORM_VIOLATIONS_STORE&lt;/code&gt; and &lt;code&gt;COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE&lt;/code&gt;) under the &lt;code&gt;AutoSaveWorkspace::ID . ':'&lt;/code&gt; prefix. It skips keys that already carry the prefix, so a re-run is safe. This happens in the post-update, not in &lt;code&gt;canvas_update_11201()&lt;/code&gt;, because &lt;code&gt;canvas_post_update_0010_migrate_auto_save()&lt;/code&gt; writes violation rows after every &lt;code&gt;hook_update_N()&lt;/code&gt; has run. &lt;code&gt;PageVariantMigration&lt;/code&gt; now migrates the &lt;code&gt;page_region:&lt;/code&gt; rows itself, so its draft lookups find them. &lt;code&gt;AutoSaveManager::overlaySnapshotOntoStored()&lt;/code&gt; became public, marked &lt;code&gt;@internal&lt;/code&gt; for the importer.&lt;/p&gt;
+&lt;p&gt;The diff has no changes for the &lt;code&gt;ServiceNotFoundException&lt;/code&gt; and Main-workspace lock failures that the issue lists as known bugs. It has no &lt;code&gt;canvas_post_update_0032_workspace_permissions()&lt;/code&gt; and no &lt;code&gt;canvas_update_11202()&lt;/code&gt; change either. I did not verify those items.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates as usual (&lt;code&gt;drush updb&lt;/code&gt;). &lt;code&gt;canvas_update_11201()&lt;/code&gt; enables Workspaces and creates Main, then &lt;code&gt;canvas_post_update_0031_migrate_auto_save_to_workspace()&lt;/code&gt; migrates the 1.x drafts. Code that reads the &lt;code&gt;canvas.auto_save&lt;/code&gt; key-value store directly will find it empty afterwards. Staged drafts are read through &lt;code&gt;AutoSaveManager&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 6, 2026 (16 days later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
@@ -673,74 +757,6 @@
 &lt;li&gt;akhil babu (QED42)&lt;/li&gt;
 &lt;li&gt;shqshqnk (Specbee)&lt;/li&gt;
 &lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592176: Duplicating a page template silently does nothing: the GET representation is no longer a valid POST body</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592176.md</link>
-      <guid isPermaLink="false">project/canvas#3592176</guid>
-      <pubDate>Tue, 27 Oct 2026 05:29:15 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592176"&gt;#3592176&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &amp;quot;Duplicate&amp;quot; action in the Templates panel (Page templates) now works. In Canvas 1.12.0 it appeared to do nothing, because the server rejected the request with a 422 and the UI hid the error. A copy of a disabled template now stays disabled, and any failure to duplicate is shown as an error card in the panel with a Dismiss button.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The GET representation of a page variant, since &lt;a href="https://www.drupal.org/node/3592106"&gt;#3592106&lt;/a&gt;, includes the computed &lt;code&gt;inputs_resolved&lt;/code&gt; and explicit &lt;code&gt;null&lt;/code&gt; values for optional keys. &lt;code&gt;buildDuplicateVariantPayload()&lt;/code&gt; in &lt;code&gt;ui/src/services/pageVariants.ts&lt;/code&gt; spread each response item into the POST body, so &lt;code&gt;POST /canvas/api/v0/config/page_variant&lt;/code&gt; failed validation. The fix is client-side only (the issue's Option A), so the server and the CLI, which reads &lt;code&gt;inputs_resolved&lt;/code&gt;, are untouched. Each tree item is now rebuilt from storable keys: &lt;code&gt;uuid&lt;/code&gt;, &lt;code&gt;component_id&lt;/code&gt;, &lt;code&gt;component_version&lt;/code&gt;, &lt;code&gt;inputs&lt;/code&gt;, and &lt;code&gt;parent_uuid&lt;/code&gt;, &lt;code&gt;slot&lt;/code&gt; and &lt;code&gt;label&lt;/code&gt; only when non-null. The &lt;code&gt;status&lt;/code&gt; of the source is also carried over.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;ui/src/types/PageVariant.ts&lt;/code&gt;, a new &lt;code&gt;PageVariantComponentTreeItemResponse&lt;/code&gt; type (nullable optional keys plus &lt;code&gt;inputs_resolved&lt;/code&gt;) is used for &lt;code&gt;PageVariant.component_tree&lt;/code&gt;. This way TypeScript rejects passing a read item where the write type &lt;code&gt;PageVariantComponentTreeItem&lt;/code&gt; is expected. &lt;code&gt;CreatePageVariantPayload&lt;/code&gt; gains an optional &lt;code&gt;status&lt;/code&gt;. In &lt;code&gt;PageVariants.tsx&lt;/code&gt;, &lt;code&gt;handleDuplicate()&lt;/code&gt; now stores the rejection in &lt;code&gt;duplicateError&lt;/code&gt; and renders an &lt;code&gt;ErrorCard&lt;/code&gt;. The commit also adds a unit test and a Playwright test in &lt;code&gt;pageVariants.spec.ts&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 7, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;chandu7929 (Acquia)&lt;/li&gt;
-&lt;li&gt;utkarsh_33 (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592122: Canvas AI: get_component_details and get_component_context omit item type and item limits of multi-value props</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592122.md</link>
-      <guid isPermaLink="false">project/canvas#3592122</guid>
-      <pubDate>Mon, 26 Oct 2026 13:53:06 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592122"&gt;#3592122&lt;/a&gt; · 1 contributor · 26 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Canvas AI &lt;code&gt;get_component_details&lt;/code&gt; function, and &lt;code&gt;get_component_context&lt;/code&gt; with &lt;code&gt;catalog_only&lt;/code&gt; set to false, now describe multi-value props fully. Before, an array prop showed only &lt;code&gt;type: array&lt;/code&gt;, so an AI agent could not tell what each value should be or how many values were allowed. The output now includes the item type and the &lt;code&gt;minItems&lt;/code&gt; and &lt;code&gt;maxItems&lt;/code&gt; limits when the component sets them. Defaults of formatted text arrays are now HTML strings instead of a list of &lt;code&gt;null&lt;/code&gt; values.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;In &lt;code&gt;CanvasAiPageBuilderHelper&lt;/code&gt;, a new private &lt;code&gt;getMultiValuePropMetadata()&lt;/code&gt; runs for props whose schema &lt;code&gt;type&lt;/code&gt; is &lt;code&gt;array&lt;/code&gt;. It adds &lt;code&gt;items&lt;/code&gt;, normalized through &lt;code&gt;propMetadataNormalizer&lt;/code&gt; with &lt;code&gt;PropShape::normalizePropSchema()&lt;/code&gt; so &lt;code&gt;format&lt;/code&gt;, &lt;code&gt;contentMediaType&lt;/code&gt; and &lt;code&gt;enum&lt;/code&gt; come through. It also copies &lt;code&gt;minItems&lt;/code&gt; and &lt;code&gt;maxItems&lt;/code&gt; when they are set. The method is used on both the SDC/default path and the JS component path.&lt;/p&gt;
-&lt;p&gt;Default values that are arrays are now mapped item by item, with &lt;code&gt;MarkupInterface&lt;/code&gt; items cast to strings. This fixes the multi-value formatted text defaults.&lt;/p&gt;
-&lt;p&gt;For code (JS) components, the prop schema is no longer taken from the client-side &lt;code&gt;jsonSchema&lt;/code&gt; plus a manual copy of &lt;code&gt;meta:enum&lt;/code&gt; and &lt;code&gt;x-translation-context&lt;/code&gt;. It is now built from &lt;code&gt;getJavaScriptComponent()-&amp;gt;toSdcDefinition()['props']['properties']&lt;/code&gt; and passed through &lt;code&gt;componentPluginManager-&amp;gt;resolveJsonSchemaReferences()&lt;/code&gt;, which keeps &lt;code&gt;meta:enum&lt;/code&gt;. The constructor type hint changed to &lt;code&gt;Drupal\canvas\Plugin\ComponentPluginManager&lt;/code&gt;. Tests were added to &lt;code&gt;GetComponentDetailsTest&lt;/code&gt;, along with a new &lt;code&gt;formatted-text-list&lt;/code&gt; fixture component in the &lt;code&gt;canvas_ai_test&lt;/code&gt; module.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;li&gt;aivazashvilit (Omedia)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;shqshqnk (Specbee)&lt;/li&gt;
-&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
