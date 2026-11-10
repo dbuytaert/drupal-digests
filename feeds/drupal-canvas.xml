@@ -5,6 +5,51 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md</link>
+      <guid isPermaLink="false">project/canvas#3592238</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 10 Nov 2026 01:25:30 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 47 files, +1071/−1049 · js +998/−1039 · php +54/−1 · yml +19 · css +0/−9&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/e94a49f2d469c34ff7110286d639e1684aa4fd44"&gt;e94a49f&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592238"&gt;#3592238&lt;/a&gt; · 1 contributor · 4 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In the 1.x-workspaces branch, the Canvas publish review panel now publishes the whole workspace at once. The per-change checkboxes, &amp;quot;Select all&amp;quot; and &amp;quot;Publish N selected&amp;quot; are gone, replaced by a single &amp;quot;Publish now&amp;quot; button and an &amp;quot;N unpublished changes&amp;quot; count. The side-by-side review button becomes &amp;quot;Review all changes&amp;quot;, which walks every reviewable change. A conflicted change blocks publishing until it is resolved. Refusals that concern the workspace as a whole, such as core refusing to publish an item in an unpublished moderation state, now show in the error list under &amp;quot;Workspace&amp;quot;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Publishing now goes through core workspaces, so the e2e/test setups grant &lt;code&gt;view any workspace&lt;/code&gt;, &lt;code&gt;edit any workspace&lt;/code&gt; and &lt;code&gt;create workspace&lt;/code&gt; alongside &lt;code&gt;publish auto-saves&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;drupalSettings.canvas.workspaces.stagingWorkspaceId&lt;/code&gt; is now exposed to the UI, and a &lt;code&gt;canvas_e2e_support.update_live&lt;/code&gt; test route (&lt;code&gt;LiveEntityController::updateLive&lt;/code&gt;) saves the Live copy outside any workspace.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;ui/src/services/pendingChangesApi.ts&lt;/code&gt;: &lt;code&gt;publishAllPendingChanges&lt;/code&gt; takes no argument. It POSTs to &lt;code&gt;/canvas/api/v0/auto-saves/publish&lt;/code&gt; with &lt;code&gt;{ workspace, pendingChanges }&lt;/code&gt;. &lt;code&gt;workspace&lt;/code&gt; comes from &lt;code&gt;getStagingWorkspaceId()&lt;/code&gt;, which reads &lt;code&gt;drupalSettings.canvas.workspaces.stagingWorkspaceId&lt;/code&gt;. The server now sets that value from &lt;code&gt;workspaceAutoSave-&amp;gt;getStagingWorkspaceId()&lt;/code&gt;, so a tab whose workspace was switched elsewhere cannot publish a different workspace. &lt;code&gt;pendingChanges&lt;/code&gt; maps each auto-save key to its &lt;code&gt;data_hash&lt;/code&gt; from the cached &lt;code&gt;getAllPendingChanges&lt;/code&gt; result. Before building the body it waits for in-flight preview and layout auto-save mutations and refetches the list, so a publish right after an edit isn't refused as &amp;quot;edited after the review&amp;quot;. On a 409 it restores the previous pending changes and sets the conflicts and errors. On success it clears the whole pending cache.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PublishReview&lt;/code&gt; loses its selection state, and &lt;code&gt;onPublishClick&lt;/code&gt; is called without arguments. &lt;code&gt;UnpublishedChanges&lt;/code&gt; passes all unpublished changes to the hook's cleanup. &lt;code&gt;onReviewSelectedChanges&lt;/code&gt; is replaced by &lt;code&gt;onReviewAllChanges&lt;/code&gt;, and conflicted pages and non-page changes are excluded from the walk. The review is still gated on &lt;code&gt;isReviewUxEnabled()&lt;/code&gt;. A refused publish drops the snapshot, so discarding the refused changes afterwards doesn't flash &amp;quot;Published&amp;quot;. &lt;code&gt;ReviewErrors&lt;/code&gt; labels errors whose &lt;code&gt;source.pointer&lt;/code&gt; is &lt;code&gt;workspace&lt;/code&gt; as &amp;quot;Workspace&amp;quot;. Errors tied to no entity (code 11 for a discarded key, validation violations, server errors, plain 403 strings) are counted in the header but not listed. Auto-save keys are now workspace-scoped (e.g. &lt;code&gt;canvas_default:canvas_page:1:en&lt;/code&gt;). &lt;code&gt;PageStatus&lt;/code&gt; therefore finds the homepage staged config update with &lt;code&gt;findInChanges&lt;/code&gt; instead of an exact key lookup.&lt;/p&gt;
+&lt;p&gt;The Playwright specs were rewritten for this. &lt;code&gt;canvas_e2e_support&lt;/code&gt; gets a &lt;code&gt;LiveEntityController&lt;/code&gt; route that simulates external edits to Live, and a new &lt;code&gt;article_moderation&lt;/code&gt; recipe fixture backs a spec checking that a draft moderation state refuses to publish. Two &lt;code&gt;@todo Workspaces MR 8&lt;/code&gt; and &lt;code&gt;MR 9&lt;/code&gt; markers remain for the workspace switcher, lock notice and Draft badge.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Tests or custom code that drove per-item publish must change. Replace the selection clicks (&lt;code&gt;canvas-publish-review-select-all&lt;/code&gt;, &lt;code&gt;Select change &amp;lt;title&amp;gt;&lt;/code&gt;, &lt;code&gt;Publish N selected&lt;/code&gt;) with a click on the &lt;code&gt;Publish now&lt;/code&gt; button. Test roles that publish need core workspace access, as in the updated setups:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;'publish auto-saves',
+'view any workspace',
+'edit any workspace',
+'create workspace',
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Pending-change keys now carry the workspace prefix, for example &lt;code&gt;canvas_default:canvas_page:${id}:en&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 10, 2026 (19 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md</link>
       <guid isPermaLink="false">project/canvas#3592237</guid>
@@ -724,39 +769,6 @@
 &lt;ul&gt;
 &lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
 &lt;li&gt;Committed: October 27, 2026 (6 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592123: Canvas AI: removeMediaFields() drops arrays of media IDs for multi-value media props</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592123.md</link>
-      <guid isPermaLink="false">project/canvas#3592123</guid>
-      <pubDate>Tue, 27 Oct 2026 11:54:37 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592123"&gt;#3592123&lt;/a&gt; · 1 contributor · 13 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;When you ask the Canvas AI agent to place a component that has a multi-value image prop and name several media items, for example &amp;quot;Use media images 1 to 5&amp;quot;, those media are now kept. Before, the list was dropped and the component showed its example images. A single media ID already worked.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;removeMediaFields()&lt;/code&gt; in &lt;code&gt;ui/src/components/aiExtension/placementUtils.ts&lt;/code&gt; strips values a media-bound prop cannot store, so the component falls back to its example image. It previously kept only a single media ID (&lt;code&gt;isMediaId()&lt;/code&gt;). The fix adds an exported &lt;code&gt;isMediaIdList()&lt;/code&gt; helper and &lt;code&gt;removeMediaFields()&lt;/code&gt; now also keeps a value when &lt;code&gt;isMediaIdList(value)&lt;/code&gt; is true.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;isMediaIdList()&lt;/code&gt; returns true only for a non-empty array where every item passes &lt;code&gt;isMediaId()&lt;/code&gt;, so numbers and digit-only strings are accepted. Empty arrays and arrays mixing IDs with URLs or &lt;code&gt;{ src, alt }&lt;/code&gt; objects are still dropped. Tests in &lt;code&gt;placementUtils.test.tsx&lt;/code&gt; cover these cases.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 24, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;li&gt;shqshqnk (Specbee)&lt;/li&gt;
-&lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

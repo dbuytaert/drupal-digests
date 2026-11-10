@@ -1,40 +1,40 @@
-**TL;DR:** [1575 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1580 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_652 summaries · 10 new this week_
+
+- [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
+- [#3635924: Upgrade htmx to 4.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3635924.md)
+- [#3357616: Remove "Forgot your password?" link on failed login attempt message if user has...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3357616.md)
+
+### Drupal AI
+
+_479 summaries · 54 new this week_
+
+- [#3586821: Cache flush on VDB installation does not work](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586821.md)
+- [#3586819: ChatFormBlock::blockAccess() passes NULL to load() when no AI Assistant is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586819.md)
+- [#3583114: Nullable inputs use two spellings in the generated JSON Schema](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583114.md)
+
+### Drupal Canvas
+
+_314 summaries · 11 new this week_
+
+- [#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md)
+- [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
+- [#3592256: Add `dr canvas:audit:usage` command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md)
+
 ### Drupal CMS
 
-_135 summaries · 2 new this week_
+_135 summaries · 1 new this week_
 
 - [#3591523: Add the Ágora Transparency site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591523.md)
 - [#3591521: Remove the hardcoded LLM configuration since it will not work with Amazee](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591521.md)
 - [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
-
-### Drupal Core
-
-_650 summaries · 12 new this week_
-
-- [#3357616: Remove "Forgot your password?" link on failed login attempt message if user has...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3357616.md)
-- [#3578936: Navigation module and Admin theme should use the same Inter font](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3578936.md)
-- [#3181762: The field name is not displayed in LinkWidget error messages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3181762.md)
-
-### Drupal AI
-
-_477 summaries · 56 new this week_
-
-- [#3583114: Nullable inputs use two spellings in the generated JSON Schema](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583114.md)
-- [#3583070: Config sequences keyed by name are derived as lists, so their schema says array...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583070.md)
-- [#3582977: Pass entities between drush tool:run calls as handles](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582977.md)
-
-### Drupal Canvas
-
-_313 summaries · 11 new this week_
-
-- [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
-- [#3592256: Add `dr canvas:audit:usage` command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md)
-- [#3592222: Canvas AI: Stopped turn's message is lost when tool calls are kept in history](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592222.md)
 
 
 ## Rector rules
