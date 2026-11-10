@@ -1,8 +1,16 @@
-**TL;DR:** [1580 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1581 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_480 summaries · 55 new this week_
+
+- [#3582969: Tool Explorer RC cleanup: render arrays, dead cache tag, menu placement, first...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582969.md)
+- [#3586821: Cache flush on VDB installation does not work](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586821.md)
+- [#3586819: ChatFormBlock::blockAccess() passes NULL to load() when no AI Assistant is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586819.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _652 summaries · 10 new this week_
 - [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
 - [#3635924: Upgrade htmx to 4.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3635924.md)
 - [#3357616: Remove "Forgot your password?" link on failed login attempt message if user has...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3357616.md)
-
-### Drupal AI
-
-_479 summaries · 54 new this week_
-
-- [#3586821: Cache flush on VDB installation does not work](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586821.md)
-- [#3586819: ChatFormBlock::blockAccess() passes NULL to load() when no AI Assistant is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586819.md)
-- [#3583114: Nullable inputs use two spellings in the generated JSON Schema](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583114.md)
 
 ### Drupal Canvas
 
