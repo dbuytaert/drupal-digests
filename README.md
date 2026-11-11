@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_480 summaries · 55 new this week_
+_480 summaries · 50 new this week_
 
 - [#3582969: Tool Explorer RC cleanup: render arrays, dead cache tag, menu placement, first...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582969.md)
 - [#3586821: Cache flush on VDB installation does not work](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586821.md)
@@ -22,7 +22,7 @@ _652 summaries · 10 new this week_
 
 ### Drupal Canvas
 
-_314 summaries · 11 new this week_
+_314 summaries · 9 new this week_
 
 - [#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md)
 - [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
