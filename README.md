@@ -1,4 +1,4 @@
-**TL;DR:** [1581 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1590 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_480 summaries · 50 new this week_
+_488 summaries · 57 new this week_
 
-- [#3582969: Tool Explorer RC cleanup: render arrays, dead cache tag, menu placement, first...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3582969.md)
-- [#3586821: Cache flush on VDB installation does not work](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586821.md)
-- [#3586819: ChatFormBlock::blockAccess() passes NULL to load() when no AI Assistant is...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586819.md)
+- [#3586778: Shared AI API Explorer input picker: recent results, media library or upload](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586778.md)
+- [#3586775: Redesign the AI API Explorers list as a hub that survives a broken provider](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586775.md)
+- [#3586776: Shared audio player and image viewers for AI API Explorer results](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586776.md)
+
+### Drupal Canvas
+
+_315 summaries · 10 new this week_
+
+- [#3592325: Mutations keep failing with a stale CSRF token when the 403 response has an...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592325.md)
+- [#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md)
+- [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _652 summaries · 10 new this week_
 - [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
 - [#3635924: Upgrade htmx to 4.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3635924.md)
 - [#3357616: Remove "Forgot your password?" link on failed login attempt message if user has...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3357616.md)
-
-### Drupal Canvas
-
-_314 summaries · 9 new this week_
-
-- [#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md)
-- [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
-- [#3592256: Add `dr canvas:audit:usage` command](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592256.md)
 
 ### Drupal CMS
 
