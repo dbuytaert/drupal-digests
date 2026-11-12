@@ -1,4 +1,4 @@
-**TL;DR:** [1609 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1622 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,35 +6,35 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal Canvas
 
-_322 summaries · 16 new this week_
+_325 summaries · 19 new this week_
 
-- [#3592331: Update the preview in place on prop edits instead of reloading the iframe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592331.md)
-- [#3592337: Render headless previews on unpublished canonical entity pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592337.md)
-- [#3592239: Workspaces PR 8: workspace management API and switcher UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592239.md)
+- [#3592340: Show changes to the layout in the preview immediately, and keep stale server...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592340.md)
+- [#3592327: A code component cannot get the URL of a referenced entity, so a list of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592327.md)
+- [#3592231: Workspaces PR 9: Stage a new page as published so one workspace publish makes...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592231.md)
 
 ### Drupal AI
 
-_497 summaries · 54 new this week_
+_505 summaries · 58 new this week_
 
-- [#3586417: Apply unified UX/design and Provider Config element to Audio-To-Audio Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586417.md)
-- [#3586409: Apply unified UX/design and Provider Config element to Moderation Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586409.md)
-- [#3586410: Apply unified UX/design and Provider Config element to Object Detection Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586410.md)
-
-### Drupal Core
-
-_655 summaries · 12 new this week_
-
-- [#3623380: Create OOP replacement for hook_install_tasks and hook_install_tasks_alter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623380.md)
-- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
-- [#3621330: Include Bandwidth optimization (aggregation) on Status report page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621330.md)
+- [#3586412: Apply unified UX/design and Provider Config element to Text-To-Image Generation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586412.md)
+- [#3586406: Apply unified UX/design and Provider Config element to Summarize Text Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586406.md)
+- [#3586408: Apply unified UX/design and Provider Config element to Rerank Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586408.md)
 
 ### Drupal CMS
 
-_135 summaries · 1 new this week_
+_136 summaries · 2 new this week_
 
+- [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
 - [#3591523: Add the Ágora Transparency site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591523.md)
 - [#3591521: Remove the hardcoded LLM configuration since it will not work with Amazee](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591521.md)
-- [#3591507: Add a hard opt-out for telemetry via settings.php](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591507.md)
+
+### Drupal Core
+
+_656 summaries · 13 new this week_
+
+- [#3634655: Update to Symfony 8.2.0-BETA1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634655.md)
+- [#3623380: Create OOP replacement for hook_install_tasks and hook_install_tasks_alter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623380.md)
+- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
 
 
 ## Rector rules
