@@ -5,6 +5,72 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3623380: Create OOP replacement for hook_install_tasks and hook_install_tasks_alter</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623380.md</link>
+      <guid isPermaLink="false">node/3623380</guid>
+      <category>Module maintainers</category>
+      <pubDate>Thu, 12 Nov 2026 08:24:28 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +372/−21 · php +367/−21 · yml +5&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/4f9558d85e7db3f2fc0e4a5cde195a1834cb6206"&gt;4f9558d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3623380"&gt;#3623380&lt;/a&gt; · 5 contributors · 33 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 5 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Installation profiles can now provide their custom install tasks and task alterations through a class instead of &lt;code&gt;hook_install_tasks()&lt;/code&gt; and &lt;code&gt;hook_install_tasks_alter()&lt;/code&gt; in the &lt;code&gt;.profile&lt;/code&gt; file. This removes one of the remaining reasons profiles need a procedural &lt;code&gt;.profile&lt;/code&gt; file. The old procedural hooks still work but now trigger deprecation errors.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Procedural &lt;code&gt;hook_install_tasks()&lt;/code&gt; and &lt;code&gt;hook_install_tasks_alter()&lt;/code&gt; are deprecated in drupal:11.5.0 and removed from drupal:13.0.0.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;\Drupal\Core\Extension\Install\TasksInterface&lt;/code&gt; with &lt;code&gt;getTasks(array &amp;amp;$install_state): array&lt;/code&gt; and &lt;code&gt;alter(array &amp;amp;$tasks, array $install_state): void&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A profile adds a class in &lt;code&gt;src/Install/Tasks/&lt;/code&gt; (namespace &lt;code&gt;Drupal\PROFILE_NAME\Install\Tasks&lt;/code&gt;) that implements &lt;code&gt;\Drupal\Core\Extension\Install\TasksInterface&lt;/code&gt;. &lt;code&gt;getTasks(array &amp;amp;$install_state)&lt;/code&gt; replaces &lt;code&gt;hook_install_tasks()&lt;/code&gt; and &lt;code&gt;alter(array &amp;amp;$tasks, array $install_state)&lt;/code&gt; replaces &lt;code&gt;hook_install_tasks_alter()&lt;/code&gt;. The class is created through &lt;code&gt;\Drupal::classResolver()&lt;/code&gt;, so it can implement &lt;code&gt;ContainerInjectionInterface&lt;/code&gt;. Only core services can safely be injected, because this runs before the install is complete.&lt;/p&gt;
+&lt;p&gt;In &lt;code&gt;install.core.inc&lt;/code&gt;, &lt;code&gt;install_tasks()&lt;/code&gt; calls the new &lt;code&gt;install_get_tasks()&lt;/code&gt; and &lt;code&gt;install_alter_tasks()&lt;/code&gt; helpers (both &lt;code&gt;@internal&lt;/code&gt;). The procedural &lt;code&gt;PROFILE_install_tasks()&lt;/code&gt; and &lt;code&gt;PROFILE_install_tasks_alter()&lt;/code&gt; are only called when no OOP implementation supplied tasks (for &lt;code&gt;getTasks&lt;/code&gt;) or exists (for &lt;code&gt;alter&lt;/code&gt;). When the procedural fallback runs, it triggers an &lt;code&gt;E_USER_DEPRECATED&lt;/code&gt; error pointing to https://www.drupal.org/node/3623397. The profile file is still loaded before &lt;code&gt;alter()&lt;/code&gt;, so the class can rely on functions defined there.&lt;/p&gt;
+&lt;p&gt;The directory scan that &lt;code&gt;install_check_class_requirements()&lt;/code&gt; used to find &lt;code&gt;Install/Requirements&lt;/code&gt; classes was extracted into &lt;code&gt;install_get_fixed_class_name()&lt;/code&gt;, which now serves both lookups. It &lt;code&gt;require_once&lt;/code&gt;s each PHP file in the directory and keeps the class name of the last file it finds, so keep one class per &lt;code&gt;Install/Tasks&lt;/code&gt; directory. The hook docs in &lt;code&gt;core.api.php&lt;/code&gt; were updated with the &lt;code&gt;@deprecated&lt;/code&gt; notes. Follow-up &lt;a href="https://www.drupal.org/node/3630429"&gt;#3630429&lt;/a&gt; is about changing the doc wording on state versus key value expirable.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Move the procedural hooks into a class, for example &lt;code&gt;src/Install/Tasks/MyProfileTasks.php&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;namespace Drupal\myprofile\Install\Tasks;
+
+use Drupal\Core\Extension\Install\TasksInterface;
+
+class MyProfileTasks implements TasksInterface {
+
+  public function getTasks(array &amp;amp;$install_state): array {
+    // Return what myprofile_install_tasks() returned.
+    return [];
+  }
+
+  public function alter(array &amp;amp;$tasks, array $install_state): void {
+    // Body of myprofile_install_tasks_alter().
+  }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Then remove &lt;code&gt;myprofile_install_tasks()&lt;/code&gt; and &lt;code&gt;myprofile_install_tasks_alter()&lt;/code&gt; from the &lt;code&gt;.profile&lt;/code&gt; file. If the class exists, the procedural versions are ignored.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: September 15, 2026&lt;/li&gt;
+&lt;li&gt;Committed: October 12, 2026 (26 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;nicxvan (nLightened Development LLC)&lt;/li&gt;
+&lt;li&gt;phenaproxima (Acquia)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
+&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3617943: Deprecate DateTimePlus::prepareFormat()</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md</link>
       <guid isPermaLink="false">node/3617943</guid>
@@ -974,65 +1040,6 @@ new CsrfAccessCheck(csrfToken: $token);
 &lt;/ul&gt;
 &lt;h3&gt;Collaboration&lt;/h3&gt;
 &lt;p&gt;The first fix removed the numeric handler override from &lt;code&gt;getAggregationInfo()&lt;/code&gt;. It was committed, then reverted after regressions were reported. acbramley reported the COUNT and date output regressions, argued that the override is required for aggregated output, and prepared the revert MR. joelpittet then reworked the MR to keep the override and set the &lt;code&gt;float&lt;/code&gt; flag in the Views data instead. acbramley retested the change on the affected client site and asked for test coverage of the decimal output, which the MR then gained.&lt;/p&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3082239: Forbid limited length primary and unique keys, allow only in indexes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3082239.md</link>
-      <guid isPermaLink="false">node/3082239</guid>
-      <category>Module maintainers</category>
-      <pubDate>Tue, 27 Oct 2026 11:17:54 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; main&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +363/−33 · php +363/−33&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/2be6e066a1c083bccbb7584f62d61a8e9211a014"&gt;2be6e06&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3082239"&gt;#3082239&lt;/a&gt; · 9 contributors · 59 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 12&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 9 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Partial (prefix) column lengths are now documented as valid only for indexes, not for primary or unique keys. Code that passes a column with a length, such as &lt;code&gt;['name', 10]&lt;/code&gt;, in a primary key or unique key now triggers a deprecation notice. In Drupal 13 it will throw a &lt;code&gt;SchemaException&lt;/code&gt;. Core has no such keys, so this mainly affects contrib and custom modules. Those should specify full columns, or move the partial-length columns to an index.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Deprecation:&lt;/strong&gt; Specifying a column length (e.g. &lt;code&gt;[['name', 10]]&lt;/code&gt;) in a primary key or unique key is deprecated in drupal:12.1.0 and will throw a &lt;code&gt;SchemaException&lt;/code&gt; in drupal:13.0.0. &lt;code&gt;Schema::ensureNotNullPrimaryKey()&lt;/code&gt; is deprecated in favour of &lt;code&gt;validatePrimaryKeySchema()&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New protected &lt;code&gt;Schema::validatePrimaryKeySchema()&lt;/code&gt; and &lt;code&gt;Schema::validateUniqueKeySchema()&lt;/code&gt; methods for driver implementations.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The check runs in the shared &lt;code&gt;Schema&lt;/code&gt; base class and is called from the MySQL, PostgreSQL and SQLite drivers. It covers &lt;code&gt;createTable()&lt;/code&gt;, &lt;code&gt;addPrimaryKey()&lt;/code&gt;, &lt;code&gt;addUniqueKey()&lt;/code&gt;, &lt;code&gt;addField()&lt;/code&gt; and &lt;code&gt;changeField()&lt;/code&gt;. &lt;code&gt;validatePrimaryKeySchema()&lt;/code&gt; emits the deprecation when any primary key column is an array. It also keeps the existing check that primary key fields are &lt;code&gt;not null&lt;/code&gt;, which replaces &lt;code&gt;ensureNotNullPrimaryKey()&lt;/code&gt;. &lt;code&gt;validateUniqueKeySchema()&lt;/code&gt; emits the deprecation for unique keys. In the 12.x deprecation period the request is still processed. The PostgreSQL driver already ignored prefix lengths for primary and unique keys, and the deprecation message describes the length as disregarded.&lt;/p&gt;
-&lt;p&gt;The &lt;code&gt;addField()&lt;/code&gt; primary key detection in the MySQL and PostgreSQL drivers now uses &lt;code&gt;fieldNames()&lt;/code&gt;, so array-form key columns are handled. The &lt;code&gt;PrimaryKey&lt;/code&gt; and &lt;code&gt;UniqueKey&lt;/code&gt; value object docblocks no longer mention length arrays, and the Database API docs now say that partial length is for indexes only. The existing &lt;code&gt;SchemaUniquePrefixedKeysIndexTestBase&lt;/code&gt; driver tests now expect the deprecation. A &lt;code&gt;@todo&lt;/code&gt; notes that they should test full-length columns once 13.0.0 lands (&lt;a href="https://www.drupal.org/node/3615136"&gt;#3615136&lt;/a&gt;). The change record is https://www.drupal.org/node/3375071.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Replace partial-length columns in primary and unique keys with full columns, or move them to an index:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// Deprecated in 12.1.0, throws SchemaException in 13.0.0.
-'primary key' =&amp;gt; [['test_field_1', 10]],
-'unique keys' =&amp;gt; ['test_unique_key' =&amp;gt; [['test_field_1', 10]]],
-
-// Use full columns for the key...
-'primary key' =&amp;gt; ['test_field_1'],
-// ...or put the partial length on an index.
-'indexes' =&amp;gt; ['test_index' =&amp;gt; [['test_field_1', 10]]],
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Custom driver code that calls &lt;code&gt;ensureNotNullPrimaryKey()&lt;/code&gt; should call &lt;code&gt;validatePrimaryKeySchema()&lt;/code&gt; instead.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: September 19, 2019&lt;/li&gt;
-&lt;li&gt;Committed: October 27, 2026 (7 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;mondrake&lt;/li&gt;
-&lt;li&gt;daffie&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;catch (Tag1 Consulting, Inc.)&lt;/li&gt;
-&lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
-&lt;li&gt;amateescu&lt;/li&gt;
-&lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
 </description>

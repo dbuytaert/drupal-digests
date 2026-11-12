@@ -1,32 +1,32 @@
-**TL;DR:** [1597 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1609 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Core
+### Drupal Canvas
 
-_654 summaries · 11 new this week_
+_322 summaries · 16 new this week_
 
-- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
-- [#3621330: Include Bandwidth optimization (aggregation) on Status report page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621330.md)
-- [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
+- [#3592331: Update the preview in place on prop edits instead of reloading the iframe](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592331.md)
+- [#3592337: Render headless previews on unpublished canonical entity pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592337.md)
+- [#3592239: Workspaces PR 8: workspace management API and switcher UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592239.md)
 
 ### Drupal AI
 
-_491 summaries · 48 new this week_
+_497 summaries · 54 new this week_
 
-- [#3601418: --yolo still prompts for a project name when a config source is given](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601418.md)
-- [#3601417: DDEV's usage-statistics prompt blocks unattended (--yolo) installs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601417.md)
-- [#3601416: Add certutil on Linux](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601416.md)
+- [#3586417: Apply unified UX/design and Provider Config element to Audio-To-Audio Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586417.md)
+- [#3586409: Apply unified UX/design and Provider Config element to Moderation Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586409.md)
+- [#3586410: Apply unified UX/design and Provider Config element to Object Detection Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586410.md)
 
-### Drupal Canvas
+### Drupal Core
 
-_317 summaries · 11 new this week_
+_655 summaries · 12 new this week_
 
-- [#3592239: Workspaces PR 8: workspace management API and switcher UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592239.md)
-- [#3592316: A `type: array, items: {type: object …}` prop linked to a multi-valued entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592316.md)
-- [#3592325: Mutations keep failing with a stale CSRF token when the 403 response has an...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592325.md)
+- [#3623380: Create OOP replacement for hook_install_tasks and hook_install_tasks_alter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623380.md)
+- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
+- [#3621330: Include Bandwidth optimization (aggregation) on Status report page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621330.md)
 
 ### Drupal CMS
 
