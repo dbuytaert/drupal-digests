@@ -1,32 +1,32 @@
-**TL;DR:** [1590 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1597 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Core
+
+_654 summaries · 11 new this week_
+
+- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
+- [#3621330: Include Bandwidth optimization (aggregation) on Status report page](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3621330.md)
+- [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
+
 ### Drupal AI
 
-_488 summaries · 57 new this week_
+_491 summaries · 48 new this week_
 
-- [#3586778: Shared AI API Explorer input picker: recent results, media library or upload](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586778.md)
-- [#3586775: Redesign the AI API Explorers list as a hub that survives a broken provider](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586775.md)
-- [#3586776: Shared audio player and image viewers for AI API Explorer results](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586776.md)
+- [#3601418: --yolo still prompts for a project name when a config source is given](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601418.md)
+- [#3601417: DDEV's usage-statistics prompt blocks unattended (--yolo) installs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601417.md)
+- [#3601416: Add certutil on Linux](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601416.md)
 
 ### Drupal Canvas
 
-_315 summaries · 10 new this week_
+_317 summaries · 11 new this week_
 
+- [#3592239: Workspaces PR 8: workspace management API and switcher UI](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592239.md)
+- [#3592316: A `type: array, items: {type: object …}` prop linked to a multi-valued entity...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592316.md)
 - [#3592325: Mutations keep failing with a stale CSRF token when the 403 response has an...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592325.md)
-- [#3592238: Workspaces PR 7b: the workspace is the unit of publish (UI)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592238.md)
-- [#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md)
-
-### Drupal Core
-
-_652 summaries · 10 new this week_
-
-- [#3273334: Unable to unselect a multi select exposed filter in ajax view](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md)
-- [#3635924: Upgrade htmx to 4.0.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3635924.md)
-- [#3357616: Remove "Forgot your password?" link on failed login attempt message if user has...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3357616.md)
 
 ### Drupal CMS
 
