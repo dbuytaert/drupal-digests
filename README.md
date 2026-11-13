@@ -1,40 +1,40 @@
-**TL;DR:** [1622 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1638 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal Canvas
-
-_325 summaries · 19 new this week_
-
-- [#3592340: Show changes to the layout in the preview immediately, and keep stale server...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592340.md)
-- [#3592327: A code component cannot get the URL of a referenced entity, so a list of...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592327.md)
-- [#3592231: Workspaces PR 9: Stage a new page as published so one workspace publish makes...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592231.md)
-
 ### Drupal AI
 
-_505 summaries · 54 new this week_
+_515 summaries · 60 new this week_
 
-- [#3586412: Apply unified UX/design and Provider Config element to Text-To-Image Generation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586412.md)
-- [#3586406: Apply unified UX/design and Provider Config element to Summarize Text Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586406.md)
-- [#3586408: Apply unified UX/design and Provider Config element to Rerank Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586408.md)
+- [#3586418: Apply unified UX/design and Provider Config element to Image-and-Audio-to-Video...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586418.md)
+- [#3586540: Add optional prompt to ImageToVideoInput and clean up the class](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586540.md)
+- [#3601402: launch_site always opens a browser: an is_drupal:false project with no...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601402.md)
 
-### Drupal CMS
+### Drupal Canvas
 
-_136 summaries · 2 new this week_
+_328 summaries · 20 new this week_
 
-- [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
-- [#3591523: Add the Ágora Transparency site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591523.md)
-- [#3591521: Remove the hardcoded LLM configuration since it will not work with Amazee](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591521.md)
+- [#3589536: Support multi-cardinality for `content-entity-reference` prop shape](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3589536.md)
+- [#3592259: Allow code components to translate interface text](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592259.md)
+- [#3592296: Canvas AI: Show a fallback progress message when an agent calls a tool without...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592296.md)
 
 ### Drupal Core
 
-_656 summaries · 13 new this week_
+_658 summaries · 15 new this week_
 
+- [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
+- [#3622391: Use tagged iterators in CacheTagsInvalidator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622391.md)
 - [#3634655: Update to Symfony 8.2.0-BETA1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634655.md)
-- [#3623380: Create OOP replacement for hook_install_tasks and hook_install_tasks_alter](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3623380.md)
-- [#3617943: Deprecate DateTimePlus::prepareFormat()](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3617943.md)
+
+### Drupal CMS
+
+_137 summaries · 3 new this week_
+
+- [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
+- [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
+- [#3591523: Add the Ágora Transparency site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591523.md)
 
 
 ## Rector rules
