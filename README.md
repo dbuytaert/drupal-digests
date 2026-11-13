@@ -14,7 +14,7 @@ _325 summaries · 19 new this week_
 
 ### Drupal AI
 
-_505 summaries · 58 new this week_
+_505 summaries · 54 new this week_
 
 - [#3586412: Apply unified UX/design and Provider Config element to Text-To-Image Generation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586412.md)
 - [#3586406: Apply unified UX/design and Provider Config element to Summarize Text Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586406.md)
