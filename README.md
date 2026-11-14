@@ -1,8 +1,24 @@
-**TL;DR:** [1645 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1661 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_659 summaries · 14 new this week_
+
+- [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
+- [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
+- [#3622391: Use tagged iterators in CacheTagsInvalidator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622391.md)
+
+### Drupal AI
+
+_531 summaries · 67 new this week_
+
+- [#3586710: On AI agents, conditional subcontext uses the agent instructions as the task,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md)
+- [#3601421: Docker group restart fails on Ubuntu 26.04: no sg or newgrp](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601421.md)
+- [#3586418: Apply unified UX/design and Provider Config element to Image-and-Audio-to-Video...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586418.md)
 
 ### Drupal Canvas
 
@@ -11,22 +27,6 @@ _334 summaries · 25 new this week_
 - [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
 - [#3582851: Drupal completely breaks when installing the core block_content module...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582851.md)
 - [#3592245: Workspaces PR 13: stop deleting a named workspace when core publishes it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592245.md)
-
-### Drupal AI
-
-_516 summaries · 52 new this week_
-
-- [#3601421: Docker group restart fails on Ubuntu 26.04: no sg or newgrp](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601421.md)
-- [#3586418: Apply unified UX/design and Provider Config element to Image-and-Audio-to-Video...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586418.md)
-- [#3586540: Add optional prompt to ImageToVideoInput and clean up the class](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586540.md)
-
-### Drupal Core
-
-_658 summaries · 14 new this week_
-
-- [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
-- [#3622391: Use tagged iterators in CacheTagsInvalidator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622391.md)
-- [#3634655: Update to Symfony 8.2.0-BETA1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634655.md)
 
 ### Drupal CMS
 

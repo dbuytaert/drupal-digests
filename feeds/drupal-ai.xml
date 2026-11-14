@@ -5,6 +5,50 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586710: On AI agents, conditional subcontext uses the agent instructions as the task, not the user request</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md</link>
+      <guid isPermaLink="false">project/ai_context#3586710</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Sat, 14 Nov 2026 20:43:53 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +698/−13 · php +587/−9 · md +111/−4&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/2977d83b78678869a67c700d47f39a71594bc41b"&gt;2977d83&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586710"&gt;#3586710&lt;/a&gt; · 1 contributor · 9 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;For AI agents, automatic context selection now uses the user's request as the task, not the agent's system prompt. Conditional subcontext decisions now depend on the actual question. Before, they were made from the agent instructions, so the same result could be reused for every question. The provider set under &amp;quot;AI Provider/Model&amp;quot; in the CCC general settings now receives the first 500 characters of the user request instead of the agent instructions. That provider can differ from the agent provider, and the request may contain personal data. Sites that don't want this can turn off conditional subcontext AI decisions or use the same provider as their agents.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; The conditional subcontext decision provider now receives the first 500 characters of the user request on agents, which may contain personal data.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; On agents, &lt;code&gt;AiContextSelection::getTask()&lt;/code&gt; returns the user request (or an empty string) instead of the agent system prompt; selection event subscribers must accept an empty task.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;AiContextBuildSystemPromptSubscriber::onBuildSystemPrompt()&lt;/code&gt; used to pass the system prompt to &lt;code&gt;AiContextSelectionFactoryInterface::fromConsumer()&lt;/code&gt;. That prompt holds the agent instructions, default information tool output and the loop text, so &lt;code&gt;getTask()&lt;/code&gt; returned it and the decision cache key changed on every loop. It now passes a stored user request, or &lt;code&gt;''&lt;/code&gt; when there is none, as on the generic chat path.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;onAgentStarted()&lt;/code&gt; reads the request through the new &lt;code&gt;readUserRequest()&lt;/code&gt;. It reads on loop 0, or when nothing is stored for the agent yet (a restored run starts above loop 0). The result is kept per agent ID in &lt;code&gt;$userRequests&lt;/code&gt;, because &lt;code&gt;BuildSystemPromptEvent&lt;/code&gt; has no runner ID. The first source with text wins: the latest user message of the agent chat input; the description of the agent task (&lt;code&gt;TaskInterface::getDescription()&lt;/code&gt;); the latest user message of the event chat history. On a restored run (loop above 0) the history fallback is cut at the first tool call or tool result by &lt;code&gt;getMessagesBeforeTools()&lt;/code&gt;, because the agent adds its own user messages after tool calls. Text is only trimmed, not stripped or shortened. A failure while reading is logged and leaves the task empty, and context is still injected.&lt;/p&gt;
+&lt;p&gt;Known limits from the issue: an agent that calls itself as a sub-agent shares one stored request. Code that dispatches &lt;code&gt;BuildSystemPromptEvent&lt;/code&gt; without &lt;code&gt;AgentStartedExecutionEvent&lt;/code&gt; gets the last stored request for that agent ID, or an empty task. Docs (&lt;code&gt;events.md&lt;/code&gt;, &lt;code&gt;index.md&lt;/code&gt;, &lt;code&gt;subcontext.md&lt;/code&gt;, &lt;code&gt;rag.md&lt;/code&gt;, &lt;code&gt;api-stability.md&lt;/code&gt;) were updated. &lt;code&gt;rag.md&lt;/code&gt; now shows an example that returns early on an empty task.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Subscribers of &lt;code&gt;ai_context.selection.items_selected&lt;/code&gt; and &lt;code&gt;ai_context.selection.text_rendered&lt;/code&gt; that use the task as a query must handle an empty string, as in the updated &lt;code&gt;rag.md&lt;/code&gt; example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;$query = $event-&amp;gt;getSelection()-&amp;gt;getTask();
+if ($query === '') {
+  return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 14, 2026 (5 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3601421: Docker group restart fails on Ubuntu 26.04: no sg or newgrp</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601421.md</link>
       <guid isPermaLink="false">project/one_line_installer#3601421</guid>
@@ -758,45 +802,6 @@ drush updatedb
 &lt;ul&gt;
 &lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586417: Apply unified UX/design and Provider Config element to Audio-To-Audio Explorer</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586417.md</link>
-      <guid isPermaLink="false">project/ai#3586417</guid>
-      <pubDate>Thu, 12 Nov 2026 14:22:17 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +1768/−184 · php +1606/−180 · css +90 · js +58 · yml +9 · md +5/−4&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/282ef3e9263b711966eb70ef361c0aea18911f05"&gt;282ef3e&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586417"&gt;#3586417&lt;/a&gt; · 1 contributor · 12 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The Audio to Audio Explorer in AI API Explorer is rebuilt on the shared explorer layout. You pick a task (remove noise, restore phone audio, isolate voice) and only that task's options show. Results show the original next to the result in players, with the option to use a result as the source for another run. Runs that previously always failed with a &amp;quot;Configuration Error&amp;quot; now complete, and the generated code example is corrected.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The plugin &lt;code&gt;AudioToAudioGenerator&lt;/code&gt; drops &lt;code&gt;AiProviderFormHelper::generateAiProvidersForm()&lt;/code&gt; and uses the &lt;code&gt;ai_provider_configuration&lt;/code&gt; element through &lt;code&gt;providerElement('audio_to_audio', ...)&lt;/code&gt;. File input is the shared &lt;code&gt;ai_api_explorer_file&lt;/code&gt; element. Each run goes through &lt;code&gt;executeRun()&lt;/code&gt;, so it is stored as an explorer run and results are rendered from stored runs by &lt;code&gt;buildRunOutput()&lt;/code&gt;, with a per run code example from &lt;code&gt;buildRunCode()&lt;/code&gt; using the shared &lt;code&gt;CodeExample&lt;/code&gt; builder. New assets &lt;code&gt;explorer.audio_to_audio&lt;/code&gt; (&lt;code&gt;css/explorers/audio_to_audio.css&lt;/code&gt;, &lt;code&gt;js/explorers/audio_to_audio.js&lt;/code&gt;) are registered in &lt;code&gt;ai_api_explorer.libraries.yml&lt;/code&gt;; the JS only switches the run button label and hint per task.&lt;/p&gt;
-&lt;p&gt;The old failure came from passing the &lt;code&gt;AudioFile[]&lt;/code&gt; returned by &lt;code&gt;getNormalized()&lt;/code&gt; straight to &lt;code&gt;saveData()&lt;/code&gt;. The new code treats every normalized item as its own file and saves each with &lt;code&gt;runManager()-&amp;gt;saveFile()&lt;/code&gt;, so a model that splits audio can return two files. The result file's extension and MIME type follow the audio the provider returns, with a notice when it differs from the requested format.&lt;/p&gt;
-&lt;p&gt;The audio to audio operation takes only the audio, so the task options (strength, keep room sound, sample rate, which part to keep, output format) are sent through the provider configuration. &lt;code&gt;mapOptions()&lt;/code&gt; matches each option to a model configuration key from &lt;code&gt;OPTION_KEYS&lt;/code&gt; (for example &lt;code&gt;strength&lt;/code&gt;, &lt;code&gt;noise_reduction&lt;/code&gt;, &lt;code&gt;denoise_strength&lt;/code&gt;) only when that field can take the value (&lt;code&gt;fieldTakes()&lt;/code&gt;). Matched fields are hidden from the model's own settings; options the model has no usable setting for are listed in a notice on the run, and the model uses its own value.&lt;/p&gt;
-&lt;p&gt;The docs page for the explorer is updated: the example uses &lt;code&gt;audio/mpeg&lt;/code&gt; instead of &lt;code&gt;audio/mp3&lt;/code&gt; and reads &lt;code&gt;getNormalized()[0]&lt;/code&gt;, and the explorer path and name are corrected.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: May 4, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 12, 2026 (6 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
 &lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
 &lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
 &lt;/ul&gt;
