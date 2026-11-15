@@ -1,8 +1,16 @@
-**TL;DR:** [1662 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1663 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_660 summaries · 14 new this week_
+
+- [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
+- [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
+- [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
 
 ### Drupal AI
 
@@ -11,14 +19,6 @@ _532 summaries · 63 new this week_
 - [#3586692: Context items listing does not show its empty text or the "Add one" link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586692.md)
 - [#3586710: On AI agents, conditional subcontext uses the agent instructions as the task,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md)
 - [#3601421: Docker group restart fails on Ubuntu 26.04: no sg or newgrp](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601421.md)
-
-### Drupal Core
-
-_659 summaries · 14 new this week_
-
-- [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
-- [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
-- [#3622391: Use tagged iterators in CacheTagsInvalidator](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622391.md)
 
 ### Drupal Canvas
 
