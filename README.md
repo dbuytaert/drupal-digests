@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_532 summaries · 67 new this week_
+_532 summaries · 63 new this week_
 
 - [#3586692: Context items listing does not show its empty text or the "Add one" link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586692.md)
 - [#3586710: On AI agents, conditional subcontext uses the agent instructions as the task,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md)
