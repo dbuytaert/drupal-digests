@@ -1,8 +1,16 @@
-**TL;DR:** [1663 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1672 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_541 summaries · 69 new this week_
+
+- [#3594897: Explain metrics and terms on the admin pages, with a link to the glossary](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594897.md)
+- [#3586862: Lay out right-to-left text in AI API Explorer results in its own direction](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586862.md)
+- [#3586830: Add an Image-to-Video API Explorer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586830.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _660 summaries · 14 new this week_
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
 - [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
 - [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
-
-### Drupal AI
-
-_532 summaries · 60 new this week_
-
-- [#3586692: Context items listing does not show its empty text or the "Add one" link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586692.md)
-- [#3586710: On AI agents, conditional subcontext uses the agent instructions as the task,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md)
-- [#3601421: Docker group restart fails on Ubuntu 26.04: no sg or newgrp](https://github.com/dbuytaert/drupal-digests/blob/main/issues/one-line-installer/3601421.md)
 
 ### Drupal Canvas
 
