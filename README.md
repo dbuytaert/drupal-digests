@@ -14,7 +14,7 @@ _660 summaries · 14 new this week_
 
 ### Drupal AI
 
-_532 summaries · 63 new this week_
+_532 summaries · 60 new this week_
 
 - [#3586692: Context items listing does not show its empty text or the "Add one" link](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586692.md)
 - [#3586710: On AI agents, conditional subcontext uses the agent instructions as the task,...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586710.md)
@@ -22,7 +22,7 @@ _532 summaries · 63 new this week_
 
 ### Drupal Canvas
 
-_334 summaries · 25 new this week_
+_334 summaries · 24 new this week_
 
 - [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
 - [#3582851: Drupal completely breaks when installing the core block_content module...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582851.md)
