@@ -1,12 +1,20 @@
-**TL;DR:** [1672 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1674 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal Canvas
+
+_335 summaries · 22 new this week_
+
+- [#3518272: Support all entity types with configurable displays for content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3518272.md)
+- [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
+- [#3582851: Drupal completely breaks when installing the core block_content module...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582851.md)
+
 ### Drupal AI
 
-_541 summaries · 69 new this week_
+_542 summaries · 65 new this week_
 
 - [#3594897: Explain metrics and terms on the admin pages, with a link to the glossary](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594897.md)
 - [#3586862: Lay out right-to-left text in AI API Explorer results in its own direction](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586862.md)
@@ -14,23 +22,15 @@ _541 summaries · 69 new this week_
 
 ### Drupal Core
 
-_660 summaries · 14 new this week_
+_660 summaries · 10 new this week_
 
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
 - [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
 - [#3579889: Replace @return void with native void return types](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3579889.md)
 
-### Drupal Canvas
-
-_334 summaries · 24 new this week_
-
-- [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
-- [#3582851: Drupal completely breaks when installing the core block_content module...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582851.md)
-- [#3592245: Workspaces PR 13: stop deleting a named workspace when core publishes it](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592245.md)
-
 ### Drupal CMS
 
-_137 summaries · 3 new this week_
+_137 summaries · 2 new this week_
 
 - [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
 - [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
