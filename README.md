@@ -1,4 +1,4 @@
-**TL;DR:** [1681 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1688 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,19 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_547 summaries · 67 new this week_
+_551 summaries · 63 new this week_
 
-- [#3583135: An optional map property's default value never reaches the tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583135.md)
-- [#3586867: Raise the contrast of muted and tinted text in the AI API Explorers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586867.md)
-- [#3586876: Chat Explorer fails with "Drupal is not defined" because its library declares...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586876.md)
+- [#3586864: Translate the messages AI API Explorers write themselves for a failed run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md)
+- [#3586870: Chat Explorer: add a "Render Markdown" checkbox under Output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586870.md)
+- [#3586868: Chat Explorer: warn when Structured output is on but the schema is empty or not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586868.md)
 
 ### Drupal Canvas
 
-_336 summaries · 22 new this week_
+_339 summaries · 24 new this week_
 
-- [#3592359: Add a canvas_ssr submodule for server-side rendering of Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592359.md)
-- [#3518272: Support all entity types with configurable displays for content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3518272.md)
-- [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
+- [#3592377: Uninstalling block_content fails with "Table 'block_content' doesn't exist"...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592377.md)
+- [#3592375: Allow content templates for content entity types without a page of their own:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592375.md)
+- [#3592294: Workspaces PR 16: decide what the Main workspace is outside the Canvas editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592294.md)
 
 ### Drupal Core
 
