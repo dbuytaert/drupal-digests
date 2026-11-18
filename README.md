@@ -1,4 +1,4 @@
-**TL;DR:** [1679 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1681 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_546 summaries · 67 new this week_
+_547 summaries · 67 new this week_
 
+- [#3583135: An optional map property's default value never reaches the tool](https://github.com/dbuytaert/drupal-digests/blob/main/issues/tool-api/3583135.md)
 - [#3586867: Raise the contrast of muted and tinted text in the AI API Explorers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586867.md)
 - [#3586876: Chat Explorer fails with "Drupal is not defined" because its library declares...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586876.md)
-- [#3594897: Explain metrics and terms on the admin pages, with a link to the glossary](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594897.md)
+
+### Drupal Canvas
+
+_336 summaries · 22 new this week_
+
+- [#3592359: Add a canvas_ssr submodule for server-side rendering of Code Components](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592359.md)
+- [#3518272: Support all entity types with configurable displays for content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3518272.md)
+- [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
 
 ### Drupal Core
 
@@ -19,14 +27,6 @@ _661 summaries · 9 new this week_
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
 - [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
-
-### Drupal Canvas
-
-_335 summaries · 21 new this week_
-
-- [#3518272: Support all entity types with configurable displays for content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3518272.md)
-- [#3592207: Show notification and block user actions when maintenance mode is activated](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592207.md)
-- [#3582851: Drupal completely breaks when installing the core block_content module...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3582851.md)
 
 ### Drupal CMS
 

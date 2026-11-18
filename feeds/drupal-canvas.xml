@@ -5,6 +5,55 @@
     <description>Stay informed about developments in Drupal Canvas.</description>
     <link>https://www.drupal.org/project/canvas</link>
     <item>
+      <title>#3592359: Add a canvas_ssr submodule for server-side rendering of Code Components</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592359.md</link>
+      <guid isPermaLink="false">project/canvas#3592359</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Tue, 17 Nov 2026 18:13:36 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 228 files, +44254/−15 · php +34091/−1 · md +6112 · js +3661/−11 · yml +348 · txt +24 · json +18/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/8794a3bf1c415c93531bb755878a05375f7e5e6f"&gt;8794a3b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592359"&gt;#3592359&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas now ships an optional &lt;code&gt;canvas_ssr&lt;/code&gt; submodule that renders Code Components (JavaScript) on the server, so their HTML is in the first paint. Until now only SDCs and Block components rendered server-side. This matters to sites that need SSR before adopting Code Components. If SSR can't render an island, for example because no runner is available, Canvas falls back to its usual client-side rendering. The JavaScript execution is delegated to a pluggable &amp;quot;runner&amp;quot;. The included runner uses Deno, which you install yourself.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;canvas_ssr&lt;/code&gt; requires Drupal 11.4 or later, and a Deno binary at &lt;code&gt;vendor/bin/deno&lt;/code&gt; for the included runner.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New optional container parameters &lt;code&gt;canvas_ssr.timeouts&lt;/code&gt; and &lt;code&gt;canvas_ssr.additional_tamed_properties&lt;/code&gt;, set in &lt;code&gt;services.yml&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;canvas_ssr&lt;/code&gt; submodule with a &lt;code&gt;canvas_ssr.runner&lt;/code&gt; service tag (and other &lt;code&gt;canvas_ssr.*&lt;/code&gt; tags) for contrib runner modules and providers.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;canvas_ssr&lt;/code&gt; requires Drupal ^11.4 and depends on &lt;code&gt;canvas:canvas&lt;/code&gt;. It implements &lt;code&gt;hook_element_info_alter()&lt;/code&gt; to replace the &lt;code&gt;#pre_render&lt;/code&gt; of the &lt;code&gt;astro_island&lt;/code&gt; element with &lt;code&gt;AstroIslandSsr::preRenderIsland()&lt;/code&gt;. That method renders the slots to HTML once, then &lt;code&gt;Renderer::render()&lt;/code&gt; runs the component's main module on a runner. Any failure falls back to client-side rendering (&lt;code&gt;client=&amp;quot;only&amp;quot;&lt;/code&gt;). The &lt;code&gt;docs/ARCHITECTURE.md&lt;/code&gt; added in the commit describes the flow. A successful island is static if nothing in its component graph needs the browser. Otherwise it becomes &lt;code&gt;&amp;lt;canvas-island client=&amp;quot;load&amp;quot;&amp;gt;&lt;/code&gt; and hydrates. A component that needs state, effects or event handlers must start with &lt;code&gt;'use client';&lt;/code&gt; to mark a client boundary.&lt;/p&gt;
+&lt;p&gt;Runners are services tagged &lt;code&gt;canvas_ssr.runner&lt;/code&gt; with a priority. &lt;code&gt;RunnerSelector&lt;/code&gt; picks the highest-priority available one and uses &lt;code&gt;UnavailableRunner&lt;/code&gt; when none is. The built-in &lt;code&gt;DenoRunner&lt;/code&gt; has priority 0 and looks for the binary at &lt;code&gt;vendor/bin/deno&lt;/code&gt;, so a runner module can outrank it with a positive priority. Other tagged extension points are &lt;code&gt;canvas_ssr.js_module_provider&lt;/code&gt;, &lt;code&gt;canvas_ssr.site_data_provider&lt;/code&gt;, &lt;code&gt;canvas_ssr.page_data_provider&lt;/code&gt;, &lt;code&gt;canvas_ssr.boundary_checker&lt;/code&gt; and &lt;code&gt;canvas_ssr.path_policy&lt;/code&gt;. Components get a same-site &lt;code&gt;fetch()&lt;/code&gt; through &lt;code&gt;SameSiteFetch&lt;/code&gt;, which runs allowlisted GET and HEAD requests as subrequests.&lt;/p&gt;
+&lt;p&gt;There is no config form. Tuning is through container parameters in &lt;code&gt;services.yml&lt;/code&gt;. &lt;code&gt;canvas_ssr.timeouts&lt;/code&gt; has &lt;code&gt;short: 100&lt;/code&gt;, &lt;code&gt;medium: 2000&lt;/code&gt; and &lt;code&gt;long: 10000&lt;/code&gt; (ms), and each must be at least twice the previous one. &lt;code&gt;canvas_ssr.additional_tamed_properties&lt;/code&gt; is merged into the built-in &lt;code&gt;canvas_ssr.tamed_properties&lt;/code&gt; list, which the realm setup module freezes. The commit also adds an ADR on import map entries for Canvas's own use, a Deno install step (&lt;code&gt;.deno&lt;/code&gt;, v2.9.8) in &lt;code&gt;.gitlab-ci.yml&lt;/code&gt;, and the module's tests.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To use it: enable &lt;code&gt;canvas_ssr&lt;/code&gt;, install Deno (or a symlink to it) at &lt;code&gt;vendor/bin/deno&lt;/code&gt;, then run &lt;code&gt;drush cr&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 13, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 17, 2026 (3 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;effulgentsia (Acquia)&lt;/li&gt;
+&lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
+&lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
+&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
+&lt;li&gt;justafish (Acquia)&lt;/li&gt;
+&lt;li&gt;lauriii (Acquia)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3518272: Support all entity types with configurable displays for content templates</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3518272.md</link>
       <guid isPermaLink="false">project/canvas#3518272</guid>
@@ -789,52 +838,6 @@
 &lt;ul&gt;
 &lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 10, 2026 (19 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592237: Workspaces PR 7a: the workspace is the unit of publish (back end)</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592237.md</link>
-      <guid isPermaLink="false">project/canvas#3592237</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Mon, 09 Nov 2026 16:07:36 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 24 files, +1616/−1489 · php +1578/−1471 · yml +38/−18&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/45a7694bd255a6daa9f21f4296d2ab894763c83d"&gt;45a7694&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592237"&gt;#3592237&lt;/a&gt; · 1 contributor · 2 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the &lt;code&gt;1.x-workspaces&lt;/code&gt; branch, the Canvas publish endpoint now publishes the whole active workspace as one unit, through core's workspace publish, instead of publishing selected auto-save items one by one. The request must name the workspace and list the pending changes the editor reviewed. If the workspace is not the active one, or the pending list has changed since the review, the request is refused with a 409 and nothing is published. Any invalid item blocks the whole publish with a 422. Discarding a draft is now refused when the user cannot update the entity, or when another workspace has locked it.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Publishing now also requires core's &lt;code&gt;publish&lt;/code&gt; access to the active workspace, not only the Canvas publish permission. The &lt;code&gt;publishChanges&lt;/code&gt; UI flag in drupalSettings follows the same rule. Discarding an auto-save now requires entity &lt;code&gt;update&lt;/code&gt; access.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;POST /canvas/api/v0/auto-saves/publish&lt;/code&gt; now publishes the whole active workspace. The body must be &lt;code&gt;{workspace, pendingChanges}&lt;/code&gt;, where &lt;code&gt;pendingChanges&lt;/code&gt; maps auto-save key to &lt;code&gt;data_hash&lt;/code&gt;. A body without them is a 400. Per-item selection and the old 409/424 codes for unexpected/unmatched items and global assets are gone. &lt;code&gt;DELETE /canvas/api/v0/auto-saves/{entityTypeId}/{entityId}&lt;/code&gt; gains 403 and 409 responses.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;\Drupal\canvas\Workspace\CanvasWorkspacePublisher&lt;/code&gt; service (marked &lt;code&gt;@internal&lt;/code&gt;), new &lt;code&gt;ErrorCodesEnum&lt;/code&gt; cases &lt;code&gt;ActiveWorkspaceMismatch&lt;/code&gt; (10) and &lt;code&gt;PendingChangesOutdated&lt;/code&gt; (11), and a &lt;code&gt;BuildsAvatarUrlTrait&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ApiAutoSaveController::post()&lt;/code&gt; is rewritten and the per-item machinery is removed: sibling-translation expansion, global asset dependency checks, &lt;code&gt;applyAutoSaveTranslationSnapshots()&lt;/code&gt;, conflict-aware validation, the manual transaction, and &lt;code&gt;AutoSaveManager::groupContentEntityAutoSaves()&lt;/code&gt;. &lt;code&gt;post()&lt;/code&gt; returns a 400 if &lt;code&gt;workspace&lt;/code&gt; or &lt;code&gt;pendingChanges&lt;/code&gt; is missing. It throws &lt;code&gt;WorkspaceConflictException::noLongerExists()&lt;/code&gt; or &lt;code&gt;::notActive()&lt;/code&gt; (codes 9 and 10) when the named workspace is gone or is not the active one. It checks core's &lt;code&gt;publish&lt;/code&gt; access on the workspace and returns a 403 if denied. &lt;code&gt;stalePendingChangesResponse()&lt;/code&gt; then compares the reviewed &lt;code&gt;key =&amp;gt; data_hash&lt;/code&gt; map with &lt;code&gt;getPublishableAutoSaves()&lt;/code&gt;. It returns a 409 with one &lt;code&gt;PendingChangesOutdated&lt;/code&gt; (code 11) error per added, edited or discarded key.&lt;/p&gt;
-&lt;p&gt;The actual publish goes through the new &lt;code&gt;CanvasWorkspacePublisher::publish()&lt;/code&gt;. It wraps core's &lt;code&gt;$workspace-&amp;gt;publish()&lt;/code&gt; in a database transaction, covering the pre-publish subscribers that apply staged config as well as core's own revision promotion. It runs inside &lt;code&gt;executeInWorkspace()&lt;/code&gt; and counts the auto-save rows for the success message. If the publish fails, it restores the previously active workspace, because core only switches back after the callback returns. If the published workspace was deleted and is still active in the session, it switches to Live. In the controller, &lt;code&gt;WorkspacePublishValidationException&lt;/code&gt; maps to a 422 with one error per item, and any other &lt;code&gt;WorkspacePublishException&lt;/code&gt; from core or a subscriber maps to a 409 with pointer &lt;code&gt;workspace&lt;/code&gt; and no code. Other exceptions become a 500. An empty workspace returns 204 'No items to publish.'&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ApiAutoSaveController::get()&lt;/code&gt; now adds the &lt;code&gt;workspace&lt;/code&gt; cache context. &lt;code&gt;delete()&lt;/code&gt; calls &lt;code&gt;WorkspaceAutoSave::assertNotLockedInAnotherWorkspace()&lt;/code&gt; (409, with the owner in &lt;code&gt;meta.workspace&lt;/code&gt; per &lt;code&gt;openapi.yml&lt;/code&gt;) and checks entity &lt;code&gt;update&lt;/code&gt; access after the 404 check. &lt;code&gt;CanvasController&lt;/code&gt; computes &lt;code&gt;publishChanges&lt;/code&gt; from the Canvas permission combined with core's &lt;code&gt;publish&lt;/code&gt; access to the staging workspace, and adds that access result's cacheability to the response. &lt;code&gt;buildAvatarUrl()&lt;/code&gt; moved into &lt;code&gt;BuildsAvatarUrlTrait&lt;/code&gt;. &lt;code&gt;ContentTemplate::autoSavePublish()&lt;/code&gt; is kept, because &lt;code&gt;WorkspaceAutoSave::stageFallbackDrafts()&lt;/code&gt; still calls it. &lt;code&gt;openapi.yml&lt;/code&gt; documents the new &lt;code&gt;PublishAllRequest&lt;/code&gt; schema and the extra responses. Two &lt;code&gt;@todo Workspaces MR 22&lt;/code&gt; markers note that non-default-translation rows are still hidden from the pending list and the published count.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Clients of the publish endpoint must stop sending per-item selections. The body is now:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;{
-  &amp;quot;workspace&amp;quot;: &amp;quot;spring_campaign&amp;quot;,
-  &amp;quot;pendingChanges&amp;quot;: { &amp;quot;&amp;lt;auto-save key&amp;gt;&amp;quot;: &amp;quot;&amp;lt;data_hash&amp;gt;&amp;quot; }
-}
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;&lt;code&gt;pendingChanges&lt;/code&gt; is the map returned by &lt;code&gt;GET /canvas/api/v0/auto-saves/pending&lt;/code&gt;. Callers that relied on the old 409/424 item codes (&lt;code&gt;UnexpectedItemInPublishRequest&lt;/code&gt;, &lt;code&gt;UnmatchedItemInPublishRequest&lt;/code&gt;, &lt;code&gt;GlobalAssetNotPublished&lt;/code&gt;) should handle the new codes 10 and 11 and the code-less 409 from a pre-publish gate. Users publishing need core's &lt;code&gt;publish&lt;/code&gt; access to the workspace, which the tests grant through the &lt;code&gt;edit any workspace&lt;/code&gt; permission.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 21, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 9, 2026 (19 days later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
