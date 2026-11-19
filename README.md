@@ -1,12 +1,20 @@
-**TL;DR:** [1694 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1702 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal AI
+
+_560 summaries · 63 new this week_
+
+- [#3594905: The run snapshot does not record the --as-user default caller](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594905.md)
+- [#3594904: EEE import skips a changed dataset name as a duplicate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594904.md)
+- [#3594903: EEE import stores a quality-score interval as the pass-rate interval](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594903.md)
+
 ### Drupal Canvas
 
-_342 summaries · 27 new this week_
+_342 summaries · 20 new this week_
 
 - [#3591817: Add exposed slots: per-entity editable areas in content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591817.md)
 - [#3591892: Implement json-render in Headless SDK](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591892.md)
@@ -14,19 +22,11 @@ _342 summaries · 27 new this week_
 
 ### Drupal Core
 
-_662 summaries · 10 new this week_
+_662 summaries · 7 new this week_
 
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
-
-### Drupal AI
-
-_552 summaries · 64 new this week_
-
-- [#3586790: Adopt Symfony AI Platform 0.12-0.14.1 changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586790.md)
-- [#3586864: Translate the messages AI API Explorers write themselves for a failed run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md)
-- [#3586870: Chat Explorer: add a "Render Markdown" checkbox under Output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586870.md)
 
 ### Drupal CMS
 
