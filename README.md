@@ -1,40 +1,40 @@
-**TL;DR:** [1688 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1694 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
-### Drupal AI
-
-_551 summaries · 63 new this week_
-
-- [#3586864: Translate the messages AI API Explorers write themselves for a failed run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md)
-- [#3586870: Chat Explorer: add a "Render Markdown" checkbox under Output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586870.md)
-- [#3586868: Chat Explorer: warn when Structured output is on but the schema is empty or not...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586868.md)
-
 ### Drupal Canvas
 
-_339 summaries · 24 new this week_
+_342 summaries · 27 new this week_
 
-- [#3592377: Uninstalling block_content fails with "Table 'block_content' doesn't exist"...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592377.md)
-- [#3592375: Allow content templates for content entity types without a page of their own:...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592375.md)
-- [#3592294: Workspaces PR 16: decide what the Main workspace is outside the Canvas editor](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592294.md)
+- [#3591817: Add exposed slots: per-entity editable areas in content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591817.md)
+- [#3591892: Implement json-render in Headless SDK](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591892.md)
+- [#3592175: `resolveEntityUri()` hardcodes `entity:node/`, so link props can never target...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592175.md)
 
 ### Drupal Core
 
-_661 summaries · 9 new this week_
+_662 summaries · 10 new this week_
 
+- [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
-- [#2703349: Show as expanded checkbox is not necessary when No menu entry is selected](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2703349.md)
+
+### Drupal AI
+
+_552 summaries · 64 new this week_
+
+- [#3586790: Adopt Symfony AI Platform 0.12-0.14.1 changes](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586790.md)
+- [#3586864: Translate the messages AI API Explorers write themselves for a failed run](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md)
+- [#3586870: Chat Explorer: add a "Render Markdown" checkbox under Output](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586870.md)
 
 ### Drupal CMS
 
-_137 summaries · 2 new this week_
+_138 summaries · 3 new this week_
 
+- [#3591530: Add the Saplings site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591530.md)
 - [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
 - [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
-- [#3591523: Add the Ágora Transparency site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591523.md)
 
 
 ## Rector rules

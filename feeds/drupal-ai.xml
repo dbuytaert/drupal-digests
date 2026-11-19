@@ -5,6 +5,58 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586790: Adopt Symfony AI Platform 0.12-0.14.1 changes</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586790.md</link>
+      <guid isPermaLink="false">project/ai#3586790</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Wed, 18 Nov 2026 19:59:50 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +516/−24 · php +508/−21 · yml +5 · json +3/−3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/a3adad37707edf46152a7c029a4208e5e0dabe8e"&gt;a3adad3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586790"&gt;#3586790&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI module 2.x now works with Symfony AI Platform 0.14.1 instead of being pinned to 0.12. It also fixes streamed chat, which crashed with &amp;quot;Object of class ... could not be converted to string&amp;quot; whenever the model sent reasoning or tool call chunks. Models that reason before answering, such as NVIDIA ones, failed on every streamed chat. Streamed tool calls are now passed through to Drupal.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;symfony/ai-platform&lt;/code&gt; now requires &lt;code&gt;^0.14.1&lt;/code&gt;, &lt;code&gt;symfony/ai-generic-platform&lt;/code&gt; &lt;code&gt;^0.14&lt;/code&gt;, and dev &lt;code&gt;symfony/ai-gemini-platform&lt;/code&gt; &lt;code&gt;^0.14&lt;/code&gt; (previously &lt;code&gt;^0.12&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\ai\Exception\AiStreamException&lt;/code&gt; (implements &lt;code&gt;AiExceptionInterface&lt;/code&gt;); &lt;code&gt;InputOutputConverter&lt;/code&gt; constructor takes an optional logger.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;InputOutputConverter::toStreamedChatOutput()&lt;/code&gt; used to cast every stream delta to string, which only works for &lt;code&gt;TextDelta&lt;/code&gt;. The anonymous &lt;code&gt;StreamedChatMessageIterator::doIterate()&lt;/code&gt; now maps deltas by type. &lt;code&gt;TextDelta&lt;/code&gt; becomes a text chunk. &lt;code&gt;ToolCallComplete&lt;/code&gt; becomes a chunk of OpenAI-shaped &lt;code&gt;CreateStreamedResponseToolCall&lt;/code&gt; objects, one whole call each, which is the format the Drupal iterator reassembles tool calls from. Calls with an empty id (Gemini before 3.0) get a &lt;code&gt;call_&amp;lt;index&amp;gt;&lt;/code&gt; id, and empty arguments are encoded as an empty JSON object. &lt;code&gt;ToolCallStart&lt;/code&gt;, &lt;code&gt;ToolInputDelta&lt;/code&gt;, the &lt;code&gt;Thinking*&lt;/code&gt; deltas and &lt;code&gt;MetadataDelta&lt;/code&gt; are skipped. Any other delta is skipped with a warning on the new &lt;code&gt;logger.channel.ai&lt;/code&gt; channel, which is injected into &lt;code&gt;ai.symfony.input_output_converter&lt;/code&gt;. A &lt;code&gt;ChoiceDelta&lt;/code&gt; (multi-candidate stream) throws the new &lt;code&gt;AiStreamException&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Tool schema building in the same class changed to match the 0.14 expectations. Each property now always carries a &lt;code&gt;description&lt;/code&gt; and has its &lt;code&gt;name&lt;/code&gt; key removed. The parameters array always includes &lt;code&gt;required&lt;/code&gt; (possibly empty) and &lt;code&gt;additionalProperties =&amp;gt; FALSE&lt;/code&gt;. The Generic bridge now completes tool calls on any finish reason, which is why the stream fix matters more on 0.14. The issue lists follow-ups not covered here: no finish reason or token usage in streamed output, empty non-streamed token usage, Gemini text plus tool call losing the tool call, and the platform route ignoring &lt;code&gt;ai.settings:request_timeout&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Update the Composer constraints. The requirements now resolve to:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;symfony/ai-platform&amp;quot;: &amp;quot;^0.14.1&amp;quot;,
+&amp;quot;symfony/ai-generic-platform&amp;quot;: &amp;quot;^0.14&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Run &lt;code&gt;composer update drupal/ai --with-all-dependencies&lt;/code&gt;. Custom code that constructs &lt;code&gt;InputOutputConverter&lt;/code&gt; directly can still do so, since the logger argument is optional.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 5, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 18, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;harivansh&lt;/li&gt;
+&lt;li&gt;mxr576 (Pronovix)&lt;/li&gt;
+&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
+&lt;li&gt;fago (drunomics)&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586864: Translate the messages AI API Explorers write themselves for a failed run</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md</link>
       <guid isPermaLink="false">project/ai#3586864</guid>
@@ -749,50 +801,6 @@ if ($query === '') {
 &lt;ul&gt;
 &lt;li&gt;Opened: November 12, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 13, 2026&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586540: Add optional prompt to ImageToVideoInput and clean up the class</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586540.md</link>
-      <guid isPermaLink="false">project/ai#3586540</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 13 Nov 2026 14:28:21 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 4 files, +53/−11 · php +53/−11&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/23fa39b40b8cf5396c58ca4cf8443a2352b89b8b"&gt;23fa39b&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586540"&gt;#3586540&lt;/a&gt; · 1 contributor · 8 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The &lt;code&gt;image_to_video&lt;/code&gt; operation type can now carry an optional text prompt. Prompt-guided image-to-video models (the issue names CogVideoX-I2V, LTX-Video, Kling, Runway Gen-3) need a prompt to direct motion, and there was previously no way to pass one. Image-only models are unaffected because the prompt defaults to empty.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;ImageToVideoInput::getPrompt()&lt;/code&gt; and &lt;code&gt;setPrompt()&lt;/code&gt; added; &lt;code&gt;toArray()&lt;/code&gt; now returns a &lt;code&gt;prompt&lt;/code&gt; key.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ImageToVideoInput&lt;/code&gt; gains a nullable private &lt;code&gt;$prompt&lt;/code&gt; (default &lt;code&gt;NULL&lt;/code&gt;) with &lt;code&gt;getPrompt(): ?string&lt;/code&gt; and &lt;code&gt;setPrompt(?string): void&lt;/code&gt;, mirroring &lt;code&gt;ImageToImageInput&lt;/code&gt;. &lt;code&gt;toArray()&lt;/code&gt; now includes a &lt;code&gt;prompt&lt;/code&gt; key alongside &lt;code&gt;file&lt;/code&gt;. The constructor is unchanged (&lt;code&gt;__construct(ImageFile $file)&lt;/code&gt;), so existing callers keep working. Providers that support prompts should read &lt;code&gt;$input-&amp;gt;getPrompt()&lt;/code&gt; and handle &lt;code&gt;NULL&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;The same commit fixes copy-pasted audio-to-audio docblocks in &lt;code&gt;ImageToVideoInput&lt;/code&gt; and &lt;code&gt;ImageToVideoOutput&lt;/code&gt;, and corrects the &lt;code&gt;@param&lt;/code&gt; namespace in &lt;code&gt;ImageToVideoInterface&lt;/code&gt; to &lt;code&gt;\Drupal\ai\OperationType\ImageToVideo\ImageToVideoInput&lt;/code&gt;. &lt;code&gt;ImageToVideoInputTest&lt;/code&gt; gets a &lt;code&gt;testPrompt()&lt;/code&gt; case.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Providers implementing &lt;code&gt;image_to_video&lt;/code&gt; can pass the prompt to the model:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;$prompt = $input-&amp;gt;getPrompt();
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Callers can set it with &lt;code&gt;$input-&amp;gt;setPrompt('a cat playing the piano');&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: June 16, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 13, 2026 (5 months later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
