@@ -1,4 +1,4 @@
-**TL;DR:** [1711 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1715 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,23 +6,23 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_564 summaries · 59 new this week_
+_567 summaries · 52 new this week_
 
-- [#3586880: Add Import JSON and Export JSON to the text-only AI API Explorers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586880.md)
-- [#3586796: Drupal 12 compatibility: add ^12 to core_version_requirement and fix...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586796.md)
-- [#3586749: Consumer settings form and post-update 0008 fail with a database error when a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586749.md)
+- [#3586721: Translators can change the shared scopes of a context item from the translation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586721.md)
+- [#3586746: Site Section patterns do not match paths that have a language prefix](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586746.md)
+- [#3586724: Require AI 1.4.12, or document the lost generic-path context on AI 1.4.11](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586724.md)
 
 ### Drupal CMS
 
-_139 summaries · 3 new this week_
+_140 summaries · 3 new this week_
 
+- [#3591532: Drupal CMS installer denies access after site template selection on Drupal core...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591532.md)
 - [#3591533: setComponentTree fails when a second module with components is installed in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591533.md)
 - [#3591530: Add the Saplings site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591530.md)
-- [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
 
 ### Drupal Canvas
 
-_346 summaries · 21 new this week_
+_346 summaries · 18 new this week_
 
 - [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
 - [#3592390: canvas_oauth should automatically create the CLI user, and consumer, upon...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592390.md)
@@ -30,7 +30,7 @@ _346 summaries · 21 new this week_
 
 ### Drupal Core
 
-_662 summaries · 6 new this week_
+_662 summaries · 4 new this week_
 
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
