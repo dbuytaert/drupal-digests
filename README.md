@@ -1,40 +1,40 @@
-**TL;DR:** [1702 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1706 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal CMS
+
+_139 summaries · 3 new this week_
+
+- [#3591533: setComponentTree fails when a second module with components is installed in the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591533.md)
+- [#3591530: Add the Saplings site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591530.md)
+- [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
+
+### Drupal Canvas
+
+_345 summaries · 20 new this week_
+
+- [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
+- [#3592390: canvas_oauth should automatically create the CLI user, and consumer, upon...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592390.md)
+- [#3592387: Workspaces PR 27: list, activate and delete only default-provider workspaces...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592387.md)
+
 ### Drupal AI
 
-_560 summaries · 63 new this week_
+_560 summaries · 55 new this week_
 
 - [#3594905: The run snapshot does not record the --as-user default caller](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594905.md)
 - [#3594904: EEE import skips a changed dataset name as a duplicate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594904.md)
 - [#3594903: EEE import stores a quality-score interval as the pass-rate interval](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594903.md)
 
-### Drupal Canvas
-
-_342 summaries · 20 new this week_
-
-- [#3591817: Add exposed slots: per-entity editable areas in content templates](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591817.md)
-- [#3591892: Implement json-render in Headless SDK](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591892.md)
-- [#3592175: `resolveEntityUri()` hardcodes `entity:node/`, so link props can never target...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592175.md)
-
 ### Drupal Core
 
-_662 summaries · 7 new this week_
+_662 summaries · 6 new this week_
 
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
 - [#3634418: Implement better messaging for Assert for css in libraries discovery](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3634418.md)
-
-### Drupal CMS
-
-_138 summaries · 3 new this week_
-
-- [#3591530: Add the Saplings site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591530.md)
-- [#3591524: Search is 404 for non top-level pages](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591524.md)
-- [#3591527: 🤖 drupal_cms_site_template_base leaves two Navigation components enabled in...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591527.md)
 
 
 ## Rector rules
