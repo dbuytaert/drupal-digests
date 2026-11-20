@@ -112,6 +112,53 @@
 </description>
     </item>
     <item>
+      <title>#3592209: `canvas_workflows` sub-module: review workflow and scheduled publish on top of core Workflows</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592209.md</link>
+      <guid isPermaLink="false">project/canvas#3592209</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Thu, 19 Nov 2026 15:24:35 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 58 files, +5412/−173 · php +2828/−16 · js +2005/−142 · yml +397/−4 · md +181/−10 · json +1/−1&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/fd06947885f4c6dbfc712111251f88b05e779015"&gt;fd06947&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592209"&gt;#3592209&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Canvas gains an optional &lt;code&gt;canvas_workflows&lt;/code&gt; sub-module that adds a review process to workspaces. Each workspace can be assigned a core Workflows workflow (shipped default: Draft, In review, Approved) and cannot be published, from Canvas, the Workspaces UI or cron, until it reaches an approved state. Approved workspaces can also be scheduled to publish at a set time via cron. Editing an approved workspace sends it back to draft and cancels its schedule. Choosing a workspace's review workflow needs the new &lt;code&gt;administer canvas workspace review&lt;/code&gt; permission. Canvas works unchanged without the module installed.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; New &lt;code&gt;canvas_workspace_review&lt;/code&gt; workflow type and default workflow config shipped by the &lt;code&gt;canvas_workflows&lt;/code&gt; sub-module.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; New &lt;code&gt;administer canvas workspace review&lt;/code&gt; permission, plus generated &lt;code&gt;use {workflow} transition {transition}&lt;/code&gt; permissions.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;hook_canvas_workspace_staged_write()&lt;/code&gt; in Canvas, fired on staged writes and draft discards into a workspace.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The sub-module defines a &lt;code&gt;canvas_workspace_review&lt;/code&gt; workflow type (&lt;code&gt;WorkspaceReviewWorkflowType&lt;/code&gt;) whose states carry an &lt;code&gt;approved_for_publish&lt;/code&gt; flag, and ships a default &lt;code&gt;canvas_workspace_review&lt;/code&gt; workflow config with &lt;code&gt;submit_for_review&lt;/code&gt;, &lt;code&gt;approve&lt;/code&gt; and &lt;code&gt;send_back&lt;/code&gt; transitions. Each transition gets a generated &lt;code&gt;use {workflow} transition {transition}&lt;/code&gt; permission via &lt;code&gt;WorkspaceReviewPermissions&lt;/code&gt;. &lt;code&gt;hook_entity_base_field_info()&lt;/code&gt; adds base fields to the workspace entity: &lt;code&gt;canvas_review_workflow&lt;/code&gt; (empty means no review), &lt;code&gt;canvas_workspace_status&lt;/code&gt;, &lt;code&gt;canvas_scheduled_publish_at&lt;/code&gt;, &lt;code&gt;canvas_scheduled_publish_by&lt;/code&gt; and &lt;code&gt;canvas_scheduled_publish_error&lt;/code&gt;. Only workspaces of core's &lt;code&gt;default&lt;/code&gt; provider are reviewable; Main and module-created workspaces are not. &lt;code&gt;hook_entity_field_access()&lt;/code&gt; forbids edits to every field except &lt;code&gt;canvas_review_workflow&lt;/code&gt;, which needs the new permission, because core grants workspace edit and publish through the same permissions. Changing the workflow resets the state and schedule in &lt;code&gt;hook_workspace_presave()&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;WorkspaceReviewPublishSubscriber&lt;/code&gt; listens to &lt;code&gt;WorkspacePrePublishEvent&lt;/code&gt; at priority 100 and calls &lt;code&gt;stopPublishing()&lt;/code&gt; for a review-required workspace that is not approved, ahead of Canvas's validation subscriber (so a review refusal surfaces as a 409 rather than a 422). On &lt;code&gt;WorkspacePostPublishEvent&lt;/code&gt; it clears the state and schedule. Scheduled publishing is run by &lt;code&gt;WorkspaceScheduledPublishCronHook&lt;/code&gt;; per the ADR a missing or blocked scheduling user means the schedule is cancelled, and a failure cancels it and stores the error.&lt;/p&gt;
+&lt;p&gt;In the main module, a new &lt;code&gt;hook_canvas_workspace_staged_write(WorkspaceInterface $workspace)&lt;/code&gt; (documented in &lt;code&gt;canvas.api.php&lt;/code&gt;) fires after Canvas persists an auto-save that changes staged content, fallback-store writes included, and after a draft is discarded. The sub-module uses it to demote the workspace; &lt;code&gt;hook_entity_presave()&lt;/code&gt; covers saves made outside Canvas, such as node forms, skipping Canvas's own via &lt;code&gt;WorkspaceAutoSave::isStagingWriteOf()&lt;/code&gt;, and &lt;code&gt;WorkspaceAutoSave::isPublishTimeStaging()&lt;/code&gt; exempts publish-time staging. The workspace API representation is extended via &lt;code&gt;hook_canvas_workspace_normalize_alter()&lt;/code&gt; with &lt;code&gt;status&lt;/code&gt;, &lt;code&gt;statusLabel&lt;/code&gt;, &lt;code&gt;statusIsApproved&lt;/code&gt;, &lt;code&gt;statusIsInitial&lt;/code&gt;, &lt;code&gt;requireReview&lt;/code&gt;, &lt;code&gt;reviewWorkflow&lt;/code&gt;, &lt;code&gt;canSetReviewWorkflow&lt;/code&gt;, &lt;code&gt;availableTransitions&lt;/code&gt;, &lt;code&gt;scheduledPublishAt&lt;/code&gt; and &lt;code&gt;scheduledPublishError&lt;/code&gt;. New &lt;code&gt;@internal&lt;/code&gt; routes under &lt;code&gt;/canvas/api/v0/&lt;/code&gt; (&lt;code&gt;workspace-review-workflows&lt;/code&gt;, and &lt;code&gt;workspaces/{workspace}/&lt;/code&gt; &lt;code&gt;review-workflow&lt;/code&gt;, &lt;code&gt;status&lt;/code&gt;, &lt;code&gt;schedule&lt;/code&gt;) are served by &lt;code&gt;ApiWorkspaceReviewController&lt;/code&gt;. The UI work (&lt;code&gt;workflowsExtensionAvailable&lt;/code&gt; drupalSettings flag, status badge, schedule dialog) and ADR 23 are part of the same commit. Part of the diff was not available to me (e.g. &lt;code&gt;WorkspaceReview.php&lt;/code&gt;, &lt;code&gt;WorkspaceScheduledPublish.php&lt;/code&gt;, and the main-module &lt;code&gt;AutoSaveManager&lt;/code&gt; change), so details of those come from the issue body and the ADR in the diff.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;To react to Canvas staged writes in a custom module:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;function hook_canvas_workspace_staged_write(\Drupal\workspaces\WorkspaceInterface $workspace): void {
+  if ($workspace-&amp;gt;hasField('my_module_reviewed')) {
+    $workspace-&amp;gt;set('my_module_reviewed', FALSE)-&amp;gt;save();
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Site owners: enable &lt;code&gt;canvas_workflows&lt;/code&gt; (requires &lt;code&gt;workflows&lt;/code&gt; and &lt;code&gt;workspaces&lt;/code&gt;) and grant &lt;code&gt;administer canvas workspace review&lt;/code&gt; and the per-transition permissions to the relevant roles. On install, existing default-provider workspaces get the shipped workflow. Uninstalling removes the fields and the shipped workflow, after which workspaces publish without review.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: October 16, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 19, 2026 (1 month later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3591817: Add exposed slots: per-entity editable areas in content templates</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3591817.md</link>
       <guid isPermaLink="false">project/canvas#3591817</guid>
@@ -841,50 +888,6 @@ $block_manager-&amp;gt;moduleInstallOrUninstallInProgress = TRUE;
 &lt;li&gt;balintbrews (Acquia)&lt;/li&gt;
 &lt;li&gt;lauriii (Acquia)&lt;/li&gt;
 &lt;li&gt;hooroomoo (Acquia)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3592296: Canvas AI: Show a fallback progress message when an agent calls a tool without narrating</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592296.md</link>
-      <guid isPermaLink="false">project/canvas#3592296</guid>
-      <category>Module maintainers</category>
-      <pubDate>Fri, 13 Nov 2026 11:19:19 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Canvas&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal unknown (0)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +448/−10 · php +448/−10&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/commit/55d31b1229edfb36fe2167fa0a80b974d79501c8"&gt;55d31b1&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/canvas/-/work_items/3592296"&gt;#3592296&lt;/a&gt; · 1 contributor · 23 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In the &lt;code&gt;canvas_dev_ai&lt;/code&gt; chat, an agent sometimes calls a tool without writing any text, so the progress message stayed unchanged and the user saw nothing happening. The progress message now gets a fallback line for each such tool call, for example &amp;quot;Adding Hero and Card&amp;quot; or &amp;quot;Editing Hero&amp;quot;. Responses that include text still show only that text.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\canvas_ai\Utility\ToolProgressHelper&lt;/code&gt; with static helpers for building tool-call progress lines.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;CanvasDevAiBuilder::getAiProgress()&lt;/code&gt; now reads &lt;code&gt;TextGenerated&lt;/code&gt; and &lt;code&gt;ToolSelected&lt;/code&gt; status items. &lt;code&gt;ToolSelected&lt;/code&gt; is added to the tracked types in &lt;code&gt;setDetailedProgressTracking()&lt;/code&gt;. Items belong to one model response when they share the same time and agent runner ID. A response with non-blank text contributes only that text. A response with tool calls and no non-blank text contributes one fallback line per call, built by &lt;code&gt;getToolFallbackLine()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Fallback lines by tool name: &lt;code&gt;place_components&lt;/code&gt; gives &amp;quot;Adding A&amp;quot;, &amp;quot;Adding A and B&amp;quot; or &amp;quot;Adding A, B and other components&amp;quot;. &lt;code&gt;edit_components&lt;/code&gt; gives the same with &amp;quot;Editing&amp;quot;. &lt;code&gt;get_component_details&lt;/code&gt; gives &amp;quot;Checking available components&amp;quot;. Any other tool gives its configured feedback message, or &lt;code&gt;Using tool: {tool name}&lt;/code&gt; when none is set. For &lt;code&gt;place_components&lt;/code&gt;, the &lt;code&gt;components&lt;/code&gt; YAML of each operation is parsed and walked in tree order (a component, then its slots, then the next component). Component IDs are deduplicated and cut to two, and labels come from the &lt;code&gt;Component&lt;/code&gt; config entities. For &lt;code&gt;edit_components&lt;/code&gt;, each &lt;code&gt;component_uuid&lt;/code&gt; is resolved against the stored current layout via &lt;code&gt;getComponentsByUuid()&lt;/code&gt;, and UUIDs not on the page are skipped. If the YAML does not parse, a component entity is missing, or no edited UUID is on the page, no line is added. This YAML and tree logic lives in the new &lt;code&gt;ToolProgressHelper&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;A fallback line identical to the previous fallback line is not repeated. The previous line gets a count instead, e.g. &amp;quot;Using tool: set_page_value (2)&amp;quot;. A narrated response resets this. Coverage is &lt;code&gt;CanvasAiDevControllerTest::testFallbackProgress()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 13, 2026 (8 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;akhil babu (QED42)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;shqshqnk (Specbee)&lt;/li&gt;
-&lt;li&gt;jucs7 (esinergia.)&lt;/li&gt;
-&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
-&lt;li&gt;cadence96 (SeeD EM)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

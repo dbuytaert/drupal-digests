@@ -1,8 +1,16 @@
-**TL;DR:** [1706 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1711 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_564 summaries · 59 new this week_
+
+- [#3586880: Add Import JSON and Export JSON to the text-only AI API Explorers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586880.md)
+- [#3586796: Drupal 12 compatibility: add ^12 to core_version_requirement and fix...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586796.md)
+- [#3586749: Consumer settings form and post-update 0008 fail with a database error when a...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586749.md)
 
 ### Drupal CMS
 
@@ -14,19 +22,11 @@ _139 summaries · 3 new this week_
 
 ### Drupal Canvas
 
-_345 summaries · 20 new this week_
+_346 summaries · 21 new this week_
 
 - [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
 - [#3592390: canvas_oauth should automatically create the CLI user, and consumer, upon...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592390.md)
 - [#3592387: Workspaces PR 27: list, activate and delete only default-provider workspaces...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592387.md)
-
-### Drupal AI
-
-_560 summaries · 55 new this week_
-
-- [#3594905: The run snapshot does not record the --as-user default caller](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594905.md)
-- [#3594904: EEE import skips a changed dataset name as a duplicate](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594904.md)
-- [#3594903: EEE import stores a quality-score interval as the pass-rate interval](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594903.md)
 
 ### Drupal Core
 
