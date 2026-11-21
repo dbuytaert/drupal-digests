@@ -5,6 +5,58 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586711: Two CCC Scheduler permissions are never checked, and the item form saves schedules that cron cannot run</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586711.md</link>
+      <guid isPermaLink="false">project/ai_context#3586711</guid>
+      <category>Site owners</category>
+      <pubDate>Sat, 21 Nov 2026 02:43:07 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +1571/−35 · php +1371/−9 · md +196/−18 · yml +4/−8&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/b802534b2a9f381c4608a6611641fbd899fa3273"&gt;b802534&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586711"&gt;#3586711&lt;/a&gt; · 1 contributor · 36 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI Context module declared two scheduling permissions that no code ever checked, so a role given only those could not set &amp;quot;Publish on&amp;quot; or &amp;quot;Unpublish on&amp;quot; dates. They are removed. Scheduler's own permissions for context items now do the work, and an update moves existing roles over. The item form and Content Moderation's &amp;quot;Change to&amp;quot; form now also show an error when the workflow cannot run a schedule, such as an Archived item with an &amp;quot;Unpublish on&amp;quot; date. Before, these saves succeeded and cron then failed on every run, creating a new revision each time.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; Post-update &lt;code&gt;ai_context_post_update_0017_use_scheduler_permissions()&lt;/code&gt; updates role config; no schema changes.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Post-update 0017 rewrites role configuration, removing the two CCC permissions and granting Scheduler's equivalents when Scheduler is installed.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; &lt;code&gt;schedule publishing of ai context items&lt;/code&gt; and &lt;code&gt;view scheduled ai context item&lt;/code&gt; removed; use Scheduler's &lt;code&gt;schedule publishing of ai_context_item&lt;/code&gt; and &lt;code&gt;view scheduled ai_context_item&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;Scheduler checks only its own &lt;code&gt;schedule publishing of ai_context_item&lt;/code&gt; and &lt;code&gt;view scheduled ai_context_item&lt;/code&gt;. Scheduler Content Moderation Integration (SCMI) validates scheduled transitions through constraints on &lt;code&gt;publish_state&lt;/code&gt; and &lt;code&gt;unpublish_state&lt;/code&gt;. Those fields are removed from the item form display, and the default states are set in &lt;code&gt;AiContextItem::preSave()&lt;/code&gt; after validation, so SCMI never saw them. The &amp;quot;Change to&amp;quot; form saves without entity validation.&lt;/p&gt;
+&lt;p&gt;The fix adds &lt;code&gt;AiContextSchedulerDefaults::getScheduledWorkflowErrors()&lt;/code&gt; and &lt;code&gt;getStateChangeErrors()&lt;/code&gt;. They check the default scheduled state and the transition to it, without modifying the item. They are called from &lt;code&gt;AiContextItemForm::validateForm()&lt;/code&gt; and &lt;code&gt;ModerationFormHooks::doValidate()&lt;/code&gt;. Users who cannot see the date fields get the error on the moderation state, and only when the save breaks a schedule that could run before. &lt;code&gt;AiContextSchedulerDefaults&lt;/code&gt; now takes optional &lt;code&gt;content_moderation.moderation_information&lt;/code&gt; and &lt;code&gt;scheduler.manager&lt;/code&gt; arguments, and the class name is an alias of the &lt;code&gt;ai_context.scheduler_defaults&lt;/code&gt; service. These classes are &lt;code&gt;@internal&lt;/code&gt;. Saves outside these two forms, the revert form, and existing unrunnable schedules are not checked or changed.&lt;/p&gt;
+&lt;p&gt;Post-update &lt;code&gt;ai_context_post_update_0017_use_scheduler_permissions()&lt;/code&gt; removes the old permissions from every role. For non-admin roles it grants the matching Scheduler permission when Scheduler is installed. For admin roles it only strips the stored names. It saves only changed roles and returns a message naming them.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run &lt;code&gt;drush updatedb&lt;/code&gt;, then export and commit configuration. Importing config exported before the update restores the removed permissions and removes the Scheduler ones. Do the export before &lt;code&gt;drush deploy&lt;/code&gt;, which runs updatedb and then imports config.&lt;/p&gt;
+&lt;p&gt;If a recipe, install profile or config export has the old names, replace them:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;schedule publishing of ai context items -&amp;gt; schedule publishing of ai_context_item
+view scheduled ai context item -&amp;gt; view scheduled ai_context_item
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If Scheduler was not installed during the update, grant Scheduler's permissions to the roles named in the update message after installing it. A role that sets dates also needs the matching workflow transition (Publish, Restore or Archive).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 9, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 21, 2026 (11 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;dcgoodwin (CivicActions)&lt;/li&gt;
+&lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;kieran.cott (Reading Room)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586721: Translators can change the shared scopes of a context item from the translation form</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586721.md</link>
       <guid isPermaLink="false">project/ai_context#3586721</guid>
@@ -709,41 +761,6 @@ throw new \RuntimeException($message);
 &lt;ul&gt;
 &lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
 &lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586708: Leading-zero item IDs in tool input skip Never include</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586708.md</link>
-      <guid isPermaLink="false">project/ai_context#3586708</guid>
-      <category>Site owners</category>
-      <pubDate>Wed, 18 Nov 2026 03:45:42 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 9 files, +595/−18 · php +564/−10 · md +31/−8&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/1038ed568982a280a63dadc985f19702c8f24055"&gt;1038ed5&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586708"&gt;#3586708&lt;/a&gt; · 1 contributor · 20 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Never include on a consumer now holds when the Get Relevant tool receives an item ID written with leading zeros, such as &lt;code&gt;&amp;quot;0123&amp;quot;&lt;/code&gt; for item 123. Before, that spelling slipped past the exclusion and the item was delivered. The Load tool is also stricter: it accepts only integers and digit-only strings from 1 to 2147483647, so values such as &lt;code&gt;1e0&lt;/code&gt;, &lt;code&gt;1.0&lt;/code&gt; or &lt;code&gt;+1&lt;/code&gt; no longer load an item, and the call reports &lt;code&gt;No valid numeric context item IDs provided.&lt;/code&gt; when none are usable. Leading zeros and surrounding spaces are still accepted.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Never include on a consumer could be bypassed by passing an item ID with leading zeros (such as &lt;code&gt;&amp;quot;0123&amp;quot;&lt;/code&gt;) in &lt;code&gt;always_include&lt;/code&gt; of the Get Relevant tool; fixed.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The Never include subtraction in &lt;code&gt;AiContextSelector::loadCandidateItems()&lt;/code&gt; used &lt;code&gt;array_diff()&lt;/code&gt; on strings, so &lt;code&gt;&amp;quot;0123&amp;quot;&lt;/code&gt; did not match &lt;code&gt;&amp;quot;123&amp;quot;&lt;/code&gt;, while the entity query compared the ID as a number and loaded item 123. The fix gives each numeric ID one spelling. &lt;code&gt;AiContextNumeric&lt;/code&gt; (&lt;code&gt;@internal&lt;/code&gt;) gets &lt;code&gt;entityId()&lt;/code&gt;, which accepts integers and digit strings, trims whitespace and leading zeros, and rejects &lt;code&gt;0&lt;/code&gt;, floats, booleans and &lt;code&gt;1e0&lt;/code&gt;/&lt;code&gt;1.0&lt;/code&gt;/&lt;code&gt;+1&lt;/code&gt;. It has no upper limit, so Never include can still name an item with an ID above 2147483647 (possible on SQLite). &lt;code&gt;boundedEntityId()&lt;/code&gt; applies the same rule and also rejects values above 2147483647 by comparing digit strings, without an integer cast.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiContextItemIdentifierResolverTrait::resolveContextItemIdentifiersToIds()&lt;/code&gt; now uses &lt;code&gt;entityId()&lt;/code&gt;, so both the always include and never include lists, from tool input or stored consumer config, normalize to the same string and duplicates collapse. An all-digit value that normalizes to nothing (&lt;code&gt;0&lt;/code&gt;) is dropped and not treated as a UUID. &lt;code&gt;AiContextLoadItemsFunctionCallBase::validateIds()&lt;/code&gt; uses &lt;code&gt;boundedEntityId()&lt;/code&gt; instead of &lt;code&gt;is_numeric()&lt;/code&gt;, since Load passes IDs straight to a query. As a defensive check, &lt;code&gt;loadCandidateItems()&lt;/code&gt; also runs &lt;code&gt;array_diff_key()&lt;/code&gt; to remove Never include items from the always-included group by loaded entity ID.&lt;/p&gt;
-&lt;p&gt;Unchanged behaviors: an explicit &lt;code&gt;consumer_id&lt;/code&gt; in tool input still selects that consumer's config, &lt;code&gt;always_include&lt;/code&gt; items skip hard-filter scopes, and the Load tool does not apply Never include. Docs gain an &amp;quot;Item ID format&amp;quot; section in &lt;code&gt;docs/developers/function_calls.md&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 9, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 18, 2026 (9 days later)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

@@ -1,4 +1,4 @@
-**TL;DR:** [1715 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1716 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,11 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_567 summaries · 52 new this week_
+_568 summaries · 52 new this week_
 
+- [#3586711: Two CCC Scheduler permissions are never checked, and the item form saves...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586711.md)
 - [#3586721: Translators can change the shared scopes of a context item from the translation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586721.md)
 - [#3586746: Site Section patterns do not match paths that have a language prefix](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586746.md)
-- [#3586724: Require AI 1.4.12, or document the lost generic-path context on AI 1.4.11](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586724.md)
 
 ### Drupal CMS
 
@@ -22,7 +22,7 @@ _140 summaries · 3 new this week_
 
 ### Drupal Canvas
 
-_346 summaries · 18 new this week_
+_346 summaries · 14 new this week_
 
 - [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
 - [#3592390: canvas_oauth should automatically create the CLI user, and consumer, upon...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592390.md)
