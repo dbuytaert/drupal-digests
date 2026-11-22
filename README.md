@@ -1,8 +1,16 @@
-**TL;DR:** [1718 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1720 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_570 summaries · 38 new this week_
+
+- [#3586742: A detached "Same as parent" subcontext stays published in its other translations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586742.md)
+- [#3586709: Automator context is added again for each field value, and is lost on AI 1.4.11...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586709.md)
+- [#3586711: Two CCC Scheduler permissions are never checked, and the item form saves...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586711.md)
 
 ### Drupal CMS
 
@@ -14,19 +22,11 @@ _141 summaries · 4 new this week_
 
 ### Drupal Core
 
-_663 summaries · 5 new this week_
+_663 summaries · 4 new this week_
 
 - [#3638970: Update JavaScript dependencies for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638970.md)
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
-
-### Drupal AI
-
-_568 summaries · 52 new this week_
-
-- [#3586711: Two CCC Scheduler permissions are never checked, and the item form saves...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586711.md)
-- [#3586721: Translators can change the shared scopes of a context item from the translation...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586721.md)
-- [#3586746: Site Section patterns do not match paths that have a language prefix](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586746.md)
 
 ### Drupal Canvas
 
