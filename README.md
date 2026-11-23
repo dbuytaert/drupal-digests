@@ -22,7 +22,7 @@ _141 summaries · 4 new this week_
 
 ### Drupal Core
 
-_663 summaries · 4 new this week_
+_663 summaries · 3 new this week_
 
 - [#3638970: Update JavaScript dependencies for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638970.md)
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
