@@ -5,6 +5,104 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3586760: Add a token name to a context item, so its text is available as a Drupal token</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586760.md</link>
+      <guid isPermaLink="false">project/ai_context#3586760</guid>
+      <category>Module maintainers</category>
+      <category>Site owners</category>
+      <pubDate>Mon, 23 Nov 2026 23:17:48 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 46 files, +6241/−27 · php +5826/−5 · md +383/−22 · yml +29 · json +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/commit/87c7158f7e2303889f0ec0051036dbd278221cf2"&gt;87c7158&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_context/-/work_items/3586760"&gt;#3586760&lt;/a&gt; · 1 contributor · 36 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Context items can now have an optional Token name, for example &lt;code&gt;brand_voice&lt;/code&gt;. The item text is then available as &lt;code&gt;[ai_context:item:brand_voice]&lt;/code&gt;, so a site builder can place one exact item in an AI agent system prompt instead of relying on selection. The token works anywhere Drupal tokens are replaced (AI Agents system prompts, Pathauto, Metatag, Webform mail, ECA), but AI core does not yet replace tokens in other prompts. The token gives the published translation the current user can view, plus required subcontext children. If nothing is viewable, it gives an empty string. Scope rules, including the Roles filter, do not apply. The item form warns when a change would make existing uses of the token empty.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_context_update_10033()&lt;/code&gt; installs the new &lt;code&gt;token_name&lt;/code&gt; field storage definition on &lt;code&gt;ai_context_item&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Only users with &lt;code&gt;administer ai context&lt;/code&gt; can edit the &lt;code&gt;token_name&lt;/code&gt; field; field access enforces this outside the form too.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New Drupal token &lt;code&gt;[ai_context:item:TOKEN_NAME]&lt;/code&gt; via &lt;code&gt;hook_token_info()&lt;/code&gt; and &lt;code&gt;hook_tokens()&lt;/code&gt;, and new &lt;code&gt;token_name&lt;/code&gt; base field on &lt;code&gt;ai_context_item&lt;/code&gt; with &lt;code&gt;AiContextItem::getTokenName()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;token_name&lt;/code&gt; is a &lt;code&gt;string&lt;/code&gt; base field on &lt;code&gt;AiContextItem&lt;/code&gt;: not revisionable, not translatable, max length &lt;code&gt;AiContextItemToken::TOKEN_NAME_MAX_LENGTH&lt;/code&gt;, with a &lt;code&gt;UniqueField&lt;/code&gt; constraint, a regex requiring a lowercase letter first then lowercase letters, numbers and underscores, and a new &lt;code&gt;AiContextItemTokenNameRevision&lt;/code&gt; constraint. That constraint blocks a token name change in a non-default-revision save, since only the default revision would store it. &lt;code&gt;AiContextItemAccessControlHandler::checkFieldAccess()&lt;/code&gt; limits editing to &lt;code&gt;administer ai context&lt;/code&gt;. The form shows the field in a &amp;quot;Token&amp;quot; sidebar section.&lt;/p&gt;
+&lt;p&gt;Token replacement lives in the new &lt;code&gt;ai_context.item_token_resolver&lt;/code&gt; service (&lt;code&gt;AiContextItemTokenResolver&lt;/code&gt;), called from &lt;code&gt;AiContextTokensHooks&lt;/code&gt; through &lt;code&gt;hook_token_info()&lt;/code&gt; and &lt;code&gt;hook_tokens()&lt;/code&gt;. Procedural &lt;code&gt;#[LegacyHook]&lt;/code&gt; bridges in &lt;code&gt;ai_context.module&lt;/code&gt; and an explicit service registration keep it working on D10. Output goes through the existing token neutralizer, which now also adds a space after an open bracket at the end of a value, so adjacent outputs cannot be joined into a live token. The docs describe cache tags for the item and &lt;code&gt;ai_context_item_list&lt;/code&gt;, plus &lt;code&gt;user.permissions&lt;/code&gt; and content language contexts. They also describe debug log messages for empty tokens.&lt;/p&gt;
+&lt;p&gt;There are also new warnings for the token name change, unpublish, scheduled unpublish, delete and revert. They list config that uses the token, found by &lt;code&gt;AiContextItemTokenUsageFinder&lt;/code&gt;. New &lt;code&gt;AiContextItemDeleteForm&lt;/code&gt; and &lt;code&gt;AiContextItemTranslationDeleteForm&lt;/code&gt; handlers carry the delete warnings. The docs note that the token is not limited to AI prompts, and that the same item can appear twice in an agent prompt if pushed context also selects it. The fix is &lt;strong&gt;Never include&lt;/strong&gt; for that agent.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Run database updates so &lt;code&gt;ai_context_update_10033()&lt;/code&gt; adds the field:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-bash"&gt;drush updatedb -y
+drush cr
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Existing items get no token name. To use it, set Token name on an item and add &lt;code&gt;[ai_context:item:brand_voice]&lt;/code&gt; (your own name) to the agent system prompt.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 19, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 23, 2026 (4 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kristen pol (Itty Bitty Byte)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;a.dmitriiev (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;robloach (Kalamuna)&lt;/li&gt;
+&lt;li&gt;joshua1234511 (Axelerant)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;breidert (1xINTERNET)&lt;/li&gt;
+&lt;li&gt;svendecabooter (Sven Decabooter)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3586881: Add Import and Export as .tar.gz to the AI API Explorers that use files</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586881.md</link>
+      <guid isPermaLink="false">project/ai#3586881</guid>
+      <category>Module maintainers</category>
+      <pubDate>Mon, 23 Nov 2026 13:29:32 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 27 files, +3762/−110 · php +3719/−108 · css +23 · js +18/−2 · txt +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/c7825a81615421970fecced95c9bbeef2acad976"&gt;c7825a8&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586881"&gt;#3586881&lt;/a&gt; · 1 contributor · 35 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The AI API Explorers that handle images, audio or video can now export a run as a &lt;code&gt;.tar.gz&lt;/code&gt; archive and import it again. Each run card gets an Export button, and the explorer's Import button opens an archive upload dialog instead of the JSON one. The archive holds the run's input, settings and its input and output files, so a run can be moved to another site with its files. Explorers that only handle text keep the JSON export.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; &lt;code&gt;AiApiExplorerPluginBase&lt;/code&gt; gains &lt;code&gt;supportsArchiveExport()&lt;/code&gt;, &lt;code&gt;archiveFileKeys()&lt;/code&gt; and &lt;code&gt;importArchiveInput()&lt;/code&gt; hooks, plus the new &lt;code&gt;ExplorerRunArchive&lt;/code&gt; class.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The base class &lt;code&gt;AiApiExplorerPluginBase&lt;/code&gt; gets an opt-in &lt;code&gt;supportsArchiveExport()&lt;/code&gt; (default &lt;code&gt;FALSE&lt;/code&gt;), and &lt;code&gt;supportsImportExport()&lt;/code&gt; now covers either JSON or archive support. An explorer that opts in lists where file IDs sit in its input via &lt;code&gt;archiveFileKeys()&lt;/code&gt; (dot-separated keys mapped to image, audio or video). On export, &lt;code&gt;buildArchive()&lt;/code&gt; replaces each file ID in the input with &lt;code&gt;path&lt;/code&gt;, &lt;code&gt;filename&lt;/code&gt; and &lt;code&gt;mime_type&lt;/code&gt;, puts input files under &lt;code&gt;files/input/&lt;/code&gt; and every other file of the run under &lt;code&gt;files/output/&lt;/code&gt;, and wraps the result in the same envelope as the JSON export (&lt;code&gt;exportEnvelope()&lt;/code&gt;). Export is a per-run submit button, because without run history the run only exists in form state. It answers with a &lt;code&gt;BinaryFileResponse&lt;/code&gt; that is deleted after sending. The form cache is disabled for that response so the page keeps working.&lt;/p&gt;
+&lt;p&gt;The new &lt;code&gt;ExplorerRunArchive&lt;/code&gt; class reads and writes archives with core's &lt;code&gt;ArchiveTar&lt;/code&gt;. It never extracts to disk: entries are listed, checked and read into strings. Limits in the code: 32 MiB archive (&lt;code&gt;MAX_BYTES&lt;/code&gt;), 128 MiB unpacked (&lt;code&gt;MAX_TOTAL_BYTES&lt;/code&gt;), 1 MiB &lt;code&gt;run.json&lt;/code&gt; (&lt;code&gt;MAX_RUN_BYTES&lt;/code&gt;), 64 entries (&lt;code&gt;MAX_ENTRIES&lt;/code&gt;). A response too large for &lt;code&gt;run.json&lt;/code&gt; is written to &lt;code&gt;files/output/response.json&lt;/code&gt;, which import ignores. On import, &lt;code&gt;importArchiveFile()&lt;/code&gt; checks each file's extension against the list the explorer's file picker offers (&lt;code&gt;archiveExtensions()&lt;/code&gt;), checks that images decode with &lt;code&gt;getimagesizefromstring()&lt;/code&gt;, rejects empty files, and saves it with &lt;code&gt;runManager()-&amp;gt;saveFile()&lt;/code&gt;. Import is all or nothing: if one file fails, the files already saved are deleted. Import also now clears every field of the form from user input so the imported run replaces what was shown. &lt;code&gt;importPlainValues()&lt;/code&gt; keeps only scalars and lists of scalars from the imported input.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 17, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 23, 2026 (6 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
+&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
+&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
+&lt;li&gt;ahmad-khalil-imagex (ImageX)&lt;/li&gt;
+&lt;li&gt;annmarysruthy (QED42)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3586742: A detached "Same as parent" subcontext stays published in its other translations</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586742.md</link>
       <guid isPermaLink="false">project/ai_context#3586742</guid>
@@ -664,102 +762,6 @@ view scheduled ai context item -&amp;gt; view scheduled ai_context_item
 &lt;ul&gt;
 &lt;li&gt;Opened: November 18, 2026&lt;/li&gt;
 &lt;li&gt;Committed: November 19, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586790: Adopt Symfony AI Platform 0.12-0.14.1 changes</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586790.md</link>
-      <guid isPermaLink="false">project/ai#3586790</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Wed, 18 Nov 2026 19:59:50 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal feature request&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 2.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 8 files, +516/−24 · php +508/−21 · yml +5 · json +3/−3&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/a3adad37707edf46152a7c029a4208e5e0dabe8e"&gt;a3adad3&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586790"&gt;#3586790&lt;/a&gt; · 1 contributor · 14 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;The AI module 2.x now works with Symfony AI Platform 0.14.1 instead of being pinned to 0.12. It also fixes streamed chat, which crashed with &amp;quot;Object of class ... could not be converted to string&amp;quot; whenever the model sent reasoning or tool call chunks. Models that reason before answering, such as NVIDIA ones, failed on every streamed chat. Streamed tool calls are now passed through to Drupal.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Requirements:&lt;/strong&gt; &lt;code&gt;symfony/ai-platform&lt;/code&gt; now requires &lt;code&gt;^0.14.1&lt;/code&gt;, &lt;code&gt;symfony/ai-generic-platform&lt;/code&gt; &lt;code&gt;^0.14&lt;/code&gt;, and dev &lt;code&gt;symfony/ai-gemini-platform&lt;/code&gt; &lt;code&gt;^0.14&lt;/code&gt; (previously &lt;code&gt;^0.12&lt;/code&gt;).&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New &lt;code&gt;Drupal\ai\Exception\AiStreamException&lt;/code&gt; (implements &lt;code&gt;AiExceptionInterface&lt;/code&gt;); &lt;code&gt;InputOutputConverter&lt;/code&gt; constructor takes an optional logger.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;InputOutputConverter::toStreamedChatOutput()&lt;/code&gt; used to cast every stream delta to string, which only works for &lt;code&gt;TextDelta&lt;/code&gt;. The anonymous &lt;code&gt;StreamedChatMessageIterator::doIterate()&lt;/code&gt; now maps deltas by type. &lt;code&gt;TextDelta&lt;/code&gt; becomes a text chunk. &lt;code&gt;ToolCallComplete&lt;/code&gt; becomes a chunk of OpenAI-shaped &lt;code&gt;CreateStreamedResponseToolCall&lt;/code&gt; objects, one whole call each, which is the format the Drupal iterator reassembles tool calls from. Calls with an empty id (Gemini before 3.0) get a &lt;code&gt;call_&amp;lt;index&amp;gt;&lt;/code&gt; id, and empty arguments are encoded as an empty JSON object. &lt;code&gt;ToolCallStart&lt;/code&gt;, &lt;code&gt;ToolInputDelta&lt;/code&gt;, the &lt;code&gt;Thinking*&lt;/code&gt; deltas and &lt;code&gt;MetadataDelta&lt;/code&gt; are skipped. Any other delta is skipped with a warning on the new &lt;code&gt;logger.channel.ai&lt;/code&gt; channel, which is injected into &lt;code&gt;ai.symfony.input_output_converter&lt;/code&gt;. A &lt;code&gt;ChoiceDelta&lt;/code&gt; (multi-candidate stream) throws the new &lt;code&gt;AiStreamException&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Tool schema building in the same class changed to match the 0.14 expectations. Each property now always carries a &lt;code&gt;description&lt;/code&gt; and has its &lt;code&gt;name&lt;/code&gt; key removed. The parameters array always includes &lt;code&gt;required&lt;/code&gt; (possibly empty) and &lt;code&gt;additionalProperties =&amp;gt; FALSE&lt;/code&gt;. The Generic bridge now completes tool calls on any finish reason, which is why the stream fix matters more on 0.14. The issue lists follow-ups not covered here: no finish reason or token usage in streamed output, empty non-streamed token usage, Gemini text plus tool call losing the tool call, and the platform route ignoring &lt;code&gt;ai.settings:request_timeout&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Update the Composer constraints. The requirements now resolve to:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-json"&gt;&amp;quot;symfony/ai-platform&amp;quot;: &amp;quot;^0.14.1&amp;quot;,
-&amp;quot;symfony/ai-generic-platform&amp;quot;: &amp;quot;^0.14&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Run &lt;code&gt;composer update drupal/ai --with-all-dependencies&lt;/code&gt;. Custom code that constructs &lt;code&gt;InputOutputConverter&lt;/code&gt; directly can still do so, since the logger argument is optional.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: October 5, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 18, 2026 (1 month later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;harivansh&lt;/li&gt;
-&lt;li&gt;mxr576 (Pronovix)&lt;/li&gt;
-&lt;li&gt;cobadger (Pare &amp;amp; Co)&lt;/li&gt;
-&lt;li&gt;fago (drunomics)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
-&lt;li&gt;pravesh_poonia (OpenSense Labs)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3586864: Translate the messages AI API Explorers write themselves for a failed run</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586864.md</link>
-      <guid isPermaLink="false">project/ai#3586864</guid>
-      <pubDate>Wed, 18 Nov 2026 14:31:15 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Minor bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 1.6.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 15 files, +176/−41 · php +176/−41&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/commit/3b7e6c96dab2daca6f37c47653086170c3ed915d"&gt;3b7e6c9&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai/-/work_items/3586864"&gt;#3586864&lt;/a&gt; · 1 contributor · 16 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;On a multilingual site, the AI API Explorers showed some failed-run messages in English even when the rest of the run card was translated, for example &amp;quot;The provider returned no audio.&amp;quot; These messages the explorers write themselves are now passed through the translation system before they are stored and shown, so they can be translated like other interface text. English wording is unchanged.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;Each explorer builds the message first, then throws it: &lt;code&gt;$message = (string) $this-&amp;gt;t('...'); throw new \RuntimeException($message);&lt;/code&gt;. The intermediate variable avoids the DrupalPractice &amp;quot;Exceptions should not be translated&amp;quot; phpcs warning. The run stores &lt;code&gt;$exception-&amp;gt;getMessage()&lt;/code&gt; as its error, so the stored error is in the language of the user who ran it. Covered: &lt;code&gt;AiApiExplorerPluginBase&lt;/code&gt; (&amp;quot;Choose a provider and model.&amp;quot;), Audio to Audio, Decision, Embeddings, Image Classification, Image to Image, Object Detection, Rerank, Text Classification, Text to Image, Text to Speech and &lt;code&gt;ToolsExplorer&lt;/code&gt; (the &amp;quot;Access denied.&amp;quot; fallback, the limits message, &amp;quot;You cannot run tools as this role.&amp;quot;). Static methods (&lt;code&gt;TextToSpeechGenerator::sample()&lt;/code&gt;, &lt;code&gt;DecisionGenerator::parseQuestions()&lt;/code&gt;) use &lt;code&gt;new TranslatableMarkup()&lt;/code&gt; instead of &lt;code&gt;$this-&amp;gt;t()&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;sprintf()&lt;/code&gt; messages became &lt;code&gt;@placeholder&lt;/code&gt; strings. Because the exception message is plain text and escaped later when displayed, messages with placeholders are wrapped in &lt;code&gt;Html::decodeEntities()&lt;/code&gt; so values such as &lt;code&gt;a&amp;amp;b&lt;/code&gt; are not double-escaped (a &lt;code&gt;DecisionGeneratorTest&lt;/code&gt; assertion covers this). Messages that were built from fragments became whole sentences: in &lt;code&gt;EmbeddingsGenerator::toVector()&lt;/code&gt; the &amp;quot; for text N&amp;quot; suffix is now two separate strings per message, and in Text to Speech &amp;quot;Every voice failed.&amp;quot; is translated and followed by the first error, which is already a translated sentence. The JSON parse error in &lt;code&gt;parseQuestions()&lt;/code&gt; still comes from &lt;code&gt;json_last_error_msg()&lt;/code&gt; and is not translated. The &lt;code&gt;LogicException&lt;/code&gt; for developers is untouched. Tests &lt;code&gt;testErrorIsTranslated&lt;/code&gt; were added for Audio to Audio and Tools, using &lt;code&gt;locale_custom_strings_en&lt;/code&gt; overrides.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Custom explorer plugins that throw their own run errors can follow the same pattern:&lt;/p&gt;
-&lt;pre&gt;&lt;code class="language-php"&gt;// The run card shows this message to the user, so it is translated.
-$message = (string) $this-&amp;gt;t('The provider returned no audio.');
-throw new \RuntimeException($message);
-&lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 13, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 18, 2026 (5 days later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;ajabhinavjha30 (OpenSense Labs)&lt;/li&gt;
-&lt;li&gt;annmarysruthy (QED42)&lt;/li&gt;
-&lt;li&gt;marcus_johansson (FreelyGive)&lt;/li&gt;
-&lt;li&gt;ahmad khader (Vardot)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
 &lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;

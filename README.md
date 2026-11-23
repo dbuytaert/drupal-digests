@@ -1,4 +1,4 @@
-**TL;DR:** [1720 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1725 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,11 +6,19 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_570 summaries · 38 new this week_
+_573 summaries · 32 new this week_
 
+- [#3586760: Add a token name to a context item, so its text is available as a Drupal token](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586760.md)
+- [#3586881: Add Import and Export as .tar.gz to the AI API Explorers that use files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586881.md)
 - [#3586742: A detached "Same as parent" subcontext stays published in its other translations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586742.md)
-- [#3586709: Automator context is added again for each field value, and is lost on AI 1.4.11...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586709.md)
-- [#3586711: Two CCC Scheduler permissions are never checked, and the item form saves...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586711.md)
+
+### Drupal Canvas
+
+_348 summaries · 14 new this week_
+
+- [#3592397: Limit the creation of exposed slots to only Node](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592397.md)
+- [#3592163: Canvas AI: Deprecate existing agents and switch to client-side orchestration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592163.md)
+- [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
 
 ### Drupal CMS
 
@@ -27,14 +35,6 @@ _663 summaries · 3 new this week_
 - [#3638970: Update JavaScript dependencies for 12.0.0](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638970.md)
 - [#3639248: Remove deprecated class properties](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3639248.md)
 - [#3638074: Update to Symfony 8.2.0-BETA2](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3638074.md)
-
-### Drupal Canvas
-
-_346 summaries · 12 new this week_
-
-- [#3592391: Workspaces PR 28: in a workspace the user can view, the Canvas API refuses...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592391.md)
-- [#3592390: canvas_oauth should automatically create the CLI user, and consumer, upon...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592390.md)
-- [#3592387: Workspaces PR 27: list, activate and delete only default-provider workspaces...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592387.md)
 
 
 ## Rector rules
