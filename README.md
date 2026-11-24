@@ -1,4 +1,4 @@
-**TL;DR:** [1725 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1746 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [211 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
@@ -6,15 +6,15 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal AI
 
-_573 summaries · 32 new this week_
+_594 summaries · 52 new this week_
 
-- [#3586760: Add a token name to a context item, so its text is available as a Drupal token](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586760.md)
-- [#3586881: Add Import and Export as .tar.gz to the AI API Explorers that use files](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586881.md)
-- [#3586742: A detached "Same as parent" subcontext stays published in its other translations](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586742.md)
+- [#3594926: Admin text and display fixes: run pass rate label, "binary" scales, Markdown...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594926.md)
+- [#3594925: An AI answer or imported trace can make the admin's browser load an external...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594925.md)
+- [#3594924: A decision calibration fit with very few held-out rows becomes active](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594924.md)
 
 ### Drupal Canvas
 
-_348 summaries · 14 new this week_
+_348 summaries · 13 new this week_
 
 - [#3592397: Limit the creation of exposed slots to only Node](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592397.md)
 - [#3592163: Canvas AI: Deprecate existing agents and switch to client-side orchestration](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592163.md)
