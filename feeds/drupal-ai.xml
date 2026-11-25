@@ -5,6 +5,219 @@
     <description>Stay informed about developments in Drupal AI.</description>
     <link>https://www.drupal.org/artificial-intelligence</link>
     <item>
+      <title>#3594928: The run box: Cancel does nothing while a progress request is open, and a run where every question errored says "Run complete · 100%"</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594928.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594928</guid>
+      <pubDate>Wed, 25 Nov 2026 07:31:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 35 files, +1418/−189 · php +1325/−185 · js +53/−4 · css +37 · md +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/86a8117c7a5726f650e3a777521a8529e9ba1ae8"&gt;86a8117&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594928"&gt;#3594928&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Cancel on the run box, the question generation box and the judge validation box now takes effect while a step is in progress. Before, a click during an open progress request was silently dropped and the run continued to the end. A finished run now reports its counts, for example &amp;quot;Run complete. 28 questions, 28 errors&amp;quot;, instead of a fixed &amp;quot;Run complete · 100%&amp;quot;. If every question failed it says &amp;quot;All 28 questions failed&amp;quot; and shows the most common error. The same commit also makes imported results use their own maximum score as the scale on the results list and trend bars, shows the imported model and a read-only table of result items, and collapses saved guided test examples into short summaries (&lt;a href="https://www.drupal.org/node/3594927"&gt;#3594927&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594863"&gt;#3594863&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The progress box polls with &lt;code&gt;hx-sync=&amp;quot;this:drop&amp;quot;&lt;/code&gt;, and the Cancel button inherited it, so htmx dropped the click while a progress request was open. The Cancel button in &lt;code&gt;RunFragment::active()&lt;/code&gt;, &lt;code&gt;GenerationFragment&lt;/code&gt; and the &lt;code&gt;ValidationFragment&lt;/code&gt; form now has its own &lt;code&gt;hx-sync=&amp;quot;closest .ai-eval-run:replace&amp;quot;&lt;/code&gt; (or &lt;code&gt;.ai-eval-gen&lt;/code&gt;, &lt;code&gt;.ai-eval-validate&lt;/code&gt;), which aborts the open progress request. The issue proposed &lt;code&gt;queue all&lt;/code&gt;, but the shipped markup uses &lt;code&gt;:replace&lt;/code&gt;. To make aborting safe, &lt;code&gt;GenerationRunner::cancelGeneration()&lt;/code&gt; and &lt;code&gt;JudgeValidationRunner::cancelValidation()&lt;/code&gt; no longer take the step lock. They rely on step writes requiring an active status, so a late reply cannot advance a cancelled job. The &amp;quot;step is still finishing, try Cancel again&amp;quot; notices are removed. &lt;code&gt;GenerationController&lt;/code&gt; now returns &lt;code&gt;GenerationFragment::cancelled()&lt;/code&gt; if a cancel landed during its step. Validation still refuses to cancel once &lt;code&gt;completed &amp;gt;= total&lt;/code&gt; and lets the next poll finalize the report.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;RunFragment::complete()&lt;/code&gt; builds its label from &lt;code&gt;total&lt;/code&gt; and &lt;code&gt;error_count&lt;/code&gt;. &lt;code&gt;EvalRunner::runState()&lt;/code&gt; adds a &lt;code&gt;common_error&lt;/code&gt; key for complete runs where &lt;code&gt;error_count === total&lt;/code&gt;. It takes the most frequent &lt;code&gt;error_detail&lt;/code&gt; (falling back to &lt;code&gt;error&lt;/code&gt;) from the run's &lt;code&gt;scores_json&lt;/code&gt;. On the target workflow hub, &lt;code&gt;RunController::completeResponse()&lt;/code&gt; puts the same summary in the status message shown after the redirect.&lt;/p&gt;
+&lt;p&gt;For imports, &lt;code&gt;EvalResultsController::ceilingForRow()&lt;/code&gt; reads &lt;code&gt;config_json['import']['score_max']&lt;/code&gt; and falls back to the recorded native ceiling. It replaces the hardcoded &lt;code&gt;/ 5&lt;/code&gt; in the trend bars, and &lt;code&gt;noLlmJudgeScored()&lt;/code&gt; now treats imports as having no native judge. Imported detail pages render &lt;code&gt;importedResultsTable()&lt;/code&gt; from &lt;code&gt;envelope['evaluation_results']&lt;/code&gt; instead of the annotation questions table. Guided examples render as &lt;code&gt;&amp;lt;details class=&amp;quot;ai-eval-guided-example&amp;quot;&amp;gt;&lt;/code&gt; rows, with scoped &lt;code&gt;examples[N][...]&lt;/code&gt; field names normalized back in the JS &lt;code&gt;htmx:configRequest&lt;/code&gt; handler.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594927: Imported results: the results list draws the score on the wrong scale, and the detail page hides the model and result items and warns about a judge that did not run</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594927.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594927</guid>
+      <pubDate>Wed, 25 Nov 2026 07:31:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 35 files, +1418/−189 · php +1325/−185 · js +53/−4 · css +37 · md +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/86a8117c7a5726f650e3a777521a8529e9ba1ae8"&gt;86a8117&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594927"&gt;#3594927&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Imported evaluation results now display correctly on the results pages. The results list and the trend bars use the imported file's own maximum score, so a 1.0 out of 1.0 import shows a full bar instead of a short red one. The detail page shows the model named in the imported file, lists the file's result items in a read-only table, and no longer warns about a judge that did not take part in the run.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;A new private helper &lt;code&gt;EvalResultsController::ceilingForRow()&lt;/code&gt; returns &lt;code&gt;config_json.import.score_max&lt;/code&gt; when it is numeric and above 0, otherwise falls back to &lt;code&gt;ceilingForScoresJson()&lt;/code&gt;. &lt;code&gt;list()&lt;/code&gt; and &lt;code&gt;detail()&lt;/code&gt; both use it, replacing the inline &lt;code&gt;$importCeiling&lt;/code&gt; logic in &lt;code&gt;detail()&lt;/code&gt;. Trend bars previously used a hard-coded &lt;code&gt;/ 5&lt;/code&gt;; they now load &lt;code&gt;config_json&lt;/code&gt; and &lt;code&gt;scores_json&lt;/code&gt; for only the five visible history rows per test, in one query keyed by &lt;code&gt;id&lt;/code&gt;, and scale by the row's ceiling.&lt;/p&gt;
+&lt;p&gt;On &lt;code&gt;detail()&lt;/code&gt;, the &amp;quot;Model under test&amp;quot; cell shows &lt;code&gt;model_info.id&lt;/code&gt; or else &lt;code&gt;model_info.name&lt;/code&gt; from &lt;code&gt;config_json.envelope&lt;/code&gt;, with &amp;quot;(from the imported file)&amp;quot;. It keeps &amp;quot;Not reported (imported)&amp;quot; when neither is present. For imports, the questions table is replaced by &lt;code&gt;importedResultsTable()&lt;/code&gt;, which lists each &lt;code&gt;evaluation_results&lt;/code&gt; item: &lt;code&gt;evaluation_name&lt;/code&gt;, a metric name (from &lt;code&gt;metric_name&lt;/code&gt;, &lt;code&gt;metric_id&lt;/code&gt; or &lt;code&gt;evaluation_description&lt;/code&gt;), the score with its &lt;code&gt;min_score&lt;/code&gt; to &lt;code&gt;max_score&lt;/code&gt; scale, and &lt;code&gt;score_details.details&lt;/code&gt; as pretty-printed JSON. File content is output through &lt;code&gt;#plain_text&lt;/code&gt; or an &lt;code&gt;inline_template&lt;/code&gt; context, so it is escaped. An empty envelope shows &amp;quot;The imported file has no result items.&amp;quot;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;noLlmJudgeScored()&lt;/code&gt; now returns TRUE for a row with no snapshot when &lt;code&gt;config_json.import&lt;/code&gt; is present, so &lt;code&gt;judgeTargetFamilyAdvisoryForRow()&lt;/code&gt; returns early and the site judge is never used as a stand-in for an imported run.&lt;/p&gt;
+&lt;p&gt;The same commit also bundles &lt;a href="https://www.drupal.org/node/3594928"&gt;#3594928&lt;/a&gt; (Cancel during a running step for runs, generations and judge validations, plus question and error counts on finished runs) and &lt;a href="https://www.drupal.org/node/3594863"&gt;#3594863&lt;/a&gt; (collapsed guided test examples). These are separate from this issue.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026 (1 day later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594863: Guided test shows every example as a full editor, so the Examples step is very long</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594863.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594863</guid>
+      <category>Module maintainers</category>
+      <category>Front-end developers</category>
+      <pubDate>Wed, 25 Nov 2026 07:31:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 35 files, +1418/−189 · php +1325/−185 · js +53/−4 · css +37 · md +3&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/86a8117c7a5726f650e3a777521a8529e9ba1ae8"&gt;86a8117&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594863"&gt;#3594863&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;On the guided test form, the Examples step used to turn into a long stack of full editors as soon as someone added, updated or removed one example. Saved examples now show as one-line collapsed rows (id, the start of the input, and the expectation count) that open on click. A reload and an htmx update look the same, and an example with a validation error opens by itself. When editing an existing test with an entity dataset, its questions appear as compact read-only rows rather than disabled copies of the editor. Counts now read &amp;quot;1 expectation&amp;quot; or &amp;quot;N expectations&amp;quot;.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers and front-end developers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Theme change:&lt;/strong&gt; Existing guided examples render as &lt;code&gt;details.ai-eval-guided-example&lt;/code&gt; with a &lt;code&gt;summary&lt;/code&gt; line, and edit-flow questions render as &lt;code&gt;#ai-eval-guided-existing-questions&lt;/code&gt; rows instead of disabled fieldsets.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;GuidedExampleList::build()&lt;/code&gt; loses its &lt;code&gt;$editExisting&lt;/code&gt; parameter, and &lt;code&gt;GuidedExampleList::summary()&lt;/code&gt; is now public static with the signature &lt;code&gt;summary(array $question)&lt;/code&gt;, returning the compact text only.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;GuidedExampleList::build()&lt;/code&gt; had two code paths. The page load rendered summaries and the htmx fragment rendered full editors. The &lt;code&gt;$editExisting&lt;/code&gt; flag is removed, so both callers use one path. Each existing example is a &lt;code&gt;&amp;lt;details class=&amp;quot;ai-eval-guided-example&amp;quot; data-guided-index=&amp;quot;N&amp;quot;&amp;gt;&lt;/code&gt; holding the old editor, so &lt;code&gt;hx-include=&amp;quot;closest .ai-eval-guided-example&amp;quot;&lt;/code&gt; on the update and remove buttons still works. &lt;code&gt;open&lt;/code&gt; is set when &lt;code&gt;$errors[$index]&lt;/code&gt; is non-empty.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;summary()&lt;/code&gt; is now a public static helper that returns the shared compact text. It uses &lt;code&gt;mb_strlen&lt;/code&gt;/&lt;code&gt;mb_substr&lt;/code&gt; for the 80 character cut and &lt;code&gt;PluralTranslatableMarkup&lt;/code&gt; for the count. &lt;code&gt;GuidedTestForm&lt;/code&gt; reuses it for the read-only existing-question rows inside a new &lt;code&gt;#ai-eval-guided-existing-questions&lt;/code&gt; container. The disabled fieldset copies of the editor are gone.&lt;/p&gt;
+&lt;p&gt;A closed &lt;code&gt;details&lt;/code&gt; still posts its inputs, so existing editors could leak their expectations into the no-JavaScript &amp;quot;Add example&amp;quot; submit. To prevent that, the editor sits in a &lt;code&gt;fieldset&lt;/code&gt; that is rendered &lt;code&gt;disabled&lt;/code&gt; and &lt;code&gt;hidden&lt;/code&gt;. &lt;code&gt;scopeFields()&lt;/code&gt; rewrites &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;hx-params&lt;/code&gt; attributes to &lt;code&gt;examples[INDEX][field]&lt;/code&gt;. The guided-test behavior in the JS file enables the fieldset only when &lt;code&gt;window.htmx&lt;/code&gt; exists and the row is open. On &lt;code&gt;htmx:configRequest&lt;/code&gt; and when building the request from the block, it strips the &lt;code&gt;examples[N]&lt;/code&gt; prefix again via &lt;code&gt;canonicalName()&lt;/code&gt;, so the shared endpoint receives the original field names. Fields in rows added by htmx are re-scoped on &lt;code&gt;htmx:afterSwap&lt;/code&gt;. CSS for the rows is added to &lt;code&gt;css/admin.css&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The same commit also ships &lt;a href="https://www.drupal.org/node/3594928"&gt;#3594928&lt;/a&gt; (Cancel during a running step) and &lt;a href="https://www.drupal.org/node/3594927"&gt;#3594927&lt;/a&gt; (imported results scaled to their maximum score), which are separate from this issue.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you call the list builder yourself, remove the fifth argument. The compact page-load rendering is now the default:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;// Before
+GuidedExampleList::build($draftKey, $draft['examples'] ?? [], [], NULL, FALSE);
+// After
+GuidedExampleList::build($draftKey, $draft['examples'] ?? []);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Code that used the old private &lt;code&gt;summary($question, $draftKey, $index)&lt;/code&gt; must use the new public &lt;code&gt;GuidedExampleList::summary($question)&lt;/code&gt;, which returns only the compact text and no remove button.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 2, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026 (22 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594931: The fact match judge cannot be validated from the admin UI: it gets no expected facts</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594931.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594931</guid>
+      <pubDate>Wed, 25 Nov 2026 07:15:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +1333/−140 · php +1283/−130 · yml +30 · md +20/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/b7c930dbda144da3443a1cd642bc17d921ec6d09"&gt;b7c930d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594931"&gt;#3594931&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Validating a judge that has a dimension, such as &lt;code&gt;fact_match_grader&lt;/code&gt;, from the admin UI previously found no usable examples, so the judge skipped every item and could never become trusted. Whole-answer annotations now count for such a judge when it was the only judge that attempted the annotated answer. Matching trace review labels still take precedence over annotations.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;HumanLabelSource::forGrader()&lt;/code&gt; previously merged annotation examples only when both &lt;code&gt;$domainTags&lt;/code&gt; and &lt;code&gt;$dimension&lt;/code&gt; were NULL. It now merges them whenever &lt;code&gt;$domainTags&lt;/code&gt; is NULL. When a dimension is set, &lt;code&gt;fromAnnotations()&lt;/code&gt; is called in sole-judge mode and keeps an annotated answer only if &lt;code&gt;attempted_graders&lt;/code&gt; (graders that scored or errored) has exactly one entry. Results stored without &lt;code&gt;grader_scores&lt;/code&gt; stay excluded as before. Domain-tagged validations still get no annotations, since annotations carry no trace tags.&lt;/p&gt;
+&lt;p&gt;The two sources are de-duplicated by a new private &lt;code&gt;answerKey()&lt;/code&gt;, a &lt;code&gt;CanonicalHasher&lt;/code&gt; hash of input and response. A bare single user message and its &lt;code&gt;user: &lt;/code&gt;-prefixed trace form hash the same, while multi-turn transcripts keep their roles. Trace review examples are collected first, and an annotation on the same answer is skipped, so validation counts the answer once. Annotation examples fill only the remaining &lt;code&gt;$limit&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;JudgeValidateController&lt;/code&gt; no longer hides the unattributed annotation hint for dimension judges, and shows the whole-answer notice when the run's recorded examples (&lt;code&gt;runner-&amp;gt;scoredExamples($run)&lt;/code&gt;) include result-based ones.&lt;/p&gt;
+&lt;p&gt;The same commit also ships &lt;a href="https://www.drupal.org/node/3594929"&gt;#3594929&lt;/a&gt; (file or config datasets with &lt;code&gt;caller_uid&lt;/code&gt; now error in &lt;code&gt;EvalRunner::runQuestionBody()&lt;/code&gt; unless the run starter has &lt;code&gt;run ai eval as another user&lt;/code&gt;) and &lt;a href="https://www.drupal.org/node/3594886"&gt;#3594886&lt;/a&gt; (with &lt;code&gt;refuse_unvalidated_judges&lt;/code&gt; on, &lt;code&gt;applyJudgeTrustPolicy()&lt;/code&gt; rescoring without untrusted judges; the pass stands only if the recalculated gate passes and at least half of the original questions remain measured, otherwise &lt;code&gt;trust_refused&lt;/code&gt; is set, and a standing pass records &lt;code&gt;trust_note&lt;/code&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594929: Test datasets from files can still set a caller account without the new permission</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594929.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594929</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 25 Nov 2026 07:15:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +1333/−140 · php +1283/−130 · yml +30 · md +20/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/b7c930dbda144da3443a1cd642bc17d921ec6d09"&gt;b7c930d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594929"&gt;#3594929&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The restricted permission &lt;code&gt;run ai eval as another user&lt;/code&gt; is now also enforced for questions that come from YAML file datasets, not just stored question entities. If the account that started a run lacks the permission, a file-dataset question that sets &lt;code&gt;caller_uid&lt;/code&gt; records an error instead of switching accounts. Drush runs and older runs with no recorded starter keep working as before. The same commit also changes how &lt;code&gt;refuse_unvalidated_judges&lt;/code&gt; works: a passing gate is now recalculated without the untrusted judges' scores, and judge validation for dimension judges uses whole-answer annotations only when that judge alone graded the answer (&lt;a href="https://www.drupal.org/node/3594886"&gt;#3594886&lt;/a&gt;, &lt;a href="https://www.drupal.org/node/3594931"&gt;#3594931&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Closes a gap where a YAML dataset could run a question as another account, such as user 1, without the new permission. Needs server file write access, so low severity.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Runs from non-entity (file or config) datasets that set &lt;code&gt;caller_uid&lt;/code&gt; now require the run starter to have &lt;code&gt;run ai eval as another user&lt;/code&gt;; otherwise that question records an error.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;The check lives in &lt;code&gt;EvalRunner::runQuestionBody()&lt;/code&gt;, just before the switch to the caller account, because &lt;code&gt;EvalQuestion::preSave()&lt;/code&gt; only covers entity questions and the runner reloads the dataset at every step, so a file can change mid-run. &lt;code&gt;runQuestion()&lt;/code&gt; and &lt;code&gt;runQuestionBody()&lt;/code&gt; take a new &lt;code&gt;?int $startedBy&lt;/code&gt;, passed from &lt;code&gt;ai_eval_run.started_by&lt;/code&gt;. When it is non-NULL, the question's &lt;code&gt;dataset_source&lt;/code&gt; is not &lt;code&gt;entity&lt;/code&gt;, and the starter lacks &lt;code&gt;run ai eval as another user&lt;/code&gt;, the runner returns &lt;code&gt;questionError()&lt;/code&gt; with an explanatory message. A NULL starter (Drush, legacy rows) skips the check, matching the &lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; policy. A missing dataset source defaults to &lt;code&gt;file&lt;/code&gt;, so it is checked.&lt;/p&gt;
+&lt;p&gt;The same commit bundles two other fixes. For &lt;a href="https://www.drupal.org/node/3594886"&gt;#3594886&lt;/a&gt;, &lt;code&gt;applyJudgeTrustPolicy()&lt;/code&gt; now rescored the target without untrusted judges' scores using &lt;code&gt;Scorer::scoreQuestion()&lt;/code&gt; and &lt;code&gt;scoreTarget()&lt;/code&gt;. Skipped and errored questions stay in the coverage denominator. The pass stands only if the recalculated gate passes and at least half of the original questions remain measured. A dependent pass is recorded as &lt;code&gt;trust_refused&lt;/code&gt;. An independent pass keeps the judges in a new &lt;code&gt;trust_note&lt;/code&gt; in the config snapshot. For &lt;a href="https://www.drupal.org/node/3594931"&gt;#3594931&lt;/a&gt;, &lt;code&gt;HumanLabelSource&lt;/code&gt; uses whole-answer annotations for a dimension judge only when it was the sole attempted grader (&lt;code&gt;attempted_graders&lt;/code&gt;), and matching trace reviews take precedence. &lt;code&gt;JudgeValidateController&lt;/code&gt; follows suit. Docs and the settings form description were updated.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;If you rely on YAML datasets (from &lt;code&gt;dataset_path&lt;/code&gt; or module &lt;code&gt;datasets/&lt;/code&gt; folders) that set &lt;code&gt;caller_uid&lt;/code&gt;, grant &lt;code&gt;run ai eval as another user&lt;/code&gt; to the roles that start those runs, or remove &lt;code&gt;caller_uid&lt;/code&gt; from the dataset.&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 24, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
+      <title>#3594886: Untrusted-judge gate refuses passes that do not depend on the judge</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594886.md</link>
+      <guid isPermaLink="false">project/ai_eval#3594886</guid>
+      <category>Site owners</category>
+      <pubDate>Wed, 25 Nov 2026 07:15:08 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 21 files, +1333/−140 · php +1283/−130 · yml +30 · md +20/−10&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/b7c930dbda144da3443a1cd642bc17d921ec6d09"&gt;b7c930d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594886"&gt;#3594886&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;With &amp;quot;Do not count a pass that rests on a judge that is not trusted&amp;quot; turned on, a passing run used to be recorded as failed whenever any grader was an untrusted LLM judge, even if the other graders (for example rubric checks) passed the gate on their own. Now the gate is recalculated without the untrusted judges' scores. The pass stands if the recalculated gate still passes and at least half of the original questions remain measured. Otherwise it is refused as before. The result names the untrusted judges either way.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects site owners.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; Behavior of the &lt;code&gt;refuse_unvalidated_judges&lt;/code&gt; setting changed: a passing gate is recalculated without untrusted judges' scores instead of being refused outright. Setting label and key are unchanged.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;EvalRunner::applyJudgeTrustPolicy()&lt;/code&gt; now takes the per-question scores, the question pass threshold, the gate metric and the must-pass grader IDs. For each question it rebuilds &lt;code&gt;GradeResult&lt;/code&gt; objects, drops the scores of untrusted judges, and calls &lt;code&gt;Scorer::scoreQuestion()&lt;/code&gt; again, then &lt;code&gt;Scorer::scoreTarget()&lt;/code&gt; for the target. Original skipped questions and invocation errors are carried over unchanged. Grader errors from untrusted judges are kept, because the scorer treats any grader error as an unmeasured question. A question left with no remaining score stays in the coverage denominator, so skipped, errored and now-unscored questions all count against the half-measured requirement.&lt;/p&gt;
+&lt;p&gt;If the recalculated gate fails, behavior is as before: &lt;code&gt;passed_gate&lt;/code&gt; is set to FALSE and &lt;code&gt;trust_refused&lt;/code&gt; records the judges. If it passes, the original score is kept and the judges are recorded under a new &lt;code&gt;trust_note&lt;/code&gt; key. Both keys are copied into &lt;code&gt;config_snapshot&lt;/code&gt; through &lt;code&gt;array_intersect_key()&lt;/code&gt; in the run, regrade and finalize paths, and the &lt;code&gt;EvalRunnerInterface&lt;/code&gt; return shape documents &lt;code&gt;trust_note&lt;/code&gt;. Stored scores are not altered; the recalculation only decides the verdict. The settings form description and docs (settings, running, judges pages) were updated to describe this.&lt;/p&gt;
+&lt;p&gt;The same commit also ships two unrelated fixes: file and config dataset questions with a &lt;code&gt;caller_uid&lt;/code&gt; now error unless the run starter has &lt;code&gt;run ai eval as another user&lt;/code&gt; (&lt;a href="https://www.drupal.org/node/3594929"&gt;#3594929&lt;/a&gt;), and dimension judge validation in &lt;code&gt;HumanLabelSource&lt;/code&gt; uses whole-answer annotations only when that judge alone attempted the answer, with matching trace reviews taking precedence (&lt;a href="https://www.drupal.org/node/3594931"&gt;#3594931&lt;/a&gt;).&lt;/p&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: November 11, 2026&lt;/li&gt;
+&lt;li&gt;Committed: November 25, 2026 (13 days later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3594930: Decision recording skips mixed-language questions when a short state value appears inside a word</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594930.md</link>
       <guid isPermaLink="false">project/ai_eval#3594930</guid>
@@ -497,214 +710,6 @@ catch (\RuntimeException) {
 &lt;pre&gt;&lt;code&gt;drush ai-eval:optimize --target=my_agent || echo &amp;quot;optimize reported errors&amp;quot;
 drush ai-eval:distill --output-dir=/path/to/intel
 &lt;/code&gt;&lt;/pre&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594914: Edit links open a bare form that loses changes, and Ctrl+Enter saves Pass with no verdict chosen</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594914.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594914</guid>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594914"&gt;#3594914&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Edit links for rubrics and dataset questions used to open a bare fragment with no page, CSS or htmx, where Save sent a GET and silently lost the changes. They now open the full rubrics page or dataset page with the editor open, and a direct non-htmx visit to the old fragment URLs redirects there. In trace review, Ctrl+Enter (Cmd+Enter on macOS) no longer saves Pass when no verdict is active. It shows &amp;quot;Choose a verdict first&amp;quot; instead, and it moves to the next item only after the save response arrives.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;RubricController::edit()&lt;/code&gt; and &lt;code&gt;DatasetQuestionController::edit()&lt;/code&gt; now redirect a GET without &lt;code&gt;HX-Request: true&lt;/code&gt; to a full page. Rubrics go to &lt;code&gt;ai_eval.rubric.collection&lt;/code&gt; with &lt;code&gt;?edit=ID&lt;/code&gt;. Questions go to &lt;code&gt;EvalQuestion::datasetEditUrl()&lt;/code&gt;, which is &lt;code&gt;entity.ai_eval_dataset.edit_form&lt;/code&gt; with &lt;code&gt;?edit=ID&lt;/code&gt;. &lt;code&gt;WorkflowStateService::rubricLinks()&lt;/code&gt; now emits that rubric URL, passed through a new &lt;code&gt;action_options&lt;/code&gt; key next to &lt;code&gt;action_route&lt;/code&gt; and &lt;code&gt;action_params&lt;/code&gt;. &lt;code&gt;PromoteController&lt;/code&gt; uses &lt;code&gt;datasetEditUrl()&lt;/code&gt; for the &amp;quot;Edit this question&amp;quot; link.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;EvalDatasetForm&lt;/code&gt; reads the &lt;code&gt;edit&lt;/code&gt; query argument. It renders the question editor only if the question belongs to that dataset and &lt;code&gt;DatasetQuestionEditor::isEditable()&lt;/code&gt; accepts it, so types the editor cannot round-trip are still refused. The editor render array comes from the new public &lt;code&gt;DatasetQuestionController::buildInlineQuestion()&lt;/code&gt;. &lt;code&gt;DatasetQuestionList::renderOutsideForm()&lt;/code&gt; is a &lt;code&gt;#pre_render&lt;/code&gt; callback that moves the question region after the dataset form's wrapper, so the question forms are not nested inside the dataset &lt;code&gt;&amp;lt;form&amp;gt;&lt;/code&gt;. The dataset form now varies its cache on &lt;code&gt;url.query_args:edit&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;js/review-keys.js&lt;/code&gt;, Ctrl+Enter without an &lt;code&gt;.ai-eval-verdict-btn--active&lt;/code&gt; button writes a &lt;code&gt;.ai-eval-review-verdict-required&lt;/code&gt; alert and returns. With an active verdict it clicks that button and advances via the &lt;code&gt;[data-review-nav=&amp;quot;next&amp;quot;]&lt;/code&gt; link from an &lt;code&gt;htmx:afterRequest&lt;/code&gt; listener, replacing the fixed 150 ms &lt;code&gt;setTimeout&lt;/code&gt;. It does not advance if the response contains error markup. It also guards against double submits with a per-form &lt;code&gt;WeakSet&lt;/code&gt; and releases on htmx cancel events or a two minute fallback timer. Gold forms with &lt;code&gt;input[name=&amp;quot;next&amp;quot;]&lt;/code&gt; still advance through the server response.&lt;/p&gt;
-&lt;p&gt;The commit is a combined fix for &lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt;. These changes are only the &lt;a href="https://www.drupal.org/node/3594914"&gt;#3594914&lt;/a&gt; part.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594913: A grader that throws stops the whole run and leaves a workflow conversation open</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594913.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594913</guid>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594913"&gt;#3594913&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;A grader that throws an exception while grading no longer stops the whole evaluation run. The failure is recorded as a grader error for that question, logged, and counted like other grader errors in scoring, so coverage and the gate stay correct. The other graders and questions keep going, and results from earlier questions are saved. When a question aborts with an exception before its last follow-up, the open workflow conversation is now released instead of staying open.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;EvalRunner::gradeResponse()&lt;/code&gt; now loops over the graders and wraps each &lt;code&gt;grade()&lt;/code&gt; call in &lt;code&gt;try&lt;/code&gt;/&lt;code&gt;catch (\Throwable)&lt;/code&gt;. On failure it logs the exception through the module logger and substitutes a &lt;code&gt;GradeResult&lt;/code&gt; with a NULL score, the exception message shortened by &lt;code&gt;capErrorDetail()&lt;/code&gt;, the grader plugin id, and the grader's &lt;code&gt;min_score&lt;/code&gt;/&lt;code&gt;max_score&lt;/code&gt; from its plugin definition. The scorer then treats it as any other grader error. Re-grade goes through the same method.&lt;/p&gt;
-&lt;p&gt;For chains, &lt;code&gt;runQuestion()&lt;/code&gt; now passes a &lt;code&gt;WorkflowExecution&lt;/code&gt; by reference into &lt;code&gt;runQuestionBody()&lt;/code&gt; and catches &lt;code&gt;\Throwable&lt;/code&gt; around it. It resolves the run id from that invocation's record, or from &lt;code&gt;chainRunId()&lt;/code&gt; for earlier rows in the chain, calls &lt;code&gt;releaseChain()&lt;/code&gt;, and rethrows. Coverage is in the new &lt;code&gt;EvalRunnerGraderFailureTest&lt;/code&gt; Kernel test, with a &lt;code&gt;ThrowingGrader&lt;/code&gt; test plugin, for a run, a stepped run, a re-grade and chain release.&lt;/p&gt;
-&lt;p&gt;The commit also bundles many unrelated fixes (&lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt;); they are not covered here. The change touches &lt;code&gt;gradeResponse()&lt;/code&gt;, which also now stores &lt;code&gt;criteria&lt;/code&gt; and &lt;code&gt;expected_facts&lt;/code&gt; on each question row (part of &lt;a href="https://www.drupal.org/node/3594919"&gt;#3594919&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594912: Some sample-size settings break admin pages, and the settings form needs a site judge that many sites do not use</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594912.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594912</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594912"&gt;#3594912&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Saving some sample-size settings (confidence of 0 or 1, margin of error of 0) could cause 500 errors on the result detail page, the test dashboard and &lt;code&gt;drush ai-eval:run&lt;/code&gt;. The settings form now offers only 90%, 95% and 99% confidence, and requires a margin of error above 0 and at most 0.5. A database update repairs bad saved values. The site judge model is no longer required, so sites that use only deterministic checks, or a model on each judge, can save settings without choosing one. The status report now warns, rather than errors, and only when a test uses an LLM judge that has no model of its own and no site judge to fall back to.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10057()&lt;/code&gt; repairs invalid &lt;code&gt;cochran_confidence&lt;/code&gt; and &lt;code&gt;cochran_margin_of_error&lt;/code&gt; values in &lt;code&gt;ai_eval.settings&lt;/code&gt; and reports what it changed.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Config change:&lt;/strong&gt; &lt;code&gt;cochran_confidence&lt;/code&gt; is now limited to 0.90, 0.95 or 0.99 and &lt;code&gt;cochran_margin_of_error&lt;/code&gt; to above 0 and at most 0.5; update 10057 rewrites invalid saved values to 0.95 and 0.05.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;SampleSize::normalizeTarget()&lt;/code&gt; is a new static method that maps an unsupported confidence to 0.95 and a margin outside (0, 0.5] (or non-finite) to 0.05. It is used by &lt;code&gt;EvalSettingsForm&lt;/code&gt;, &lt;code&gt;PowerAdvisory&lt;/code&gt; and &lt;code&gt;EvalRunCommand&lt;/code&gt;, so values that bypass the form (&lt;code&gt;drush cset&lt;/code&gt;, config import) no longer reach &lt;code&gt;assertValidTarget()&lt;/code&gt; and throw. Previously &lt;code&gt;zScoreFor()&lt;/code&gt; silently used 0.95 for unknown confidence while drush printed the saved value; normalizing up front removes that mismatch.&lt;/p&gt;
-&lt;p&gt;In &lt;code&gt;EvalSettingsForm&lt;/code&gt;, &lt;code&gt;cochran_confidence&lt;/code&gt; is a select with options &lt;code&gt;0.9&lt;/code&gt;, &lt;code&gt;0.95&lt;/code&gt;, &lt;code&gt;0.99&lt;/code&gt;; &lt;code&gt;cochran_margin_of_error&lt;/code&gt; has &lt;code&gt;#min&lt;/code&gt; 0.01 plus a &lt;code&gt;validateForm()&lt;/code&gt; check. &lt;code&gt;judge_provider_model&lt;/code&gt; is no longer &lt;code&gt;#required&lt;/code&gt;. The textfield validation now splits on &lt;code&gt;__&lt;/code&gt; and rejects an empty provider or model part, like the proposer field. Saved models that the provider no longer lists are kept selectable in the select.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;AiEvalRequirements&lt;/code&gt; now loops over &lt;code&gt;ai_eval_target&lt;/code&gt; entities and their LLM graders, and resolves each effective model with &lt;code&gt;JudgeConfigStore::resolveEffectiveJudgeModel()&lt;/code&gt;. It returns a warning listing judges without a model, or &amp;quot;Not needed&amp;quot; when none are missing. &lt;code&gt;decision_rubric&lt;/code&gt; never uses the site judge, so its message points to the judge's Edit prompt tab. &lt;code&gt;ai_eval_update_10057()&lt;/code&gt; applies &lt;code&gt;normalizeTarget()&lt;/code&gt; to saved config.&lt;/p&gt;
-&lt;p&gt;The commit also bundles fixes for sibling issues &lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt; (new permission, results path guard, &lt;code&gt;scored_count&lt;/code&gt; column and others); those are separate and not covered here.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates. &lt;code&gt;ai_eval_update_10057()&lt;/code&gt; changes saved &lt;code&gt;cochran_confidence&lt;/code&gt; to 0.95 if it is not 0.90, 0.95 or 0.99, and &lt;code&gt;cochran_margin_of_error&lt;/code&gt; to 0.05 if it is not above 0 and at most 0.5. It prints the settings it changed. Config set by &lt;code&gt;drush cset&lt;/code&gt; or import is also handled at runtime by &lt;code&gt;SampleSize::normalizeTarget()&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594911: A re-grade of a results file without a snapshot makes the result ignore all its recorded settings</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594911.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594911</guid>
-      <category>Site owners</category>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594911"&gt;#3594911&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Re-grading a results file that has no settings snapshot no longer causes the new result to lose its recorded settings. The answer settings (mode, provider, model, agent and similar) are now stored as unknown instead of being removed or replaced by the site's current settings. Result export and the Compare page no longer treat them as if they matched the live configuration. Existing re-grade rows made from such files, and re-grades of those, are repaired by a database update, so run updates after upgrading.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Database update:&lt;/strong&gt; &lt;code&gt;ai_eval_update_10055()&lt;/code&gt; sets the answer keys to NULL and &lt;code&gt;regrade.answers_unrecorded&lt;/code&gt; to TRUE on stored re-grade rows whose answer settings were never recorded, including re-grades of such rows.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ResultRegrader::regrade()&lt;/code&gt; used to &lt;code&gt;unset()&lt;/code&gt; answer keys the earlier run did not have. &lt;code&gt;ResultEnvelopeBuilder::decodeValidatedSnapshot()&lt;/code&gt; requires those keys (&lt;code&gt;SNAPSHOT_REQUIRED_KEYS&lt;/code&gt;) and returned NULL, so all of the snapshot was ignored. Now &lt;code&gt;ANSWER_KEYS&lt;/code&gt; (made &lt;code&gt;public const&lt;/code&gt;) are always written, with NULL when the earlier snapshot lacks them, and &lt;code&gt;regrade.answers_unrecorded&lt;/code&gt; is set to TRUE when the earlier snapshot is empty, already carries &lt;code&gt;answers_unrecorded&lt;/code&gt;, or has no &lt;code&gt;mode&lt;/code&gt;. That flag therefore carries forward through a re-grade of a re-grade. The re-grade row also now stores &lt;code&gt;scored_count&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;Readers were changed to treat NULL as unknown rather than falling back to live values. &lt;code&gt;ResultEnvelopeBuilder&lt;/code&gt; reads &lt;code&gt;mode&lt;/code&gt;, &lt;code&gt;provider_id&lt;/code&gt;, &lt;code&gt;model_id&lt;/code&gt; and &lt;code&gt;agent_id&lt;/code&gt; from the snapshot when one decoded, or from the live config only when there is no snapshot, and no longer uses &lt;code&gt;??&lt;/code&gt; chains across both. &lt;code&gt;RunComparability::compare()&lt;/code&gt; returns &lt;code&gt;inspection_only&lt;/code&gt; when either side has &lt;code&gt;answers_unrecorded&lt;/code&gt; or lacks &lt;code&gt;mode&lt;/code&gt;, so two unknown values are never equal. &lt;code&gt;EvalResultsController::targetModelCell()&lt;/code&gt; shows &amp;quot;Not recorded&amp;quot; in the same cases.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ai_eval_update_10055()&lt;/code&gt; is a batched update. It first walks all rows with &lt;code&gt;source = regrade&lt;/code&gt;, follows &lt;code&gt;regrade.from.result_id&lt;/code&gt; to a fixed point so descendants of flagged rows are flagged too (including children with lower ids), then rewrites &lt;code&gt;config_json&lt;/code&gt; for the flagged rows. It adds the missing answer keys as NULL, using a frozen key list, and sets &lt;code&gt;answers_unrecorded&lt;/code&gt;. The commit also bundles many unrelated review fixes (&lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt;); only the re-grade part is described here.&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Run database updates (&lt;code&gt;drush updatedb&lt;/code&gt;). &lt;code&gt;ai_eval_update_10055()&lt;/code&gt; repairs stored re-grade rows. Code that reads a result snapshot should treat a NULL answer setting, or &lt;code&gt;regrade.answers_unrecorded&lt;/code&gt;, as unknown and not fall back to the live value with &lt;code&gt;??&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594910: Questions added from AI Answers traces break the result detail page</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594910.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594910</guid>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Major bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594910"&gt;#3594910&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Questions added to a dataset from AI Answers traces have ids like &lt;code&gt;trace-ai_answers:abc123&lt;/code&gt;. Opening the result detail page for a result containing such a question returned a 500 error for users who can annotate results. The page now opens, and annotating, resetting and promoting work for those ids. If some other question id still cannot be used in an annotation link, that row is shown without annotation controls and a warning is logged, instead of breaking the page.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The four annotation routes &lt;code&gt;ai_eval.results.annotate&lt;/code&gt;, &lt;code&gt;ai_eval.results.promote_annotation&lt;/code&gt;, &lt;code&gt;ai_eval.results.reset_annotation&lt;/code&gt; and &lt;code&gt;ai_eval.results.annotation_open&lt;/code&gt; in &lt;code&gt;ai_eval.routing.yml&lt;/code&gt; restricted &lt;code&gt;{question_id}&lt;/code&gt; to &lt;code&gt;[A-Za-z0-9_.-]+&lt;/code&gt;, so URL generation threw &lt;code&gt;InvalidParameterException&lt;/code&gt; for ids containing &lt;code&gt;:&lt;/code&gt;. The requirement is now &lt;code&gt;[A-Za-z0-9_.:-]+&lt;/code&gt;. The dataset schema allows any string as a question id, so other characters can still fail. In &lt;code&gt;EvalResultsController&lt;/code&gt;, the per-row annotation cell build (&lt;code&gt;annotationFormBuild()&lt;/code&gt; or &lt;code&gt;annotationCompactBuild()&lt;/code&gt;) is now wrapped in a &lt;code&gt;try/catch&lt;/code&gt; for &lt;code&gt;InvalidParameterException&lt;/code&gt;. On failure the cell is left empty and a warning is logged to the &lt;code&gt;ai_eval&lt;/code&gt; channel. Full support for arbitrary ids was left as a follow-up. The issue also proposed a Functional test, but the portion of the commit diff I could read did not include one. The commit is a combined fix for &lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt;, and the diff I could read was partial, so the controller change was checked in the cloned repo rather than the diff.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: November 23, 2026&lt;/li&gt;
-&lt;li&gt;Committed: November 24, 2026 (1 day later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3594909: Operators can write review labels, add generated questions and record gate results from a file, but cannot see tests on the judge validation page</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594909.md</link>
-      <guid isPermaLink="false">project/ai_eval#3594909</guid>
-      <category>Module maintainers</category>
-      <category>Site owners</category>
-      <pubDate>Tue, 24 Nov 2026 07:50:39 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal AI&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 187 files, +7669/−683 · php +7397/−638 · js +178/−29 · md +60/−6 · yml +28/−9 · txt +4 · json +2/−1&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/commit/d502d173c35f2fca7146783c70f8d26ec1bf4aa4"&gt;d502d17&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/ai_eval/-/work_items/3594909"&gt;#3594909&lt;/a&gt; · 1 contributor · 3 comments&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;Users with only the &lt;code&gt;operate ai eval&lt;/code&gt; permission can no longer write data that should need administrator rights. Creating, editing or deleting review labels now needs &lt;code&gt;administer ai eval&lt;/code&gt;, as does starting, progressing or cancelling question generation and re-grading from an uploaded results file. Operators can still re-grade a stored run. Users with &lt;code&gt;operate ai eval&lt;/code&gt; and &lt;code&gt;validate ai eval judges&lt;/code&gt; now see their tests on the judge validation page instead of an empty list. Annotators and validators can still label through the UI. If operator roles relied on generation or results-file re-grade, give those users &lt;code&gt;administer ai eval&lt;/code&gt;.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;Affects module maintainers and site owners.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Security:&lt;/strong&gt; Users with only &lt;code&gt;operate ai eval&lt;/code&gt; could write any user's review labels through REST/JSON:API and could save a gate result from an uploaded results file.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Permission change:&lt;/strong&gt; Review label create/update/delete, &lt;code&gt;ai_eval.generate.start|progress|cancel&lt;/code&gt; and &lt;code&gt;ai_eval.results.regrade_file&lt;/code&gt; now need &lt;code&gt;administer ai eval&lt;/code&gt; instead of &lt;code&gt;operate ai eval&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;API change:&lt;/strong&gt; &lt;code&gt;EvalTarget&lt;/code&gt; now has an access handler, &lt;code&gt;EvalTargetAccessControlHandler&lt;/code&gt;: &lt;code&gt;view&lt;/code&gt; for &lt;code&gt;operate ai eval&lt;/code&gt; or &lt;code&gt;administer ai eval&lt;/code&gt;, &lt;code&gt;update&lt;/code&gt; and &lt;code&gt;delete&lt;/code&gt; for &lt;code&gt;administer ai eval&lt;/code&gt;.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;ReviewLabelAccessControlHandler&lt;/code&gt; now allows &lt;code&gt;view&lt;/code&gt; for &lt;code&gt;operate ai eval&lt;/code&gt;, &lt;code&gt;annotate ai eval results&lt;/code&gt;, &lt;code&gt;validate ai eval judges&lt;/code&gt; or &lt;code&gt;administer ai eval&lt;/code&gt;. &lt;code&gt;update&lt;/code&gt;, &lt;code&gt;delete&lt;/code&gt; and &lt;code&gt;checkCreateAccess()&lt;/code&gt; need &lt;code&gt;administer ai eval&lt;/code&gt;. The admin UI writes labels through &lt;code&gt;LabelStore&lt;/code&gt;, which checks the verdict and sets the owner and does not use entity access, so annotators and validators are unaffected. Direct entity API writes, such as REST or JSON:API, lose the unchecked operator path.&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;ai_eval.routing.yml&lt;/code&gt; changes &lt;code&gt;_permission&lt;/code&gt; on &lt;code&gt;ai_eval.generate.start&lt;/code&gt;, &lt;code&gt;ai_eval.generate.progress&lt;/code&gt;, &lt;code&gt;ai_eval.generate.cancel&lt;/code&gt; and &lt;code&gt;ai_eval.results.regrade_file&lt;/code&gt; from &lt;code&gt;operate ai eval+administer ai eval&lt;/code&gt; to &lt;code&gt;administer ai eval&lt;/code&gt;. Generation saves questions into a dataset that only administrators can edit, so operators previously ended on an access denied page. &lt;code&gt;ai_eval.results.regrade&lt;/code&gt; for stored runs is left as is.&lt;/p&gt;
-&lt;p&gt;New &lt;code&gt;src/Access/EvalTargetAccessControlHandler.php&lt;/code&gt;, registered under &lt;code&gt;handlers.access&lt;/code&gt; in &lt;code&gt;EvalTarget&lt;/code&gt;, gives &lt;code&gt;view&lt;/code&gt; to &lt;code&gt;operate ai eval&lt;/code&gt; or &lt;code&gt;administer ai eval&lt;/code&gt; and &lt;code&gt;update&lt;/code&gt;/&lt;code&gt;delete&lt;/code&gt; to &lt;code&gt;administer ai eval&lt;/code&gt; only (&lt;code&gt;delete&lt;/code&gt; on an unsaved entity is forbidden). &lt;code&gt;JudgeValidateController::thresholdContext()&lt;/code&gt; filters tests by &lt;code&gt;$target-&amp;gt;access('view')&lt;/code&gt;, so it now lists tests for operators. A user with only &lt;code&gt;validate ai eval judges&lt;/code&gt; still sees none. The commit adds &lt;code&gt;EvalTargetAccessTest&lt;/code&gt;, &lt;code&gt;ReviewLabelAccessTest&lt;/code&gt; and POST checks in &lt;code&gt;PermissionAccessTest&lt;/code&gt;. The same commit bundles fixes for other issues (&lt;a href="https://www.drupal.org/node/3594906"&gt;#3594906&lt;/a&gt; to &lt;a href="https://www.drupal.org/node/3594926"&gt;#3594926&lt;/a&gt;).&lt;/p&gt;
-&lt;h2&gt;Upgrade&lt;/h2&gt;
-&lt;p&gt;Roles that need to create or change review labels through the entity API, run question generation, or re-grade from an uploaded results file must now have &lt;code&gt;administer ai eval&lt;/code&gt;. &lt;code&gt;operate ai eval&lt;/code&gt; alone is no longer enough.&lt;/p&gt;
 &lt;h2&gt;Contribution&lt;/h2&gt;
 &lt;h3&gt;Timeline&lt;/h3&gt;
 &lt;ul&gt;
