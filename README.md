@@ -1,16 +1,32 @@
-**TL;DR:** [1764 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [212 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1770 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [212 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
 
+### Drupal CMS
+
+_143 summaries · 6 new this week_
+
+- [#3591538: Add the GovStarter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591538.md)
+- [#3591537: Add the Cafe site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591537.md)
+- [#3586147: Accessibility tools -- switch to Editoria11y 3.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3586147.md)
+
+### Drupal Canvas
+
+_357 summaries · 18 new this week_
+
+- [#3592305: Workspaces PR 20: log the 1.x drafts that the migration drops](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592305.md)
+- [#3592369: Add a CLI command to manage headless frontend URLs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592369.md)
+- [#3592306: Workspaces PR 23: a queued layout write goes to the page the editor shows when...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592306.md)
+
 ### Drupal AI
 
-_602 summaries · 55 new this week_
+_603 summaries · 52 new this week_
 
+- [#3586913: Tools Explorer shows no argument fields for Tool API tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586913.md)
 - [#3594928: The run box: Cancel does nothing while a progress request is open, and a run...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594928.md)
 - [#3594927: Imported results: the results list draws the score on the wrong scale, and the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594927.md)
-- [#3594863: Guided test shows every example as a full editor, so the Examples step is very...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594863.md)
 
 ### Drupal Core
 
@@ -19,22 +35,6 @@ _667 summaries · 6 new this week_
 - [#3641267: Update Twig to v3.31.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641267.md)
 - [#2448545: Modernize form select option helpers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2448545.md)
 - [#3249027: RoleAccessCheck returns Allowed if user has no role](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3249027.md)
-
-### Drupal Canvas
-
-_353 summaries · 17 new this week_
-
-- [#3592330: Workspaces PR 24: lock a Canvas config draft to one workspace, the same way as...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592330.md)
-- [#3592283: Brand Kit – UX Improvements](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592283.md)
-- [#3592263: Workspaces PR 15: staged drafts are invisible to the Workspaces API and the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592263.md)
-
-### Drupal CMS
-
-_142 summaries · 5 new this week_
-
-- [#3591537: Add the Cafe site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591537.md)
-- [#3586147: Accessibility tools -- switch to Editoria11y 3.x](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3586147.md)
-- [#3591532: Drupal CMS installer denies access after site template selection on Drupal core...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591532.md)
 
 
 ## Rector rules
