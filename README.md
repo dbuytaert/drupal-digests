@@ -6,7 +6,7 @@ AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/
 
 ### Drupal CMS
 
-_143 summaries · 6 new this week_
+_143 summaries · 5 new this week_
 
 - [#3591538: Add the GovStarter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591538.md)
 - [#3591537: Add the Cafe site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591537.md)
@@ -14,7 +14,7 @@ _143 summaries · 6 new this week_
 
 ### Drupal Canvas
 
-_357 summaries · 18 new this week_
+_357 summaries · 15 new this week_
 
 - [#3592305: Workspaces PR 20: log the 1.x drafts that the migration drops](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592305.md)
 - [#3592369: Add a CLI command to manage headless frontend URLs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592369.md)
@@ -22,7 +22,7 @@ _357 summaries · 18 new this week_
 
 ### Drupal AI
 
-_603 summaries · 52 new this week_
+_603 summaries · 51 new this week_
 
 - [#3586913: Tools Explorer shows no argument fields for Tool API tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586913.md)
 - [#3594928: The run box: Cancel does nothing while a progress request is open, and a run...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594928.md)
@@ -30,7 +30,7 @@ _603 summaries · 52 new this week_
 
 ### Drupal Core
 
-_667 summaries · 6 new this week_
+_667 summaries · 5 new this week_
 
 - [#3641267: Update Twig to v3.31.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641267.md)
 - [#2448545: Modernize form select option helpers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2448545.md)
