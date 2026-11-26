@@ -1,8 +1,16 @@
-**TL;DR:** [1770 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [212 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1776 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [212 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal Core
+
+_671 summaries · 9 new this week_
+
+- [#3641618: Update Symfony](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641618.md)
+- [#3622582: Cleanup database exceptions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622582.md)
+- [#3328425: CKEditor 5 balloons invisible when CKEditor 5 is used inside a modal](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3328425.md)
 
 ### Drupal CMS
 
@@ -22,19 +30,11 @@ _357 summaries · 15 new this week_
 
 ### Drupal AI
 
-_603 summaries · 51 new this week_
+_605 summaries · 45 new this week_
 
 - [#3586913: Tools Explorer shows no argument fields for Tool API tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586913.md)
 - [#3594928: The run box: Cancel does nothing while a progress request is open, and a run...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594928.md)
 - [#3594927: Imported results: the results list draws the score on the wrong scale, and the...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594927.md)
-
-### Drupal Core
-
-_667 summaries · 5 new this week_
-
-- [#3641267: Update Twig to v3.31.1](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641267.md)
-- [#2448545: Modernize form select option helpers](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/2448545.md)
-- [#3249027: RoleAccessCheck returns Allowed if user has no role](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3249027.md)
 
 
 ## Rector rules
