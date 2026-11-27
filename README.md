@@ -14,7 +14,7 @@ _671 summaries · 9 new this week_
 
 ### Drupal CMS
 
-_143 summaries · 5 new this week_
+_143 summaries · 4 new this week_
 
 - [#3591538: Add the GovStarter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591538.md)
 - [#3591537: Add the Cafe site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591537.md)
@@ -22,7 +22,7 @@ _143 summaries · 5 new this week_
 
 ### Drupal Canvas
 
-_357 summaries · 15 new this week_
+_357 summaries · 12 new this week_
 
 - [#3592305: Workspaces PR 20: log the 1.x drafts that the migration drops](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592305.md)
 - [#3592369: Add a CLI command to manage headless frontend URLs](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-canvas/3592369.md)
