@@ -5,6 +5,60 @@
     <description>Stay informed about developments in Drupal Core.</description>
     <link>https://www.drupal.org/project/drupal</link>
     <item>
+      <title>#3123401: Stop caching route lookups with query parameters or without results</title>
+      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3123401.md</link>
+      <guid isPermaLink="false">node/3123401</guid>
+      <category>Module maintainers</category>
+      <pubDate>Fri, 27 Nov 2026 19:33:00 GMT</pubDate>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal task&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 5 files, +45/−33 · php +40/−30 · yml +3/−3 · sql +2&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/9f63dc704a9be8a7a3a4bdd23c133383b46baa51"&gt;9f63dc7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3123401"&gt;#3123401&lt;/a&gt; · 15 contributors · 57 comments&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 25&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 0 of 15 contributors&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;The route lookup cache no longer stores entries for requests that have a query string, and no longer stores lookups that find no route (404s). Previously every distinct path plus query string combination created its own cache entry. Those entries were all invalidated at once by the single &lt;code&gt;route_match&lt;/code&gt; tag whenever a path alias changed, so hit rates on busy sites were low and the cache could fill with entries that were never reused. Requests for plain paths that resolve to a route are cached as before. Lookups with query strings now run the route and path alias queries each time, so sites may see a few extra queries on those requests.&lt;/p&gt;
+&lt;h2&gt;Impact&lt;/h2&gt;
+&lt;p&gt;Affects module maintainers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;New API:&lt;/strong&gt; New protected &lt;code&gt;RouteProvider::useRouteCache(Request $request): bool&lt;/code&gt;, which subclasses can override to control whether a route lookup is cached.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Technical details&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;RouteProvider::getRouteCollectionForRequest()&lt;/code&gt; now computes the cache ID only when the new protected method &lt;code&gt;useRouteCache()&lt;/code&gt; returns TRUE. By default that is &lt;code&gt;$request-&amp;gt;query-&amp;gt;count() === 0&lt;/code&gt;. When it returns FALSE, the cache &lt;code&gt;get()&lt;/code&gt; is skipped as well as the &lt;code&gt;set()&lt;/code&gt;. The lookup is also only written to the cache when the resulting collection has routes or resources, so empty (404) results are never stored. The &lt;code&gt;FALSE&lt;/code&gt; handling for previously cached empty results on the read path is unchanged, so existing entries are still read.&lt;/p&gt;
+&lt;p&gt;The cache ID logic and the &lt;code&gt;route_match&lt;/code&gt; cache tag are untouched. Further improvements are tracked in &lt;a href="https://www.drupal.org/node/3621551"&gt;#3621551&lt;/a&gt;. The original report was about empty results being cached with insufficient context (for example language or domain). Maintainers could not reproduce a routing-level cause, and the change was reframed as a performance task. Alternatives discussed included removing the cache entirely and adding cache contexts to the 404 lookup (&lt;a href="https://www.drupal.org/node/3580545"&gt;#3580545&lt;/a&gt;). Tests updated: &lt;code&gt;testRouteCaching()&lt;/code&gt; now asserts no cache entry for query-string and non-existing paths, &lt;code&gt;PathWorkspacesTest::testPathAliasesWithTranslation()&lt;/code&gt; assertions changed, and the performance test fixtures (query and cache get counts, including the standard login flow) were adjusted.&lt;/p&gt;
+&lt;h2&gt;Upgrade&lt;/h2&gt;
+&lt;p&gt;Code that asserts or relies on &lt;code&gt;route:&lt;/code&gt; cache entries for query-string or 404 requests will no longer find them. A subclass that wants different behavior can override the new method:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="language-php"&gt;protected function useRouteCache(Request $request): bool {
+  return $request-&amp;gt;query-&amp;gt;count() === 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;Contribution&lt;/h2&gt;
+&lt;h3&gt;Timeline&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Opened: March 30, 2020&lt;/li&gt;
+&lt;li&gt;Committed: November 27, 2026 (6 years later)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Key contributors&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kadiiski&lt;/li&gt;
+&lt;li&gt;leoleoasd&lt;/li&gt;
+&lt;li&gt;drclaw (Fuse Interactive)&lt;/li&gt;
+&lt;li&gt;catch (Tag1 Consulting)&lt;/li&gt;
+&lt;li&gt;berdir (MD Systems GmbH)&lt;/li&gt;
+&lt;li&gt;scott_euser (Soapbox)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Collaboration&lt;/h3&gt;
+&lt;p&gt;Berdir profiled the route cache on Umami with Blackfire and xhprof. He found that most of the cost on a miss was the cache write, and that the hit rate on active sites was poor. He first built an experimental MR that removed the cache entirely, then narrowed the change after catch said he preferred only skipping lookups with query strings and those with no results. Scott Euser tested manually on a standard install. He confirmed that four page visits left 16 route cache entries before the change and 2 after, and that creating an alias for a former 404 path worked straight away.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
+</description>
+    </item>
+    <item>
       <title>#3641618: Update Symfony</title>
       <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641618.md</link>
       <guid isPermaLink="false">node/3641618</guid>
@@ -1013,50 +1067,6 @@ class MyProfileTasks implements TasksInterface {
 &lt;li&gt;ressa (Ardea)&lt;/li&gt;
 &lt;li&gt;quietone (PreviousNext)&lt;/li&gt;
 &lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;em&gt;This content is AI-generated and may contain errors. See &lt;a href="https://github.com/dbuytaert/drupal-digests/"&gt;Drupal Digests&lt;/a&gt; for more.&lt;/em&gt;&lt;/p&gt;
-</description>
-    </item>
-    <item>
-      <title>#3273334: Unable to unselect a multi select exposed filter in ajax view</title>
-      <link>https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3273334.md</link>
-      <guid isPermaLink="false">node/3273334</guid>
-      <pubDate>Tue, 10 Nov 2026 12:24:27 GMT</pubDate>
-      <description>&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Project:&lt;/strong&gt; Drupal Core&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; Normal bug report&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; 11.5.x-dev&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Status:&lt;/strong&gt; Fixed&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Changes:&lt;/strong&gt; 3 files, +72/−7 · php +58/−5 · js +14/−2&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Diff:&lt;/strong&gt; &lt;a href="https://git.drupalcode.org/project/drupal/-/commit/48f2609fca18449156daaf420e1f6c1d8e8d3fad"&gt;48f2609&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Discussion:&lt;/strong&gt; &lt;a href="https://www.drupal.org/node/3273334"&gt;#3273334&lt;/a&gt; · 13 contributors · 46 comments&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Followers:&lt;/strong&gt; 18&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;AI disclosures:&lt;/strong&gt; 2 of 13 contributors&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2&gt;Summary&lt;/h2&gt;
-&lt;p&gt;In an AJAX-enabled view with a multi-select exposed filter, you can now clear the selection. Previously, if the filter was already in the page URL (for example &lt;code&gt;/admin/content?type[]=page&lt;/code&gt;), deselecting the value and pressing Filter re-selected it. The query string parameters for exposed filters are now correctly dropped before the AJAX request, so the submitted form values win. Query parameters in the resulting URLs can appear in a different order.&lt;/p&gt;
-&lt;h2&gt;Impact&lt;/h2&gt;
-&lt;p&gt;No upgrade or configuration changes required.&lt;/p&gt;
-&lt;h2&gt;Technical details&lt;/h2&gt;
-&lt;p&gt;The bug was in &lt;code&gt;core/modules/views/js/ajax_view.js&lt;/code&gt;. When building the AJAX request, the code removes existing exposed filter params from the page's query string, but it only matched &lt;code&gt;input[name=&amp;quot;...&amp;quot;]&lt;/code&gt; by exact name. &lt;code&gt;select&lt;/code&gt; and &lt;code&gt;textarea&lt;/code&gt; elements were never matched, and a multi-select named &lt;code&gt;type[]&lt;/code&gt; did not match a URL param such as &lt;code&gt;type[0]&lt;/code&gt; or &lt;code&gt;type[]&lt;/code&gt;. A multi-select with nothing selected submits no value, so the stale URL param was passed through and re-applied.&lt;/p&gt;
-&lt;p&gt;The fix collects the base names of every &lt;code&gt;[name]&lt;/code&gt; element in the exposed form into a &lt;code&gt;Set&lt;/code&gt;, stripping any &lt;code&gt;[...]&lt;/code&gt; suffix with a &lt;code&gt;stripArraySuffix()&lt;/code&gt; helper. It then filters URL params by checking their suffix-stripped name against that set. This removes all exposed form fields from the URL, not only checkboxes and multi-selects, which can change the order of params in generated URLs. The committer noted this is closer to the original intent of the &lt;code&gt;// Remove current exposed filters.&lt;/code&gt; comment. Existing FunctionalJavascript tests in the views and admin tests were updated for the new param order (for example &lt;code&gt;title=Page%20Two&amp;amp;type=All&amp;amp;status=All&lt;/code&gt;). A new &lt;code&gt;testUnselectMultiSelectExposedFilter&lt;/code&gt; covers clearing the selection and the &lt;code&gt;type[0]&lt;/code&gt;/&lt;code&gt;type[1]&lt;/code&gt; URL form. It was backported to 12.0.x, 11.x and 11.5.x.&lt;/p&gt;
-&lt;h2&gt;Contribution&lt;/h2&gt;
-&lt;h3&gt;Timeline&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;Opened: April 4, 2022&lt;/li&gt;
-&lt;li&gt;Committed: November 10, 2026 (4 years later)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;Key contributors&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;pasqualle&lt;/li&gt;
-&lt;li&gt;immaculatexavier (Material)&lt;/li&gt;
-&lt;li&gt;yogeshmpawar (Portage CyberTech)&lt;/li&gt;
-&lt;li&gt;smustgrave (Mobomo)&lt;/li&gt;
-&lt;li&gt;dcam&lt;/li&gt;
-&lt;li&gt;acbramley (PreviousNext)&lt;/li&gt;
-&lt;li&gt;longwave (Full Fat Things)&lt;/li&gt;
 &lt;li&gt;alexpott (Acro Commerce)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr /&gt;
