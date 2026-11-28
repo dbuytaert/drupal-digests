@@ -1,8 +1,16 @@
-**TL;DR:** [1779 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [213 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
+**TL;DR:** [1780 summaries](https://github.com/dbuytaert/drupal-digests/blob/main/issues) of notable Drupal changes and [213 Rector rules](https://github.com/dbuytaert/drupal-digests/tree/main/rector/rules) to help you upgrade. Stay up to date about new additions using the [RSS feeds](#rss-feeds) below.
 
 ## Recent changes
 
 AI-generated summaries of [notable Drupal commits](https://github.com/dbuytaert/drupal-digests/blob/main/issues), filtered by impact and community interest.
+
+### Drupal AI
+
+_607 summaries · 39 new this week_
+
+- [#3586783: Uninstalling CCC deletes roles that have the permission to translate context...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-context/3586783.md)
+- [#3586038: Automated Drupal 12 compatibility fixes for ai_agents 1.4.x-dev](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-agents/3586038.md)
+- [#3586913: Tools Explorer shows no argument fields for Tool API tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586913.md)
 
 ### Drupal Core
 
@@ -11,14 +19,6 @@ _672 summaries · 10 new this week_
 - [#3123401: Stop caching route lookups with query parameters or without results](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3123401.md)
 - [#3641618: Update Symfony](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3641618.md)
 - [#3622582: Cleanup database exceptions](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-core/3622582.md)
-
-### Drupal AI
-
-_606 summaries · 42 new this week_
-
-- [#3586038: Automated Drupal 12 compatibility fixes for ai_agents 1.4.x-dev](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-agents/3586038.md)
-- [#3586913: Tools Explorer shows no argument fields for Tool API tools](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai/3586913.md)
-- [#3594928: The run box: Cancel does nothing while a progress request is open, and a run...](https://github.com/dbuytaert/drupal-digests/blob/main/issues/ai-eval/3594928.md)
 
 ### Drupal Canvas
 
@@ -30,7 +30,7 @@ _358 summaries · 12 new this week_
 
 ### Drupal CMS
 
-_143 summaries · 4 new this week_
+_143 summaries · 3 new this week_
 
 - [#3591538: Add the GovStarter site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591538.md)
 - [#3591537: Add the Cafe site template to the installer](https://github.com/dbuytaert/drupal-digests/blob/main/issues/drupal-cms/3591537.md)
